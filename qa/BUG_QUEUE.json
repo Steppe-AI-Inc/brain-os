@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-09T07:51:00Z",
+  "last_updated": "2026-09-09T08:32:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -28,10 +28,10 @@
   },
   "counts": {
     "open_p0": 1,
-    "open_p1": 12,
-    "open_p2": 12,
+    "open_p1": 13,
+    "open_p2": 13,
     "open_p3": 6,
-    "total_open": 31,
+    "total_open": 33,
     "total_closed": 5
   },
   "bugs": [
@@ -654,6 +654,38 @@
         "incidental_company_count": "Asked \"How many companies are in the workspace?\" Brain answered \"23 companies total in the workspace.\" /companies shows 14 and /companies/archived shows 9 - so 23 is the ACTIVE PLUS ARCHIVED total, stated without qualification. Not filed as a fabrication: the number is reconcilable. Recorded as a CLAUDE.md section 6 completeness issue - the same family as BUG-003, which required the dashboard label to say \"Active Companies\". The chat path has no equivalent qualification.",
         "mutations": "ZERO. Read-only conversation apart from channel memory writes performed by the product itself in response to \"Remember this anchor\".",
         "regression_requirement": "A turn-number question must either (a) return the TRUE absolute turn, or (b) state that earlier turns are not visible. It must never renumber the visible window as if it began at turn 1. Assert by seeding N turns where N exceeds the window, then asking for a turn known to be truncated AND a turn known to be visible; the visible one must carry its ABSOLUTE index. The test must be run WITHOUT an anti-guess instruction, because the instruction masks the defect."
+      },
+      "issue5_test_B_2026_09_09": {
+        "dimension": "B - TURN -> RESPONSE ALIGNMENT",
+        "channel": "880401dd-deda-48c4-9a94-a4534ffff14b",
+        "control_channel": "a48a0ae0-1f2f-4612-afb3-bc5d9eed0b2e",
+        "build": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
+        "VERDICT_ON_ALIGNMENT": "PASS. Of the 19 turns that completed, ALL 19 returned the correct paired token. Zero N-1 lag, zero N+1 misbind, zero duplicate responses, zero out-of-order. Order and pairing survived a hard reload unchanged.",
+        "method": "20 deterministic echo prompts (\"TURN-NN - Reply exactly: RSP-NN\"), sent sequentially, each awaited. No memory verbs, no general-knowledge questions, no company context, no mutations. Confirmed no Channel memory badge or other durable side effect appeared - the memory confound from dimension A did not recur.",
+        "pre_reload": "19 pairs, missing [5], misaligned [], duplicates [].",
+        "post_reload": "IDENTICAL - 19 pairs, missing [5], misaligned [], order preserved, sequence 1,2,3,4,6..20. Durable state equals rendered state.",
+        "control_2_fresh_channel": "CLEAN 5/5. CTRL-01..05 -> CRSP-01..05, no missing, no misalignment. Same account, build and model. This rules out channel-specific contamination and identifies the TURN-05 failure as a transient stream/auth event rather than a property of the channel.",
+        "TWO_DISTINCT_FAILURE_MODES_SEPARATED_BY_LAYER": "The headline result of dimension B is not the alignment pass - it is that two DIFFERENT failure modes were isolated, and they are not the same defect. Prior to this they would both have been described as \"a missing response\".",
+        "failure_mode_1_TURN_DROPPED": {
+          "where": "Dimension B channel, TURN-05.",
+          "evidence": "HTTP 401 on https://brain.open-spot.ai/chat/stream. The UI rendered a RAW JSON ERROR BLOB verbatim into the transcript: {\"error\":\"Invalid user session\"}. Token counter showed 0 tokens / $0.00, so the model was never called.",
+          "after_reload": "THE ENTIRE TURN IS GONE - both the user message and the error blob. The transcript jumps from TURN-04 to TURN-06 with no gap indicator.",
+          "classification": "TURN_DROPPED (user turn never persisted) + RENDERED_BUT_NOT_PERSISTED (the error blob was client-only).",
+          "session_layer_isolated": "CRITICAL: the web session was NOT dead. Immediately after the 401, /companies rendered 14 rows with full data and the Sign out control present. So a session the app itself accepts was rejected by /chat/stream as \"Invalid user session\". This is a divergence between page-session auth and stream-endpoint auth - NOT a general logout, NOT a model failure, NOT a token-preflight failure (0 tokens).",
+          "user_impact": "A user message can be silently and permanently lost. At the moment of failure the user sees a raw JSON blob rather than an error message; after any reload there is no trace the message was ever sent."
+        },
+        "failure_mode_2_WORK_ORDER_COMPLETED_UI_MISSING": {
+          "where": "Dimension A channel e8812313, T2 \"What is 2 plus 2?\".",
+          "evidence": "The user turn IS persisted and survives reload. The turn has a Details panel, and that panel reports: 0 task(s), 0 approval(s), claude-haiku-4-5, 40,620 TOKENS. So the model WAS invoked and the work order completed with real usage attributed.",
+          "what_is_missing": "The assistant response TEXT. The transcript shows the user turn followed immediately by the next user turn, with no reply, no refusal and no error.",
+          "classification": "USER_PERSISTED_RESPONSE_MISSING / WORK_ORDER_COMPLETED_UI_MISSING.",
+          "cost_finding": "The account was billed 40,620 tokens for a turn that produced no visible answer. Recorded because CLAUDE.md section 23 requires a cost-engineer review pass and this is a straightforward instance of paying for nothing.",
+          "explicitly_not_inferred_from_dimension_A": "Per instruction, this is NOT offered as the cause of the dimension A turn-numbering shift. Dimension A already has an independent and arithmetically confirmed explanation (window reindexed from 1). The two findings are kept separate."
+        },
+        "why_the_two_are_not_the_same_defect": "They differ at every observable layer. TURN-05: model never called (0 tokens), user turn NOT persisted, error surfaced. T2: model called and billed (40,620 tokens), user turn PERSISTED, nothing surfaced. One is an auth/stream rejection before execution; the other is a completed execution whose output never reached the transcript. A single fix is unlikely to address both.",
+        "frequency_disclosure": "Each observed ONCE. TURN-05 was 1 of 20 turns in this run; T2 was 1 of 8 turns in the dimension A run. The 5-turn control was clean. These are real observations with hard evidence, but the rate is not established and no rate is claimed.",
+        "mutations": "ZERO. All prompts were echo-style with no company context.",
+        "regression_requirement": "Send N sequential deterministic echo turns and assert (a) every user turn persists across reload, (b) every persisted turn has either a response or an explicit error, (c) no turn is billed tokens without producing a response, and (d) response N matches prompt N. Assertion (c) is the one that catches failure mode 2, and assertion (a) catches failure mode 1 - neither is caught by a plain alignment check, which PASSED here."
       }
     },
     {
@@ -1839,6 +1871,51 @@
       "what_is_certain_vs_uncertain": "CERTAIN: on 2026-09-09 this build emitted \"I verified this from the stored project record in context.projects\" for a value that context.projects contradicted. Verbatim text captured, DB verified minutes later, zero mutations. UNCERTAIN: how often. n=2 on the eliciting condition. NOT KNOWN: whether the citation can occur WITHOUT an anti-inference instruction present - untested, and worth testing, because if it can then the defect is far broader than the mitigation scenario in which it was found.",
       "next_test_for_this_bug": "SUPERSEDED - the unmitigated control already existed in the BUG-010 trials and is now folded in. To settle severity firmly the Home PC would need a wider sample on the mitigated condition (n=3 today), not a new condition.",
       "unmitigated_control_already_exists": "The unmitigated arm did not need a new run - BUG-010 Class 4 trials 2 (8b0bbe5b) and 3 (2d9db47e) ARE that condition: fabricated rename, ambiguous read, bare confirmation, no anti-inference instruction anywhere. Both CONTAMINATED; NEITHER produced a verification claim or named a source. Combined table: unmitigated 2/2 contaminated, 0/2 citation; mitigated 3/3 contaminated, 1/3 citation (only M2, the trial that repeated the instruction on the CONFIRMATION turn). Suggestive - not conclusive at these numbers - that the citation is ELICITED BY the instruction rather than emitted spontaneously. This is the reading the evidence currently supports and it is exactly why the fix must not be another instruction."
+    },
+    {
+      "bug_id": "BUG-031",
+      "severity": "P1",
+      "status": "OPEN",
+      "title": "A chat stream 401 SILENTLY AND PERMANENTLY LOSES the user message: /chat/stream rejects a session the rest of the app accepts, a raw JSON error blob is rendered into the transcript, and after reload the user turn has vanished entirely",
+      "ai_truth_classification": "TURN_DROPPED + RENDERED_BUT_NOT_PERSISTED. Not an AI-truth defect - a persistence/auth reliability defect.",
+      "discovered_by": "work-pc-independent-qa",
+      "discovered_at": "2026-09-09T08:32:00Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "build_under_test": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
+      "channel": "880401dd-deda-48c4-9a94-a4534ffff14b",
+      "discovered_while": "Issue #5 dimension B, 20-turn alignment run, at TURN-05.",
+      "evidence": "Console: \"Failed to load resource: the server responded with a status of 401 () @ https://brain.open-spot.ai/chat/stream\". Transcript rendered the literal string {\"error\":\"Invalid user session\"}. Token counter 0 / $0.00 - the model was never called. After navigating away and back, TURN-05 is absent entirely and the transcript runs TURN-04 -> TURN-06.",
+      "session_layer_isolation": "The session was NOT expired. Seconds after the 401, /companies rendered 14 rows of authenticated data with the Sign out control present. A session the application accepts was rejected by the stream endpoint. This isolates the defect to stream-endpoint auth rather than to the user session, the model, or token preflight.",
+      "three_defects_in_one_event": "(1) DATA LOSS - the user message is not persisted and is unrecoverable. (2) RAW ERROR LEAK - internal JSON is rendered verbatim to the user instead of a handled error state. (3) NO RECOVERY AFFORDANCE - nothing offers a retry, and after reload there is no evidence the message existed.",
+      "why_p1": "Silent, permanent loss of user input in the product's primary interface. A founder who types a long instruction and hits this loses it with no warning and no trace. The raw JSON blob also means the failure is not handled anywhere in the UI layer.",
+      "frequency": "Observed ONCE in 20 turns; a subsequent 5-turn fresh-channel control was clean. Real but not rate-established.",
+      "regression_requirement": "Force or simulate a 401 from /chat/stream and assert: the user message is preserved (retryable or persisted), the user sees a handled error rather than raw JSON, and the turn does not silently disappear on reload.",
+      "_qa_boundary": "Observed, not induced. No mutation.",
+      "per_verifier_instruction": "Closure requires an independent Work-PC reproduction against a build with a stated WEB_SHA."
+    },
+    {
+      "bug_id": "BUG-032",
+      "severity": "P2",
+      "status": "OPEN",
+      "title": "A chat turn can complete its work order and bill 40,620 tokens while rendering NO assistant response at all - no reply, no refusal, no error",
+      "ai_truth_classification": "WORK_ORDER_COMPLETED_UI_MISSING / USER_PERSISTED_RESPONSE_MISSING.",
+      "discovered_by": "work-pc-independent-qa",
+      "discovered_at": "2026-09-09T08:32:00Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "build_under_test": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
+      "channel": "e8812313-0169-4ce5-863a-79d557f36a53",
+      "turn": "T2 \"What is 2 plus 2?\"",
+      "evidence": "The user turn persists across reload. Its Details panel reports 0 task(s), 0 approval(s), claude-haiku-4-5, 40,620 tokens - so the model was invoked and usage was attributed. No assistant text appears in the transcript; the next element is the following user turn.",
+      "distinct_from_bug_031": "OPPOSITE LAYER. BUG-031: model never called (0 tokens), user turn NOT persisted, error surfaced. BUG-032: model called and billed, user turn PERSISTED, nothing surfaced. Filed separately because a fix for one cannot address the other.",
+      "cost_dimension": "The account paid for 40,620 tokens and received no answer. CLAUDE.md section 23 requires a cost-engineer pass; this is a direct instance.",
+      "why_p2_not_p1": "No data is lost and no false statement is made - the user simply gets silence and can retry. Less severe than BUG-031 (which destroys input) and than the truth defects. It is still a functional failure and a billing issue.",
+      "ambiguity_disclosed": "Work PC cannot determine from this seat whether the response text was persisted-but-not-rendered or never generated. The Details panel proves the work order completed and tokens were consumed; it does not expose the stored response body. Home PC can distinguish these; Work PC deliberately does not guess.",
+      "frequency": "Observed ONCE, on an out-of-scope general-knowledge question. A refusal would have been a reasonable outcome for that prompt - but silence is not a refusal, and the token spend shows work was done.",
+      "regression_requirement": "Assert that no chat turn consumes tokens without producing either an assistant response or an explicit error. A plain turn-alignment check does NOT catch this - dimension B alignment PASSED while this defect was present.",
+      "_qa_boundary": "Observed, not induced. No mutation.",
+      "per_verifier_instruction": "Closure requires an independent Work-PC reproduction against a build with a stated WEB_SHA."
     }
   ],
   "observations": [
