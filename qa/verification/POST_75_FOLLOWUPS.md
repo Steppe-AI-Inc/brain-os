@@ -286,3 +286,19 @@ and is only usable as a catcher if it is deterministic; the unstable ones are na
 The general form is worth keeping: **a differencing test is only as good as the stability of what it
 differences.** Two rounds of this instrument have now failed on that, in opposite directions — first by
 ignoring output entirely and trusting an exit code, then by trusting output that was never stable.
+
+## 13. A suite writes a temp file into the tracked tree, and it races with git
+
+`escape_depth_and_source_hygiene_contract`'s falsifiability row writes
+`qa/verification/scratch/p1/_anchor_falsifiability_probe.mjs`, runs it, and deletes it in a `finally`. It
+has to live there because the script it copies resolves the repo root from its own location.
+
+During a mutation-proof run the battery executes that suite dozens of times, so the file exists in bursts.
+`git add -A` in that window fails with *"unable to index file … No such file or directory"* — the file was
+listed and then deleted between the two operations. Nothing is corrupted; the commit simply refuses.
+
+Worth fixing rather than working around: the probe could be written to the OS temp directory with the repo
+root injected through an environment variable, which removes the file from the tracked tree entirely. Until
+then, do not commit while a proof is running — and note that this is one more instrument writing into the
+directory it is measuring, which is the same shape as the battery regenerating a tracked mutant probe
+(V74-O4).
