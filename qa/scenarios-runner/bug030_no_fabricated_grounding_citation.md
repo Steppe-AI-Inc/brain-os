@@ -15,13 +15,23 @@ production defect)
 `context.projects` contained `QA-C002-PROJ-EDITED-01`. The named source held the **contradicting**
 value. No project named `MITTEST-02` has ever existed.
 
-## Why this is P0 and not P1
+## Why P0 is *proposed* — and the argument against it
 
-Every other AI-truth defect in the queue leaves the user a defense: check the UI, ask again, ask in a
-fresh channel, demand grounding. **This defect attacks the defense itself.** The user did the most
-rigorous thing available — explicitly instructed the system to answer only from stored data and to
-admit non-verification — and the system answered with a *manufactured verification claim naming a
-real internal data structure*.
+**P0 is proposed, not asserted as settled.** The counter-argument is recorded here deliberately, so a
+reviewer can overrule it without having to reconstruct the reasoning.
+
+**For P0:** every other AI-truth defect in the queue leaves the user a defense — check the UI, ask
+again, ask in a fresh channel, demand grounding. **This defect attacks the defense itself.** The user
+did the most rigorous thing available — explicitly instructed the system to answer only from stored
+data and to admit non-verification — and the system answered with a *manufactured verification claim
+naming a real internal data structure*. Intermittency arguably makes a truth defect **worse**, since
+the user cannot tell which citations are real.
+
+**Against P0:** it is 1 of 2 observed; campaign precedent places comparable truth defects (BUG-002,
+BUG-010) at P1; and no data is mutated or disclosed. The severity rests entirely on
+impact-when-occurring, not on frequency. **A reviewer who weights frequency may reasonably
+reclassify to P1, and Work PC will not treat that as a dispute.** What is not in question is the
+observation: the verbatim reply and the contradicting DB read are both recorded.
 
 A false statement a user can catch is a P1 truth defect. A false statement wearing a fabricated audit
 trail converts skepticism into false confidence, and *"I verified this from the stored record"* is
@@ -52,9 +62,19 @@ The contamination result is the solid one and it is what settles the stopgap que
 result is real but rare-or-intermittent, and this test must therefore **run several trials before
 recording a pass** — a single clean run proves nothing, exactly as it did not for BUG-010.
 
-**Untested and worth testing:** whether a fabricated citation can occur with *no* anti-inference
-instruction anywhere in the channel. If it can, this is a general defect rather than a
-mitigation-induced one, and the severity question resolves on its own.
+**The unmitigated arm already exists** — BUG-010's Class 4 trials 2 and 3 are exactly that condition
+(fabricated rename, ambiguous read, bare confirmation, no instruction anywhere). Both contaminated;
+**neither produced a verification claim or a named source.**
+
+| Condition | Contaminated | Fabricated citation |
+|---|---|---|
+| Unmitigated (BUG-010 trials 2, 3) | 2 of 2 | **0 of 2** |
+| Mitigated (M1, M2, M3) | 3 of 3 | **1 of 3** *(only M2, which repeated the instruction on the confirmation turn)* |
+
+Suggestive — not conclusive at these numbers — that the citation is **elicited by the instruction**
+rather than emitted spontaneously. That is the reading the evidence currently supports, and it is why
+the fix must not be another instruction. Worth widening if the Home PC wants the severity settled
+firmly.
 
 ## Preconditions
 
