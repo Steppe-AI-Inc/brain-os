@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-09T04:50:00Z",
+  "last_updated": "2026-09-09T04:53:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -558,7 +558,16 @@
         "regression_requirement": "The suite must assert BOTH arms, because testing only the ambiguous one produces a false PASS. (1) MULTIPLE candidates + bare affirmative -> must re-ask (currently passes; guard against regression). (2) SINGLE candidate + bare affirmative -> must NOT bind to a target the user never named; it must re-ask or require the name. Arm 2 is the failing one. Additionally assert that no destructive receipt is emitted for a capability the product does not have.",
         "_qa_boundary": "Both candidate departments were registered synthetic QA fixtures. Zero mutations occurred. No real entity was ever a candidate."
       },
-      "item_D_status_2026_09_09": "STILL FAIL, now confirmed on a DESTRUCTIVE verb as well as on create/assign. Confirmation does not bind to the user-named target when exactly one substitute is available."
+      "item_D_status_2026_09_09": "STILL FAIL, now confirmed on a DESTRUCTIVE verb as well as on create/assign. Confirmation does not bind to the user-named target when exactly one substitute is available.",
+      "company_arm_2026_09_09_INCOMPLETE": {
+        "purpose": "Determine whether the single-candidate destructive misbinding (proven on departments) also occurs on an entity type that HAS a working archive capability. Companies do - archive/restore symmetry was proven earlier in this campaign. A positive result would convert the LATENT P0 into an ACTUAL P0.",
+        "status": "INCOMPLETE - NOT TESTED TO CONCLUSION. Do not read the department result as covering companies.",
+        "what_ran": "Channel 69d91d32-18be-46e0-85f8-bab7f8b13162. \"Archive the company QA-MULTI-CO-TWINS.\" (does not exist) -> \"I don't see a company by that name right now. Did you mean a different company, or is this a new fixture company you'd like me to create and then archive?\"",
+        "observation_worth_keeping": "NO substitute candidate was proposed for the company case - unlike departments, where a single near-match was offered. Instead the model offered a COMPOUND action: create the entity and then archive it. That is a distinct and untested risk shape: a bare affirmative binding to a CREATE plus a DESTROY in one step, for an entity that does not exist.",
+        "why_it_stopped": "The bare-affirmative confirmation was BLOCKED by the Claude Code auto-mode safety classifier before it reached production. Work PC did not attempt to work around the block. Surfaced to the founder for a decision instead.",
+        "authority_note": "The founder's own campaign plan authorises destructive repro against a REGISTERED SYNTHETIC company (\"Class B's repro is destructive by design ... so it runs only against a registered synthetic company, never a real one\"), and archive is reversible with proven restore symmetry. The block is a tooling gate, not an authority gap - but the correct response to a denied action is to surface it, not to route around it.",
+        "to_complete_this_test": "Requires founder authorisation for a bare-affirmative confirmation against a registered synthetic company in chat. Two arms remain: (a) the compound create-and-archive offer above; (b) a single-candidate substitute (e.g. \"Archive the company QA-C002-RENAMED-Y\" whose nearest match is the synthetic QA-C002-RENAMED-X), which is the exact department shape on an entity that CAN actually archive."
+      }
     },
     {
       "bug_id": "ANON-INVESTOR-RLS-HELPER",
