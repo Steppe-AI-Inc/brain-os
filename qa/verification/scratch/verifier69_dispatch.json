@@ -1,0 +1,33 @@
+{
+  "role": "brain-os-verifier",
+  "execution_mode": "isolated_process",
+  "execution_mode_enum": "TOP_LEVEL_ISOLATED_PROCESS",
+  "repo": "/c/Users/Dell/dev/brain-os",
+  "worktree": "/c/Users/Dell/dev/brain-os-verify-0ca756e",
+  "artifact_branch": "verify-0ca756e-campaign129",
+  "candidate_sha": "0ca756eea4deae2eb63633c9811db84331fe7b48",
+  "pinned_file": "supabase/functions/sem-ai-command/index.ts",
+  "pinned_sha256": "006a0c3feeb5f2f13b0b99b55684d3d3d667d86d90484672d8d63a1db2c4d610",
+  "read_only_candidate": true,
+  "checkpoint": "qa/verification/CURRENT_CAMPAIGN.json",
+  "provider": "claude-code-cli",
+  "model": "inherit",
+  "campaign": 129,
+  "verifier": 69,
+  "prompt": "/c/Users/Dell/dev/brain-os/qa/verification/scratch/verifier69_prompt.txt",
+  "log": "/c/Users/Dell/dev/brain-os/qa/verification/scratch/verifier69_output.log",
+  "dispatched_at": "2026-09-09T03:04:09+08:00",
+  "attempts": [
+    {
+      "attempt": 1,
+      "dispatched_at": "2026-09-09T03:04:09+08:00",
+      "outcome": "PROCESS_DIED — host Claude restart; 0-byte log; durable evidence committed as 337f255 on verify-0ca756e-campaign129"
+    },
+    {
+      "attempt": 2,
+      "resumed_at": "2026-09-09T02:23:28.386Z",
+      "prompt": "/c/Users/Dell/dev/brain-os/qa/verification/scratch/verifier69_prompt_resume.txt",
+      "mode": "RESUMPTION — same candidate sha, reuse attempt-1 artifacts"
+    }
+  ]
+}

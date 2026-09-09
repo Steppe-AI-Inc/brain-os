@@ -1,0 +1,76 @@
+Confirmed — the safety contract explicitly blocks the "survivors with exit 0" class (V66-D3) and passes 42/0; my earlier reading was purely my own pipeline artefact.
+
+---
+
+# VERIFIER #67 — CAMPAIGN #127 — FINAL REPORT
+
+## PREFLIGHT: EXECUTION_READY
+*Deviation, disclosed:* `git rev-parse HEAD` = `0dc0df2`, not `8d157bf`. This was a **re-dispatch** — the artifact branch already carried a prior verifier-#67 commit. I closed the risk before proceeding rather than false-blocking: candidate `index.ts` sha256 exact, and `git diff 8d157bf..HEAD` = **0 files outside `qa/`, 0 under `qa/scenarios-runner/`**. I treated all prior evidence as stale and re-derived every finding from bytes I obtained myself, with my own slicer.
+
+## VERDICT: **FAIL**
+
+`8d157bf` is **not** fit to deploy over v92 under the contract bar.
+
+---
+
+## 1. PRIMARY MISSION — THE AXIS
+
+I swept the **VERB** first, because the founder named it first. **It is clean: 360/360 armed across all 120 lexicon entries.** `MUTATION_VERB_ALTERNATION` genuinely is one definition with multiple consumers. That is a real negative result and it redirected me.
+
+The defect is the **interaction**: *how the object refers to its entity*. Sweeping 120 verbs × entity-reference shapes:
+
+| object reference | armed | blind |
+|---|---|---|
+| CONTROL (`ACME`, `QA-1`, `task QA-1`, `the task QA-1`, `company ACME`) | 600 | **0** |
+| COMPOUND (`work order WO-1`, `purchase approval A-1`, …) | 121 | **839** |
+| the same compound, determiner added | 233 | 7 |
+
+**End-to-end on the candidate's own extraction path** (same window/anchors as `architecture_final_claim_contract.mjs`; only the corpus differs): **CONTROL 0 fabrications shipped of 20; TEST 40 of 40**, each with `turnVerdict.mutationIntent = null, receiptRendered = false`.
+
+**Mandate §1 required invariant: VIOLATED.** "A noun that names an entity" is spelled **five** times — `IMPERATIVE_OBJECT` (70), `STRONG_OBJECT` (25), `MUTATION_VERB_WITH_OBJECT` (43), `commandEntityNoun` (12), `CLARIFICATION_ENTITY_ACTION_FIELD` (7) — with **238 pairwise disagreements**. A semantic duplicate remains ⇒ FAIL.
+
+**Three independent causes**, which is why a fourth local patch will not close it: **D1** every `IMPERATIVE_OBJECT` alternative is `^`-anchored (only token 0 is inspected); **D2** `READ_SHAPE`'s idiom `\b` matches mid-phrase, vetoing `delete the chat channel C-1` — a real deletable row; **D6** `STATEMENT_FINITE_VERB` lists `works?`, so the *modifier* "work" makes the object read as a clause. D6 I found only by building the D1 fix and re-measuring.
+
+## 2. REQUEST CONSISTENCY — **PASS**, and credited
+`EXECUTOR ⊆ INTENT`: **0 violations of 1,920** on my axis. The #66 closure holds where it was not built to.
+
+## 3. NEVER-SILENT RECEIPT — **FAIL** (false-negative) / **PASS** (false-positive)
+All three final-answer gates require `requestedIntent !== null`, so a null intent means the fabrication *is* the answer. False-positive direction is clean: **0 of 40** reads arm — including `make a list of…`, `add up…`, `set out the plan…`, `share price fell…`.
+
+## 4. VACUITY / SWEEP SAFETY — **PASS**, with a harness finding in *my own* tooling
+38/0, 25/0, extended **147 killed / 22 regex-level survivors** (registered residual, #145). Safety contract 42/0, floors not lowered, **0 zero-target suites**. Battery enumerated from the filesystem: **75 suites, 73 green, 2 red** (ledger #145's declared write-authority reds, off the deploy surface), 1717 assertions.
+
+**Two of the 22 survivors — `hypotheticalRequest never matches` and `negatedRequest never matches` — independently corroborate D4: nothing tests the receipt's reason selection.**
+
+*My own tooling failed open twice and I am reporting it:* (a) my first suite draft had three fail-open rows (a control folding two causes, a missing shipped `|| 'company'` fallback, a half-parsed frame list giving 2 junk frames instead of 20) — all fixed; (b) **a pipeline masks an exit code** — `node sweep | tail` reports *tail's* status, which briefly made the extended sweep look like "22 survivors, exit 0". Line 219 is correct and the safety contract pins it.
+
+## 5. NAMED TARGETS — **PASS**. 8/8; envelope beside its rows, not smuggled into `context.collections`; declared before the pack literal; no TDZ.
+
+## 6. DUPLICATED CONCEPTS
+IMPERATIVE/STRONG/WITH_OBJECT: **IDENTICAL SEMANTICS — converge.** `commandEntityNoun` vs the executor map: **IDENTICAL SEMANTICS — converge** (`channel`, `approval` unnameable → answered as "company", a false statement under §4.2). Completion-vocabulary family (#141): **ready for a decision** — the four *patterns* are INTENTIONALLY DIFFERENT, but the participle vocabulary inside them is one concept spelled four times; converge the vocabulary, not the patterns.
+
+## 7. TOKEN BUDGET — **NOT resolved, and none of it is live evidence**
+Contract suite 38/0. I re-measured the estimator myself on fixtures built from the real `.limit()` caps: trim **converges** in all four cases including a pathological 233,852→11,333, minimum safe context intact, history keeps newest. Thinnest realistic headroom **636 tokens**; the 600-token reserve is a deliberate constant, not tuned to 11,999. Preflight and trim loop measure the **same object shape**. `MINIMUM_SAFE_CONTEXT` covers 5 of the 7 contract members; **identity, org scope, permissions and the safety contract are protected only by omission — no assertion names them.** Registered, not a defect (they are not pack members), but a future change that put org scope in the pack would inherit no protection.
+
+## Carried mandate answers
+**v59 hardening** verified in *these* bytes. **Whole-request gates:** pack preflight = SAFE DEGRADATION → deterministic refusal; model context window & image size = DETERMINISTIC REFUSAL; platform body limit, model-specific limits, request timeout, stream init = **UNMEASURED and NAMED** — honestly scoped, I found no hidden fifth. **`embedTexts` is byte-identical to v92 (`e8558e70c356b397`) and still NAMED** in both work orders and as OPEN ledger #144 — both halves of #66's condition hold. **Modal-interrogative line: the ruling is RIGHT** (20/20 deliberative and 4/4 hortative arm) — but its cost was mis-stated: not one extra turn, a **wrong receipt reason** for 17 of 20 frames.
+
+## What I could NOT measure — real coverage gaps
+- **No live request, no deployed-bytes read, no browser, no DB.** Every conclusion is **source-level**. Under CLAUDE.md's two new permanent rules, none of it substitutes for live request-shape acceptance.
+- **`deno check` BLOCKED** (interactive approval). Runtime-fatal TS classes are **not** independently confirmed zero. I substituted my own block-scope analysis: 0 module-level TDZ candidates.
+- v92 link is **integration-level, not byte-direct**.
+- **No synthetic `QA-VERIFY-*` data was created** (no DB access), so there is nothing to clean up.
+
+## Deliverables (commit `c3c16fc` on `verify-8d157bf-campaign127`)
+`v65_regression_additions.mjs` (34 rows: 27 CONTRACT + 7 DEFECT; exits 2 on zero targets, 1 on failure; locates index.ts from any cwd) · `v65_known_failure_modes_entry_140.md` (`## 147`) · `v65_PROMOTION_NOTE.md`.
+
+**Proved non-vacuous in both directions:** on the candidate 7 DEFECT fail / 27 CONTRACT pass; on a scratch prepared fix 3 DEFECT flip to PASS **and 3 CONTRACT correctly break** — the naive repair breaks `clear the chat history`, `clear my chat history`, `delete the conversation history`. **Any fix must keep all ten idiom rows green.** `index.ts` was never written; the prepared fix asserts the candidate sha before and after.
+
+**Fix direction:** one canonical `ENTITY_REFERENCE` — a referring token *anywhere* in the object, one entity-noun vocabulary, one idiom rule bounded by the end of the *noun phrase* — with per-tier views, and `commandEntityNoun` consuming the executor's own map.
+
+---
+
+**CLASSIFICATION: FAILED**
+**EDGE STATUS: NOT DEPLOYMENT READY (contract bar)**
+
+`916da4e27b1c976ca806365d58605b22377d1b6b1540cb705a5e76fba36bb610`

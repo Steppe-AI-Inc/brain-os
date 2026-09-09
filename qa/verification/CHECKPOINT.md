@@ -114,12 +114,23 @@ assertions pass); `v67` 23/0; `v66` 71/0; `mutation_sweep_safety_contract` **52/
 
 ## NEXT EXECUTABLE ACTION
 
-Dispatch verifier #66 against the new committed SHA. On FAIL: reproduce → root cause → same-defect sweep →
-structural fix → regression → mutation proof → full battery → new SHA → verifier #67, automatically.
-On PASS: freeze the exact candidate, assemble the deployment package from
-`qa/verification/DEPLOYMENT_PACKAGE_3d1baeaa_DRAFT.md`, and ask the founder once for
-`ALLOW_FUNCTIONS_DEPLOY=1`. The deploy package must name the silent-embeddings P1 (#144), which verifier
-#66 ruled correctly deferred **only because it stays named**.
+**Verifier #69 is RESUMED, not re-dispatched.** Attempt 1 (dispatched 2026-09-09T03:04:09+08:00) was killed by a
+host Claude restart with a 0-byte output log. Its durable evidence (preflight A/B/C PASS, battery, identifier
+delta, participle family, concept map, all at index.ts sha256 `006a0c3f…`) is committed on
+`verify-0ca756e-campaign129` as `337f255`; attempt 2 runs under the watchdog with
+`scratch/verifier69_prompt_resume.txt` against the SAME candidate `0ca756e` / `006a0c3f…` and reuses that
+evidence. Report: `scratch/verifier69_output.log`; retry ownership: `scratch/watchdog-verifier69_output.state`.
+
+Durable backup taken 2026-09-09 10:22 before the run (no push, no deploy):
+`E:/My Drive/17.4. R&D CLAUDE CODE/backups/brain-os-20260909T102226-p1-0ca756e.bundle` (all refs, verified
+complete) and `…-verification-scratch.tgz`. `p1/execution-truth-governance` is 55 commits ahead of origin
+(`26c0f3e`); rounds #60-#69 live on this disk and in that bundle only.
+
+On FAIL: reproduce → root cause → same-defect sweep → structural fix → regression → mutation proof → full
+battery → new SHA → verifier #70 (campaign #130), automatically. On PASS: freeze the exact candidate, assemble
+the deployment package from `qa/verification/DEPLOYMENT_PACKAGE_3d1baeaa_DRAFT.md` retargeted to these bytes,
+and ask the founder once for a fresh `ALLOW_FUNCTIONS_DEPLOY=1` scoped to `006a0c3f…`. The deploy package must
+name the silent-embeddings P1 (#144), which verifier #66 ruled correctly deferred **only because it stays named**.
 
 ## WORK-PC HANDOFF STATE
 
