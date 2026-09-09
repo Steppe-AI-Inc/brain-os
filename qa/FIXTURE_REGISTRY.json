@@ -433,6 +433,23 @@
       "cleanup": "DO NOT delete - Home-PC owned. Work PC uses them read-only unless the Home PC confirms otherwise.",
       "registered_at": "2026-09-08T15:42:00Z",
       "environment": "production"
+    },
+    {
+      "fixture_id": "FX-C002-ORGB-ANCHOR-PROJ",
+      "kind": "project",
+      "resource_type": "project",
+      "name": "QA-ORGB-ANCHOR-PROJ",
+      "synthetic_display_name": "QA-ORGB-ANCHOR-PROJ",
+      "access_scope": "SHARED_CAMPAIGN",
+      "state": "ACTIVE",
+      "lifecycle": "ACTIVE",
+      "campaign_id": "C002",
+      "parent_company_fixture": "FX-C002-COMPANY-RENAMED-X (8fdad6e2-fffb-41bc-af0a-df8cab09110b)",
+      "purpose": "Org B anchor for the Brain Chat org-context A/B (BUG-028). Gives both test orgs the same entity type so a scoping answer is falsifiable.",
+      "cleanup": "RETAIN while BUG-028 needs a two-org anchor pair; delete via /projects kebab when retired.",
+      "registered_at": "2026-09-09T02:46:15Z",
+      "created_via": "product UI (/projects)",
+      "environment": "production"
     }
   ],
   "last_updated": "2026-09-02T09:19:16Z"

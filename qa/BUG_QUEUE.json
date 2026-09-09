@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-09T02:40:22Z",
+  "last_updated": "2026-09-09T02:46:15Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -28,10 +28,10 @@
   },
   "counts": {
     "open_p0": 0,
-    "open_p1": 10,
+    "open_p1": 11,
     "open_p2": 12,
     "open_p3": 6,
-    "total_open": 28,
+    "total_open": 29,
     "total_closed": 5
   },
   "bugs": [
@@ -1376,6 +1376,41 @@
       "home_pc_pointers": "React minified error #441 and the Vercel error id 3739456983@E394 should be resolvable in the deployment logs - the Work PC has no log access.",
       "regression_requirement": "Load /access 10x consecutively (fresh navigations, not client-side) and assert 10 successful renders; add whatever data-shape guard the log analysis implicates.",
       "_qa_boundary": "Browser observation only."
+    },
+    {
+      "bug_id": "BUG-028",
+      "severity": "P1",
+      "status": "OPEN",
+      "title": "The organization selector is NEVER transmitted to Brain Chat: with any org selected, Brain reports a self-inferred default org (\"SEM Technologies LLC, the ultimate holding entity\") and presents the WORKSPACE project count as that org's — identical answer whether Org A or Org B is selected",
+      "ai_truth_classification": "ORG_SELECTOR_NOT_TRANSMITTED_TO_CHAT (tenant-context / grounding defect). Explicitly NOT StaleChannelContextOverridesCurrentOrgScope — see the control that rules that out.",
+      "discovered_by": "work-pc-independent-qa",
+      "discovered_at": "2026-09-09T02:46:15Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "build_under_test": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
+      "chat_model_at_test_time": "Claude Haiku 4.5",
+      "anchors": {
+        "org_A": "QA-SWARM-TEST-CO-VIA-CHAT — anchor project QA-C002-PROJ-EDITED-01",
+        "org_B": "QA-C002-RENAMED-X (8fdad6e2-fffb-41bc-af0a-df8cab09110b) — anchor project QA-ORGB-ANCHOR-PROJ, created via product path for this test",
+        "question": "Byte-identical in every control: \"Answer only from stored data. (1) Which organization am I working in right now? (2) How many projects exist in it? (3) Does the project QA-C002-PROJ-EDITED-01 belong to it? (4) Does the project QA-ORGB-ANCHOR-PROJ belong to it?\""
+      },
+      "controls": {
+        "A — clean channel, ORG A selected (4b375a5b-8d4b-4606-99ed-67cb4c561bdb)": "\"(1) You are working in SEM Technologies LLC (the ultimate holding entity). (2) 9 projects exist in it. (3) QA-C002-PROJ-EDITED-01 does not belong to SEM Technologies LLC — it belongs to QA-SWARM-TEST-CO-VIA-CHAT. (4) QA-ORGB-ANCHOR-PROJ ... belongs to a company not visible in this context (company_id 8fdad6e2-...).\"",
+        "B — SAME channel after switching the selector to ORG B": "\"Based on the prior conversation history, you are working in SEM Technologies LLC. However ... the conversationHistory shows this exact question was already answered in a prior turn ... but I must verify this against fresh context data. From the current context.projects, I can see 9 projects total across all companies. Filtering by company_id = 4e4a0553-... (SEM Technologies LLC), I find 0 projects directly assigned to it.\"",
+        "C — FRESH channel, ORG B selected (532535eb-be0b-45e6-befd-e17ee60e8063)": "\"(1) You're working in SEM Technologies LLC (the ultimate holding entity). (2) 9 projects exist in it. (3) ... belongs to QA-SWARM-TEST-CO-VIA-CHAT. (4) ... a company not visible in the current context.\" — BYTE-EQUIVALENT to control A.",
+        "D — hard reload, ORG B selected": "\"You're working in SEM Technologies LLC. It has 9 projects.\" Unchanged."
+      },
+      "root_cause_isolation": "CONTROL C IS DECISIVE AND RULES OUT THE HYPOTHESIS THIS TEST WAS DESIGNED TO CONFIRM. A FRESH channel with ORG B selected returns the same answer as a FRESH channel with ORG A selected. The reply is INVARIANT under the selector, so there is no Org-A state for history to carry over and the defect cannot be StaleChannelContextOverridesCurrentOrgScope. The selector is simply never transmitted to the chat request; Brain then INFERS a default (\"the ultimate holding entity\") from workspace data. Control D rules out stale client state (hard reload, unchanged).",
+      "secondary_finding_history_rationalization": "Control B is still notable on its own terms: Brain said \"Based on the prior conversation history, you are working in SEM Technologies LLC\" — it CITED history as the source for org identity. Because fresh channels produce the same answer, history is NOT the cause; it is a post-hoc rationalisation of an answer Brain would have given anyway. Recorded so a reader does not mistake the citation for the mechanism.",
+      "partial_precedence_win": "Control B ALSO shows OTM §2 precedence working where it is wired: Brain distrusted the stale narrative count, re-read context.projects, and corrected \"9 projects in SEM Technologies LLC\" to \"0 projects directly assigned to it\". Fresh canonical data beat conversational history for the COUNT even though it could not for the org IDENTITY — because identity had no canonical source to read.",
+      "count_defect_still_present": "In controls A, C and D the workspace-wide total (9 projects across all companies) is asserted as \"9 projects exist in it\" for a named org that Brain's own fresh read says owns 0. Same family as BUG-024 (count-by-inference, CLAUDE.md §26).",
+      "security_classification": "NOT AN AUTH BYPASS. The account under test is the FOUNDER, who is legitimately entitled to every company in the workspace, so no permission boundary was crossed and no data was disclosed that this caller may not see. This is category (A) in the founder's own framing: workspace-wide data incorrectly described as selected-org data — a serious truth/tenant-context defect, not a cross-tenant leak. The test that could turn this into a disclosure finding is a NON-FOUNDER persona in a browser, which remains BLOCKED for want of a second credential.",
+      "why_p1": "P1 on truth, not on authorization. A multi-org operator asks Brain a question with an organization selected and receives an answer about a DIFFERENT organization, labelled as theirs, with a workspace-wide number presented as that organization's. Every Brain answer about \"my organization\" is currently untrustworthy in a multi-org workspace, and the failure is silent - the reply never says its scope is workspace-wide.",
+      "relationship_to_bug_015": "BUG-015 is the UI-surface scoping matrix and is NOT broadened by this. This is the chat/grounding half, filed separately because the mechanism is different: the UI surfaces DO receive the selection and five of them ignore it, whereas chat never receives it at all.",
+      "regression_requirement": "With org X selected, a FRESH chat channel asked \"which organization am I working in?\" must name X (or state explicitly that its answer is workspace-wide). Assert the reply differs when the selector differs — the A/C invariance above is the exact regression signature. Additionally assert any count attributed to a named org equals an aggregate for THAT org, not the workspace.",
+      "home_pc_pointer": "The chat request body carries command / channelId / imageBase64; no organization field is present, and getActiveProvider/buildContext have no org parameter. Work PC did not modify the source; this is a pointer, not a diagnosis.",
+      "_qa_boundary": "Browser + product paths only. One project created via the product UI as a registered fixture.",
+      "per_verifier_instruction": "Closure requires an independent Work-PC rerun of controls A and C; identical answers under different selectors is the failure. The implementation PC may not self-certify."
     }
   ]
 }
