@@ -104,6 +104,20 @@ export async function write(sql, params = []) {
   try { return await client.query(sql, params); } finally { await client.end(); }
 }
 
+/**
+ * Run a function with a live client, for the one thing a fixed statement list cannot express: read a
+ * row, then decide, inside a single transaction. The atomic claim needs exactly this.
+ *
+ * IT GOES THROUGH connect(), so every refusal above still applies — a missing FACTORY_RUNNER_PG_URL is
+ * still a refusal and a superuser URL is still a refusal. What it does not do is classify each
+ * statement, because the caller is issuing several as one unit. Callers are therefore expected to be
+ * orchestration code in this directory, and the statement-class guarantee for them comes from the
+ * database role, which is the layer that was always meant to be the boundary.
+ */
+export async function withClient(fn) {
+  const client = await connect();
+  try { return await fn(client); } finally { await client.end(); }
+}
 /** Several statements in one transaction, all-or-nothing. */
 export async function transaction(statements) {
   for (const { sql } of statements) assertAllowed(sql);

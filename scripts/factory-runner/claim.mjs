@@ -1,0 +1,182 @@
+#!/usr/bin/env node
+// ATOMIC DISTRIBUTED CLAIMING.
+//
+// The whole computer-agnostic design rests on this file. Everything else — nodes, heartbeats, recovery —
+// is bookkeeping around one question: when two computers reach for the same work at the same moment, does
+// exactly one of them get it?
+//
+// The answer has to come from the database, not from the scheduler being careful. A scheduler that checks
+// "is anyone else running this?" and then claims it has a window between the check and the claim, and that
+// window is where a duplicate worker comes from. So the claim is ONE statement:
+//
+//   * `for update skip locked` — the row is locked by the claimer inside its transaction, and a second
+//     claimer SKIPS it rather than blocking on it, so two nodes racing get two different rows (or one gets
+//     nothing) and neither waits.
+//   * the surface lock is inserted in the SAME transaction — its primary key is the enforcement, so a
+//     conflicting surface fails the insert and rolls the whole claim back. Ownership is not something the
+//     scheduler grants; it is something the database refuses to grant twice.
+//
+// PROCESS LIFETIME != WORK ORDER LIFETIME. NODE LIFETIME != WORK ORDER LIFETIME.
+// A lease makes both true: a claim is owned only while `lease_expires_at` is in the future. A node that
+// dies stops renewing, the lease expires, and the work becomes claimable again — by anybody. Nothing has to
+// notice the death; the absence of a heartbeat IS the notice.
+import * as db from './db.mjs';
+
+export const DEFAULT_LEASE_SECONDS = 120;
+
+/** Register (or refresh) this node. Capabilities are what the director schedules on. */
+export async function registerNode({ nodeId, capabilities = [], securityRole = 'generic', platform = '', agentVersion = '' }) {
+  if (!nodeId) throw new Error('registerNode requires a nodeId');
+  await db.write(
+    `insert into factory.nodes (node_id, capabilities, security_role, platform, agent_version, last_heartbeat_at)
+     values ($1, $2::jsonb, $3, $4, $5, now())
+     on conflict (node_id) do update
+       set capabilities = excluded.capabilities,
+           security_role = excluded.security_role,
+           platform = excluded.platform,
+           agent_version = excluded.agent_version,
+           last_heartbeat_at = now()`,
+    [nodeId, JSON.stringify(capabilities), securityRole, platform, agentVersion]);
+  return nodeId;
+}
+
+/**
+ * Claim one eligible work order for this node, atomically.
+ *
+ * Eligible means: queued (or blocked past its retry_after), every dependency done, and no surface it owns
+ * currently locked by a live lease. Returns the claimed run, or null when there is nothing to take — null
+ * is an ordinary outcome and not an error, because "another node got there first" is the system working.
+ */
+export async function claimWork({ nodeId, leaseSeconds = DEFAULT_LEASE_SECONDS, capabilities = null }) {
+  if (!nodeId) throw new Error('claimWork requires a nodeId');
+  const lease = Number(leaseSeconds) > 0 ? Number(leaseSeconds) : DEFAULT_LEASE_SECONDS;
+
+  // One transaction, opened by claimInTransaction below: the select locks the row and the surface
+  // insert either succeeds for every surface this work order owns or aborts the claim. There is no
+  // moment in between where the row is ours and the surface is not.
+  return claimInTransaction({ nodeId, lease, capabilities });
+}
+
+// db.transaction() runs a fixed list of statements, which cannot express "read a row then decide". The
+// claim needs a live client, so it borrows the same connection rules by going through db.withClient().
+async function claimInTransaction({ nodeId, lease, capabilities }) {
+  return db.withClient(async (client) => {
+    await client.query('begin');
+    try {
+      // Expire any lease that has run out BEFORE looking for work, so a dead node's claim is visible as
+      // available rather than as taken. This is the recovery path and it is deliberately part of the same
+      // transaction as the claim: a reader that expires leases in a separate step can expire one and then
+      // lose the race to claim it, which looks like a lost work order.
+      await client.query(
+        `update factory.agent_runs
+            set status = 'queued', node_id = null, lease_expires_at = null,
+                attempt_count = attempt_count + 1, updated_at = now()
+          where status = 'in_progress' and lease_expires_at is not null and lease_expires_at < now()`);
+      await client.query('delete from factory.surface_locks where lease_expires_at < now()');
+
+      // The select itself takes no parameters — the node id is not one of its inputs — so the list is
+      // empty unless a capability filter is present. A parameter supplied for a placeholder that is not
+      // there is a bind error, and it is the kind that only shows up the first time the code runs.
+      const capFilter = Array.isArray(capabilities) && capabilities.length
+        ? `and (wo.work_type = any($1::text[]))` : '';
+      const params = capFilter ? [capabilities] : [];
+
+      const picked = await client.query(
+        `select wo.work_order_id, wo.owned_surface
+           from factory.work_orders wo
+          where wo.status = 'queued'
+            ${capFilter}
+            and not exists (
+              select 1 from factory.work_order_dependencies d
+                join factory.work_orders dep on dep.work_order_id = d.depends_on
+               where d.work_order_id = wo.work_order_id and dep.status <> 'done')
+            and not exists (
+              select 1 from factory.surface_locks sl
+               where sl.surface = any(wo.owned_surface) and sl.lease_expires_at > now())
+          order by case wo.priority when 'high' then 0 when 'medium' then 1 else 2 end,
+                   wo.created_at
+          for update of wo skip locked
+          limit 1`, params);
+
+      if (!picked.rows.length) { await client.query('rollback'); return null; }
+      const wo = picked.rows[0];
+
+      const run = await client.query(
+        `insert into factory.agent_runs
+           (work_order_id, node_id, status, lease_expires_at, last_heartbeat_at, started_at, authoring_node_id)
+         values ($1, $2, 'in_progress', now() + ($3 || ' seconds')::interval, now(), now(), $2)
+         returning run_id, work_order_id, node_id, attempt_count, lease_expires_at`,
+        [wo.work_order_id, nodeId, String(lease)]);
+      const runId = run.rows[0].run_id;
+
+      // The surface lock. Its primary key is the enforcement: a conflicting surface raises here and the
+      // whole claim rolls back, so a second node cannot end up believing it owns the same files.
+      for (const surface of wo.owned_surface || []) {
+        await client.query(
+          `insert into factory.surface_locks (surface, run_id, node_id, lease_expires_at)
+           values ($1, $2, $3, now() + ($4 || ' seconds')::interval)`,
+          [surface, runId, nodeId, String(lease)]);
+      }
+
+      await client.query(
+        `update factory.work_orders set status = 'claimed', updated_at = now() where work_order_id = $1`,
+        [wo.work_order_id]);
+
+      await client.query('commit');
+      return run.rows[0];
+    } catch (e) {
+      try { await client.query('rollback'); } catch { /* already aborted */ }
+      // A surface collision is an ordinary race, not a failure: the other node won.
+      if (String(e && e.code) === '23505') return null;
+      throw e;
+    }
+  });
+}
+
+/** Renew the lease. A node that stops calling this loses its claim, which is the point. */
+export async function heartbeat({ runId, nodeId, leaseSeconds = DEFAULT_LEASE_SECONDS }) {
+  const r = await db.write(
+    `update factory.agent_runs
+        set last_heartbeat_at = now(),
+            lease_expires_at = now() + ($3 || ' seconds')::interval,
+            updated_at = now()
+      where run_id = $1 and node_id = $2 and status = 'in_progress'
+      returning run_id`,
+    [runId, nodeId, String(leaseSeconds)]);
+  if (r.rows.length) {
+    await db.write(
+      `update factory.surface_locks
+          set lease_expires_at = now() + ($2 || ' seconds')::interval
+        where run_id = $1`, [runId, String(leaseSeconds)]);
+  }
+  return r.rows.length === 1;
+}
+
+/** Persist progress. The row is a pointer; the evidence lives in the repository. */
+export async function checkpoint({ runId, workOrderId, location, scenario = null, payload = {} }) {
+  await db.write(
+    `insert into factory.checkpoints (run_id, work_order_id, location, scenario, payload)
+     values ($1, $2, $3, $4, $5::jsonb)`,
+    [runId, workOrderId, location, scenario, JSON.stringify(payload)]);
+  await db.write(
+    `update factory.agent_runs
+        set checkpoint_location = $2, last_completed_scenario = coalesce($3, last_completed_scenario),
+            updated_at = now()
+      where run_id = $1`, [runId, location, scenario]);
+}
+
+/** Finish a run and release its surfaces. */
+export async function completeRun({ runId, status = 'done', summary = null, headCommit = null }) {
+  await db.write(
+    `update factory.agent_runs
+        set status = $2, summary = coalesce($3, summary), head_commit = coalesce($4, head_commit),
+            finished_at = now(), lease_expires_at = null, updated_at = now()
+      where run_id = $1`, [runId, status, summary, headCommit]);
+  await db.write('delete from factory.surface_locks where run_id = $1', [runId]);
+  if (status === 'done') {
+    await db.write(
+      `update factory.work_orders
+          set status = 'done', completed_at = now(), updated_at = now()
+        where work_order_id = (select work_order_id from factory.agent_runs where run_id = $1)`, [runId]);
+  }
+}
