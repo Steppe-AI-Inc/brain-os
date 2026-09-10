@@ -37,6 +37,16 @@ await admin.query('grant select, insert, update, delete on all tables in schema 
 // The modules are imported AFTER FACTORY_RUNNER_PG_URL is set, because db.mjs reads it at module load.
 const claim = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/claim.mjs')).href);
 
+// A KNOWN WORLD. Two tests failed the first time this suite ran, and both were leftovers: the node-loop
+// block claimed work orders created by earlier blocks, and F counted their in-progress runs. A suite
+// whose result depends on what ran before it is measuring something other than what it names.
+const reset = async () => {
+  await admin.query("delete from factory.surface_locks");
+  await admin.query("delete from factory.checkpoints");
+  await admin.query("delete from factory.agent_runs");
+  await admin.query("delete from factory.work_order_dependencies");
+  await admin.query("delete from factory.work_orders");
+};
 const wo = async (title, { surface = [], priority = 'medium', status = 'queued' } = {}) => {
   const id = randomUUID();
   await admin.query(
@@ -119,6 +129,7 @@ try {
   check('J2 completing a run releases its surface', released.rows[0].n === 0);
 
   // ---- dependencies ---------------------------------------------------------------------------------
+  await reset();
   const base = await wo('dep: base', { surface: ['qa/dep-base.txt'] });
   const dependent = await wo('dep: dependent', { surface: ['qa/dep-child.txt'] });
   await admin.query('insert into factory.work_order_dependencies (work_order_id, depends_on) values ($1, $2)', [dependent, base]);
@@ -130,18 +141,107 @@ try {
     firstPick && firstPick.work_order_id !== dependent, JSON.stringify(firstPick));
 
   // ---- the independence invariant, enforced by the database ----------------------------------------
-  let sameRunRejected = false;
-  try {
-    await admin.query(`update factory.agent_runs set authoring_run_id = run_id, verification_run_id = run_id where run_id = $1`, [runA.run_id]);
-  } catch (e) { sameRunRejected = /verification_is_independent/.test(String(e.message)); }
-  check('a run cannot be its own verification (enforced by a constraint, not a habit)', sameRunRejected);
+  //
+  // The first version of this mutated a run an earlier block had created. Isolation then deleted that run,
+  // the UPDATE matched zero rows, nothing was raised, and both rows reported the constraint absent. An
+  // UPDATE that matches nothing never violates anything — so each case creates its own row and CHECKS THE
+  // UPDATE REACHED IT before concluding anything from the absence of an error.
+  {
+    await reset();
+    const woInv = await wo("invariant", { surface: ["qa/inv.txt"] });
+    const r = await claim.claimWork({ nodeId: "node-alpha", leaseSeconds: 600 });
 
-  let sameNodeRejected = false;
-  try {
-    await admin.query(`update factory.agent_runs set authoring_node_id = 'n1', verification_node_id = 'n1' where run_id = $1`, [runA.run_id]);
-  } catch (e) { sameNodeRejected = /verification_node_is_independent/.test(String(e.message)); }
-  check('and for high-assurance acceptance, the verifying node cannot be the authoring node', sameNodeRejected);
+    // A control: an update to a DIFFERENT column must reach exactly one row, or the two below prove nothing.
+    const control = await admin.query("update factory.agent_runs set summary = 'control' where run_id = $1", [r.run_id]);
+    check("the invariant tests are actually reaching a row", control.rowCount === 1, "rowCount=" + control.rowCount);
 
+    let sameRunRejected = false, sameRunReached = 0;
+    try {
+      const u = await admin.query("update factory.agent_runs set authoring_run_id = run_id, verification_run_id = run_id where run_id = $1", [r.run_id]);
+      sameRunReached = u.rowCount;
+    } catch (e) { sameRunRejected = /verification_is_independent/.test(String(e.message)); }
+    check("a run cannot be its own verification (enforced by a constraint, not a habit)",
+      sameRunRejected, sameRunRejected ? "" : "the update succeeded on " + sameRunReached + " row(s)");
+
+    let sameNodeRejected = false, sameNodeReached = 0;
+    try {
+      const u = await admin.query("update factory.agent_runs set authoring_node_id = 'n1', verification_node_id = 'n1' where run_id = $1", [r.run_id]);
+      sameNodeReached = u.rowCount;
+    } catch (e) { sameNodeRejected = /verification_node_is_independent/.test(String(e.message)); }
+    check("and for high-assurance acceptance, the verifying node cannot be the authoring node",
+      sameNodeRejected, sameNodeRejected ? "" : "the update succeeded on " + sameNodeReached + " row(s)");
+
+    // ...and the LEGITIMATE shape is accepted, so the constraint is a rule and not a prohibition on the
+    // column existing at all.
+    const ok = await admin.query("update factory.agent_runs set authoring_node_id = 'n1', verification_node_id = 'n2', authoring_run_id = $1, verification_run_id = $2 where run_id = $1",
+      [r.run_id, "00000000-0000-4000-8000-000000000002"]);
+    check("an independent verification IS accepted", ok.rowCount === 1, "rowCount=" + ok.rowCount);
+  }
+  // ---- I. the work order is reconstructible from GitHub alone ---------------------------------------
+  //
+  // The control plane accelerates orchestration; it is not where the work lives. So: wipe every row, then
+  // rebuild the queue from the repository, and check the durable facts come back. If this passes, losing
+  // the database costs scheduling state and nothing else.
+  {
+    const rc = await import(pathToFileURL(join(ROOT, "scripts/factory-runner/reconstruct.mjs")).href);
+    const dbm = await import(pathToFileURL(join(ROOT, "scripts/factory-runner/db.mjs")).href);
+    await reset();
+    const empty = await admin.query("select count(*)::int n from factory.work_orders");
+    const branches = ["factory/computer-agnostic-control-plane"];
+    const rebuilt = await rc.reconstructControlPlane({ repo: ROOT, db: dbm, trunk: "p1/execution-truth-governance",
+      deploySurface: "supabase/functions/sem-ai-command/index.ts", branches });
+    const after = await admin.query("select work_order_id, branch, base_commit, latest_commit, candidate_sha from factory.work_orders");
+    check("I  with every row deleted, the queue is rebuilt from the repository alone",
+      empty.rows[0].n === 0 && after.rows.length === 1 && after.rows[0].branch === branches[0],
+      JSON.stringify(after.rows));
+    check("I2 and the rebuilt row carries the durable facts: base, head and candidate bytes",
+      !!(after.rows[0] && after.rows[0].base_commit && after.rows[0].latest_commit && after.rows[0].candidate_sha),
+      JSON.stringify(after.rows[0]));
+    // Idempotent: reconstructing twice must not produce two rows describing one branch.
+    await rc.reconstructControlPlane({ repo: ROOT, db: dbm, trunk: "p1/execution-truth-governance", branches });
+    const twice = await admin.query("select count(*)::int n from factory.work_orders");
+    check("I3 reconstruction is idempotent", twice.rows[0].n === 1, JSON.stringify(twice.rows[0]));
+  }
+
+  // ---- L. a FRESH node resumes abandoned work, from the checkpoint the dead node left ---------------
+  //
+  // This is the test the work order exists for. Everything else can pass while the system still loses a
+  // day of work when a laptop closes. The question is not whether another node can claim the order — that
+  // is E/G — it is whether it can see what the dead node had already finished, and carry on from there.
+  {
+    await reset();
+    const woL = await wo("L: long job", { surface: ["qa/l.txt"] });
+
+    // Node one claims it and completes two of four scenarios, then simply stops existing. Nothing is told.
+    const first = await claim.claimWork({ nodeId: "node-alpha", leaseSeconds: 600 });
+    await claim.checkpoint({ runId: first.run_id, workOrderId: woL, location: "qa/evidence/l-1.json", scenario: "scenario-1" });
+    await claim.checkpoint({ runId: first.run_id, workOrderId: woL, location: "qa/evidence/l-2.json", scenario: "scenario-2",
+      payload: { remaining: ["scenario-3", "scenario-4"] } });
+
+    // The laptop closes. The only thing that happens is that the lease stops being renewed.
+    await admin.query("update factory.agent_runs set lease_expires_at = now() - interval '1 second' where run_id = $1", [first.run_id]);
+    await admin.query("update factory.surface_locks set lease_expires_at = now() - interval '1 second' where run_id = $1", [first.run_id]);
+    await admin.query("update factory.work_orders set status = 'queued' where work_order_id = $1", [woL]);
+
+    // A DIFFERENT node, which has never seen this work order, picks it up.
+    const second = await claim.claimWork({ nodeId: "node-beta", leaseSeconds: 600 });
+    check("L  a fresh node claims the abandoned work order",
+      second && second.work_order_id === woL && second.node_id === "node-beta", JSON.stringify(second));
+
+    // ...and can see everything the dead node finished, by asking the control plane rather than the node.
+    const prior = await admin.query(
+      "select location, scenario, payload from factory.checkpoints where work_order_id = $1 order by created_at desc", [woL]);
+    check("L2 and it can see the work the dead node had already completed",
+      prior.rows.length === 2 && prior.rows[0].scenario === "scenario-2", JSON.stringify(prior.rows.map((r) => r.scenario)));
+    check("L3 including what remained, so it resumes rather than restarts",
+      Array.isArray(prior.rows[0].payload && prior.rows[0].payload.remaining)
+      && prior.rows[0].payload.remaining.length === 2, JSON.stringify(prior.rows[0].payload));
+
+    // The abandoned run is not silently forgotten: it is queued again with its attempt counted.
+    const old = await admin.query("select status, attempt_count from factory.agent_runs where run_id = $1", [first.run_id]);
+    check("L4 the abandoned run is returned to the queue with its attempt counted, not discarded",
+      old.rows[0].status === "queued" && old.rows[0].attempt_count === 2, JSON.stringify(old.rows[0]));
+  }
   // ---- K. no ambient production credential path exists ----------------------------------------------
   //
   // IN A CHILD PROCESS, because db.mjs captures FACTORY_RUNNER_PG_URL at MODULE LOAD. A process that
