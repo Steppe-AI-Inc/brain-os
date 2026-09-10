@@ -12,31 +12,48 @@ independent live acceptance. The Work PC alone closes bugs.
 
 ## CURRENT MILESTONE
 
-**Verifier #83 FAILED `25f17508` and is being closed.** Three P1 regressions, all from one change — the
-line-break clause boundary #82 added — plus two P2s and a P3.
+**Verifier #84 is RUNNING** on campaign 144, candidate `2ea30bb78e6a96c1f89bf46cc0051a6c324c19bc`,
+index.ts sha256 `32048acd598fadd0ae31a5e284afb3ad3cc80c5ee483b9ec097c98064bd70a53` (**751 395 bytes**),
+worktree `C:/Users/Dell/dev/brain-os-verify-2ea30bb`, branch `verify-2ea30bb-campaign144`, watchdog pid
+48382. The candidate tree is FROZEN — a write was attempted and refused by the filesystem.
 
-* **V83-D1** the guard's whitespace window is a magic number that EXCLUDES the newline and gives up after
-  four characters, so it cannot look past a blank line. **7 of 19** phrasings stop refusing; the strip
-  never runs and **the forbidden delete executes**. All 7 refuse on `5fd08a94`. This is the exact failure
-  the guard's own comment says in capitals that it prevents.
-* **V83-D3** change (3) reopened change (1) INSIDE ONE COMMIT — the line break ends the clause that
-  V82-D1's `нь`/`бол` marker test needs, so the predicate noun becomes a live command. 4 of 4.
-* **V83-D5** at the live denial-contradicted window, **8 of 27** line-break positions ship the fabrication
-  UNEDITED on a turn that canonically READ the row. 0 of 27 before. A direct FAIL criterion.
-* **V83-D2** no left word boundary, so the vocabulary matches SUFFIXES — 19 of 34 ordinary words (photo,
-  casino, command, Toronto) suppress the split. `MN_NOMINAL_PREDICATION_MARKER`, added in the same commit
-  twenty lines away, uses a lookbehind for exactly this reason.
-* **V83-D6** five call sites recompile `CLAUSE_BOUNDARY.source` with hand-typed flags and discard the
-  constant's own — a Unicode property escape without `u` is literal text that keeps matching: fail-OPEN.
+Implementation worktree `C:/Users/Dell/dev/brain-os-wo-resolver` (branch `wo/clarification-resolver`).
+**The main repo `C:/Users/Dell/dev/brain-os` is NOT the candidate** — different, older file, other branch.
 
-**AND THE LINE TO CARRY FORWARD: the battery was BYTE-IDENTICAL with these defects present and with them
-fixed.** 103 suites, GREEN 91, RED 0, 4 010 assertion rows — both times. Not one row saw any of it, in
-either direction. **Three rounds running, the thing that caught the defect was the independent verifier and
-not the battery.**
+State at dispatch: **six of seven gates VALID** (`harness_rename_probe` VALID_FAIL by decision), battery
+**104 suites — 91 GREEN, 5 GREEN-but-asserts-nothing, 2 BLOCKED-FOUNDER, 6 OPEN DEFECT-THIS PC, 0
+unclassified RED**, 4 046 assertion rows. Mutation proof: **17 mutants, 0 effective survivors, 0
+ineffective**. Bundle cut AFTER the freeze and restore-tested.
 
-In fairness: on `5fd08a94` an unpunctuated two-line answer was rewritten wholesale, destroying a truthful
-answer, and the candidate fixes that. **Only one side of the trade was measured when it shipped** — which
-is the recurring error, not the line break.
+### The question #83 raised, answered by measurement before #84 was asked it
+
+#83 found that the last two rounds' fixes rest entirely on suites the manifest classifies as OPEN DEFECT,
+and asked whether such a suite can pin anything. Tested on the hardest case: `v83m5` — the flag-derivation
+fix reverted — is caught by **only 3 suites, all already red**. Running the release manifest against that
+mutant gives **RED (unclassified failure) 2**. Per-row forgiveness works: an already-red suite that fails a
+row it is NOT forgiven for turns the deploy gate red. **The pin is real, and it is measured rather than
+argued.**
+
+### And a defect this session introduced and caught, ledger 175
+
+The V82-H6 cache fix was correct and **cost 13x**: it hashed 751 KB on every call including every cache
+HIT. One battery sweep went ~1 min -> ~15, per mutant ~1 -> ~14, and the mutation proof's declared 25
+minutes would have been **about four hours**. `stat()` first — size and mtime answer "same file?" for free
+and the digest runs only when they say no; the H6 property is kept in full and its proof still passes. Full
+battery **191 s** against ~900 s, identical result.
+
+**A gate that takes four hours is a gate people skip.** It does not fail — it gets deferred, then omitted,
+then written up as "not re-run this round". Correct and unused is where a wrong answer ends up too.
+
+Every gate now records its own wall clock beside its declared estimate and says so when it has drifted past
+twice it. The declared runtimes were then corrected **from measurement**: mutation_proof 25 -> 55,
+harness_rename_probe 12 -> 5, source_absence_probe 12 -> 1. `minutes: 25` had sat in that file for nine
+rounds without once being compared to a clock.
+
+And the evidence itself **kept two verdicts out of seventeen** — the proof names every catching suite, so
+those lines are hundreds of characters and only the last 4 000 survived. The record could say 0 mutants
+survived and could not say what caught fifteen of them, which is exactly the question above. Each kept line
+is now trimmed to its verdict and first names and says how much it dropped.
 
 ### #83 closure — what is done
 
