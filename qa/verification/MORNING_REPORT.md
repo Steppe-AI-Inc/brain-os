@@ -489,6 +489,41 @@ instead of the copy under test. Every "the mutation was caught" number in this c
 verifiers', is a statement about 88 suites being reported as a statement about 102. It is named, it is
 open, and it is the first thing #83 is told to attack.
 
+## WHILE #83 RUNS — a finding of my own, and it is about how things get found
+
+The guard that catches escape corruption has looked for **one byte** since the day it was written: a
+literal backspace, because a backspace is what the corruption left behind that time. I asked it the
+question this campaign asks every guard — *what did you decide not to check?* — and scanned for the whole
+class instead.
+
+**Seven literal control bytes, two of them in live battery suites.** Every one a separator someone wrote as
+an escape whose backslash the tool transport ate.
+
+**And every one of those programs was correct.** In JavaScript the raw byte and the escape are the same
+value. Nothing was broken, nothing was going to break, and no test could have found it, because there was
+no wrong answer to find.
+
+What it cost is this: **a file containing one of those bytes is BINARY to grep, and grep silently drops its
+content.** So every text search over the suite directory read nothing out of those two suites and reported
+success. It happened to me twice inside an hour while investigating — the search did not fail, it answered,
+and the answer was missing a file.
+
+That is the same shape as the two worst instrument defects of this campaign: a row that measured the wrong
+one of two things and reported a product defect that did not exist, and 14 suites that cannot see a change
+to the file they are supposed to be testing. **The instrument answers, and its answer is about nothing.** A
+red you can see is cheap; a confident, well-formed, incomplete answer is not.
+
+Fixed: the guard now rejects every control character except tab and the line endings, it is a function with
+seven fixtures proving it catches what it claims and allows what it must, its scope widened from two
+directories to every tree we write source into (1 642 files), and all seven sites were rewritten. Planting
+a byte back into a real file turns the row red; removing it turns it green. Ledger 172.
+
+Two more instrument repairs went in beside it: the shared-constant resolver now answers about the source it
+was **asked** about rather than the first one it ever read (an instrument built the old way reported
+"nothing changed" about a mutation that changed everything), and the backup gate stopped being **stale by
+construction** — its own passing evidence had to be committed, and committing it invalidated the evidence,
+forever. Every round of this campaign has handed its verifier a stale backup gate for that reason.
+
 ## RUNNING
 
 **Verifier #83**, campaign 143, dispatching on the freeze built from `ab3fb939` / index.ts
