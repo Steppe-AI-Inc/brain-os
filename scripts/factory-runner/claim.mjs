@@ -74,18 +74,27 @@ async function claimInTransaction({ nodeId, lease, capabilities }) {
           where status = 'in_progress' and lease_expires_at is not null and lease_expires_at < now()`);
       await client.query('delete from factory.surface_locks where lease_expires_at < now()');
 
-      // The select itself takes no parameters — the node id is not one of its inputs — so the list is
-      // empty unless a capability filter is present. A parameter supplied for a placeholder that is not
-      // there is a bind error, and it is the kind that only shows up the first time the code runs.
-      const capFilter = Array.isArray(capabilities) && capabilities.length
-        ? `and (wo.work_type = any($1::text[]))` : '';
-      const params = capFilter ? [capabilities] : [];
+      // WHAT THIS NODE IS, read from the control plane rather than taken from the caller. A node that
+      // could tell the claim "I am a release_broker" would make the check a formality.
+      const me = await client.query('select security_role, capabilities from factory.nodes where node_id = $1', [nodeId]);
+      const myRole = me.rows.length ? me.rows[0].security_role : 'generic';
+      const myCaps = me.rows.length ? (me.rows[0].capabilities || []) : [];
+      // generic < verifier < release_broker. A release broker can do verification work; a verifier
+      // cannot do release work. The order is the point.
+      const RANK = { generic: 0, verifier: 1, release_broker: 2 };
+      const myRank = RANK[myRole] === undefined ? 0 : RANK[myRole];
+      const params = [myRank, JSON.stringify(myCaps)];
 
       const picked = await client.query(
         `select wo.work_order_id, wo.owned_surface
            from factory.work_orders wo
           where wo.status = 'queued'
-            ${capFilter}
+            -- this node must BE enough: its role must rank at or above what the work order requires
+            and (case wo.requires_security_role when 'release_broker' then 2 when 'verifier' then 1 else 0 end) <= $1
+            -- ...and must HAVE every capability the work order names
+            and not exists (
+              select 1 from unnest(wo.requires_capabilities) rc
+               where not (to_jsonb(rc) in (select jsonb_array_elements($2::jsonb))))
             and not exists (
               select 1 from factory.work_order_dependencies d
                 join factory.work_orders dep on dep.work_order_id = d.depends_on

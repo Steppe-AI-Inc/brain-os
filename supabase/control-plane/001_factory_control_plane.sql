@@ -74,6 +74,14 @@ create table if not exists factory.work_orders (
   candidate_sha      text,
   release_manifest   text,
   handoff            text,
+  -- NEW. What a node must BE and must HAVE to take this work.
+  --
+  -- These were recorded and unenforced, which is worse than absent: a reader sees `release_broker` in
+  -- the schema and concludes a generic node cannot take release work. Now the claiming query enforces
+  -- both, and an unschedulable work order WAITS rather than being handed to a node that cannot do it.
+  requires_security_role text not null default 'generic'
+                     check (requires_security_role in ('generic','verifier','release_broker')),
+  requires_capabilities  text[] not null default '{}'::text[],
   created_at         timestamptz  not null default now(),
   updated_at         timestamptz  not null default now(),
   completed_at       timestamptz

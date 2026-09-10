@@ -177,6 +177,83 @@ try {
       [r.run_id, "00000000-0000-4000-8000-000000000002"]);
     check("an independent verification IS accepted", ok.rowCount === 1, "rowCount=" + ok.rowCount);
   }
+  // ---- SECURITY ROLE AND CAPABILITIES ARE ENFORCED, NOT JUST RECORDED -------------------------------
+  //
+  // Both columns existed and neither was read, which is worse than not having them: a reader sees
+  // `release_broker` in the schema and concludes a generic node cannot take release work. Nothing stopped
+  // it. These rows are the enforcement.
+  {
+    await reset();
+    await admin.query("delete from factory.nodes");
+
+    // Three nodes, one of each role, with capabilities recorded in the control plane rather than taken
+    // from whatever the caller claims to be.
+    await claim.registerNode({ nodeId: "n-generic", capabilities: ["git", "node"], securityRole: "generic" });
+    await claim.registerNode({ nodeId: "n-verifier", capabilities: ["git", "node"], securityRole: "verifier" });
+    await claim.registerNode({ nodeId: "n-broker", capabilities: ["git", "node"], securityRole: "release_broker" });
+
+    const releaseWo = await wo("needs a release broker", { surface: ["qa/rel.txt"] });
+    await admin.query("update factory.work_orders set requires_security_role = 'release_broker' where work_order_id = $1", [releaseWo]);
+
+    const genericTry = await claim.claimWork({ nodeId: "n-generic", leaseSeconds: 60 });
+    check("SEC1 a GENERIC node cannot claim work that requires a release broker",
+      genericTry === null, JSON.stringify(genericTry));
+    const verifierTry = await claim.claimWork({ nodeId: "n-verifier", leaseSeconds: 60 });
+    check("SEC2 nor can a VERIFIER — the roles are ordered, and verifier is below release_broker",
+      verifierTry === null, JSON.stringify(verifierTry));
+    const brokerTry = await claim.claimWork({ nodeId: "n-broker", leaseSeconds: 60 });
+    check("SEC3 a RELEASE BROKER can",
+      brokerTry && brokerTry.work_order_id === releaseWo, JSON.stringify(brokerTry));
+    await claim.completeRun({ runId: brokerTry.run_id, status: "done" });
+
+    // ...and the ordering works downward: a broker may do ordinary work too, or the rule would be a
+    // partition rather than a rank.
+    await reset();
+    await claim.registerNode({ nodeId: "n-broker", capabilities: ["git", "node"], securityRole: "release_broker" });
+    const ordinary = await wo("ordinary work", { surface: ["qa/ord.txt"] });
+    const brokerOrdinary = await claim.claimWork({ nodeId: "n-broker", leaseSeconds: 60 });
+    check("SEC4 a release broker can also do ordinary work: the roles RANK, they do not partition",
+      brokerOrdinary && brokerOrdinary.work_order_id === ordinary, JSON.stringify(brokerOrdinary));
+    await claim.completeRun({ runId: brokerOrdinary.run_id, status: "done" });
+
+    // Capabilities: a node lacking one may not take the work, and the work WAITS rather than being
+    // handed to a node that cannot do it.
+    await reset();
+    await admin.query("delete from factory.nodes");
+    await claim.registerNode({ nodeId: "n-plain", capabilities: ["git", "node"], securityRole: "generic" });
+    await claim.registerNode({ nodeId: "n-browser", capabilities: ["git", "node", "browser"], securityRole: "generic" });
+    const needsBrowser = await wo("needs a browser", { surface: ["qa/br.txt"] });
+    await admin.query("update factory.work_orders set requires_capabilities = array['browser']::text[] where work_order_id = $1", [needsBrowser]);
+
+    const plainTry = await claim.claimWork({ nodeId: "n-plain", leaseSeconds: 60 });
+    check("CAP1 a node without a required capability cannot claim the work",
+      plainTry === null, JSON.stringify(plainTry));
+    const stillQueued = await admin.query("select status from factory.work_orders where work_order_id = $1", [needsBrowser]);
+    check("CAP2 and the work WAITS rather than being handed to a node that cannot do it",
+      stillQueued.rows[0].status === "queued", JSON.stringify(stillQueued.rows[0]));
+    const browserTry = await claim.claimWork({ nodeId: "n-browser", leaseSeconds: 60 });
+    check("CAP3 the node that HAS the capability claims it",
+      browserTry && browserTry.work_order_id === needsBrowser, JSON.stringify(browserTry));
+    await claim.completeRun({ runId: browserTry.run_id, status: "done" });
+
+    // THE ROLE IS READ FROM THE CONTROL PLANE, NOT FROM THE CALLER. A node that could assert its own
+    // role would make every check above a formality.
+    await reset();
+    await admin.query("delete from factory.nodes");
+    await claim.registerNode({ nodeId: "n-liar", capabilities: ["git"], securityRole: "generic" });
+    const rel2 = await wo("release work again", { surface: ["qa/rel2.txt"] });
+    await admin.query("update factory.work_orders set requires_security_role = 'release_broker' where work_order_id = $1", [rel2]);
+    const liar = await claim.claimWork({ nodeId: "n-liar", leaseSeconds: 60, capabilities: ["release_broker"] });
+    check("SEC5 a node cannot talk its way up: the role comes from the control plane, not the call",
+      liar === null, JSON.stringify(liar));
+
+    // PUT THE WORLD BACK. This block deleted every node to control which roles exist; later blocks still
+    // claim as node-alpha. Left as it was, the foreign key fails several tests LATER and looks like a
+    // defect in whichever block happens to run next — the most expensive kind of test bug to read.
+    await reset();
+    await claim.registerNode({ nodeId: "node-alpha", capabilities: ["edge-verify"], platform: "test" });
+    await claim.registerNode({ nodeId: "node-beta", capabilities: ["edge-verify"], platform: "test" });
+  }
   // ---- INVARIANT 1: a business id here is opaque, and confers nothing ------------------------------
   //
   // "Business IDs stored in the Factory Control Plane are opaque references by value. They do NOT
