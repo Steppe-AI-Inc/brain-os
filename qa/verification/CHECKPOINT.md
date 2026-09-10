@@ -31,32 +31,54 @@ commit and RESTORE-TESTED — cloned, the commit checked out, the file on disk h
 
 ### While #83 runs — harness work that cannot touch the frozen bytes
 
-Queued, in order. All of it is under `qa/`; none of it can reach `index.ts`, which the filesystem now
-refuses to write.
+All of it is under `qa/`; none of it can reach `index.ts`, which the filesystem now refuses to write.
 
-1. **A NEW FINDING, from scanning for the class instead of the instance.** The escape/source-hygiene guard
-   looks for ONE control byte, 0x08, because a backspace is what escape-depth instance 9 left behind. A
-   scan for every C0 control character found **SEVEN literal control bytes** — two in LIVE BATTERY SUITES
-   (`extractor_runtime_equivalence_contract`, `function_redefinition_preserves_ancestor_guards`) and five
-   in verifier harnesses — each a separator written as a backslash escape whose backslash the transport
-   halved away. **Nothing is broken**: in JavaScript a literal NUL and the escape are the same value. The
-   cost is that **grep calls such a file BINARY and suppresses its content lines**, so every ad-hoc text
-   search over the suite directory silently reads nothing out of those two suites and reports success — it
-   happened twice to this session while investigating. No committed evidence is affected (every harness
-   reads through Node, which handles NUL). Widen the guard to the class; rewrite the sites with
-   `String.fromCharCode(N)`, which is also what makes the intent visible.
-2. **V82-H6** — `_gate_extract`'s shared-constant cache is keyed on nothing, so an in-process instrument
-   that switches `SEM_INDEX_SRC` measures the FIRST source and reports "nothing changed" about a mutation
-   that changed everything. Key it on the resolved path AND a digest of the bytes, with ONE resolver used
-   by both the key and the read.
-3. **V82-H5** — measure, rather than grep, which suites can see a change to the deploy surface. A grep for
-   `SEM_INDEX_SRC` says 91 can and 12 test a different surface entirely; a grep answers whether the token
-   is present, and this campaign has been wrong four times trusting a token for a behaviour. Then a
-   structural ratchet so a new suite cannot quietly join the blind set.
-4. **`backup_restore` is STALE BY CONSTRUCTION in any committed tree** — HEAD is a declared input, so
-   committing the gate's own passing evidence invalidates it, forever. Make the HEAD/bundle pair a LIVE
-   check at status time instead of part of the digest.
-5. **The rename-pin backlog**, CODEX-A release-blocker witnesses (A2, A4, A9, A12) first.
+**1. DONE — ledger 172, a new finding, from scanning for the CLASS instead of the instance.** The
+escape/source-hygiene guard had looked for ONE byte, 0x08, since the corruption that produced it. A scan
+for every C0 control character found **seven literal control bytes**, two of them in LIVE BATTERY SUITES.
+**Every one of those programs was correct** — in JavaScript the raw byte and the escape are the same value
+— so no test could have found it. The cost is that **grep calls such a file BINARY and drops its content**,
+so every text search over the suite directory read nothing out of those two suites and reported success; it
+happened twice to this session inside an hour. Closed: the rule is now a function over the whole class with
+seven fixtures, its scope widened from two directories to every tree we write source into (1 642 files),
+the two row labels that said "backspace" corrected, and all seven sites rewritten to
+`String.fromCharCode(N)` — behaviour-identical by the language definition. Planting a byte back in turns
+the row red. Battery 103 suites, 0 unclassified RED, 4 019 assertion rows.
+
+**2. DONE — V82-H6 closed and proved.** `_gate_extract`'s shared-constant cache was keyed on nothing, so an
+in-process instrument that switches `SEM_INDEX_SRC` measured the FIRST source and reported "nothing
+changed" about a mutation that changed everything. Now keyed on the resolved path AND a digest of the
+bytes, with ONE resolver (`sourceUnderTestPath`) used by both the key and the read — a cache keyed by a
+second spelling of "where the source is" is V78-H7 wearing a cache for a hat. Permanent rows H7-C10/C11 in
+`shared_constant_order_contract`, and **reverting the fix makes H7-C10 fail**, which is the proof.
+
+**3. DONE — `backup_restore` was STALE BY CONSTRUCTION.** HEAD was a declared input and the gate's own
+passing evidence has to be committed, so recording a pass invalidated it, forever. Every round of this
+campaign handed its verifier a stale backup gate and #82 reported it (V82-H7). HEAD and the bundle moved
+out of the digest into a LIVE check: the restore-tested commit must be an ancestor of HEAD and everything
+since must touch nothing but `qa/verification/evidence/`. A commit that moves the deploy surface, a suite
+or a document makes it stale again — the case where stale is the truth.
+
+**4. RUNNING — V82-H5, measured rather than grepped.** #82 said 14 of 102 suites cannot see a mutant. A
+grep says 91 can and 12 test a different surface entirely — but a grep answers whether a TOKEN is present,
+and this campaign has been wrong four times trusting a token for a behaviour. Every suite is being run
+twice, one child process per source (V82-H6 is exactly why), against the real bytes and against a
+catastrophically mutated copy; a suite whose exit code and digest-erased output are identical is blind.
+Then a structural ratchet so a new suite cannot quietly join the blind set.
+
+**5. QUEUED — V82-H3.** The comment on `typeNamedIn` says the fix is SPECIFICITY ORDER; #82 measured that
+reverting the ordering half is seen by 0 of 88 suites and that the two orders never disagree on 630
+phrasings, because the shared exclusion already does the work. **A comment is a claim**, and this one names
+the wrong mechanism. The comment is a product-file edit and waits for the thaw; what can be done now is to
+pin the mechanism that IS load-bearing, if nothing pins it yet.
+
+**6. QUEUED — the rename-pin backlog.** Two identifiers account for most of it: 5 suites die on
+`groundedOutcomeThisTurn` and 26 on `readsAsCompletion`, both the same shape — a window executed with
+hardcoded parameter names — and both fixable with the proven `windowByLandmarks` + `freeIdentifiers` +
+`windowInputRoles` technique. CODEX-A release-blocker witnesses first.
+
+**FROZEN UNTIL #83 REPORTS:** V82-O1/H4 (seven stacked citations leave debris), the five #77 defects,
+V81-D3, V82-D4 and the V82-H3 comment are all edits to `index.ts` and none of them can be made now.
 
 ### What #82 found, and what was done with it
 ### What #82 found, and what was done with it
