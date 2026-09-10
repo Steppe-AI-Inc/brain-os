@@ -12,24 +12,62 @@ independent live acceptance. The Work PC alone closes bugs.
 
 ## CURRENT MILESTONE
 
-**Verifier #83 is RUNNING** on campaign 143, candidate `25f17508cc2352b55e24b676e480da26f2dd871f`,
-index.ts sha256 `324230d9c9445709498b3a11e2892e5dd693651228971368a563d392c6594dda` (**748 841 bytes**),
-worktree `C:/Users/Dell/dev/brain-os-verify-25f1750`, branch `verify-25f1750-campaign143`, watchdog pid
-44643. The candidate tree is FROZEN — a write was attempted and refused by the filesystem, so the freeze is
-measured rather than asserted.
+**Verifier #83 FAILED `25f17508` and is being closed.** Three P1 regressions, all from one change — the
+line-break clause boundary #82 added — plus two P2s and a P3.
 
-Implementation worktree `C:/Users/Dell/dev/brain-os-wo-resolver` (branch `wo/clarification-resolver`).
-**The main repo `C:/Users/Dell/dev/brain-os` is NOT the candidate** — different, older file, other branch.
+* **V83-D1** the guard's whitespace window is a magic number that EXCLUDES the newline and gives up after
+  four characters, so it cannot look past a blank line. **7 of 19** phrasings stop refusing; the strip
+  never runs and **the forbidden delete executes**. All 7 refuse on `5fd08a94`. This is the exact failure
+  the guard's own comment says in capitals that it prevents.
+* **V83-D3** change (3) reopened change (1) INSIDE ONE COMMIT — the line break ends the clause that
+  V82-D1's `нь`/`бол` marker test needs, so the predicate noun becomes a live command. 4 of 4.
+* **V83-D5** at the live denial-contradicted window, **8 of 27** line-break positions ship the fabrication
+  UNEDITED on a turn that canonically READ the row. 0 of 27 before. A direct FAIL criterion.
+* **V83-D2** no left word boundary, so the vocabulary matches SUFFIXES — 19 of 34 ordinary words (photo,
+  casino, command, Toronto) suppress the split. `MN_NOMINAL_PREDICATION_MARKER`, added in the same commit
+  twenty lines away, uses a lookbehind for exactly this reason.
+* **V83-D6** five call sites recompile `CLAUSE_BOUNDARY.source` with hand-typed flags and discard the
+  constant's own — a Unicode property escape without `u` is literal text that keeps matching: fail-OPEN.
 
-**Verifier #82 FAILED and IS CLOSED.** Its three P1s are fixed structurally from its own prepared patch;
-its P2 is registered open with its numbers; its harness findings are carried forward with theirs.
+**AND THE LINE TO CARRY FORWARD: the battery was BYTE-IDENTICAL with these defects present and with them
+fixed.** 103 suites, GREEN 91, RED 0, 4 010 assertion rows — both times. Not one row saw any of it, in
+either direction. **Three rounds running, the thing that caught the defect was the independent verifier and
+not the battery.**
 
-State at dispatch: **five of six gates VALID_PASS** (`harness_rename_probe` VALID_FAIL by decision),
-battery **103 suites — 91 GREEN, 5 GREEN-but-asserts-nothing, 2 BLOCKED-FOUNDER, 5 OPEN DEFECT-THIS PC,
-0 unclassified RED**, 4 010 assertion rows. **V82-H7 is closed**: a fresh bundle was cut AFTER the freeze
-commit and RESTORE-TESTED — cloned, the commit checked out, the file on disk hashed to the candidate.
+In fairness: on `5fd08a94` an unpunctuated two-line answer was rewritten wholesale, destroying a truthful
+answer, and the candidate fixes that. **Only one side of the trade was measured when it shipped** — which
+is the recurring error, not the line break.
 
-### While #83 runs — harness work that cannot touch the frozen bytes
+### Closure in progress
+
+Applied: `v83_prepared_fix-apply.mjs` (10 edits) + `v83_prepared_fix-register-shared-constants.mjs`
+(1 edit) — refusals 9/23 -> **23/23**, contradicted denials shipping 8/27 -> **5/27**,
+`v83_regression_additions` 16/7 -> **21/2**. Promoted and classified with its two deliberately-open rows
+(V83-D5's 5/27 wrapped denials, V83-D4's 5/5 marker-less Mongolian fragments).
+
+New candidate bytes: **`32048acd598fadd0ae31a5e284afb3ad3cc80c5ee483b9ec097c98064bd70a53`**, **751 395**
+bytes, 8 941 CRLF, 0 bare LF, 0 bare CR, 0 x 0x08. NOT yet frozen; battery running, then the seven gates,
+then a restore-tested bundle, then verifier #84 on campaign 144.
+
+### #83's harness findings, and the convergence
+
+**Both #83 and this session found the same vacuity defect within an hour of each other** — a hygiene
+contract printing 26 GREEN rows against a ZERO-BYTE index.ts — and the two sets of fixes merged with no
+conflict. Two it found that we did not: **V83-H4**, a GREEN row whose name did not describe its assertion
+(`bareCR <= 1` while the surface carries zero — a forgiveness that outlived the thing forgiven is a
+standing permit for the next one), and **V83-H6**, the shared TS stripper turning `(capture?: boolean)`
+into a SyntaxError. Its V82-H5 re-derivation agrees with ours (83 of 103) and adds **four PATH-SENSITIVE
+suites whose verdicts change when the environment points at byte-identical content** — which we did not
+test for, and which is queued.
+
+**It agrees with the V82-H1 digest decision**, on the stated reason.
+
+Its ledger entry is renumbered **172 -> 174**: it derived its number at the freeze commit, correctly, and
+two session entries landed while it ran.
+
+### Harness work completed while #83 ran (none of it touched the frozen bytes)
+
+
 
 All of it is under `qa/`; none of it can reach `index.ts`, which the filesystem now refuses to write.
 
