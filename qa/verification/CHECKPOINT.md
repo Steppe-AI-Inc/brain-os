@@ -12,36 +12,64 @@ independent live acceptance. The Work PC alone closes bugs.
 
 ## CURRENT MILESTONE
 
-Campaign #130. **Verifier #70 is RUNNING** on candidate `31979e8be62ed3d7c2bae2f5fa1bc8edea9cdf7b`,
-index.ts sha256 `e03ddceb3718e48cb9c4ec3260ad8062232e9a5416aee262ae0bc5d5e6bb7472`, dispatched
-2026-09-09 on `--model opus`, worktree `/c/Users/Dell/dev/brain-os-verify-31979e8`, branch
-`verify-31979e8-campaign130`, report at `qa/verification/scratch/verifier70_output.log`.
+**Campaign #139 closed as FAILED. The candidate for verifier #80 is prepared and NOT yet dispatched.**
 
-**Verifier #69 FAILED `0ca756e` and that closure is COMPLETE.** For the first time in five rounds both
-directions of the defect class are green together: v69 13/13, v61 A1 (80 turns) 25/0, v67 23/0, codex
-witnesses 32/0, concept ratchet 9/0, mutation proof 18/18.
+| | |
+|---|---|
+| implementation worktree | `C:/Users/Dell/dev/brain-os-wo-resolver` (branch `wo/clarification-resolver`) |
+| candidate commit | `39ef2f76f53bfe4356dfc5cf2f1b706e65cb4bfc` |
+| DEPLOY_FILE_SHA256 | `b3d5e7a49e17d912e0a70fa8bc036c76ce214b62ae2ebdbbb0a1aad967abe408` |
+| DEPLOY_FILE_BYTE_LENGTH | 732356 |
+| line endings | CRLF-pure: 0 bare LF, 0 bare CR, 0 0x08 |
+| battery | 99 suites — 94 GREEN, 2 BLOCKED-FOUNDER, 3 OPEN DEFECT-THIS PC, 0 unclassified RED |
 
-**The #69 ruling, implemented:** the object boundary is what a phrase NAMES, not how far away the entity
-noun sits. Three formulations were measured; the first two each closed one direction while opening the
-other, and only an OLD suite (v61 A1) caught the second. A headline opens with nothing referring, carries a
-prepositional phrase and names nothing ("status report for the board"); a request names something anywhere
-("access for Bob", "work order WO-1").
+**THE MAIN REPO `C:/Users/Dell/dev/brain-os` IS NOT THE CANDIDATE.** Its `index.ts` is a different, older
+file (630,533 bytes, `e03ddceb…`) on branch `p1/execution-truth-governance`. A verifier dispatch once froze
+THAT file while printing the candidate's hash beside it; the dispatcher now verifies what it froze. When
+resuming, take the candidate from the worktree above, never from this repo's working tree.
 
-**Two Codex findings were CONFIRMED and fixed in this candidate:**
-* **A** — the only negation test was consumed at one site (the raw-command fallback), which also required
-  `!modelEmittedArchive`, so on exactly the turns where the model emitted a lifecycle payload the founder's
-  "do not" was never consulted. Now ONE gate strips every mutating field from the reply the moment it is
-  parsed. A mixed turn still executes its un-negated half; the refusal is audited.
-* **C** — the final persist discarded its own error, so a failed write still returned `done`. Persistence is
-  now classified (EXECUTION_SUCCEEDED_AND_PERSISTED / EXECUTION_SUCCEEDED_PERSISTENCE_FAILED /
-  READ_SUCCEEDED_AND_PERSISTED / READ_SUCCEEDED_PERSISTENCE_FAILED) with recovery information kept.
+### The five rounds of 2026-09-09/10, and what each cost
 
-**B** REFUTED and pinned. **D** already satisfied and pinned. **E** CONFIRMED at source
-(`person_assignments_write_manager` authorises on `operating_company_id` alone while the row carries four
-org-bearing columns, and the RPC is SECURITY INVOKER) — fix PREPARED in `supabase/drafts/`, deliberately
-outside the migration path, status **BLOCKED — PRODUCTION DB AUTHORIZATION**. No live probe was run:
-proving it behaviourally means performing the cross-tenant write.
+Rounds #74-#79 all FAILED, and not one was a false alarm. The pattern that matters for whoever resumes:
+**three of the five failures were in the instruments, not the product**, and two of those flattered the
+session that built them.
 
+* **#77** — the mutation proof was crediting always-red suites with catching every mutant.
+* **#78** — the same proof was crediting a suite for PRINTING A SHA256 (its output differed for every
+  mutant by construction), and behind that credit sat a real survivor the deploy gate reported GREEN.
+  Also: the V77 Mongolian allowlist had turned the language's ORDINARY POLITE REQUEST from live into dead,
+  72 of 108 mixed turns swallowed.
+* **#79** — both P1s were in #78's closures, and both had the same cause: **a change measured against a
+  corpus that could not exercise the mechanism it changed.** The read-shape veto's cost was measured at
+  0 of 4 on rows that exercised only one of its three arms; the real figure was 11 of 20, worse than before
+  the veto existed. `NON_EXISTENCE_CLAIM`'s false-positive controls were 17 assertions of PRESENCE, when
+  the risk is a truthful assertion of ABSENCE — 3 of 5 truthful answers were being destroyed.
+
+Both #79 P1s are CLOSED (ledger 166), each pinned as a mutation-proof mutant so neither can reopen
+silently. Ledger 167 records the rule: **a control set must be derived from the mechanism, not from the
+author's imagination.**
+
+### V78-H7 is CLOSED — one dependency order, four consumers
+
+Four hand-maintained lists carried their own copy of the shared-constant dependency order. Adding ONE
+constant cost five registrations in a single session. Before converging them it was CHECKED (not assumed)
+that all four express the same graph — and the first probe written to check that was WRONG and its numbers
+discarded, because it hand-rolled a fifth declaration scanner that mis-parsed regex literals.
+
+`sharedConstantsFor(names)` in `_gate_extract.mjs` is now the one authority: a consumer supplies an
+unordered REQUEST, the resolver supplies order, transitive closure and deduplication.
+`qa/scenarios-runner/shared_constant_order_contract.mjs` is the ratchet (12 rows), and four deliberate
+order drifts are proved to break it.
+
+### The instrument guards now in place
+
+* an already-red suite is credited only if its output moved, with the source PATH **and DIGEST** erased
+* a probe that CRASHES on the candidate side is a HARNESS FAILURE, not an ineffective mutant, and exits 1
+* **the mutation proof's whole input is fingerprinted before and after**; a mid-run harness edit voids the
+  run. Proved with a valid, harmless edit 2.5s into a run — the case a crash-based gate cannot see
+* the release manifest forgives per ROW, never wholesale; a classification with no named rows is RED; a
+  GREEN suite still carrying a classification is RED (stale claim)
+* generated mutants are untracked, so `WORKING_TREE_CLEAN` means something
 ## PRODUCTION (unchanged since the rollback)
 
 | | |
@@ -61,7 +89,7 @@ founder authorization scoped to its own exact bytes.
 
 None active. The next production action of any kind is a founder-only boundary.
 
-## COMPLETED THIS CAMPAIGN (rounds #60-#65)
+## HISTORY — completed in rounds #60-#65 (kept for provenance, not current state)
 
 Closed structurally, each pinned by a mutant: the context budget degrading instead of 413ing, with a named
 minimum safe context; id provenance surviving a trim; the request lexicon no longer vetoable by the model;
@@ -76,19 +104,30 @@ product-safe deployment. Ledger entries #133-#141.
 
 ## EVIDENCE ON THE CURRENT CANDIDATE
 
-Battery 71 suites: green except `production_write_authority` and `factory_production_write_inventory`, which
-are **red by design** until the founder completes the identity downgrade (Phase 1 of the production-write
-boundary work).
-Corpora: v56 129/0, v57 306/0, v58 48/0, v59 85/0, v60 22/0, v61 25/0, v62 25/0, v63 32/0, v64 74/0.
-Vacuity sweep 38/38, second-generation sweep 25/25, mutation proof 19/19.
-`deno check` by class: 10×TS7006, 6×TS2322, TS7034, TS7005, TS2339 — unchanged, zero runtime-fatal.
-`index.ts` CRLF-pure, 0 bare LF.
+Six gates, recorded with an INPUT DIGEST so a stale one cannot be quoted as current
+(`node qa/verification/gate_evidence.mjs` prints the table; `run --force` re-takes them):
+
+| gate | what it establishes |
+|---|---|
+| `battery` | 99 suites, every failure classified; 0 unclassified RED |
+| `mutation_proof` | 19 mutants, each proved EFFECTIVE before its survival is read; 0 surviving, 0 ineffective, 0 harness failures |
+| `harness_rename_probe` | no suite asserts a product property by naming a local identifier |
+| `founder_acceptance_corpus` | the founder's own turns, replayed |
+| `tdz_triage` | 0 eager forward references; nothing runtime-fatal |
+| `backup_restore` | the newest bundle RESTORES, and the restored deploy bytes hash to the candidate |
+
+**A gate goes STALE the moment any declared input changes**, which is the point: editing a battery suite
+invalidates the battery and the mutation proof, and they say so rather than reporting yesterday's number.
+Re-derive before quoting any of them.
+
+`harness_rename_probe` was deliberately left FAILING at one point this campaign, naming exactly one suite
+(`v78_regression_additions`, whose V78-C5 row lifts a window by six local identifiers). If it is red, read
+the named suite before assuming a regression.
 
 Token-budget incident conditions (founder §7): request-budget contract GREEN, fresh-channel 413 witness
 GREEN on both halves, trimming semantics GREEN — **but the incident is NOT resolved**, because none of the
 three is a live request and that is precisely the rule the incident produced.
-
-## WORK COMPLETED ALONGSIDE #69 (2026-09-09, none of it in any candidate)
+## HISTORY — work alongside #69, 2026-09-09 (superseded by rounds #74-#79)
 
 The Edge candidate was frozen throughout: `index.ts` in `brain-os` is `006a0c3f…` before and after all of it.
 
@@ -146,7 +185,7 @@ fix; model-specific token limits still UNMEASURED; the platform request-body lim
 **Registered deliberate gaps** (not part of any deployment claim): lifecycle controls on child surfaces
 beyond People; archive-instead-of-delete for projects, departments, documents, leads and approvals.
 
-## THE #68 CLOSURE (this round's work)
+## HISTORY — the #68 closure (NOT this round; see CURRENT MILESTONE)
 
 **V68-D1 (P1).** `STRONG_OBJECT` was the EIGHTH re-spelling of the entity vocabulary — 25 hand-written
 nouns against the canonical ~80 — and only a MULTI-CLAUSE command reaches it, so #67's corpora never
@@ -171,20 +210,37 @@ assertions pass); `v67` 23/0; `v66` 71/0; `mutation_sweep_safety_contract` **52/
 
 ## NEXT EXECUTABLE ACTION
 
-Read verifier #70's report. On FAIL: reproduce -> root cause -> same-defect sweep -> structural fix ->
-regression -> mutation proof -> full battery -> new SHA -> verifier #71, automatically. On PASS: freeze the
-exact bytes, finish the deployment package, and ask the founder ONCE for a fresh `ALLOW_FUNCTIONS_DEPLOY=1`
-scoped to `e03ddceb…`.
+**Dispatch verifier #80** on the candidate named above. Nothing about it needs founder input.
 
-**Registered standing reds** (the battery is 82 suites / 4 problems, and all four are explained):
-`_gate_extract.mjs` is a library that prints no totals; `production_write_authority` and
-`factory_production_write_inventory` are red pending founder §1-§2 actions;
-`person_assignment_scope_authorization` is red BY DESIGN pending the founder-only DB action for Codex E and
-says so in its own header. None is a property of the Edge candidate.
+```
+cd C:/Users/Dell/dev/brain-os
+bash scripts/factory-runner/dispatch-isolated-verifier.sh <candidate-commit> 140 80 \
+    qa/verification/scratch/verifier80_prompt_template.txt
+```
 
-**Two founder-only items are open and neither blocks this Edge round:** audit test T5 (one read-only
-`POST /v1/embeddings` with the Edge key) for the silent-embeddings P1, and the Codex E migration.
+Build the #80 template from `verifier79_prompt_template.txt`. Derive the round, campaign and ledger number
+from the repository — the header says so, and the dispatcher now REFUSES a prompt containing any
+unsubstituted `__PLACEHOLDER__`.
 
+Then act on the verdict automatically: FAIL → reproduce only genuinely new findings → root cause →
+same-defect sweep → structural fix → regression → mutation proof → affected gates → global battery → new
+SHA → backup → dispatch #81. PASS → inspect the real artifact, confirm it tested the exact frozen bytes,
+classify every observation, confirm no unresolved candidate P0/P1, then the release package.
+
+**Do NOT re-run a completed scenario** when its evidence is persisted, its provenance is valid, the
+candidate SHA is unchanged, and the new change cannot affect it.
+
+### Standing rules that have each cost a round
+
+* **Never edit a harness file while a gate is running.** Every gate spawns one process per probe and
+  re-reads the harness each time; it has no snapshot. The mutation proof now detects this, but the rule is
+  cheaper than the detection.
+* **Validate an instrument before believing it**, especially when it disagrees with the code.
+* **A backslash typed through the tool transport is halved.** Build one with `String.fromCharCode(92)`, or
+  write a pattern that needs none. `\b` inside a single-quoted string is a BACKSPACE, and a literal 0x08
+  has reached these files three times.
+* **Deploy identity comes from the deploy BYTES**, never from `git show` — the blob is LF, the surface is
+  CRLF, and the two hashes must differ.
 ## WORK-PC HANDOFF STATE
 
 Branch `qa/home-pc-handoff` at `7abc5a4`, pushed. Six fix reports carry
