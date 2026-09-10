@@ -12,41 +12,39 @@ independent live acceptance. The Work PC alone closes bugs.
 
 ## CURRENT MILESTONE
 
-**Verifier #81 is RUNNING** on campaign 141, candidate `db555d5aa0d49c33bb9b3981971ee6394d265267`,
-index.ts sha256 `c5eb10c83ff403e0e14e62a3ce92905002eda40d1689cd57d41d3c02b62faf2c` (736,739 bytes),
-worktree `C:/Users/Dell/dev/brain-os-verify-db555d5`, branch `verify-db555d5-campaign141`.
+**Verifier #82 is RUNNING** on campaign 142, candidate `5fd08a9482af6acb7447965d9659624f808bbfed`,
+index.ts sha256 `eade10fe9fd31a9394c7a328629e160041a4ac3328936e4c88d04b5422b3d19c` (742 549 bytes),
+worktree `C:/Users/Dell/dev/brain-os-verify-5fd08a9`, branch `verify-5fd08a9-campaign142`.
 
-The implementation worktree is `C:/Users/Dell/dev/brain-os-wo-resolver` (branch `wo/clarification-resolver`), HEAD
-`e37bf402fbdf251872e22c8d24f624f4ee012883`, index.ts `c5eb10c83ff403e0e14e62a3ce92905002eda40d1689cd57d41d3c02b62faf2c`.
+Implementation worktree `C:/Users/Dell/dev/brain-os-wo-resolver` (branch `wo/clarification-resolver`), HEAD `5fd08a9482af6acb7447965d9659624f808bbfed`.
+**The main repo `C:/Users/Dell/dev/brain-os` is NOT the candidate** — different, older file, other branch.
 
-**THE MAIN REPO `C:/Users/Dell/dev/brain-os` IS NOT THE CANDIDATE** — its index.ts is a different, older
-file on `p1/execution-truth-governance`. A dispatch once froze THAT file while printing the candidate's
-hash beside it; the dispatcher now verifies what it froze and refuses a prompt containing an unsubstituted
-placeholder.
+### Rounds #74-#81 all FAILED. What the last four were about
 
-### Rounds #74-#80 all FAILED, and the pattern is the thing to resume with
+* **#78, #79, #80** — three consecutive rounds where the previous round's CLOSURE was the next round's P1,
+  every time because the closing session measured its change on a corpus that could not exercise it.
+  Ledger 166/167/168.
+* **#81** — the first round in four whose P1s were PRE-EXISTING rather than regressions. Mongolian
+  verb-final position had been asserted by a comment and enforced by nothing; `DENIAL_SUBJECT` was decided
+  leftmost-first. Ledger 169.
+* **Ledger 170, and the thing to carry forward:** closing #81 exposed a CONTRACT row that reported a defect
+  THAT DOES NOT EXIST. It chose which of two measurements to run by matching the decider's source text; the
+  fix changed that line, and the row silently measured the OLD BLOCKLIST and reported 195 phantom
+  false-live tokens as a reopened defect. **For every red, ask whether the row could be measuring something
+  other than what it names.** A red that names the product, with a number, is the most expensive way for a
+  harness to be wrong.
 
-**Three consecutive rounds found the previous round's CLOSURE to be the next round's P1**, and every time
-the cause was identical: the closing session measured its change on a corpus that could not exercise the
-mechanism it changed. #79 found #78's fix swallowed the language's ordinary request; #80 found #79's fix
-had traded 5 fewer swallowed requests for **8 more forbidden writes**. Ledger 166, 167 and 168 carry it.
+### State at #82's dispatch
 
-**The question that catches it**, and the one to ask of every number in any report including this file's:
-*what would this measurement have looked like if the defect were present?* If the answer is "the same", the
-number is not evidence.
-
-### State at #81's dispatch
-
-* battery **101 suites — 91 GREEN, 5 GREEN-but-asserts-nothing, 2 BLOCKED-FOUNDER, 3 OPEN DEFECT-THIS PC,
-  0 unclassified RED**, 3,967 assertion rows
-* **5 of 6 gates VALID_PASS.** `harness_rename_probe` is VALID_FAIL BY DECISION — its rename set is now
-  DERIVED (184 renames) instead of ten hand-picked names, and the honest count is ~18 suites pinning a
-  spelling plus 7 whose window anchor moves loudly. `qa/verification/RENAME_PIN_BACKLOG.md` has all of it.
-  **If that gate is inconvenient, repair a suite; never shrink the set.**
-* V78-H7 CLOSED — one canonical dependency order, four consumers, a 13-row ratchet, four proved drifts
-* the CODEX-A release-blocker witnesses had a nine-command ALL-ENGLISH corpus and were green through three
-  rounds in which Mongolian turns of their exact shape were not refused. Twelve Mongolian witnesses added
-  and proved against the pre-fix bytes
+* battery **102 suites — 91 GREEN, 5 GREEN-but-asserts-nothing, 2 BLOCKED-FOUNDER, 4 OPEN DEFECT-THIS PC,
+  0 unclassified RED**, ~3 990 assertion rows
+* **5 of 6 gates VALID_PASS.** `harness_rename_probe` is VALID_FAIL BY DECISION — derived rename set, 38
+  pins and 26 anchors, backlog in `qa/verification/RENAME_PIN_BACKLOG.md`. **Repair a suite; never shrink
+  the set.**
+* a gate's input digest now hashes the FACT, not the checkout's line endings — every gate used to read
+  STALE in a fresh worktree, which is the state every independent verifier starts in
+* a finished report outranks the watchdog's text classifiers — #81's FAILED verdict was nearly discarded
+  because its report contained the words "requires approval" while describing a coverage limit
 
 ## PRODUCTION (unchanged since the rollback)
 
