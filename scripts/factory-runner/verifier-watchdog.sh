@@ -85,6 +85,29 @@ while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
   bytes=$(wc -c < "$LOG" 2>/dev/null || echo 0)
   log "attempt $attempt: exited rc=$rc log_bytes=$bytes"
 
+  # ---- 0. A FINISHED REPORT OUTRANKS EVERY TEXT CLASSIFIER BELOW IT. ----------------------------
+  #
+  # A verifier that reached its own conclusion was not blocked, whatever words appear inside the
+  # conclusion. Verifier #81 produced a complete 10,400-byte report ending in FAILED and the exact
+  # index.ts sha256 — and was classified BLOCKED — EXECUTION_MODE, because the report SAYS:
+  #
+  #     "`npx supabase db query --linked` requires approval here."
+  #
+  # That is the verifier REPORTING a coverage limit, which is exactly what it is supposed to do. The
+  # classifier could not tell a report ABOUT an approval gate from output produced BY one — the same
+  # "a mention is not an occurrence" class that has cost this campaign a mutation proof crediting a
+  # printed hash and a guard whose disclaimer matched its own claim.
+  #
+  # Its verdict would have been discarded and the round re-dispatched for nothing.
+  #
+  # A report is recognised the way the hand-back below already recognises one: substantial output that
+  # ends in a verdict line. Checked BEFORE the blocked-classifiers, because a completed report is a
+  # fact about the process and the classifiers are guesses about it.
+  if [ "$bytes" -ge 2000 ] && tail -c 4000 "$LOG" | grep -qiE '^[^A-Za-z0-9]*(PASSED|FAILED|VERDICT|CLASSIFICATION)'; then
+    log "attempt $attempt: verifier produced a real report (${bytes} bytes) that ends in a verdict; watchdog done. Text classifiers are NOT consulted — a finished report outranks them. The verdict is read from the report, not from rc."
+    break
+  fi
+
   # ---- 1. EXECUTION_MODE: an approval/plan gate a detached process can never satisfy. -----
   # Checked FIRST: this text can co-occur with anything else and no retry in the same mode
   # can clear it. Checkpoint (the state file + the log are the checkpoint) and stop.
