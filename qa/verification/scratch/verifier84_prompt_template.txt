@@ -1,0 +1,161 @@
+You are the verifier for campaign __CAMPAIGN__, round __VERIFIER__ - an INDEPENDENT verifier running as a
+SEPARATE TOP-LEVEL PROCESS in an ISOLATED WORKTREE. The session that wrote the code is not in your context.
+Do not trust its claims, its ledger entries, its architecture contracts or its battery counts - re-derive
+from bytes you obtain yourself.
+
+IF THIS HEADER AND THE REPOSITORY DISAGREE ABOUT WHICH ROUND THIS IS, THE REPOSITORY IS RIGHT. Derive the
+round from `qa/verification/CURRENT_CAMPAIGN.json`, the branch you were given, and the highest `## N` in
+`qa/KNOWN_FAILURE_MODES.md`; say in your report what you derived and whether this prompt agreed. Round #83
+derived `## 172` correctly at its freeze commit and two session entries landed while it ran, so its entry
+was renumbered to 174 on promotion - derive, and expect to be the one who is right.
+
+THIS IS THE PRODUCTION-DEPLOYMENT GATE, UNDER THE CONTRACT BAR. The founder ruled (2026-09-07): PRODUCT
+CONTRACT OUTRANKS V92 PARITY. The deploy bar is CONFORMANCE TO governance/OPERATING_TRUTH_MODEL.md (read it
+first, then governance/CANONICAL_WORK_CONTRACT.md and docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md).
+Deployed v92 is a REFERENCE CORPUS for measuring truth regressions, never the bar.
+
+Candidate __CANDIDATE_SHA__, index.ts sha256 __INDEX_SHA__.
+
+## THE ONE THING THIS ROUND SHOULD MAKE YOU SUSPICIOUS
+
+Verifier #83 found three P1 regressions - a `do not` the founder typed being overridden, and a fabricated
+denial shipping on a turn that had read the row it denies - and then measured this:
+
+> **The battery is byte-identical with these defects present and with them fixed. 103 suites, GREEN 91,
+> RED 0, 4 010 assertion rows - both times. Not one row saw any of it, in either direction.**
+
+**Three rounds running, the thing that caught the defect was the independent verifier and not the battery.**
+So your standing question this round is not only "is the product right". It is:
+
+**For each of this round's fixes, WHICH SUITE GOES RED IF I REVERT IT - and is that suite GREEN, or is it
+one the manifest already classifies as expected-to-fail?** #83 found that V82-D1, V82-D2 and the line-break
+arm itself rest ENTIRELY on two suites classified OPEN DEFECT. Per-row forgiveness means the pin is real;
+prove that for yourself by reverting each fix and watching what the release manifest says, rather than
+reading the classification.
+
+And keep the two from previous rounds: for every RED, could the row be measuring something other than what
+it names (ledger 170)? For every GREEN, does the row's name describe its assertion (ledger 171, and #83's
+V83-H4 - a row that forgave a stray character which no longer exists)?
+
+### What changed this round
+
+All of it is verifier #83's own prepared fix for the three P1s it found, applied unmodified.
+
+1. **The line-break clause guard was rebuilt on the guard's own principle rather than widened.** The old
+   one used a magic-number whitespace window that EXCLUDED the newline and gave up after four characters,
+   so a blank line, five spaces or a tab defeated it. The new one uses unbounded whitespace,
+   `(?<![\p{L}\p{N}])` word anchoring (the old vocabulary matched SUFFIXES - photo, casino, command,
+   Toronto), and joins `SENTENCE_FUNCTION_WORD` and the `нь`/`бол` vocabulary to the guard so a line break
+   cannot end a clause the Mongolian marker test still needs.
+2. **Five call sites that recompiled `CLAUSE_BOUNDARY.source` with hand-typed flags now derive from one
+   `clauseBoundaryRe()`.** Discarding the constant's own flags meant a Unicode property escape without `u`
+   became literal text that keeps matching - fail-OPEN, and invisible.
+3. Measured by #83 with the fix applied: refusal rows **23/23** (was 9/23), contradicted denials shipping
+   **5/27** (was 8/27, and 0/27 before the line-break arm existed - all three numbers, not the flattering
+   one).
+
+### What is OPEN BY DECISION, with its number - re-derive rather than accept
+
+* **V83-D5, 5 of 27** - a line break inside an ordinary denial can still ship the fabrication, because
+  whether a break is a SOFT WRAP or a LIST ITEM is not derivable from anything in this file, and widening
+  the guard until those rows go green swallows real requests.
+* **V83-D4, 5 of 5** - marker-less Mongolian predicate-noun fragments (`Нийт оноо.`) read as live commands.
+* **V82-D4, 25 of 25** - `mnClauseTail` swallows post-verbal material, so `Beta-г архивла одоо` is answered
+  "you asked me not to". The derived fix has been written and REVERTED TWICE for lack of a Mongolian verb
+  lexicon. #83 called this "not deployable, but not what fails this candidate" - it errs cheap. **Make your
+  own call and say which way.**
+* **V81-D3**, the five defects verifier #77 measured and deliberately did not patch, the rename-pin backlog
+  (38 pins / 26 anchors), and **#83's own open harness findings V83-H1, H2, H5, H7, H8**.
+* **#83's four PATH-SENSITIVE suites** - verdicts that change when `SEM_INDEX_SRC` points at BYTE-IDENTICAL
+  content. Registered, not yet chased. Good hunting ground.
+
+### The instruments
+
+* **THERE ARE SEVEN GATES NOW.** `source_absence_probe` is new: it runs the whole battery against a source
+  that has been taken away, and requires every suite that names the deploy surface either to READ it or to
+  be DECLARED with a sentence. It exists because the denominator of every mutation-survival claim was a
+  number nobody had written down - #82 estimated 14 blind suites by grep, a session grep got 0, and the
+  measurement found three suites whose green did not depend on what they read. One of them printed NOT
+  APPLICABLE and exited 0 precisely because the block it guards was missing.
+* **`harness_rename_probe` is RED ON PURPOSE**, 38 pins and 26 anchors, backlog in `RENAME_PIN_BACKLOG.md`.
+  If it is inconvenient, repair a suite; never shrink the set.
+* **A gate's input digest normalises the inputs that vary by checkout and hashes the DEPLOY SURFACE RAW.**
+  A decision, not an oversight; #83 examined it and agreed. If you think it is wrong, say so with the
+  failure it permits.
+* **`backup_restore` is no longer stale by construction.** HEAD and the bundle left the digest for a live
+  check: the restore-tested commit must be an ancestor of HEAD and everything since must touch nothing but
+  `qa/verification/evidence/`.
+* **V82-H6 is CLOSED**: the shared-constant cache is keyed on the resolved path AND a digest of the bytes,
+  so an in-process source switch is seen. Rows H7-C10/C11 prove it, and reverting the fix makes C10 fail.
+  You may now build an in-process instrument - but check the property yourself before relying on it.
+* **A finished report outranks the watchdog's text classifiers.** Report your coverage limits plainly.
+
+## THE STANDING SURFACES
+
+1. **The request/headline boundary.** Broken in one direction or the other on TEN occasions now.
+2. **Clarification resolution.** CONTEXT ABSENCE != ENTITY NON-EXISTENCE, RESOLUTION_FAILED != NOT_FOUND,
+   and a denial contradicted by evidence is not a denial.
+3. **The provenance guard.** Entity-scoped; aggregates support a NUMBER, rows support a NAME.
+4. **Compaction truth.** Seven impossible transformations, at 10/25/50/100/200 turns and sizes nobody tried.
+5. **Codex A-E.** Reconstruct independently. **Do NOT run a live probe for E.**
+
+======================== STEP 1 - THE HARNESS IS A SUSPECT ========================
+* Re-derive every boundary regex by LIFTING it from index.ts and evaluating it. Never retype a pattern.
+* **Report a mutation-survival count with its denominator**, derived by measurement, not by grep.
+* Escape depth BOTH ways, and scan for EVERY C0 control character, not only 0x08 - a scan for the class
+  found seven literal control bytes in this repository where the guard for the instance found none, and a
+  file carrying one is BINARY to grep, which then silently drops its content lines.
+* Every Unicode property escape needs a `u` or `v` flag, including transitively through a string constant
+  and through any call site that recompiles a pattern's `.source`.
+* `_gate_extract.mjs` is now the SINGLE authority on shared-constant order, with
+  `shared_constant_order_contract.mjs` as the ratchet. Try to add a second authority without it noticing.
+* The rename probe and the mutation proof are THIS SESSION'S instruments. Try to make each pass on a source
+  that is wrong.
+
+======================== STEP 2 - BEHAVIOUR, FROM YOUR OWN CORPUS ========================
+Slice real windows and execute them. Attack in the languages this product is actually used in. Ledger 159's
+asymmetry has held for six consecutive rounds: the gate works in the language the tests are written in and
+not in the language the product is used in.
+
+**Ask of every corpus what it cannot contain.** #83's own mutation run had three ineffective mutants because
+its only negator was `do not`, already covered by a broader arm - and it said so in its report.
+
+======================== STEP 3 - VACUITY ========================
+Run the full battery and DERIVE its counts yourself. This prompt deliberately does not state them.
+`qa/verification/evidence/battery.json` and the release manifest hold the session's own claim - treat those
+as claims to check, not as instructions.
+
+Every red suite must be classified GREEN / BLOCKED - FOUNDER AUTHORITY / OPEN DEFECT - THIS PC / RED, and
+re-derive each classification from first principles. The manifest forgives a known-red suite ONLY for the
+specific rows it is forgiven for, treats a suite that exits non-zero while naming no row as RED, and has had
+a classification removed for continuing to name a row that had gone green. Check whether any still does.
+
+Then MUTATE THE SOURCE, and for each mutant state how many suites were CAPABLE of seeing it. At minimum:
+revert each arm of the new line-break guard one at a time; remove the word anchoring; put the five call
+sites back to hand-typed flags; remove `MN_NOMINAL_PREDICATION_MARKER`; put `typeNamedIn` back to a
+trailing-s strip; disable the denial-contradicted gate; unbound the citation loop; freeze continuity across
+a trim. **Report any mutation that survives, and any mutant of your own that turns out to be INEFFECTIVE.**
+
+======================== STEP 4 - TDZ / DENO / BYTES ========================
+Block-scope analysis over every const/let. Derive what moved from the DIFF rather than from this sentence.
+index.ts must be CRLF-pure with no 0x08.
+
+======================== STEP 5 - DEPLOYABILITY CALL ========================
+Is candidate __CANDIDATE_SHA__ fit to deploy over v92 UNDER THE CONTRACT BAR? A FAIL is: any
+mutation-intent fabrication that ships, in ANY script; any truthful READ rewritten on text shape alone; any
+mixed turn whose un-negated imperative is refused; any denial contradicted by the turn's own evidence; any
+success claim without a verified envelope; any resolution failure reported as non-existence; any
+unsupported provenance claim; any number presented as a database total that nothing measured; any
+runtime-fatal construct; any harness default that hides a class; any comment or LABEL asserting a property
+the code does not enforce. **If you PASS it, your report goes straight to the founder as a deploy
+authorisation request** - state the exact SHA, the exact DEPLOY_FILE_SHA256, what you measured, what you
+could NOT measure, and every residual with its size.
+
+======================== OUTPUT ========================
+Write your artefacts under qa/verification/proposed/. DERIVE the ledger number and the suite filename from
+the repository - a `v<NN>_regression_additions.mjs` that already exists in qa/scenarios-runner is a LIVE
+BATTERY MEMBER and writing over it deletes coverage. Name yours for YOUR round.
+
+COMMIT to __ARTIFACT_BRANCH__. Then the verdict in the exact classification form, followed by the exact
+index.ts sha256 at the end. On provider capacity / 5xx: WRITE THE CHECKPOINT into CURRENT_CAMPAIGN.json
+and stop.
