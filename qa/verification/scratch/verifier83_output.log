@@ -1,0 +1,136 @@
+Committed. Final report.
+
+---
+
+# VERIFIER #83 — CAMPAIGN 143 — CANDIDATE `25f17508`
+
+## DERIVATION FIRST (the prompt and the repository AGREE, with one exception)
+
+| derived from | value |
+|---|---|
+| branch given | `verify-25f1750-campaign143` |
+| HEAD commit message | "freeze 324230d9 for verifier #83" |
+| highest `## N` in `qa/KNOWN_FAILURE_MODES.md` | `## 171` → **mine is `## 172`** (`## 153` is absent; I did not fill it) |
+| highest `vNN_regression_additions.mjs` in `qa/scenarios-runner` | `v82` → **mine is `v83_*`** |
+| **prompt said** | campaign 143, round 83 — **AGREES** |
+
+**Where the prompt did NOT agree.** It carried V82-H5 as *"14 of 102 suites cannot see ANY mutation"*. Re-derived myself: the battery is **103** suites and **20** of them are blind. Neither 14, nor 102, nor 88 is right.
+
+**And #82's own claim does not hold.** #82 wrote that "the per-verifier keys are the live record" in `CURRENT_CAMPAIGN.json`. There are **no `verifier67…verifier82` keys at all** — the last per-verifier block is `verifier66`. Nine rounds of checkpoints are missing. Mine are written.
+
+---
+
+```
+CHANGE VERIFIED: supabase/functions/sem-ai-command/index.ts @ 25f17508 (deploy sha256 324230d9),
+                 diff vs 5fd08a94 = +95 / −22 lines: MN_NOMINAL_PREDICATION_MARKER,
+                 typeNamedIn/pluraliseEntity, CLAUSE_BOUNDARY's line-break arm.
+SCENARIOS:        16 passed, 7 failed, 5 blocked (no live/UI/AI/DB access — see coverage gaps)
+CANONICAL GRAPH:  N/A — nothing in this diff touches SQL, RLS or an RPC
+UI ↔ DB:          BLOCKED — no browser tooling in this session type
+AI ↔ DB:          BLOCKED — no live Edge Function invocation
+DEPENDENCIES:     PASS (TDZ 0 unresolved; every moved declaration precedes every reader)
+PERMISSIONS:      N/A this round
+RELOAD/PERSISTENCE: N/A this round
+IDEMPOTENCY:      N/A this round
+```
+
+## VERDICT: **FAILED**
+
+**Candidate `25f17508cc2352b55e24b676e480da26f2dd871f` is NOT fit to deploy over v92 under the contract bar.**
+
+---
+
+## THE HEADLINE: one change, six defects, three of them P1 regressions
+
+Verifier #82 made a **line break** a clause boundary, guarded by *"a line break is a boundary only where the line FINISHED its clause."* Its declaration says in capitals **"THE GUARD IS THE WHOLE DESIGN"** and names the exact failure it prevents: `do not` + newline + `delete Alpha` becoming a live imperative.
+
+The guard fails in precisely that way.
+
+| id | severity | measured | on 5fd08a94 |
+|---|---|---|---|
+| **V83-D1** | **P1 REGRESSION** | `[^\S\n]{0,4}` is a magic-number window that *excludes the newline*, so it cannot look past a blank line and gives up after 4 whitespace chars. **7 of 19** phrasings stop refusing: `do not`+5 spaces, +5 tabs, **+4 spaces and CRLF**, **+a BLANK LINE**, `never`+blank line, `don't`+blank line. The strip never runs and the forbidden delete executes. Ledger 152's class. | all 7 **refuse** |
+| **V83-D2** | P2 | No left word boundary — the vocabulary matches **suffixes**. **19 of 34** ordinary words (photo, casino, piano, brand, command, thousand, meanwhile, errand, Toronto) suppress the split, so a mixed turn is swallowed whole with "you asked me not to". `MN_NOMINAL_PREDICATION_MARKER`, added **in the same commit 20 lines away**, uses `(?<!\p{L})` for exactly this reason. | — |
+| **V83-D3** | **P1 REGRESSION** | **Change (3) reopens change (1) inside one commit.** V82-D1 tests the `нь`/`бол` marker *within its clause*; the line break now ends that clause. `Асуудал нь` ⏎ `оноо.` loses its marker and the predicate noun becomes a live command. **4 of 4.** | all 4 refuse |
+| **V83-D4** | P2 (registered, now **measured**) | **5 of 5** marker-less Mongolian predicate-noun fragments (`Нийт оноо.` / `Энэ сарын оноо.` / `Багийн оноо.`) read as live commands. | same |
+| **V83-D5** | **P1 REGRESSION** | At the **live denial-contradicted window**, **8 of 27** line-break positions inside four ordinary denials ship the **fabrication unedited** on a turn that canonically READ the row. | **0 of 27** |
+| **V83-D6** | P3 today / P1 for any Unicode boundary | **Five** call sites recompile `CLAUSE_BOUNDARY.source` with a hand-typed `'gi'` and discard the constant's own flags. `\p{L}` without `u` is *literal text and the pattern keeps matching* — fail-open. | same |
+
+**V83-D5 is a direct FAIL criterion** ("any denial contradicted by the turn's own evidence"). **V83-D1 and V83-D3 are the other one** ("a model action overriding the founder's do not").
+
+**In fairness to the change, the trade is real in both directions:** on 5fd08a94 an unpunctuated two-line answer (`Alpha is archived` ⏎ `Omega does not exist in the database`) was rewritten **wholesale**, destroying a truthful answer. The candidate fixes that. Only one side was measured when it shipped.
+
+---
+
+## THE THING THAT SHOULD WORRY THE FOUNDER MOST
+
+**The battery is byte-identical with these defects present and with them fixed.** 103 suites, GREEN 91, RED 0, **4 010 assertion rows — both times.** Not one row saw any of this, in either direction. The deploy gate would have signed this off.
+
+---
+
+## WHAT I RE-DERIVED RATHER THAN INHERITED
+
+- **V82-H5 (suite blindness).** One child process per suite, `SEM_INDEX_SRC` → a **zero-byte** index.ts: **83 of 103 can see the surface, 20 cannot.** Of the 20 — 13 have another subject entirely, 5 are the declared assert-nothing stubs, and **2 name the deploy surface, run real rows, and still cannot tell it from an empty file.** Also found **4 path-sensitive** suites whose verdicts change when the env points at *byte-identical* content.
+- **V82-H6 (module-scope cache).** Confirmed still open by code (`let _sharedConstantCache` at module scope) and **defeated by construction** — every measurement here used one child process per source.
+- **V82-D2.** Genuinely effective: **35 of 35** natural denials over the 7 bucket types resolve correctly, 0 wrong. Residual with no live consumer: `memories`→`memorie`, `categories`→`categorie`.
+- **V82-D1.** Holds on one line, 4 of 4; the benefactive `Бат-д таскийг оноо.` stays live.
+- **V82-D4.** Re-derived independently: **6 of 6** post-verbal tails swallow an ordinary request.
+- **V82-H1 (the digest decision).** **I agree with it.** Normalising the deploy surface would let the battery gate read VALID after a CRLF→LF conversion of index.ts — a real change to the exact surface this layer watches. Decision, not oversight.
+- **Guard arms.** All three load-bearing: 17/25 negator members, 10/11 conjunction members, 3/3 bare. My rebuilt pattern is byte-identical to the shipped source (provenance check).
+- **Bytes.** 748 841 B, sha256 `324230d9…`, 8 914 CRLF, **0 bare LF, 0 bare CR, 0×08**; blob `567b2e08` / `e5b93548…` / 739 927 B. Only 0×08 anywhere in 3 960 tracked files is a binary favicon. Every `\p{…}` — including **transitively, via a string constant** — carries `u`.
+
+## MUTATION RUN — with an honest denominator (83, not 103)
+
+10 mutants, each proved effective before its survival counted, path and digest erased. **0 effective survivors.** But: **not one GREEN suite holds V82-D1, V82-D2, or the line-break arm itself** — all three rest entirely on two suites the manifest already classifies as OPEN DEFECT. **3 were INEFFECTIVE, and that was my corpus's fault, not the product's** (V83-H8) — my probe's only negator was `do not`, already covered by the bare `not` arm. *Ask of every corpus what it cannot contain.*
+
+## HARNESS — 3 FIXED LIVE, 5 REGISTERED
+
+- **V83-H3 — FIXED.** `escape_depth_and_source_hygiene_contract` printed **26 GREEN rows against a ZERO-BYTE index.ts**, including *"index.ts is CRLF-pure"* and *"every `\p{…}` is compiled with the u flag"*. `extractor_line_ending_contract` printed 7. Every row looks for an **absence**, so nothing is the cleanest possible source. Liveness rows added; both now go red on an empty source.
+- **V83-H4 — FIXED.** A **GREEN row whose name did not describe its assertion**: *"bare-CR count has not grown beyond the one known occurrence"* asserted `bareCR <= 1` while the surface carries **zero**, and the file's own header states the CR as present fact. A forgiveness that outlived the thing forgiven is a standing permit for the next one. Now `bareCR === 0` — and my regression row measures it **behaviourally**, because my first version matched my own explanatory prose (#73's trap, fourth instance).
+- **V83-H6 — FIXED.** The shared TS stripper could not strip an **optional parameter**; `(capture?: boolean)` → `(capture?)`, a SyntaxError. Found because my own fix needed one.
+- **V83-H1 — REGISTERED.** `H7-D1`'s **label** claims no suite is a second authority on shared-constant order; its **assertion** is three hand-typed regexes. I wrote one in a different shape, added it to the battery, ran the ratchet: **13 passed, 0 failed.** The derived replacement (0 false positives across 103 suites, with a self-check that it can fail) is in my suite.
+- **V83-H2 — REGISTERED.** `gate_evidence` describes the mutation proof as *"nine mutants across #72 and #73"*. It carries **19**, spans #72–#79, and covers **nothing from this round**.
+- **V83-H5, H7, H8** — the stale clause enumeration (679 lines from its constant, omitting the arm added this round), the ternary-default stripper gap (pre-existing), and my own ineffective mutants.
+
+## FIX PREPARED — NOT APPLIED (`index.ts` untouched)
+
+`qa/verification/proposed/v83_prepared_fix-apply.mjs` + its registration companion. The guard's own principle, derived not widened: unbounded `\s*`, `(?<![\p{L}\p{N}])` word anchoring, `SENTENCE_FUNCTION_WORD` and the `нь`/`бол` vocabulary joined to the guard, five call sites converged on one `clauseBoundaryRe()`.
+
+| | candidate | prepared fix |
+|---|---|---|
+| refusal rows | 9 / 23 | **23 / 23** |
+| contradicted denials shipping | 8 / 27 | **5 / 27** |
+| `v83_regression_additions` | 16 pass / 7 fail | **21 / 2** |
+| release manifest | GREEN 91, RED 0 | **GREEN 91, RED 0 — identical** |
+
+**Not closed, stated with its size rather than guessed at:** 5/27 wrapped denials (a break after a *content* word) and 5/5 marker-less Mongolian fragments. A soft wrap and a list item are not distinguishable from anything in that file.
+
+## V82-D4 — my explicit call, not an inherited one
+
+**25 swallowed requests is not deployable, but it is not what fails this candidate.** It errs cheap (a false receipt, not a forbidden write), it is registered, red and classified, and the derived fix has been correctly reverted twice for lack of a verb lexicon. On its own I would ship it. It is V83-D1/D3/D5 — three P1s in the *expensive* direction, all introduced this round — that make this a FAIL.
+
+## COVERAGE GAPS — **BLOCKED, not skipped**
+
+Browser tooling was **not available** in this session type. **No live HTTP request, no Edge Function invocation, no AI chat turn, no UI, no database query.** Every behavioural number here comes from the **real declarations lifted out of the deploy surface and executed** — stronger than a re-implementation, weaker than a live request. The **request-gate class** (ledger #133: token preflight, payload size, provider limits) **cannot be observed this way and was not observed.** `backup_restore` was STALE on arrival and not run. Codex E deliberately not probed live.
+
+## SYNTHETIC DATA
+
+**None created.** No database access was possible or needed; nothing in this diff touches SQL. There is no `QA-VERIFY-*` data to clean up. Large mutant snapshots were deleted before commit; every probe, log and the visibility matrix are committed under `qa/verification/scratch/v83/`.
+
+## FOUNDER-APPROVAL SECTION
+
+**No database migration, no Edge Function deploy, no secret or auth change is requested or prepared by this verifier.** Nothing here needs founder authority. The one thing that needs a decision:
+
+> **Do not deploy `25f17508`.** Apply `v83_prepared_fix-apply.mjs` **and** `v83_prepared_fix-register-shared-constants.mjs` in one commit, promote `v83_regression_additions.mjs`, then re-verify. Applying either half alone makes `shared_constant_order_contract` go red — correctly.
+
+## COMMITS ON `verify-25f1750-campaign143`
+
+- `87b7c379` — verifier #83 FAILED 25f17508: one change, three P1 regressions, and a battery that is byte-identical either way
+- `3acb58f0` — gate evidence re-recorded on 324230d9 after the three harness fixes
+
+Ledger entry created: **`## 172`**. Regression suite: `qa/verification/proposed/v83_regression_additions.mjs` (16 pass / 7 fail on the candidate, 21 / 2 on the fix).
+
+---
+
+**RELEASE STATE: `FAILED`**
+
+`324230d9c9445709498b3a11e2892e5dd693651228971368a563d392c6594dda`
