@@ -370,19 +370,74 @@ it took two corrections of my own: the probe testing it used a synchronous call 
 so it never performed the edit it was testing; and the guard's "before" fingerprint was taken after the
 expensive phase, so it compared an already-changed tree with itself.
 
+
+---
+
+## ROUNDS #80 AND #81
+
+**#80 failed on three P1s, two of them in the fixes I made for #79.** Its table is the one to look at:
+
+    build       ordinary requests swallowed (10)   forbidden writes that survive (12)
+    924977e4    4                                  11
+    992520d8    7                                  0
+    dc27e034    2                                  8      <- mine
+    + fix       2                                  0
+
+I traded five swallowed requests for eight forbidden writes — the expensive direction — and my corpus could
+not see it, because I had enumerated what may FOLLOW a read predicate and Mongolian has more particles than
+anyone enumerates. The fix asks the right question instead: Mongolian is verb-final, so a read predicate is
+the clause's own predicate exactly when no LIVE VERB follows it. Derived, so a particle nobody listed cannot
+defeat it.
+
+**#81 failed on two P1s that were PRE-EXISTING** — the first round in four whose findings were not
+regressions from the previous fix. One of them is worth your attention as a pattern: the comment on the
+Mongolian stem vocabulary had said *"a live clause ENDS with one of these"* since the day it was written,
+and nothing enforced it. **A comment is a claim, and this one had been false for as long as it existed.**
+
+### The most expensive harness defect of the campaign, and it was not a red
+
+Closing #81 made a CONTRACT row report **195 false-live tokens as a product defect that does not exist.**
+
+The row chose which of two measurements to run by matching the decider's source text character-for-
+character. #81's fix changed that line's shape, the match stopped, and the row silently measured the OLD
+BLOCKLIST the product had replaced three rounds earlier — then reported its always-present failures as a
+CONTRACT failure. The deploy gate classified it as a reopened defect, which is its phrase for the worst
+thing it can find.
+
+A suite that pins a spelling goes red and nobody believes a false red for long. **A spelling that selects
+between two measurements produces a red that names the product, with a number attached, about a defect that
+is not there** — and everything downstream treats it as a finding. Ledger 170. The repair added a row that
+asserts the selector selected correctly; there had been nothing.
+
+### Three instrument defects that would have cost an independent verifier its round
+
+* **Every gate read STALE in a fresh worktree** — including one whose only inputs were byte-identical in
+  content — because git normalises line endings on checkout and the digest hashed the checkout rather than
+  the fact. A verifier starts in a fresh worktree, so it saw six stale gates and would either re-run an hour
+  of work or report the staleness as a finding.
+* **A battery row read a file git does not track** (mine), so on a clean checkout the deploy gate said
+  RED 1 while the recorded evidence said RED 0. A suite whose green depends on a generated artefact is green
+  only on the machine that generated it.
+* **#81's own FAILED verdict was nearly discarded.** The watchdog filed its complete report as
+  BLOCKED — EXECUTION_MODE because the report contains the sentence *"`npx supabase db query --linked`
+  requires approval here"* — the verifier REPORTING a coverage limit, which is exactly what it should do. A
+  finished report now outranks every text classifier, because a completed report is a fact about the process
+  and the classifiers are guesses about it.
+
 ## RUNNING
 
-**Verifier #80**, campaign 140, on candidate `dc27e034` / index.ts
-`056569671f7cd1bbc0e6b6fa0de1d95960a774c40eecb6eda4f75ebd588a0373`, 733,146 bytes. It needs nothing from
-you.
+**Verifier #82**, campaign 142, on candidate `5fd08a94` / index.ts
+`eade10fe9fd31a9394c7a328629e160041a4ac3328936e4c88d04b5422b3d19c`, 742,549 bytes. Needs nothing from you.
 
-At dispatch: battery **100 suites — 90 GREEN, 5 GREEN-but-asserts-nothing, 2 BLOCKED - FOUNDER AUTHORITY,
-3 OPEN DEFECT - THIS PC, 0 unclassified RED**, 3,939 assertion rows executed; **all six release gates
-VALID_PASS** for the first time in the campaign, including a restore-tested backup.
+Battery at dispatch: **102 suites — 91 GREEN, 5 GREEN-but-asserts-nothing, 2 BLOCKED - FOUNDER AUTHORITY,
+4 OPEN DEFECT - THIS PC, 0 unclassified RED.** Five of six gates VALID_PASS.
 
-Dispatching it also caught a defect in the dispatcher: it had been freezing the DISPATCHING repo's index.ts
-— a different branch's file — while printing the candidate's hash beside it. It now runs the freeze in the
-candidate tree and re-reads the record to require the hash to be the one the dispatch is about.
+**`harness_rename_probe` is RED ON PURPOSE**, and this is the one number that got worse on purpose. It was
+green because its rename set was ten hand-picked identifiers — so "no suite pins a spelling" meant "no suite
+pins one of these ten". The set is derived now, and the honest count is 38 suites pinning a spelling plus 26
+whose window anchor moves loudly. `RENAME_PIN_BACKLOG.md` records all of it, including where the repair
+technique stops and why the rest is a product question. **A green gate that measures ten names is worse than
+a red gate that measures 192, because the first one is believed.**
 ## BLOCKED — FOUNDER AUTHORITY (2, unchanged, correctly red)
 
 1. `person_assignment_scope_authorization` — needs the prepared DB migration
@@ -467,15 +522,15 @@ recognise except that a refusal followed by a question stays a refusal.
 
 **If you disagree, it is one hoisted constant and one line in the decider.**
 
-So the honest state of the bytes: candidate `05656967`, every finding from verifiers #78 AND #79 closed,
-three defects open by decision, all six release gates green and a restore-tested backup. **These bytes have
-not been independently verified yet** — #80 is running — **and I am not asking you to authorise them.**
+So the honest state of the bytes: candidate `eade10fe`, every finding from verifiers #78 through #81
+closed, four defects open by decision, five of six gates green and a restore-tested backup. **These bytes
+have not been independently verified yet** — #82 is running — **and I am not asking you to authorise them.**
 
-Six rounds ran and all six failed. Not one was a false alarm, and the shape of the failures has changed:
-the early ones found product defects, the last three found INSTRUMENTS that flattered the session that
-built them. That is uncomfortable and it is the system working — each round found something the round
-before it could not see, and twice the thing it found was that a number I had reported was measured on a
-corpus that could not produce a different answer.
+Eight rounds have run and all eight failed. Not one was a false alarm. The shape has changed over the
+night: the early rounds found product defects, the middle three found instruments that flattered the
+session that built them, and the last one found a comment that had been false since the day it was written
+plus a harness row reporting a defect that did not exist. **Every round found something the round before it
+could not see**, which is the only argument for the process that matters.
 
 When a round passes, the next action is a fresh `ALLOW_FUNCTIONS_DEPLOY=1` scoped to the exact
 DEPLOY_FILE_SHA256 in the release manifest. I will ask for it then, once, with the manifest attached.
