@@ -177,6 +177,41 @@ try {
       [r.run_id, "00000000-0000-4000-8000-000000000002"]);
     check("an independent verification IS accepted", ok.rowCount === 1, "rowCount=" + ok.rowCount);
   }
+  // ---- INVARIANT 1: a business id here is opaque, and confers nothing ------------------------------
+  //
+  // "Business IDs stored in the Factory Control Plane are opaque references by value. They do NOT
+  //  establish business existence, tenancy, authorization, or production access."
+  //
+  // The way that gets violated is not disagreement. It is somebody adding `references public.companies(id)`
+  // to make a join easier, six months from now, with a good reason. So it is checked rather than stated.
+  {
+    const fks = await admin.query(`
+      select tc.table_name, kcu.column_name, ccu.table_schema as target_schema, ccu.table_name as target_table
+        from information_schema.table_constraints tc
+        join information_schema.key_column_usage kcu on kcu.constraint_name = tc.constraint_name
+        join information_schema.constraint_column_usage ccu on ccu.constraint_name = tc.constraint_name
+       where tc.constraint_type = 'FOREIGN KEY' and tc.table_schema = 'factory'`);
+    const outward = fks.rows.filter((r) => r.target_schema !== 'factory');
+    check("INV1 no control-plane table references anything outside the factory schema",
+      outward.length === 0,
+      JSON.stringify(outward) + " — a business id here is a VALUE; a foreign key would make it an assertion"
+      + " that the row exists, which is exactly what this schema must not claim");
+
+    // And the second half: there is nothing in this database for such a key to point AT. A control plane
+    // that happened to contain a companies table would be one migration away from being coupled again.
+    const business = await admin.query(`
+      select table_schema, table_name from information_schema.tables
+       where table_name in ('companies','people','profiles','goals','agents','tasks','memories')`);
+    check("INV1b and the control plane holds no Brain OS business table at all",
+      business.rows.length === 0, JSON.stringify(business.rows));
+
+    // A work order whose business id refers to nothing at all is still perfectly valid, which is what
+    // "by value" MEANS. If this failed, the id would be establishing existence.
+    const orphan = await wo("INV1: id that refers to nothing", { surface: ["qa/inv1.txt"] });
+    const got = await admin.query("select work_order_id from factory.work_orders where work_order_id = $1", [orphan]);
+    check("INV1c a work order referencing a business id that does not exist is still valid",
+      got.rows.length === 1, JSON.stringify(got.rows));
+  }
   // ---- I. the work order is reconstructible from GitHub alone ---------------------------------------
   //
   // The control plane accelerates orchestration; it is not where the work lives. So: wipe every row, then
