@@ -180,9 +180,119 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
   return { nodeId: id, capabilities: caps, claimed };
 }
 
+/**
+ * Prove this node can reach the control plane, link by link.
+ *
+ * Each check is separate because each fails for a different reason and has a different fix: a missing
+ * variable is a setup step, a refused superuser is a role choice, a missing table is an unapplied schema,
+ * and a denied SELECT is a missing grant. "Not OK" would make all four look the same.
+ */
+export async function health() {
+  const lines = [];
+  let ok = true;
+  const say = (good, label, detail) => {
+    if (!good) ok = false;
+    lines.push((good ? '  ok   ' : '  FAIL ') + label + (detail ? '  — ' + detail : ''));
+  };
+
+  // 1. The variable. Its ABSENCE is the designed refusal, so it is reported as a setup step and not as a
+  // fault: nothing is broken, the node has simply not been told which database to use.
+  const url = process.env.FACTORY_RUNNER_PG_URL || db.FACTORY_RUNNER_PG_URL || "";
+  if (!url) {
+    console.log("factory node health");
+    console.log("  FAIL FACTORY_RUNNER_PG_URL is not set");
+    console.log("");
+    console.log("  This is the designed refusal, not a fault. The runner has no fallback: the mechanism it");
+    console.log("  replaced worked by silently borrowing whatever production credential the machine held.");
+    console.log("  Set an explicit least-privilege connection — see FACTORY_CONTROL_PLANE_SETUP.md §9.");
+    return { ok: false, reason: "no-url" };
+  }
+
+  // Identify the connection WITHOUT exposing it. A health command that echoes its credential leaves one
+  // in a scrollback buffer and, eventually, in a screenshot.
+  let host = "?", database = "?", sslmode = "(none)";
+  try {
+    const u = new URL(url);
+    host = u.hostname + (u.port ? ":" + u.port : "");
+    database = u.pathname.replace(/^\//, "") || "?";
+    sslmode = u.searchParams.get("sslmode") || "(none)";
+  } catch { /* pg will reject it below */ }
+  console.log("factory node health");
+  console.log("  node    " + nodeId());
+  console.log("  host    " + host);
+  console.log("  db      " + database);
+  console.log("  sslmode " + sslmode);
+  console.log("");
+
+  // TLS is FATAL for a remote host and ADVISORY for loopback. A connection to 127.0.0.1 does not cross a
+  // network, so there is nothing for TLS to protect; a connection to anything else does. Treating both the
+  // same made a healthy local node report NOT HEALTHY, and — worse — made a missing TLS on a REMOTE host
+  // look like the same routine noise.
+  const loopback = /^(127\.|\[?::1\]?$|localhost$)/.test(host);
+  const tlsOn = sslmode === "require" || sslmode === "verify-full";
+  if (loopback) {
+    lines.push((tlsOn ? "  ok   " : "  note ") + "TLS " + (tlsOn ? "is requested" : "not requested, and not needed")
+      + " — this is a loopback connection, which does not cross a network");
+  } else {
+    say(tlsOn, "TLS is requested for a REMOTE host",
+      tlsOn ? "" : "sslmode=" + sslmode + " — add ?sslmode=require; a shared control plane is reached over a network");
+  }
+
+  // 2. Connection, identity and privilege, in one round trip.
+  let who = null;
+  try {
+    const r = await db.read("select current_user usr, current_database() db, version() v");
+    who = r.rows[0];
+    say(true, "connected as " + who.usr + " to " + who.db);
+    say(true, String(who.v).split(",")[0]);
+  } catch (e) {
+    say(false, "cannot connect", String(e && e.message || e).slice(0, 160));
+    console.log(lines.join("\n"));
+    return { ok: false, reason: "connect" };
+  }
+
+  // 3. Not a superuser. db.mjs refuses one before connecting, so reaching here already proves the URL is
+  // not `postgres` — but a role can be a superuser under another name, and that is worth saying out loud.
+  try {
+    const su = await db.read("select rolsuper from pg_roles where rolname = current_user");
+    say(su.rows.length > 0 && su.rows[0].rolsuper === false,
+      "the connected role is NOT a superuser",
+      su.rows.length && su.rows[0].rolsuper ? "it is — least privilege pointed at a superuser is not least privilege" : "");
+  } catch { say(true, "superuser status not readable (the role cannot read pg_roles, which is itself fine)"); }
+
+  // 4. The schema is applied and readable.
+  const TABLES = ["nodes", "work_orders", "work_order_dependencies", "agent_runs", "surface_locks", "checkpoints"];
+  try {
+    const t = await db.read(
+      "select table_name from information_schema.tables where table_schema = 'factory'");
+    const found = t.rows.map((r) => r.table_name);
+    const missing = TABLES.filter((x) => !found.includes(x));
+    say(missing.length === 0, "the factory schema is present (" + found.length + " tables)",
+      missing.length ? "missing: " + missing.join(", ") + " — apply 001_factory_control_plane.sql" : "");
+  } catch (e) { say(false, "cannot read the factory schema", String(e && e.message || e).slice(0, 120)); }
+
+  // 5. It can actually DO its job: read the queue, and write its own registration.
+  try {
+    const q = await db.read("select count(*)::int n from factory.work_orders");
+    say(true, "can read the queue (" + q.rows[0].n + " work order(s))");
+  } catch (e) { say(false, "cannot read the queue", String(e && e.message || e).slice(0, 120)); }
+
+  try {
+    await registerNode({ nodeId: nodeId(), capabilities: capabilities(), platform: process.platform,
+      agentVersion: process.version });
+    const n = await db.read("select count(*)::int n from factory.nodes");
+    say(true, "registered itself (" + n.rows[0].n + " node(s) known to this control plane)");
+  } catch (e) { say(false, "cannot register", String(e && e.message || e).slice(0, 120)); }
+
+  console.log(lines.join("\n"));
+  console.log("");
+  console.log(ok ? "HEALTHY — this node can claim work." : "NOT HEALTHY — see the failing line above.");
+  return { ok, host, database };
+}
 if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
   const cmd = process.argv[2] || 'start';
   if (cmd === 'id') { console.log(nodeId()); }
+  else if (cmd === 'health') { const r = await health(); process.exit(r.ok ? 0 : 1); }
   else if (cmd === 'capabilities') { console.log(JSON.stringify(capabilities(), null, 2)); }
   else if (cmd === 'start') {
     await nodeStart({
@@ -195,7 +305,7 @@ if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
       once: process.argv.includes('--once'),
     });
   } else {
-    console.log('usage: node node.mjs [start [--once] | id | capabilities]');
+    console.log('usage: node node.mjs [start [--once] | health | id | capabilities]');
     process.exit(2);
   }
 }
