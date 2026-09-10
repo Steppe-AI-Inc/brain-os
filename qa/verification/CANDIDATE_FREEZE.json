@@ -1,0 +1,7 @@
+{
+  "state": "THAWED",
+  "sha256": "e03ddceb3718e48cb9c4ec3260ad8062232e9a5416aee262ae0bc5d5e6bb7472",
+  "bytes": 630533,
+  "at": "2026-09-10T01:01:56.783Z",
+  "reason": "this tree is not the candidate; #79's candidate lives in brain-os-wo-resolver and was frozen there"
+}

@@ -111,9 +111,33 @@ EOF
 # BRAIN_OS_CANDIDATE_REPO when they differ; it defaults to this repo, which is right for a single-tree setup.
 CANDIDATE_REPO="${BRAIN_OS_CANDIDATE_REPO:-$REPO}"
 FREEZE_TOOL="$CANDIDATE_REPO/qa/verification/candidate_freeze.mjs"
+# FREEZE THE TREE THAT HOLDS THE CANDIDATE, AND PROVE IT WAS THAT TREE.
+#
+# `node "$FREEZE_TOOL"` ran with the DISPATCHER's working directory, and candidate_freeze.mjs resolves the
+# deploy surface relative to where it runs - so naming BRAIN_OS_CANDIDATE_REPO changed which script was
+# executed and not which file it froze. Dispatching verifier #79 froze this repo's own index.ts: a different
+# branch, 630,533 bytes, hash e03ddceb - and wrote a `reason` naming the CANDIDATE's hash 6c1bfca9. The
+# record was internally contradictory, the real candidate stayed writable, and the line printed to the
+# console read exactly like a confirmation that the candidate had been frozen.
+#
+# So: run it IN the candidate tree, then re-read the record it wrote and require the hash to be the one this
+# dispatch is about. A freeze that cannot be shown to have frozen the right bytes is worse than no freeze,
+# because it is believed.
 if [ -f "$FREEZE_TOOL" ] && [ "$PINNED" = "supabase/functions/sem-ai-command/index.ts" ]; then
-  if ! node "$FREEZE_TOOL" freeze "verifier #$VERIFIER on $SHA7 / $INDEX_SHA"; then
+  if ! ( cd "$CANDIDATE_REPO" && node "$FREEZE_TOOL" freeze "verifier #$VERIFIER on $SHA7 / $INDEX_SHA" ); then
     echo "WARNING: could not freeze the candidate - it stays writable for this round" >&2
+  else
+    # The path goes through the ENVIRONMENT, not through backticks inside a shell-quoted -e string. The
+    # first version used String.raw with escaped backticks, which the shell ate: the extraction returned
+    # EMPTY and the check therefore warned on every dispatch, including correct ones. A check that always
+    # fires is not a check - it is noise that teaches the reader to ignore it.
+    FROZE=$(FREEZE_JSON="$CANDIDATE_REPO/qa/verification/CANDIDATE_FREEZE.json" node -e 'const f=require("fs");const p=process.env.FREEZE_JSON;process.stdout.write(f.existsSync(p)?String(JSON.parse(f.readFileSync(p,"utf8")).sha256||""):"")' 2>/dev/null)
+    if [ "$FROZE" != "$INDEX_SHA" ]; then
+      echo "WARNING: the freeze record in $CANDIDATE_REPO names $FROZE, not the candidate $INDEX_SHA" >&2
+      echo "         the tree that holds the candidate was NOT frozen - set BRAIN_OS_CANDIDATE_REPO" >&2
+    else
+      echo "  frozen     $CANDIDATE_REPO ($FROZE)"
+    fi
   fi
 fi
 # ---- launch under the watchdog, detached ---------------------------------------------------
