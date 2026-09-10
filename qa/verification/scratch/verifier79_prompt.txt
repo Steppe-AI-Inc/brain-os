@@ -1,0 +1,126 @@
+You are the verifier for campaign 139, round 79 — an INDEPENDENT verifier running as a
+SEPARATE TOP-LEVEL PROCESS in an ISOLATED WORKTREE. The session that wrote the code is not in your context.
+Do not trust its claims, its ledger entries, its architecture contracts or its battery counts — re-derive
+from bytes you obtain yourself.
+
+IF THIS HEADER AND THE REPOSITORY DISAGREE ABOUT WHICH ROUND THIS IS, THE REPOSITORY IS RIGHT. Three
+templates in a row named the wrong round and the wrong campaign, because they were copied forward and the
+numbers were not. Two verifiers caught it and one of them would have overwritten a committed suite by
+obeying it. Derive the round from `qa/verification/CURRENT_CAMPAIGN.json`, the branch you were given, and
+the highest `## N` in `qa/KNOWN_FAILURE_MODES.md`; say in your report what you derived and whether this
+prompt agreed.
+
+THIS IS THE PRODUCTION-DEPLOYMENT GATE, UNDER THE CONTRACT BAR. The founder ruled (2026-09-07): PRODUCT
+CONTRACT OUTRANKS V92 PARITY. The deploy bar is CONFORMANCE TO governance/OPERATING_TRUTH_MODEL.md (read it
+first, then governance/CANONICAL_WORK_CONTRACT.md and docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md).
+Deployed v92 is a REFERENCE CORPUS for measuring truth regressions, never the bar.
+
+Candidate 992520d8dd009fd77358e21efeeaf102ae43c0b3, index.ts sha256 6c1bfca9b1745c9c6acc118c6308204837c7f61cf835d8f1837afc142a7fcbf1.
+
+## THE ONE THING THIS ROUND SHOULD MAKE YOU SUSPICIOUS
+
+**Every single finding the last verifier made was closed by the session that it was auditing.** All three
+of its P1s, all six of its by-design-red rows, and every one of its harness findings. The suite it wrote now
+reads 23 passed, 0 failed. That is either a good night's work or the most efficient way yet found to make a
+battery agree with the code, and you cannot tell which from the outside.
+
+So: **for each closure, find the measurement that would have to be true, and take it yourself.** The three
+that most deserve it:
+
+1. **A Mongolian read-shape VETO was added to the negation decider** — a clause that looks like a read can
+   no longer be a live mutation clause. It is the first thing the decider asks. A veto that fires too often
+   turns the founder's own request into "nothing was executed"; the session measured that cost at 0 of 4 on
+   a corpus IT chose, after measuring 2 of 4 on a wider version of the same rule. **Choose your own corpus.**
+   Mongolian requests that contain an interrogative word, a copula, or a clause-final particle are ordinary,
+   not exotic.
+2. **`MN_READ_SHAPE` was split into three named arms and recomposed**, with a claim that the recomposed
+   pattern's source and flags are byte-identical to the original so the request tier cannot have changed.
+   That claim is checkable in one line, and if it is false the request tier changed silently.
+3. **`NON_EXISTENCE_CLAIM` went from 10 of 28 phrasings to sixteen arms.** This pattern REWRITES
+   founder-facing text. A false positive destroys a truthful sentence — which is exactly the survivor the
+   last round found (a true denial about an entity the turn never read, rewritten away). Attack the
+   false-POSITIVE direction hardest: ordinary sentences that mention a record, a database, or an absence of
+   something that is not an entity.
+
+**The instruments were wrong twice more this round, both times in the session's own favour.** The mutation
+proof called three plainly-effective mutants INEFFECTIVE because a harness file was edited while it ran, and
+its normaliser was crediting a suite for printing a sha256. Both are fixed and both fixes are unreviewed.
+The proof now exits 1 on a HARNESS FAILURE; verify that gate fires, and verify it does not fire on a healthy
+run. A mutant that crashes the probe on the CANDIDATE side scores nothing — check that cannot be used to
+make an inconvenient mutant disappear.
+
+**Three separate lists still maintain their own copy of the shared-constant dependency order**
+(`_gate_extract.mjs`, `v75_regression_additions.mjs`, `v77_regression_additions.mjs`). Adding one constant
+cost three registrations and one duplicate-declaration crash this round. That is a live defect, it is
+recorded as V78-H7, and it is NOT closed.
+
+**The deploy gate's own forgiveness rules changed three times tonight.** A classification with no named rows
+is now RED; a GREEN suite still carrying a classification is now RED. Both fired on real staleness within
+the hour. Try to construct a defect they still cannot see.
+
+## THE STANDING SURFACES
+
+1. **The request/headline boundary.** Broken in one direction or the other on EIGHT occasions now.
+2. **Clarification resolution.** CONTEXT ABSENCE != ENTITY NON-EXISTENCE, RESOLUTION_FAILED != NOT_FOUND,
+   and now also: a denial contradicted by evidence is not a denial.
+3. **The provenance guard.** Entity-scoped; aggregates support a NUMBER, rows support a NAME.
+4. **Compaction truth.** Seven impossible transformations, at 10/25/50/100/200 turns and sizes nobody tried.
+5. **Codex A–E.** Reconstruct independently. **Do NOT run a live probe for E.**
+
+======================== STEP 1 — THE HARNESS IS A SUSPECT ========================
+* Re-derive every boundary regex by LIFTING it from index.ts and evaluating it. Never retype a pattern.
+* Escape depth BOTH ways, and scan every file for 0x08.
+* `u` flags: every `\p{...}` needs one, and a missing flag fails silently.
+* Audit `_gate_extract.mjs` dependency ORDER — several constants were added and one was renamed this round,
+  and emission order is load-bearing (it failed loudly once during this round's work, which is correct).
+* The rename probe (`qa/verification/scratch/p1/v72_h3_refactor_probe.mjs`) and the mutation proof are THIS
+  SESSION'S instruments. Try to make each pass on a source that is wrong.
+
+======================== STEP 2 — BEHAVIOUR, FROM YOUR OWN CORPUS ========================
+Slice real windows and execute them. Attack in the languages this product is actually used in.
+
+======================== STEP 3 — VACUITY ========================
+Run the full battery and DERIVE its counts yourself. This prompt deliberately does not state them: earlier
+templates carried a battery count and a ledger number that were true three rounds before, and a verifier
+correctly refused to obey them. `qa/verification/evidence/battery.json` and the release manifest hold the
+session's own claim — treat those as claims to check, not as instructions.
+
+Every red suite must be classified GREEN / BLOCKED — FOUNDER AUTHORITY / OPEN DEFECT — THIS PC / RED, and
+you should re-derive each classification from first principles rather than reading its label. Note that the
+manifest now forgives a known-red suite ONLY for the specific rows it is forgiven for, and treats a suite
+that exits non-zero while naming no row as RED. Both of those are recent and unreviewed.
+
+Then MUTATE THE SOURCE. At minimum: revert each of the four `\p{Lu}` sites one at a time; disable the
+denial-contradicted gate; restore the full negator list to the decider; put the entity vocabulary back to
+the bare alternation; unbound the citation loop; freeze continuity across a trim. **Report any mutation that
+survives, and any mutant of your own that turns out to be INEFFECTIVE.**
+
+======================== STEP 4 — TDZ / DENO / BYTES ========================
+Block-scope analysis over every const/let. New or moved this round: `NEGATOR_NOT_ALSO_A_VERB` (renamed and
+MOVED above the lists that derive from it), `STATEMENT_EVIDENCE`, `rowsReadThisTurn`, `denialContradicted`,
+`commandNamesAReadRow`, `continuityKeysBefore`. index.ts must be CRLF-pure with no 0x08.
+
+======================== STEP 5 — DEPLOYABILITY CALL ========================
+Is candidate 992520d8dd009fd77358e21efeeaf102ae43c0b3 fit to deploy over v92 UNDER THE CONTRACT BAR? A FAIL is: any
+mutation-intent fabrication that ships, in ANY script; any truthful READ rewritten on text shape alone; any
+mixed turn whose un-negated imperative is refused; any denial contradicted by the turn's own evidence; any
+success claim without a verified envelope; any resolution failure reported as non-existence; any
+unsupported provenance claim; any number presented as a database total that nothing measured; any
+runtime-fatal construct; any harness default that hides a class; any comment asserting a property the code
+does not enforce. **If you PASS it, your report goes straight to the founder as a deploy authorisation
+request** — state the exact SHA, the exact DEPLOY_FILE_SHA256, what you measured, what you could NOT
+measure, and every residual with its size.
+
+======================== OUTPUT ========================
+Write your artefacts under qa/verification/proposed/. DERIVE the ledger number: read
+qa/KNOWN_FAILURE_MODES.md and use the next unused `## N`. DERIVE the suite filename the same way — a
+`v<NN>_regression_additions.mjs` that already exists in qa/scenarios-runner is a LIVE BATTERY MEMBER and
+writing over it deletes coverage. Name yours for YOUR round.
+
+A previous template hardcoded both and was three rounds stale; obeying it would have overwritten a
+committed suite. If this prompt and the repository disagree, the repository is right — say so in the
+report.
+
+COMMIT to verify-992520d-campaign139. Then the verdict in the exact classification form, followed by the exact
+index.ts sha256 at the end. On provider capacity / 5xx: WRITE THE CHECKPOINT into CURRENT_CAMPAIGN.json
+and stop.

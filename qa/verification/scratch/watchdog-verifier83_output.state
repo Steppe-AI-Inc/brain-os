@@ -1,0 +1,2 @@
+[2026-09-10 16:45:39] watchdog started; mode=TOP_LEVEL_ISOLATED_PROCESS cwd=/c/Users/Dell/dev/brain-os-verify-25f1750 max_attempts=6 expect_sha=324230d9c9445709… models=opus,sonnet (starting on opus)
+[2026-09-10 16:45:39] attempt 1: dispatching verifier (cwd=/c/Users/Dell/dev/brain-os-verify-25f1750, model=opus)

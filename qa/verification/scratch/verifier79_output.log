@@ -1,0 +1,96 @@
+---
+
+# VERIFIER #79 — CAMPAIGN 139 — FINAL REPORT
+
+## What I derived, and whether the prompt agreed
+
+| | derived from the repository | prompt said | agree? |
+|---|---|---|---|
+| round | **#79** (branch `verify-992520d-campaign139`; highest `## N` = 165 = verifier #78's closure) | 79 | ✅ |
+| campaign | **139** | 139 | ✅ |
+| ledger entry | **`## 166`** | "derive it" | ✅ |
+| suite filename | **`v79_regression_additions.mjs`** (v78 is the highest committed suite; writing into it would delete live coverage) | "derive it" | ✅ |
+
+**The prompt and the repository agreed this time.** Recorded because the previous three did not.
+
+---
+
+## CHANGE VERIFIED: Edge Function candidate `992520d8` — the V78 closure set (MN read-shape veto, MN_READ_SHAPE three-arm split, NON_EXISTENCE_CLAIM 16-arm widening) plus the instrument repairs
+
+```
+SCENARIOS: 9 measurement families executed, 2 FAILED, 1 BLOCKED (deno check)
+CANONICAL GRAPH: n/a — this is a source/harness deploy gate, no DB or UI was exercised
+UI ↔ DB:         BLOCKED (no browser or database access used this round — stated, not skipped)
+AI ↔ CONTRACT:   FAIL
+DEPENDENCIES:    PASS (battery 92/2/3/0, byte-identical to the session's claim)
+RELOAD/PERSISTENCE: n/a
+IDEMPOTENCY:     n/a
+```
+
+**VERDICT: FAIL — NOT FIT TO DEPLOY over v92 under the contract bar.**
+
+Two of this round's three headline closures are wrong in the direction that flatters them, and both trip an explicit FAIL condition of this gate.
+
+---
+
+## The three closures I was told to distrust
+
+**1. The Mongolian read-shape VETO — FALSIFIED on my own corpus.** The V78 closure kept the two arms it called "clause-level by construction". `MN_READ_PREDICATE` is not one of them: `байгаа` is Mongolian's ordinary attributive participle (`хүлээгдэж байгаа` = pending, `хоцорч байгаа` = lagging, `идэвхгүй байгаа` = inactive), so an imperative clause routinely *contains* a read predicate without being a read.
+
+| build | ordinary mixed-turn requests swallowed | genuine reads correctly vetoed |
+|---|---|---|
+| candidate `6c1bfca9` | **11 of 20** | 5/5 |
+| previous candidate `924977e4` | 7 of 20 | 3/5 |
+| with my prepared fix | **3 of 20** (all three pre-existing) | 5/5 |
+
+`Alpha-г битгий устга. Хүлээгдэж байгаа зөвшөөрлийг цуцла.` ("Don't delete Alpha. Cancel the pending approval.") → every model mutation field stripped at `:4369-4380`, and the receipt at `:8529` tells the founder *"you asked me not to, so nothing was executed."* That is **a mixed turn whose un-negated imperative is refused** — an explicit FAIL condition. The session's "0 of 4" was measured on `d2_veto_cost.mjs`, whose every row exercises the interrogative-**word** arm and none the predicate arm.
+
+**2. The `MN_READ_SHAPE` byte-identity claim — TRUE.** Recomposed source is byte-identical (252 chars) and flags identical (`iu`) to the literal lifted out of `git show 924977e4:…`, 0 behavioural differences over 100 probes. The request tier did not change. Now pinned so a future split cannot change it silently.
+
+**3. `NON_EXISTENCE_CLAIM` — FALSIFIED in the false-POSITIVE direction.** 0 false negatives on #78's own corpus (good), but **16 of 21** truthful sentences match, and executing the **real** denial-contradicted window, **3 of 5** truthful answers are replaced by "I could not confirm that from this turn" — `Alpha's end date is missing from the record.` (a null column), `The invoice for ACME was never created.`, `I found no record of overtime for Bat in September.` The two survivors survive **by accident**: `typeNamedIn` happened to extract the word `record` out of "there **is no** record". That is **a truthful READ rewritten on text shape alone** — the second explicit FAIL condition. The round's FP control set was three sentences, all of them assertions of *presence*.
+
+---
+
+## What I confirmed rather than found
+
+- **Battery, derived myself:** 97 suites, **92 green / 2 BLOCKED–FOUNDER AUTHORITY / 3 OPEN DEFECT–THIS PC / 0 RED** — exactly the session's claim. Row counts, which the manifest never reports: **3 821 pass / 16 fail**. No suite exits 0 while printing a failing row. All four classifications re-derived from first principles and all hold; `stale_classifications = []`.
+- **Mutation proof, clean re-run:** 17 mutants, **0 surviving, 0 ineffective, 0 harness failures**. The **HARNESS FAILURE gate fires** (probe crashing on the candidate side → prints "This proof did not run", exits 1, and `gate_evidence.runGate` records FAIL from the exit code) and **does not fire** on a healthy run. It cannot be used to hide a mutant *silently* — it invalidates the whole proof.
+- **My own 11 mutants: 0 survivors.** `\p{Lu}`→`[A-Z]` on NAME_INITIAL and the title-case test, the denial gate disabled, the full negator list restored, the read-shape veto removed, continuity frozen across a trim — all caught. **3 remained INEFFECTIVE against my probes** and are reported as such, not as survivors.
+- **TDZ / bytes:** 87 module consts, 0 module `let`/`var`, **0 eager forward references**; CRLF-pure, 0 bare LF/CR, **0x08 = 0 across 2 944 repo files**, no BOM; `\p{...}` without `u` = 0 in the deploy surface and 0 in the live battery.
+- **Compaction truth at sizes nobody tried:** 0/1/2/3/7/500/1 000/3 000 turns + a 400 KB single row → **90 pass, 0 fail**.
+- **Provenance guard:** 10/10 adversarial (entity scope, aggregate↔number, row↔name, `Beta` ≠ `Betamax`).
+- **Codex A/D/E re-derived from source.** E confirmed unreachable through this deploy (the fix is in `supabase/drafts/`, not `supabase/migrations/`). **No live probe for E was attempted.**
+
+---
+
+## Harness findings
+
+- **V78-H7 is open and it is FOUR lists, not three** (`v75` keeps two) plus a fifth in scratch. Reproduced live: one product constant cost three registrations, and product edit + list edits are **atomic in both directions**.
+- **V79-H2 — three defects the new forgiveness rules still cannot see:** 67 `.sql` suites are never run and never named; five GREEN suites are SUPERSEDED stubs asserting nothing; the gate counts suites, never rows.
+- **V79-H3 — a comment asserting a property the code does not have:** the list headed "SHARED **MODULE-LEVEL** CONSTANTS" contains 17 entries declared *inside* `serve()`, including the object-test cluster whose comment says "Hoisting it to module scope is what lets both tiers ask it". That hoist has not happened — V77-D4 is still an open red saying so.
+
+## My own instruments were wrong four times — all disclosed
+
+Line-structure loss in my TDZ scanner; two false FAILs in my compaction probe against correct behaviour; a probe that ignored `SEM_INDEX_SRC` and measured the candidate twice; a battery pass run **while the mutation proof was in flight** (ledger #163 — that run was voided and re-run, not reported). And the first draft of my suite printed a **truncated** sha256, which would have walked past the proof's 40–64-hex normaliser and reintroduced V78-H4 in a shorter form. Removed before it ran once.
+
+## Fixes prepared (not applied — the candidate is frozen)
+
+`v79_prepared_fix-D1-*.patch`, `v79_prepared_fix-D2-*.patch`, `v79_prepared_fix-harness-lists.patch`. **Whole-battery cost: zero** — 97 suites, 92 green / 5 red, exit codes *and* failing-row counts identical to the candidate baseline; `v79_regression_additions.mjs` goes **13/3 → 16/0**.
+
+## Founder-approval section
+
+**Nothing requires a founder action from this round.** No migration is proposed, no Edge deploy is requested, no secret or auth configuration was touched. `ALLOW_FUNCTIONS_DEPLOY=1?` **must not be asked on these bytes.** The two pre-existing founder-gated items (Codex E's RLS migration in `supabase/drafts/`, and the production write-authority revocation) are unchanged and were not probed.
+
+## Coverage gaps, stated not skipped
+
+`deno check` — **BLOCKED** (deno and npx gated). No live request, live database, browser or AI-chat turn was exercised: this round was dispatched as a source-and-harness deploy gate and I had no browser tooling; UI↔DB and AI-in-a-fresh-channel truth are therefore **BLOCKED**, not passed. The 67 `.sql` suites remain unrun by the deploy gate. No `QA-VERIFY-*` synthetic data was created, so there is nothing to clean up.
+
+**Commit:** `28ff20bb` on `verify-992520d-campaign139`. Candidate bytes untouched (`git status` on `supabase/` is clean).
+
+---
+
+```
+FAILED — NOT DEPLOYMENT READY
+```
+
+`6c1bfca9b1745c9c6acc118c6308204837c7f61cf835d8f1837afc142a7fcbf1`

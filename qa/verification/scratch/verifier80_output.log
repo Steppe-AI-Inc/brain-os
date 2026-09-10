@@ -1,0 +1,98 @@
+---
+
+# VERIFIER #80 — CAMPAIGN 140 — FINAL REPORT
+
+## Numbering, derived from the repository
+
+| what | derived | prompt said | agree? |
+|---|---|---|---|
+| round | **80** (ledger `## 166` names verifier #79; branch `verify-dc27e03-campaign140`) | 80 | ✅ |
+| campaign | **140** (ledger `## 166` names campaign 139 for #79) | 140 | ✅ |
+| ledger entry | **`## 168`** (highest committed is `## 167`; 168 verified unused) | not stated | — |
+| suite filename | **`v80_regression_additions.mjs`** (highest in `qa/scenarios-runner` is `v79`) | not stated | — |
+
+**Correction to the repository:** the top-level `campaign` / `verifier` keys in `qa/verification/CURRENT_CAMPAIGN.json` still read `134` / `74` and have been stale since #75. The per-verifier keys are the live record.
+
+---
+
+## VERDICT
+
+```
+CHANGE VERIFIED: sem-ai-command index.ts candidate dc27e034 under the CONTRACT bar
+SCENARIOS:       9 executed, 3 failed (P1), 5 blocked (all live surfaces)
+CANONICAL GRAPH: NOT EXERCISED (no DB access this session)
+UI ↔ DB:         BLOCKED — no browser tooling in this session type
+AI ↔ DB:         BLOCKED — no live request reached a deployed function
+DEPENDENCIES:    PASS  (TDZ 0, byte hygiene clean, provenance chain re-derived)
+PERMISSIONS:     BLOCKED — FOUNDER AUTHORITY (Codex E, deliberately not probed)
+RELOAD/PERSIST:  BLOCKED
+IDEMPOTENCY:     n/a for this surface
+```
+
+# **FAIL — `ALLOW_FUNCTIONS_DEPLOY=1?` MUST NOT BE ASKED ON THESE BYTES.**
+
+---
+
+## THE THREE P1s
+
+### V80-D1 (NEW THIS ROUND) — a clause-final test built from a list of what may follow
+
+`MN_READ_PREDICATE_FINAL` lets exactly **nine** things follow the read predicate. Mongolian has many more sentence-final particles and none is a verb (`юм`, `аа`, `ээ`, `билээ`, `гэнэ`, `шүү дээ`, `л дээ`). A read carrying one stops being a read; `хаа`/`оноо` — the stems that are also ordinary words — make the clause a live command; `requestRefusesEveryMutation` returns false and **every mutating field the model supplied survives the strip at `:4405`**.
+
+`Alpha-г битгий устга. Хаа сайгүй ийм асуудал байна шүү дээ.` — V78-D2's own counter-example with the commonest emphatic pair on the end — **is not a refusal.**
+
+| build | ordinary requests swallowed (10) | forbidden writes that survive (12) |
+|---|---|---|
+| `924977e4` | 4 | 11 |
+| `992520d8` | 7 | **0** |
+| **`dc27e034`** | 2 | **8** |
+| + prepared fix | 2 | **0** |
+
+### V80-D2 (NEW THIS ROUND) — the arm added to close a fabrication path learned two words
+
+`no record of (a|an|any) <type> (called|named)` misses `with that name` / `by that name` / `with the name`; the new `not registered (?!for|with|as|to)` exclusion swallows `not registered **with** your workspace`.
+
+| build | fabricated denials that escape (29) | truthful sentences rewritten (24) |
+|---|---|---|
+| `992520d8` | **0** | 24 |
+| **`dc27e034`** | **8** | 12 |
+| + prepared fix | 4 | 11 |
+
+Both halves are contract violations: §3.5 (a state claim must be grounded) and §3.2 (*"a text-shape rule … may never be the sole reason a response is accepted or **rewritten**"* — at `:8187` this pattern is the only reason).
+
+Also: `no such (?!thing|option|luck)` does not cover the plural — "There are no such **things** as partial archives." still matches.
+
+### V80-D4 (PRE-EXISTING, NEVER MEASURED IN THIS DIRECTION) — a store is not a type
+
+`DENIAL_SUBJECT`'s `\bis\s+no\s+([a-z]+)` reads **`record`** out of *"There is no record of a company called ACME"* because "is" starts earlier than "no". `record` matches no bucket, the type-agreement check refuses the edit, and **the fabrication ships on a turn that canonically READ the row it denies** — including the exact sentence this round's own comment cites as the thing it fixed.
+
+Executed on the shipped window: **4 of 8** contradicted denials ship on the candidate; **0 of 8** with the fix.
+
+---
+
+## THE INSTRUMENTS
+
+* **V80-H1 — the rename probe's green is about ten identifiers, not the battery.** Re-run with sixteen locals this round created/moved: **six green suites go red**, four of them **CODEX-A release-blocker witness rows** (A2, A4, A9, A12) that locate the negation gate by the literal text `const requestIsNegated = …`. And CODEX-A's A10/A11/A12 corpora are **nine commands, all English** — A12's row *"a turn whose every clause is refused stays refused"* is green while 21 Mongolian turns of that exact shape are not refused.
+* **V80-H2 — the immutability guard WORKS** (edit performed from a separate process, verified on disk; guard fired, exit 1, no summary printed; quiet 17-mutant run silent). It does **not** cover `index.ts`, the file every suite re-reads on every spawn.
+* **V80-H3 — the H7 ratchet is keyed on the variable names `NAMES|NEEDED`**; renaming the list defeats it. The fifth drift it does not model: a **duplicate inside the canonical order itself** — the emitter walks *positions*, so it emits one declaration twice. The comment "deduplicated by construction" asserts a property the code does not enforce. Now pinned (V80-C8/C9).
+* **V80-H4 — `freeIdentifiers`** reports object-literal keys, destructuring keys, labels and class fields as inputs (live: it returns `b` and `type` for the shipped window) and misses identifiers used only inside template interpolations — silent, contradicting its own "a wrong answer here is loud". `windowInputRoles` resolves an **ambiguous** role to the first candidate in silence.
+* **V80-H5 — V79-H2 items 1 and 3 still open**: 67 `.sql` files never run and never named (`total 100` printed); no ROW-count baseline. Item 2 (SUPERSEDED stubs) **is** closed.
+
+## What I confirmed rather than found
+Provenance guard 13/13 adversarial rows as contracted · TDZ 0 (110 module bindings, 0 `let`/`var`) · `\p{}` without `u` = 0 on the deploy surface · 0x08 = 0 (one binary favicon repo-wide) · battery 100 suites / 95 GREEN / 2 founder-blocked / 3 open-this-PC / **0 RED** · mutation proof 17/0/0 (true about seventeen *reversions*; none of my three defects is expressible as one) · build provenance re-derived: `992520d8` → `6c1bfca9…`, 729 902 B, blob `6847f577…` — matching ledger 166 exactly.
+
+## Fixes prepared — battery cost measured at ZERO
+`qa/verification/proposed/v80_prepared_fix-ALL-D1-D2-D4.patch` (`git apply --check` clean). **100 of 100 suites identical** in exit code *and* failing-row set. No shared-constant registration needed — the first cut was a module-scope helper, cost five suites, and swallowed one of V79's own rows; that failure and its correction are in the ledger entry.
+
+## Commits
+`6f1d5cd4` — verifier #80 FAILED dc27e034: three P1s, all fixes prepared at zero battery cost *(branch `verify-dc27e03-campaign140`; `index.ts` untouched, still `05656967…`)*
+
+## Founder-approval section
+**No database migration, no Edge deploy, no secret touched.** Nothing to approve. **No `QA-VERIFY-*` data was created** — I had no database access, so there is nothing to clean up.
+
+## What I could NOT measure — real coverage gaps, not omissions
+Browser tooling (`mcp__claude-in-chrome__*`) is unavailable in this session and there is no `ToolSearch` in my toolset: **UI truth, AI-chat truth and live DB truth are BLOCKED.** No live request reached a deployed function — ledger #133 is the standing reminder that source verification is not that. Compaction was not re-derived at extra sizes (region byte-identical to `992520d8`, committed contract green — weaker than #79's 90/0). Codex E was deliberately not probed live.
+
+---
+
+**index.ts sha256: `056569671f7cd1bbc0e6b6fa0de1d95960a774c40eecb6eda4f75ebd588a0373`**

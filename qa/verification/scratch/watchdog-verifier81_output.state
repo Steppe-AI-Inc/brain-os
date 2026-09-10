@@ -1,0 +1,4 @@
+[2026-09-10 13:03:33] watchdog started; mode=TOP_LEVEL_ISOLATED_PROCESS cwd=/c/Users/Dell/dev/brain-os-verify-db555d5 max_attempts=6 expect_sha=c5eb10c83ff403e0… models=opus,sonnet (starting on opus)
+[2026-09-10 13:03:33] attempt 1: dispatching verifier (cwd=/c/Users/Dell/dev/brain-os-verify-db555d5, model=opus)
+[2026-09-10 13:57:56] attempt 1: exited rc=0 log_bytes=10400
+[2026-09-10 13:57:56] attempt 1: BLOCKED — EXECUTION_MODE (approval/plan-gate text in output). NOT retrying in the same mode; re-dispatch requires a mode decision by the Factory Director.

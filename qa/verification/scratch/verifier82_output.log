@@ -1,0 +1,100 @@
+---
+
+# VERIFIER #82 — CAMPAIGN 142 — FINAL REPORT
+
+## NUMBERING, DERIVED FROM THE REPOSITORY
+
+| derived from | value |
+|---|---|
+| `git rev-parse HEAD` at start | `5fd08a9482af6acb7447965d9659624f808bbfed` |
+| HEAD commit message | *"freeze eade10fe for verifier #82"* |
+| branch given | `verify-5fd08a9-campaign142` |
+| highest `## N` in `qa/KNOWN_FAILURE_MODES.md` | `## 170` → **my entry is `## 171`** |
+| highest `vNN_regression_additions.mjs` in `qa/scenarios-runner` | `v81` → **my suite is `v82_*`** |
+
+**The prompt said "campaign 142, round 82" and the repository AGREES.** (The top-level `campaign`/`verifier` keys in `CURRENT_CAMPAIGN.json` still read `134`/`74`; stale since #75, per-verifier keys are the live record.)
+
+**Where the prompt did NOT agree:** it named `NEGATOR_NOT_ALSO_A_VERB` ("renamed and MOVED"), `STATEMENT_EVIDENCE`, `rowsReadThisTurn`, `denialContradicted`, `commandNamesAReadRow`, `continuityKeysBefore` as new/moved this round. **None moved.** The entire `index.ts` delta from `db555d5a` is **+75/−7 lines**, confined to `MN_SENTENCE_FINAL_PARTICLE`, `mnClauseTail`, the `RECORD_STORE` hoist and `DENIAL_SUBJECT_*`. All six checked anyway; all safe. The prompt also said six stale gates would be a finding — **I see five VALID and one correctly STALE**, so that repair works.
+
+---
+
+```
+CHANGE VERIFIED: candidate 5fd08a94 / index.ts eade10fe… as a production-deployment gate under the contract bar
+SCENARIOS:        18 executed, 6 failed, 3 blocked (tooling)
+CANONICAL GRAPH:  BLOCKED  (no database access — CLI gated)
+UI ↔ DB:          BLOCKED  (no browser tooling in this session)
+AI ↔ DB:          BLOCKED  (no live request could be made)
+DEPENDENCIES:     FAIL     (3 consumers of one unchanged constant; 2 hand-maintained order lists)
+PERMISSIONS:      BLOCKED  (DB personas need the CLI)
+RELOAD/PERSISTENCE: BLOCKED
+IDEMPOTENCY:      n/a this round (no mutating scenarios were reachable)
+```
+
+## VERDICT
+
+**FAIL — CANDIDATE `5fd08a9482af6acb7447965d9659624f808bbfed` (`DEPLOY_FILE_SHA256 eade10fe9fd31a9394c7a328629e160041a4ac3328936e4c88d04b5422b3d19c`) IS NOT FIT TO DEPLOY OVER v92.**
+
+Three defects hit *named FAIL conditions of this gate*: a truthful un-negated imperative refused in a mixed turn; a truthful READ rewritten on text shape alone; a fabrication shipped on a turn that canonically read the row it denies. This is **not** a deploy-authorisation request.
+
+---
+
+## THE ONE THING THE PROMPT ASKED ME TO BE SUSPICIOUS OF — IT HAPPENED AGAIN
+
+**`v81_regression_additions`' `V81-H2` row is a permanent false red.** It prints *"6 gate(s) hash a line ending rather than a fact."* **Zero do.** The shipped `inputDigest` normalises **every** input; the row's oracle exempts the deploy surface (`if (normalise && input !== DEPLOY)`), and the deploy surface is CRLF — so the digests differ *by construction on a correct harness*.
+
+Measured, all 6 gates: `shipped == all-normalised` **true**, `shipped == exceptDeploy` **false**. The manifest forgives the row and repeats its closure condition — *"stays red until the evidence is re-recorded"* — which **already happened** (records re-written 06:27–06:52; five of six read VALID here). The condition can never be met. That is ledger 170's class, one round later, inside the row that repaired the previous instance.
+
+---
+
+## DEFECTS
+
+| id | sev | new? | measurement | consequence |
+|---|---|---|---|---|
+| **V82-D1** | P1 | pre-existing (identical on `db555d5a`) | **18/18** | Mongolian *nominal predication* is noun-final — `Асуудал нь оноо.` ("the problem is the score") — which is exactly the position V81-D1's new rule reads as the clause's command. The whole-turn refusal is defeated → `requestIsNegated=false` at `:4512` → the strip at `:4514` never runs → **the delete the founder forbade executes**. English equivalents **3/3 refused** (ledger 159's asymmetry, 4th round). V81-D1's corpus put the homograph *before* a following word in every row, so it could not have produced a different answer. Its own halves confirmed closed: initial **0/9**, medial **0/6** (both fully live on `db555d5a`). |
+| **V82-D2** | P1 | pre-existing | **6/21** | `typeNamedIn` depluralises with `/s$/` while the file owns `pluraliseEntity`: `companies→companie`, `people→people`. A **non-null WRONG** type makes the type-agreement check say "this denial is about something else" → the correction is refused → **the fabrication ships on a turn that canonically READ the row**. V81-D2 reworked this exact function; every phrasing in its corpus was singular. |
+| **V82-D3** | P1 | pre-existing | **90/90 EN + 6/6 MN** | `CLAUSE_BOUNDARY` has arms for `.!?,;` em-dash and ten conjunctions and **none for a line break**. Three consumers: (a) `do not delete Alpha`⏎`archive Beta` is a whole-turn refusal, receipt reads *"you asked me not to, so nothing was executed"*; (b) `clausesOf` merges the lines so the guard rewrites a **TRUE denial about another entity** (V74-D3 reopened); (c) `replaceClausesWhere` turns `"Alpha is active\nThere is no company called Beta."` into `"I could not resolve that reference."` — **a truthful READ deleted on text shape alone**. |
+| **V82-D4** | P2 | **REGRESSION this round** | **25/25** | `mnClauseTail` swallows post-verbal material of *any* kind — adverbs (`одоо`, `даруй`), politeness (`гуйя`), verb-object order (`Архивла Beta-г`) — all **live on `db555d5a`**. The declaration registers **1 of 6** particle tails; the class is wider. **Not patched: its fix direction OPPOSES V82-D1's**, and that tension is the finding. |
+| **V82-O1** | P3 | pre-existing | 7 & 9 citations | Wholesale citation removal leaves debris: `"This: Alpha is active."`, `"The: the: the: Alpha is active."`. The false *claim* is gone (V74-D4 satisfied); machine debris ships, which this file's own V68-D4a standard calls a real defect. |
+
+## HARNESS FINDINGS
+
+* **V82-H1** — above.
+* **V82-H2** — `MN_SENTENCE_FINAL_PARTICLE` (this round's new constant) is pinned by **nothing**: emptying it flips 3 ordinary Mongolian requests live→refused and **88/88** `SEM_INDEX_SRC`-aware suites see nothing. Cause: `V81-C1` derives its tail corpus *from the constant under mutation*, so the corpus shrinks with it — ledger 167's class inside the suite that cites it.
+* **V82-H3** — half of V81-D2's fix isn't load-bearing: reverting the *specificity-order* half is seen by **0/88** suites, and on **630 generated denial phrasings** specificity and leftmost order **never disagree**, because the shared exclusion (the other half) already prevents arm 3 taking `such`. Ledger 169's account of the mechanism no longer describes the shipped bytes.
+* **V82-H4** — the citation loop's 6-pass bound is uncovered.
+* **V82-H5** — **14 of 102 suites cannot see any mutant** (they read the repo copy). Every mutation-survival number in this campaign, mine and the session's, is over **88**, not 102.
+* **V82-H6** — `_gate_extract` caches the source at module scope; an in-process instrument switching `SEM_INDEX_SRC` measures the FIRST source. **I did this and read three false INEFFECTIVE verdicts** before switching to one child process per source.
+* **V82-H7** — `verify_backup_restore` re-run **FAILS**: `5fd08a94…` is **missing** from the newest bundle. The gate correctly read STALE; nobody re-ran it after the two freeze commits.
+
+## MY OWN INEFFECTIVE MUTANTS — DISCLOSED
+
+3 of my 5 survivors prove nothing. **`m1` patched a COMMENT** (occurrence #1 of `\p{Lu}` is in one; #2 was the second backslash of an escaped pair — *a mutant that is not the mutant it is named after*, ledger 170's own class in my instrument). **`m6`** added `never|dont|don't` to a list already containing all three. **`m10`** = V82-H3. Re-derived **by line**, the four real `\p{Lu}` sites are all pinned: `:1996` by 3 suites, `:2496` by 1, `:7004` by 1, `:7039` by 1. **No `\p{Lu}` site is unpinned.**
+
+## WHAT I MEASURED AND FOUND SOUND
+
+* Deploy identity `eade10fe…` / 742 549 B / 8 841 CRLF / 0 bare LF / 0 bare CR / 0 × `0x08` — matches the freeze and the prompt. `0x08` scan over **3 329 files**: 0 hits.
+* **3 410** `\p{...}` sites carry `u`/`v`; **0 genuine misses**, none in the deploy surface.
+* Block scope: my own scanner, 113 module-scope declarations, **0 eager forward references**.
+* Battery, re-derived independently in a fresh worktree: **102 suites — 91 GREEN / 5 assert-nothing (honest SUPERSEDED stubs) / 2 founder-authority / 4 open-defect / 0 RED, 3 988 assertion rows, 67 `.sql` not run.** **Matches `battery.json` exactly.**
+
+## FIXES PREPARED (NOT APPLIED TO THE DEPLOY SURFACE)
+
+`qa/verification/proposed/v82_prepared_fix-D1-D2-D3-index.patch` + `v82_prepared_fix-apply.mjs`. Measured **both ways**: D1 18→0 (0/18 live imperatives lost), D2 6→0 (8/8 different-type denials still stand), D3 90→0 & 6→0 (5/5 straddled negators still refuse, 8/8 single-line behaviours unchanged). **Full battery under the fix: 0 of 88 suites moved.** New suite: **14 pass/8 fail** on the candidate → **21 pass/1 fail** with the fix (only V82-D4, deliberately).
+
+Committed on `verify-5fd08a9-campaign142` as **`2f376076`**. Harness changes required *with* the fix and already committed: `_gate_extract.mjs` (`pluraliseEntity` earlier), `v75`/`v77` order lists (`REQUEST_NEGATED_ALTERNATION` before `CLAUSE_BOUNDARY` — `V79-C9` named both the moment the fix landed).
+
+## COVERAGE GAPS — STATED, NOT SKIPPED
+
+* **`BLOCKED — TOOLING`: live database.** `npx supabase …` is gated in this session.
+* **`BLOCKED — TOOLING`: browser UI and fresh-context AI chat.** No browser tooling is available to this session; **no live request was made against a real workspace.** Ledger 133's whole lesson is that whole-request gates are only observable that way.
+* **`BLOCKED — FOUNDER AUTHORITY`:** none needed — no migration is required by any finding.
+
+**Synthetic data:** none created. No `QA-VERIFY-*` rows exist because no database was reachable; nothing to clean up.
+
+**Hard stops observed:** no `supabase db push`, no migration applied/repaired/rolled back, no Edge Function deployed, `ALLOW_FUNCTIONS_DEPLOY` not asked, no secret or auth configuration touched, and `supabase/functions/sem-ai-command/index.ts` was never modified (`WORKING_TREE_CLEAN true` in both manifest runs).
+
+---
+
+**FAILED**
+
+index.ts sha256: `eade10fe9fd31a9394c7a328629e160041a4ac3328936e4c88d04b5422b3d19c`

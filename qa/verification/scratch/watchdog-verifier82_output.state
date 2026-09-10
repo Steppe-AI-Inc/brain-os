@@ -1,0 +1,5 @@
+[2026-09-10 14:56:53] watchdog started; mode=TOP_LEVEL_ISOLATED_PROCESS cwd=/c/Users/Dell/dev/brain-os-verify-5fd08a9 max_attempts=6 expect_sha=eade10fe9fd31a93… models=opus,sonnet (starting on opus)
+[2026-09-10 14:56:53] attempt 1: dispatching verifier (cwd=/c/Users/Dell/dev/brain-os-verify-5fd08a9, model=opus)
+[2026-09-10 15:38:07] attempt 1: exited rc=0 log_bytes=10477
+[2026-09-10 15:38:07] attempt 1: verifier produced a real report (10477 bytes) that ends in a verdict; watchdog done. Text classifiers are NOT consulted — a finished report outranks them. The verdict is read from the report, not from rc.
+[2026-09-10 15:38:07] exhausted 6 attempts; work order remains open and NOT certified

@@ -1,0 +1,132 @@
+---
+
+# VERIFIER #81 — CAMPAIGN 141 — FINAL REPORT
+
+## What I derived from the repository (and whether the prompt agreed)
+
+| derived from | value | prompt |
+|---|---|---|
+| branch given | `verify-db555d5-campaign141` | agrees |
+| highest `## N` in `qa/KNOWN_FAILURE_MODES.md` | `168` → my entry is **169** | prompt did not state one (correctly) |
+| highest `vNN_regression_additions.mjs` in `qa/scenarios-runner` | `v80` → my suite is **v81** | agrees |
+| round / campaign | **81 / 141** | agrees |
+
+The prompt agreed with the repository on all four. `CURRENT_CAMPAIGN.json`'s top-level `campaign`/`verifier` keys still read `134`/`74` and have been stale since #75; the per-verifier keys are the live record. Ledger numbers 153, 156, 157 are pre-existing gaps and I left them alone.
+
+**Scope, derived not assumed:** the agent definition pointed at company/task/goal archive-restore ownership. That is **not** this round's change — `supabase/migrations/` has not been touched since `39ef2f76`, and the archive/restore RPCs are twelve days old and unchanged. The actual delta is one commit (`e0a9fabc`, 59 lines of `index.ts`): the Mongolian read-predicate positional test, `NON_EXISTENCE_CLAIM`'s three new arms, and `DENIAL_SUBJECT`'s store exclusion.
+
+---
+
+```
+CHANGE VERIFIED: sem-ai-command deploy candidate db555d5a (index.ts c5eb10c8) under the contract bar
+SCENARIOS: 12 executed, 8 passed, 4 failed, 5 families blocked
+CANONICAL GRAPH:      BLOCKED  (no database authority in this session)
+UI ↔ DB:              BLOCKED  (no browser tooling in this session type)
+AI ↔ DB:              BLOCKED  (no live turn possible)
+DEPENDENCIES:         BLOCKED  (67 .sql suites need a DB this gate has no authority over)
+PERMISSIONS:          PARTIALLY VERIFIED — Codex E code-inspected only, deliberately not probed
+RELOAD/PERSISTENCE:   BLOCKED
+IDEMPOTENCY:          BLOCKED
+SOURCE / GATE TRUTH:  FAIL
+```
+
+## VERDICT
+
+**FAILED.** `ALLOW_FUNCTIONS_DEPLOY=1?` **must not be asked on these bytes.**
+
+---
+
+## FOUND / ROOT CAUSE / SYSTEMIC IMPACT / FIXED / TESTED / PRODUCTION / BLOCKERS
+
+### The one thing the prompt told me to be suspicious of — it happened again, twice
+
+Round #80 obeyed ledger 167 (*derive the corpus from the mechanism*) and still measured a subset, because it derived the corpus **from the constant it was changing** rather than **from the question it was answering**. The check that finds it is one sentence: *if the defect were still present in the arm this corpus does not exercise, would this corpus report a different number?* For both of #80's closures the answer was **no**.
+
+### V81-D1 (P1, pre-existing, identical on `05656967`) — Mongolian is verb-final and nothing enforced it
+
+The comment on `MN_MUTATION_STEM_ALTERNATION` has said since it was written that *"a live clause ENDS with one of these"*. The live arm scans for the stem **anywhere**. Three stems are ordinary Mongolian words — and the set is derived, not chosen: they are exactly the members whose **bare** form the product's own allowlist accepts.
+
+| turn | English | candidate |
+|---|---|---|
+| `Alpha-г битгий устга. Хаа сайгүй ийм асуудал гарсан.` | "…such problems occurred everywhere." | **not a refusal** |
+| `Alpha-г битгий устга. Оноо нь буурсан.` | "…the score dropped." | **not a refusal** |
+| `Alpha-г битгий устга. Хас банкинд шилжүүлсэн.` | "…transferred to Khas Bank." | **not a refusal** |
+
+**15 of 18.** The English equivalents are all correctly refused — ledger 159's asymmetry, again. V80-D1's fix is *sound* and holds (462/462 on my read-predicate corpus, 14/14 live requests survive); its corpus simply could not contain a clause with no read predicate. The CODEX-A Mongolian witnesses added this round have the same gap: every `A10mn` refusal row carries `байна` or `вэ`.
+
+### V81-D2 (P1, pre-existing; #80 closed 2 of its 9 rows) — a store is not a type on *any* arm, and neither is a determiner
+
+`DENIAL_SUBJECT` is one alternation, decided **leftmost-first, not most-specific-first**. `There is no such company called ACME Holdings.` is decided by the `is no` arm at offset 6, and the TYPE is read as the determiner **`such`** — so the denial-contradicted guard refuses to correct a denial the turn's own canonical read contradicts. `No such company exists.` **is** corrected. Three words of expletive subject were the difference. **7 of 18** natural phrasings ship (9 on the previous candidate).
+
+### V81-D3 (P2, measured, deliberately not patched)
+
+The absence gate sees **21 of 38** natural absence phrasings (#78 counted 10 of 28) and rewrites **4 of 14** sentences that are not absence claims — three of them capability answers ("There is no such feature yet."), destroyed on any turn whose clarification failed. Widening the exclusion is the fabrication direction; the structural fix is at the consumer. Product judgement, left red, classification text supplied.
+
+### V81-H1 (harness, release blocker under the manifest's own rule) — **FIXED LIVE**
+
+On a **clean checkout** the committed deploy gate reports `RED (unclassified) 1`. `evidence/battery.json` says `RED 0`. Cause: `V80-H1` read `mutants/h3-rename-set.json`, which is `.gitignored` and written only by a 12-minute probe run in the same directory. Both states measured and recorded.
+
+### V81-H2 (harness) — **FIXED LIVE**
+
+All six gates read STALE in a fresh worktree, including `tdz_triage`, whose only inputs are the deploy surface (byte-identical) and its own script. **Proven, not inferred:** its recorded digest `abf5179f534c…` is reproduced *exactly* by LF-normalising that script.
+
+### V81-H3 (coverage) — 14 mutants × 101 suites, **one survived**
+
+Reverting the citation-debris guard's `\p{Lu}` to `[A-Z]` changes **no suite's exit code and no failing row** — and deletes the founder's whole answer whenever it names a Cyrillic-capital entity (`"…: the company Өнөр"` → `""`). Pinned by new rows `V81-C7/C7b`.
+
+---
+
+## Confirmed rather than found
+
+- 736 739 B, 8 773 CRLF, **0 bare LF / bare CR / 0x08**; 2 603 files scanned for 0x08 → 0 hits; 78 `new RegExp()` sites, **0** with `\p{…}` and no `u`; escape depth clean both ways.
+- **TDZ: 0 runtime-fatal.** 1 148 declarations, 9 candidates triaged (8 object/type-literal keys, 1 safe deferred closure). All six names the prompt flags are first mentioned at their own declaration.
+- **`_gate_extract` dependency order: 88 names, 0 duplicates, 0 violations** — and the audit is proved **non-vacuous**.
+- **Provenance guard: 15/15** re-derived independently; its registered residual confirmed *present*.
+- **Five classified reds, none driven green.** Codex E code-inspected only — I did **not** probe it.
+
+## Instruments of my own that were wrong (reported, per ledger 154)
+
+1. First order audit: **28 phantom violations** — a `'` inside `['‘’]` desynced my brace counter.
+2. First Mongolian generator: **1 014 of 1 092 tokens were non-words**; it reported numbers that were not about Mongolian.
+3. First `V81-H2` row recomputed both halves itself and would have passed after the repair while the defect was open.
+4. One denial row mislabelled (`no such project` on a company read is *correctly* not corrected).
+5. Bracket-balance sanity reports 3 mismatches — identical in both builds, an artefact of my blanker.
+
+## What I could NOT measure — real coverage gaps, not skips
+
+- **Database: BLOCKED.** `npx supabase db query --linked` requires approval here. Every DB-level lifecycle, RLS, persona, dependent-state and global-integrity check is **BLOCKED**. 67 `.sql` suites unrun.
+- **Browser / live AI chat: BLOCKED.** No `ToolSearch` and no `mcp__claude-in-chrome__*` in this session type. Every UI↔DB and fresh-context AI↔DB check is **BLOCKED**.
+- **`deno check`: BLOCKED** (no `deno` on PATH). Substituted with my own TDZ scanner + execution of every lifted constant.
+- **`git apply --check`: gated.** The `.patch` could not be dry-applied; the `.mjs` applier is shipped as authoritative and reproduces the measured bytes exactly.
+
+## Synthetic data
+
+**None created.** No `QA-VERIFY-*` entities exist, because no database write path was reachable. Nothing to clean up; working tree is clean and the deploy surface hash is unchanged.
+
+## Founder-approval section
+
+| item | status |
+|---|---|
+| `person_assignments` RLS migration (`supabase/drafts/202609090001_*`) | **BLOCKED — DB PUSH.** Unchanged, correctly classified, deliberately not probed. |
+| Production write authority (5 open routes) | **BLOCKED — FOUNDER AUTHORITY.** Unchanged. |
+| `FACTORY_RUNNER_PG_URL` | **BLOCKED — FOUNDER AUTHORITY.** Unchanged. |
+| `sem_ai_command_company_restore_truth` `actionType` default | **product judgement**, still open. |
+| `V81-D3` capability-answer narrowing | **product judgement**, measured, not patched. |
+| **Edge Function deploy of `c5eb10c8`** | **REFUSED by this verifier.** |
+
+**No migration was written, applied, repaired or rolled back. No Edge Function was deployed. No secret or auth configuration was touched.** I did not push the branch or open a PR: no `verify-*` branch has ever existed on `origin` in this repository, the local branch is the documented handoff, and putting 3 MB of verification scratch on a shared remote is your call, not mine — say the word and I will push it.
+
+## Commits (branch `verify-db555d5-campaign141`)
+
+- `f8969476` — verifier #81 FAILED c5eb10c8: the closure was positional for the half of the clause space its corpus contained
+- `28fb091c` — verifier #81: the structural sanity differential on the prepared fix
+
+Artefacts: `qa/verification/proposed/v81_{regression_additions.mjs, known_failure_modes_entry_169.md, PROMOTION_NOTE.md, prepared_fix-apply.mjs, prepared_fix-D1-D2-index.patch, prepared_fix-register-shared-constants.mjs}`; harness repairs in `qa/scenarios-runner/_rename_set.mjs`, `qa/scenarios-runner/v80_regression_additions.mjs`, `qa/verification/gate_evidence.mjs`, `.gitattributes`; full working set under `qa/verification/scratch/v81/`.
+
+Suite readings: **16 pass / 4 fail** on the frozen candidate, **19 pass / 1 fail** with the prepared fix (the 1 is `V81-D3`, red on purpose). Fixed bytes sha256 `eade10fe9fd31a93…`.
+
+---
+
+**FAILED**
+
+`c5eb10c83ff403e0e14e62a3ce92905002eda40d1689cd57d41d3c02b62faf2c`
