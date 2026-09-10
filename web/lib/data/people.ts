@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { classifyError, result as invitationResult } from "./invitation-outcome";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { callLifecycleRpc } from "@/lib/contracts/lifecycle";
@@ -168,12 +169,23 @@ export async function setPersonManager(personId: string, managerPersonId: string
 // auth.admin.inviteUserByEmail (the one operation RLS can't gate), so unlike every other
 // action in this file it does its own founder/admin check up front — RLS alone doesn't
 // protect that call.
+// A FAILURE AFTER THE MESSAGE WAS ACCEPTED IS NOT A DELIVERY FAILURE.
+//
+// The mailer took the message; what failed is local bookkeeping. Reporting these as DELIVERY_FAILED
+// would tell the founder to retry the email — and retrying is precisely what produces the "already
+// registered" dead end, because the auth user now exists. They are terminal, honest, and not
+// retryable by repetition. The partial state they leave behind is BUG-036 territory and is recorded
+// in the log with the person id so it can be reconciled deliberately.
+function bookkeepingFailure(personId: string, name: string, what: string) {
+  console.error("invitePerson: invite accepted but bookkeeping failed", { personId, what });
+  return { ok: false as const, ...invitationResult("UNKNOWN_ERROR", name) };
+}
 export async function invitePerson(personId: string): Promise<{ ok: boolean; message: string }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, message: "Not signed in." };
+  if (!user) return { ok: false, ...invitationResult("NOT_PERMITTED", "that person") };
 
   const { data: actingProfile } = await supabase
     .from("profiles")
@@ -181,7 +193,7 @@ export async function invitePerson(personId: string): Promise<{ ok: boolean; mes
     .eq("auth_user_id", user.id)
     .maybeSingle();
   if (!actingProfile || !["founder", "holding_admin"].includes(actingProfile.role)) {
-    return { ok: false, message: "Only the founder or an admin can invite employees." };
+    return { ok: false, ...invitationResult("NOT_PERMITTED", person?.full_name ?? "that person") };
   }
 
   const { data: person, error: personError } = await supabase
@@ -189,69 +201,96 @@ export async function invitePerson(personId: string): Promise<{ ok: boolean; mes
     .select("id, full_name, email, company_id, profile_id")
     .eq("id", personId)
     .maybeSingle();
-  if (personError || !person) return { ok: false, message: "Person not found." };
-  if (person.profile_id) return { ok: false, message: `${person.full_name} already has a login account.` };
-  if (!person.email) return { ok: false, message: `Add an email for ${person.full_name} before inviting.` };
+  if (personError || !person) {
+    console.error("invitePerson: person record not found", { personId, error: personError });
+    return { ok: false, ...invitationResult("UNKNOWN_ERROR", "that person") };
+  }
+  if (person.profile_id) return { ok: false, ...invitationResult("ALREADY_MEMBER", person.full_name) };
+  if (!person.email) return { ok: false, ...invitationResult("INVALID_RECIPIENT", person.full_name) };
 
-  let admin;
+  // EVERY AWAIT BELOW IS INSIDE THIS TRY (BUG-037). Five of them can throw rather than return an error
+  // object — a dropped connection, a PostgREST fault, a provider timeout — and a throw here makes the
+  // Server Action REJECT, which the caller cannot turn into a message. The previous version wrapped only
+  // createAdminClient(), which is why a contract row asking merely for "a try before the invite" passed
+  // against the broken function.
   try {
-    admin = createAdminClient();
-  } catch (e) {
-    return { ok: false, message: e instanceof Error ? e.message : "Admin client setup failed." };
-  }
-  const { data: inviteData, error: inviteError } = await admin.auth.admin.inviteUserByEmail(person.email, {
-    data: { full_name: person.full_name },
-  });
-  if (inviteError) return { ok: false, message: `Invite failed: ${inviteError.message}` };
-
-  const newAuthUserId = inviteData.user?.id;
-  if (!newAuthUserId) return { ok: false, message: "Invite sent but no user id came back — check the Supabase dashboard manually." };
-
-  // handle_new_auth_user (schema-v0.7-production-core.sql) fires synchronously on the
-  // auth.users insert above, so the profiles row already exists by the time we look.
-  const { data: newProfile } = await admin
-    .from("profiles")
-    .select("id")
-    .eq("auth_user_id", newAuthUserId)
-    .maybeSingle();
-  if (!newProfile) {
-    return { ok: false, message: `Invite sent to ${person.email}, but no profile was created — check the on_auth_user_created trigger.` };
-  }
-
-  // BUG-004 follow-on regression, found live tonight: handle_new_auth_user()
-  // (202608310009) now creates every new signup inert (active=false) by design -
-  // correct for public self-signup, but this function is a DIFFERENT, already
-  // founder/admin-gated path (checked at the top of this function) that deserves real
-  // activation, same as accept_company_invitation() grants. Without this, using the
-  // existing "Invite" button on /people would produce a permanently-inert account that
-  // lands on /pending-activation forever despite a fully legitimate invite.
-  const { error: activateError } = await admin.from("profiles").update({ active: true }).eq("id", newProfile.id);
-  if (activateError) {
-    return { ok: false, message: `Invite sent to ${person.email}, but activation failed: ${activateError.message}. Activate manually.` };
-  }
-
-  const { error: linkError, data: linkedRows } = await supabase
-    .from("people")
-    .update({ profile_id: newProfile.id })
-    .eq("id", personId)
-    .select("id");
-  if (linkError || !linkedRows?.length) {
-    return { ok: false, message: `Invite sent to ${person.email}, but linking the person record failed: ${linkError?.message ?? "no rows updated"}.` };
-  }
-
-  if (person.company_id) {
-    const { error: memberError } = await supabase.from("company_memberships").insert({
-      company_id: person.company_id,
-      profile_id: newProfile.id,
-      role_in_company: "employee",
-    });
-    if (memberError) {
-      return { ok: false, message: `Invite sent and linked, but company membership failed: ${memberError.message}. Add it manually.` };
+    let admin;
+    try {
+      admin = createAdminClient();
+    } catch (e) {
+      // The setup error names configuration; it goes to the log, not to the screen.
+      console.error("invitePerson: admin client setup failed", { personId, error: e });
+      return { ok: false, ...invitationResult("PROVIDER_UNAVAILABLE", person.full_name) };
     }
-  }
+    const { data: inviteData, error: inviteError } = await admin.auth.admin.inviteUserByEmail(person.email, {
+      data: { full_name: person.full_name },
+    });
+    // THE SAME CLASSIFIER AS A THROW. A rate limit reported as an error object and one reported as an
+    // exception mean the same thing and must not report differently. The provider text goes to the
+    // log, never to the person clicking Invite.
+    if (inviteError) {
+      const outcome = classifyError(inviteError);
+      console.error("invitePerson: provider rejected the invite", { personId, outcome, error: inviteError });
+      return { ok: false, ...invitationResult(outcome, person.full_name) };
+    }
 
-  revalidatePath("/people");
-  return { ok: true, message: `Invited ${person.full_name} at ${person.email}.` };
+    const newAuthUserId = inviteData.user?.id;
+    if (!newAuthUserId) return bookkeepingFailure(personId, person.full_name, "no user id came back from the invite");
+
+    // handle_new_auth_user (schema-v0.7-production-core.sql) fires synchronously on the
+    // auth.users insert above, so the profiles row already exists by the time we look.
+    const { data: newProfile } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("auth_user_id", newAuthUserId)
+      .maybeSingle();
+    if (!newProfile) {
+      return bookkeepingFailure(personId, person.full_name, "no profile was created by the auth trigger");
+    }
+
+    // BUG-004 follow-on regression, found live tonight: handle_new_auth_user()
+    // (202608310009) now creates every new signup inert (active=false) by design -
+    // correct for public self-signup, but this function is a DIFFERENT, already
+    // founder/admin-gated path (checked at the top of this function) that deserves real
+    // activation, same as accept_company_invitation() grants. Without this, using the
+    // existing "Invite" button on /people would produce a permanently-inert account that
+    // lands on /pending-activation forever despite a fully legitimate invite.
+    const { error: activateError } = await admin.from("profiles").update({ active: true }).eq("id", newProfile.id);
+    if (activateError) {
+      return bookkeepingFailure(personId, person.full_name, "profile activation failed: " + activateError.message);
+    }
+
+    const { error: linkError, data: linkedRows } = await supabase
+      .from("people")
+      .update({ profile_id: newProfile.id })
+      .eq("id", personId)
+      .select("id");
+    if (linkError || !linkedRows?.length) {
+      return bookkeepingFailure(personId, person.full_name, "person link failed: " + (linkError?.message ?? "no rows updated"));
+    }
+
+    if (person.company_id) {
+      const { error: memberError } = await supabase.from("company_memberships").insert({
+        company_id: person.company_id,
+        profile_id: newProfile.id,
+        role_in_company: "employee",
+      });
+      if (memberError) {
+        return bookkeepingFailure(personId, person.full_name, "membership insert failed: " + memberError.message);
+      }
+    }
+
+
+    revalidatePath("/people");
+    return { ok: true, ...invitationResult("SENT", person.full_name) };
+  } catch (e) {
+    // A THROW IS STILL AN ENDING. classifyError is total: every input produces an outcome, so no path
+    // out of here leaves the caller waiting. The provider text goes to the server log; the person
+    // clicking Invite gets a sentence.
+    const outcome = classifyError(e);
+    console.error("invitePerson failed", { personId, outcome, error: e });
+    return { ok: false, ...invitationResult(outcome, person.full_name) };
+  }
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

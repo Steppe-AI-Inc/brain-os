@@ -109,11 +109,26 @@ export function PeopleTable({
     setInvitingId(p.id);
     setInviteMessage(null);
     startTransition(async () => {
-      const result = await invitePerson(p.id);
-      setInvitingId(null);
-      setInviteConfirm(null);
-      setInviteMessage(result.message);
-      if (result.ok) router.refresh();
+      // FINALLY, NOT AFTER THE AWAIT (BUG-037). The previous version cleared the in-flight state on the
+      // line after `await invitePerson(...)`, which is unreachable when the Server Action REJECTS — and
+      // it rejects whenever the server throws rather than returns, which it did on any of five bare
+      // awaits. The row then spun for ever with no message.
+      //
+      // The server now returns a terminal outcome for every failure it can see. This `finally` is for
+      // the failures it cannot: a dropped connection, a timeout, a deploy mid-request. A caller that
+      // trusts the server to always answer has no answer when it does not.
+      try {
+        const result = await invitePerson(p.id);
+        setInviteMessage(result.message);
+        if (result.outcome === "SENT") router.refresh();
+      } catch {
+        setInviteMessage(
+          "The invitation could not be completed and the server did not answer. Nothing was changed — you can try again.",
+        );
+      } finally {
+        setInvitingId(null);
+        setInviteConfirm(null);
+      }
     });
   }
 
