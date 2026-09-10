@@ -95,10 +95,10 @@
       "text": "Committed on verify-1d72018-campaign115: qa/verification/proposed/v55_known_failure_modes_entry_118.md, v55_PROMOTION_NOTE.md, v55_regression_additions.mjs; scratch/v55/* (scanner, delta, corpus, differential, mutations, possessive sizing + prepared fix, matcher diff, battery/standing-reds logs, runtime probes). The launch prompt's v48_* names collide with verifier #48's files; #48's v48_regression_additions.mjs was byte-restored from HEAD."
     }
   ],
-  "campaign": 139,
-  "verifier": 79,
+  "campaign": 140,
+  "verifier": 80,
   "kind": "CONTRACT-CONFORMANCE DEPLOY GATE (v92 = reference corpus, never the bar)",
-  "status": "verifier #78 returned FAILED on 924977e4 / e785d6ce. EVERY #78 finding is closed: V78-D1 (P1, the polite Mongolian request swallowed by the V77-D1 allowlist) closed including the residue #78 left open; V78-D2 (P1, a stem that is also a noun breaking a refusal) closed by hoisting the request tier’s own read-shape definition and splitting it into named arms; V78-S1 (P1, a real survivor the deploy gate could not see) closed, and the manifest replay is now RED on that mutant; V78-D1b, D3, D4, D5, D6, H2, H4, H6, H8 closed. v78_regression_additions reads 23 passed / 0 failed. Candidate for #79: 6c1bfca9b1745c9c6acc118c6308204837c7f61cf835d8f1837afc142a7fcbf1, 729,902 bytes. Battery 97 suites / 92 GREEN / 0 unclassified RED. V78-H7 remains OPEN by decision: three lists still maintain their own copy of the shared-constant dependency order.",
+  "status": "verifier #79 returned FAILED on 6c1bfca9 with two P1s, BOTH in the previous round’s closures and both from the same cause: a change measured against a corpus that could not exercise it. Both CLOSED (ledger 166), each pinned as a mutation-proof mutant. V78-H7 CLOSED: one canonical dependency order, four consumers deriving from it, a 12-row ratchet suite, and four deliberate drifts proved to break it. harness_rename_probe GREEN for the first time in the campaign — the denial-contradicted window lift now derives its bounds, its parameters and its input roles from the slice, proved against a 12-identifier rename, a semantic change, a removed anchor and runtime equivalence. Checking my own V79-D2 fix in the direction I had not measured found it had opened a fabrication path (3 of 13 genuine denials escaped); closed, and non_existence_claim_both_directions.mjs promoted so the pair is checked together. Verifier #80 dispatched on dc27e034 / 05656967, campaign 140.",
   "closure_commit": "6c7f5e7",
   "index_sha256_prefix": "006a0c3feeb5f2f1",
   "branch": "p1/execution-truth-governance",
