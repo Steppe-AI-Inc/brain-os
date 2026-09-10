@@ -59,12 +59,26 @@ out of the digest into a LIVE check: the restore-tested commit must be an ancest
 since must touch nothing but `qa/verification/evidence/`. A commit that moves the deploy surface, a suite
 or a document makes it stale again — the case where stale is the truth.
 
-**4. RUNNING — V82-H5, measured rather than grepped.** #82 said 14 of 102 suites cannot see a mutant. A
-grep says 91 can and 12 test a different surface entirely — but a grep answers whether a TOKEN is present,
-and this campaign has been wrong four times trusting a token for a behaviour. Every suite is being run
-twice, one child process per source (V82-H6 is exactly why), against the real bytes and against a
-catastrophically mutated copy; a suite whose exit code and digest-erased output are identical is blind.
-Then a structural ratchet so a new suite cannot quietly join the blind set.
+**4. DONE — V82-H5 answered by measurement, and the answer is not what #82 said.** #82's mechanism claim
+("they read the repo copy") is false: no suite ignores `SEM_INDEX_SRC`. My own grep-derived answer (91
+sighted, 0 blind) was worth nothing for the same reason #82's was — **a grep says a token is present, not
+that anything depended on it** — and I made that mistake an hour after writing ledger 172 about it.
+Measured by taking the source away: **83 of 103 fail without it**, 10 never name it, and **10 pass while
+naming it**. Five are honest SUPERSEDED stubs, two were my classifier's false positives, **three were
+real**:
+
+* `structured_claim_laundering_contract` printed **NOT APPLICABLE** and exited 0 because the block it
+  guards was missing — so **deleting that block from the candidate makes the suite report success**. An
+  absent subject now FAILS; skipping the v92 reference corpus takes `SEM_REFERENCE_CORPUS=1`, because a
+  flag is visible in the command that set it and an inference from absence never is. Verified in all four
+  states.
+* `extractor_line_ending_contract` and the hygiene contract passed vacuously — 33 of 33 on one comment.
+  Both now carry a floor: >= 1 000 CRLF lines (and >= 50 constructed patterns), far below the real numbers
+  and far above zero.
+
+**A SEVENTH GATE, `source_absence_probe`**, now holds the denominator: every suite that names the deploy
+surface must either read it or be DECLARED with a sentence, and the gate fails if the probe stops
+delivering. First run: 86 read / 10 not about it / 7 declared / **0 undeclared**. Ledger 173.
 
 **5. QUEUED — V82-H3.** The comment on `typeNamedIn` says the fix is SPECIFICITY ORDER; #82 measured that
 reverting the ordering half is seen by 0 of 88 suites and that the two orders never disagree on 630
