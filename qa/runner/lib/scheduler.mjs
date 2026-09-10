@@ -20,6 +20,70 @@ const readJson = (p, fallback = null) => {
 const SEV_RANK = { P0: 0, P1: 1, P2: 2, P3: 3 };
 const RETEST_STATUSES = new Set(['READY_FOR_RETEST', 'FIX_PUSHED']);
 
+// ---------------------------------------------------------------------------------------------
+// NO PRODUCTION SQL FROM WORK PC - absolute (founder decision 2026-09-10).
+//
+// The barrier is capability absence (no control-plane credential on this machine; workers have
+// no shell). This layer exists so the SCHEDULER never even asks for SQL: every work object that
+// leaves selectNextWork() passes through enforceNoWorkPcSql(), which rewrites SQL-owned work into
+// a Home-PC handoff and stamps the prohibition on everything else. A directive that names a SQL
+// path is a scheduling bug, and this is where it is caught.
+// ---------------------------------------------------------------------------------------------
+export const WORK_PC_SQL_BLOCKED_REASON = 'PRODUCTION_SQL_PROHIBITED_ON_WORK_PC';
+const SQL_HINT_RE = /(supabase\s+db|supabase\s+sql|\bpsql\b|run-sql-regressions|persona matrix \(rolled back\)|\.sql\b|db query|--linked)/i;
+
+/** A bug whose executable regression is SQL, or that is already marked for a DB-capable seat. */
+export function isSqlOwned(b) {
+  if (!b) return false;
+  if (b.regression_executor === 'HOME_PC') return true;
+  if (b.regression_reconcile_blocked_reason) return true;
+  if (typeof b.regression_path === 'string' && /\.sql$/i.test(b.regression_path)) return true;
+  return false;
+}
+
+/**
+ * Post-filter applied to EVERY returned work object. Idempotent. Never returns SQL work for this
+ * seat; never returns a directive that asks for SQL without the prohibition attached.
+ */
+export function enforceNoWorkPcSql(work, world = null) {
+  if (!work || typeof work !== 'object') return work;
+  const out = { ...work, production_sql: WORK_PC_SQL_BLOCKED_REASON, sql_axis_executor: 'HOME_PC' };
+  const bugs = (world && world.bugQueue && world.bugQueue.bugs) || [];
+  const bug = out.bug_id ? bugs.find((b) => b.bug_id === out.bug_id) : null;
+
+  if (out.kind === 'retest_bug' && bug && isSqlOwned(bug)) {
+    out.sql_owned_bug = true;
+    out.directive = (out.directive || '')
+      + '\n\nSQL AXIS: ' + bug.bug_id + ' owns a SQL regression (' + (bug.regression_path || 'regression_reconcile_blocked') + '). '
+      + 'That axis is executed by the HOME PC only. From this seat gather PRODUCT evidence only (browser, AI response, receipts). '
+      + 'The bug may NOT be moved to CLOSED while its SQL axis is unreconciled: record the product-axis result and set/keep '
+      + 'regression_reconcile_blocked_reason = ' + WORK_PC_SQL_BLOCKED_REASON + ' so the Home PC re-executes it.';
+  }
+
+  if (out.kind === 'impact_regression') {
+    const wantsSql = out.impact_plan && out.impact_plan.run_sql_persona_matrix_first;
+    if (wantsSql) {
+      out.awaiting_home_pc = { item: 'SQL_PERSONA_MATRIX', reason: WORK_PC_SQL_BLOCKED_REASON, plan_key: out.impact_plan_key || null };
+      out.directive = String(out.directive || '').replace(
+        /A tenant\/RLS primitive changed: run the qa\/scenarios-runner persona matrix \(rolled back\) BEFORE browser work\.\s*/,
+        'A tenant/RLS primitive changed: the qa/scenarios-runner persona matrix is a SQL run and is NOT executed from this seat. '
+        + 'Record it as awaiting_home_pc SQL_PERSONA_MATRIX (' + WORK_PC_SQL_BLOCKED_REASON + ') in HANDOFF_STATE.json and proceed with browser/AI evidence. ');
+    }
+  }
+
+  if (out.kind === 'await_deploy') {
+    out.directive = String(out.directive || '').replace(
+      /\(supabase functions list for Edge Functions, Vercel deployment SHA for web\)/,
+      '(from the Home-PC handoff in qa/BUILD_UNDER_TEST.json or product-exposed build metadata - this seat holds no control-plane credential)');
+  }
+
+  if (SQL_HINT_RE.test(String(out.directive || ''))) {
+    out.directive_mentions_sql = true;
+    out.directive += '\n\nSTANDING RULE: NO PRODUCTION SQL FROM WORK PC (' + WORK_PC_SQL_BLOCKED_REASON + '). Any SQL step named above is a Home-PC item; record it in HANDOFF_STATE.json awaiting_home_pc and do not attempt it.';
+  }
+  return out;
+}
+
 export function readWorld() {
   const bugQueue = readJson(P.bugQueue, { bugs: [] });
   const inventory = readJson(P.capabilities, { capabilities: [] });
@@ -52,6 +116,10 @@ export function readWorld() {
  * `state` is the supervisor state to enter while performing it.
  */
 export function selectNextWork(world, ctx = {}) {
+  return enforceNoWorkPcSql(selectNextWorkUnfiltered(world, ctx), world);
+}
+
+function selectNextWorkUnfiltered(world, ctx = {}) {
   const { bugQueue, handoff, campaignQueue, failing, flaky, notTested } = world;
   const bugs = bugQueue.bugs || [];
 
@@ -130,7 +198,8 @@ export function selectNextWork(world, ctx = {}) {
   // A reconciliation that this seat provably cannot perform (e.g. a SQL-impersonation regression
   // from a browser-only session) carries regression_reconcile_blocked_reason. It is skipped here
   // - not dropped: summarise() counts it and a DB-capable director clears the field when it re-runs.
-  const flippable = bugs.filter((b) => b.regression_state === 'EXPECTED_FAIL' && b.status === 'CLOSED' && !b.regression_reconcile_blocked_reason);
+  // SQL-owned regressions are never scheduled from this seat (isSqlOwned) - they are Home-PC items.
+  const flippable = bugs.filter((b) => b.regression_state === 'EXPECTED_FAIL' && b.status === 'CLOSED' && !isSqlOwned(b));
   if (flippable.length) {
     return {
       hasWork: true, state: 'QA_STARTING', kind: 'regression_reconcile', priority: 'P2',
@@ -236,6 +305,7 @@ export function summarise(world) {
     open_p1: openBugs.filter((b) => b.severity === 'P1').length,
     ready_for_retest: (world.bugQueue.bugs || []).filter((b) => RETEST_STATUSES.has(b.status)).length,
     reconcile_blocked: (world.bugQueue.bugs || []).filter((b) => b.regression_reconcile_blocked_reason).length,
+    sql_owned_awaiting_home_pc: (world.bugQueue.bugs || []).filter((b) => b.status !== 'CLOSED' && isSqlOwned(b)).length,
     capabilities: world.caps.length,
     fail: world.failing.length,
     flaky: world.flaky.length,

@@ -23,6 +23,7 @@ import { createWriteStream, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { P, REPO_ROOT, DIRECTOR_CWD } from './paths.mjs';
+import { gatedEnv } from './capability-gate.mjs';
 
 export const MODEL_ALIAS = 'fable';
 export const EXPECTED_CANONICAL_MODEL = 'claude-fable-5';
@@ -94,16 +95,14 @@ export function launchDirector({
   // script that impersonates a director's stream-json lifecycle, so the supervisor's launch /
   // observe / relaunch behaviour can be proven deterministically without spending a real Fable
   // run. When unset, the real resolved `claude` binary is spawned exactly as before.
+  // Capability gate (defense in depth, 2026-09-10): credential-shaped env stripped, control-plane
+  // CLIs shimmed on PATH. The Director keeps its shell for git/evidence work; the actual barrier is
+  // that no production credential exists on this machine for that shell to find.
+  const env = gatedEnv(process.env, { CLAUDE_CODE_WORK_PC_SUPERVISED: '1' });
   const fakeBin = process.env.DIRECTOR_FAKE_BIN;
   const child = fakeBin
-    ? spawn(process.execPath, [fakeBin, ...args], {
-        cwd: DIRECTOR_CWD, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
-        env: { ...process.env, CLAUDE_CODE_WORK_PC_SUPERVISED: '1' },
-      })
-    : spawn(bin, args, {
-        cwd: DIRECTOR_CWD, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
-        env: { ...process.env, CLAUDE_CODE_WORK_PC_SUPERVISED: '1' },
-      });
+    ? spawn(process.execPath, [fakeBin, ...args], { cwd: DIRECTOR_CWD, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'], env })
+    : spawn(bin, args, { cwd: DIRECTOR_CWD, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'], env });
 
   const outcome = {
     session_id: sessionId, pid: child.pid, log_path: logPath,
@@ -247,8 +246,12 @@ function buildBootPrompt(directive) {
     '- Ending your turn does NOT mean QA is finished; it means this shift is over. Leave the',
     '  repository in a state the next invocation can resume from.',
     '- You are QA. You may not modify production implementation code to fix a defect you found.',
-    '- You may not push database migrations to production. This is enforced by a hook, not just',
-    '  by this instruction - do not try to work around it, record it as a founder gate instead.',
+    '- NO PRODUCTION SQL FROM WORK PC - absolute. No migrations, no db query, no rollback-wrapped',
+    '  probes, no run-sql-regressions.mjs. This machine holds no control-plane credential; SQL',
+    '  regressions are Home-PC items - record them as awaiting_home_pc, never attempt them.',
+    '- Never install a credential (supabase/vercel/gh login or link). Never export, copy or seed',
+    '  the founder browser session. Your browser profile is isolated; if it is logged out, UI work',
+    '  is BLOCKED: IDENTITY_NOT_PROVISIONED - do not log in.',
     '- If a capability cannot be reached, mark it BLOCKED with a blocked_reason. Never PASS.',
     '- If the browser (mcp__playwright__*) is unavailable, do not attempt UI verification and do',
     '  not report UI results; record the blockage and do SQL/source work instead.',

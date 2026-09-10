@@ -13,7 +13,30 @@
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { QA_DIR } from './lib/paths.mjs';
+import { QA_DIR, RUNNER_DIR } from './lib/paths.mjs';
+
+// ---------------------------------------------------------------------------------------------
+// NO PRODUCTION SQL FROM WORK PC - absolute (founder decision 2026-09-10).
+//
+// This refusal is an ACCIDENTAL-MISUSE guard, not the barrier. The barrier is that the Work PC
+// holds no linked Supabase credential (A4), so the CLI call below cannot authenticate there at
+// all. The seat marker (qa/runner/.seat, machine-local, written by config.mjs) makes the refusal
+// independent of environment variables; the env checks catch a supervised/worker context on any
+// machine. QA_SEAT is honoured only as a further courtesy.
+// ---------------------------------------------------------------------------------------------
+function refuseOnWorkPc() {
+  const reasons = [];
+  try { if (/^\s*WORK_PC\b/.test(readFileSync(join(RUNNER_DIR, '.seat'), 'utf8'))) reasons.push('seat marker qa/runner/.seat = WORK_PC'); } catch {}
+  if (process.env.CLAUDE_CODE_WORK_PC_SUPERVISED === '1') reasons.push('CLAUDE_CODE_WORK_PC_SUPERVISED=1');
+  if (process.env.QA_WORKER_ID) reasons.push('QA_WORKER_ID=' + process.env.QA_WORKER_ID);
+  if (process.env.QA_CAPABILITY_GATE === '1') reasons.push('QA_CAPABILITY_GATE=1');
+  if (process.env.QA_SEAT === 'WORK_PC') reasons.push('QA_SEAT=WORK_PC');
+  if (reasons.length) {
+    console.error('REFUSED: PRODUCTION_SQL_PROHIBITED_ON_WORK_PC (' + reasons.join('; ') + '). SQL regressions are executed by the Home PC. Record the item as awaiting_home_pc in qa/HANDOFF_STATE.json.');
+    process.exit(3);
+  }
+}
+refuseOnWorkPc();
 
 const args = process.argv.slice(2);
 const only = args.includes('--only') ? args[args.indexOf('--only') + 1] : null;

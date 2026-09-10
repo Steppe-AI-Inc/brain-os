@@ -1,0 +1,21 @@
+{
+  "_doc": "Allowlist for qa/runner/run-guard-from-ref.mjs. A regression guard may be executed from a pinned source worktree ONLY if its path is listed here AND the blob SHA of the file at the requested ref is one of its pinned_blob_shas. No heuristic decides safety - not import scanning, not 'looks like a static check'. Adding an entry is a founder-approved review of the exact file content at the exact blob. Unknown path or unpinned blob -> BLOCKED_GUARD_NOT_ALLOWLISTED.",
+  "schema": "qa.guard-allowlist/1",
+  "entries": [
+    {
+      "regression_path": "qa/scenarios-runner/company_ref_no_bare_name_join.mjs",
+      "bug_ids": ["BUG-006", "BUG-001"],
+      "allowed_refs": ["origin/master", "master", "15f46a9", "55a1591"],
+      "pinned_blob_shas": [
+        "968797fdb82970d99c454a12bcaa118c67e16777",
+        "17bf39c91582811b704e4f8e4fb14c7ccbd701d2"
+      ],
+      "_blob_note": "968797fd = content at 15f46a9 (scratchpad master-wt); 17bf39c9 = content at origin/master 55a1591. Both reviewed 2026-09-10: node:fs static scan of web/**/*.ts(x) for bare companies(name) joins; no network, no child_process, no database, no writes.",
+      "runtime": "node",
+      "timeout_ms": 120000,
+      "db_touched": false,
+      "approved_by": "founder decision 2026-09-10 (BUG-006 branch: execute from a worktree pinned to the exact source rev; no cherry-pick)",
+      "approved_at": "2026-09-10"
+    }
+  ]
+}

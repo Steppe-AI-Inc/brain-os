@@ -85,27 +85,44 @@ sweep — not a subset, not only the priority list, and not only when a new comm
 
 ---
 
-## PARALLEL WORKER MODE (added 2026-09-10)
+## PARALLEL WORKER MODE (added 2026-09-10; hardened same day)
 
 If you were launched with `QA_WORKER_ID` set, you are ONE of several parallel workers, not the
-Director. The rules below are enforced by the reconciler (`qa/runner/lib/reconcile.mjs`) - a
-worker that breaks them produces evidence that is rejected as INVALID_TEST, not evidence that wins.
+Director. Your class is in `QA_WORKER_CLASS`. The rules below are enforced by the launcher and
+the reconciler (`qa/runner/lib/worker-policy.mjs`, `orchestrator.mjs`, `reconcile.mjs`) - they
+are not requests. A worker that steps outside them is killed or its result is INVALID_TEST.
 
 - **You are evidence, not a verdict.** Only the Orchestrator/Director writes `BUG_QUEUE.json`,
   `HANDOFF_STATE.json`, `CAPABILITY_INVENTORY.json`, `COVERAGE_LEDGER.json`, `FIXTURE_REGISTRY.json`,
-  `SYNTHETIC_CLONE_MAP.json`, `WORK_PC_QA_STATUS.md`, `BUILD_UNDER_TEST.json`. Never edit them.
-- **Write only** `qa/runs/<campaign>/<worker>/RESULT.json`, `CHECKPOINT.json`, `EVIDENCE/**`.
-- **Do not commit or push.** The Orchestrator publishes.
+  `SYNTHETIC_CLONE_MAP.json`, `WORK_PC_QA_STATUS.md`, `BUILD_UNDER_TEST.json`.
+- **You write NOTHING.** You have no Write tool. Your FINAL MESSAGE is exactly one JSON object;
+  the Orchestrator materialises `RESULT.json`, `CHECKPOINT.json` and your transcript from your
+  stream. Prose instead of JSON is `INVALID_TEST: UNPARSEABLE_RESULT`.
+- **SOURCE_AUDIT class**: tools are `Read`, `Glob`, `Grep` only, confined to a detached
+  source-only worktree outside the repository (no `.auth`, no profiles, no runtime state). Git
+  facts (SHA, ref, changed files) are supplied in your prompt - you have no git and no shell.
+  The worktree is fingerprinted before and after you run; any change is `WORKER_BOUNDARY_VIOLATION`.
+- **BROWSER_QA class**: tools are the reviewed high-level Playwright UI actions only (no
+  `browser_evaluate`, no `browser_run_code_unsafe`, no `browser_network_request`, no file tool,
+  no shell). You run as a dedicated synthetic identity in its own synthetic org - never the founder.
+  Logged out = `BLOCKED_QA_AUTH`; never attempt to log in or enter credentials.
+- **NO PRODUCTION SQL FROM WORK PC - absolute.** If a task needs SQL, record BLOCKED with
+  `PRODUCTION_SQL_PROHIBITED_ON_WORK_PC`; the Home PC executes SQL regressions.
 - **Mutate only fixtures in your authorised list.** Another worker may hold the rest under lease.
-- **First action: write a provisional `RESULT.json`** (`"provisional": true`, verdict `INVALID_TEST`),
-  then overwrite it at the end. A budget cut then leaves the truth ("started, did not finish")
-  instead of silence.
-- **Write evidence incrementally.** Evidence on disk when the budget runs out is still evidence.
-- **No browser, no UI verdicts.** If `mcp__playwright__*` tools are absent, record
-  `browser_available: false` and BLOCKED for anything UI-dependent. A UI verdict without a browser
-  is the FALSE_SUCCESS this platform exists to prevent.
-- **Parallel browser work is BLOCKED** until browser-context isolation is proven
-  (`qa/runner/lib/browser-isolation.mjs`). Do not attempt it.
+- **No browser, no UI verdicts.** A UI verdict without a browser is the FALSE_SUCCESS this
+  platform exists to prevent.
+- **Parallel browser work is BLOCKED** until browser isolation is computed true live
+  (`qa/runner/lib/browser-isolation.mjs`): PROCESS + PROFILE + AUTH IDENTITY + TENANT, bound to
+  machine, runner SHA, code hash, pinned MCP version, tool policy and identity set.
+
+Director rules in the same spirit: the Director's browser is an isolated profile
+(`qa/runner/.director-profile`), never the founder's; without a bootstrapped `qa-director`
+identity, UI work is `BLOCKED: IDENTITY_NOT_PROVISIONED`. This machine holds no production
+control-plane credential (Supabase CLI logged out + unlinked 2026-09-10; no Vercel/GitHub token).
+Never install one. Build provenance comes from `qa/BUILD_UNDER_TEST.json`; `WEB_SHA` stays
+UNKNOWN until the product exposes it.
 
 Entry points for the Director: `node qa/runner/orchestrate.mjs status|recover|reconcile|run`,
-`node qa/runner/parallel-acceptance.mjs`. Plans live in `qa/runner/plans/`.
+`node qa/runner/parallel-acceptance.mjs`, `node qa/runner/security-acceptance.mjs`,
+`node qa/runner/run-guard-from-ref.mjs --guard <path> --ref <ref>`. Plans live in `qa/runner/plans/`
+(items carry `worker_class`, `identity_id`, `org_scope`).

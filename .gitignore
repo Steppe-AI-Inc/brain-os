@@ -11,7 +11,12 @@ qa/runner/SUPERVISOR_STATE.json.corrupt-*
 
 # Parallel QA orchestration - never commit session material or raw worker streams
 qa/runner/.auth/
+qa/runner/.director-profile/
+qa/runner/.seat
+qa/runner/shims/
 qa/runs/**/.browser-profile/
+qa/runs/**/.playwright-mcp/
 qa/runs/**/worker.jsonl
 qa/runs/**/_leases/
 qa/runs/CSYNTH-*/
+qa/runs/CSEC-*/

@@ -199,7 +199,13 @@
   "awaiting_home_pc": [
     "A deployed WEB_SHA. Nothing is closable without it (build-identity rule 2) regardless of evidence quality.",
     "BUG-005: the durable channel-state migration is PREPARED NOT APPLIED (master 3527244), gated on founder DB authorization. No ISSUE-5 retest is possible until it lands and a new function version ships.",
-    "BUG-002: reconcile why the bare project-rename path fabricates while the fix report claims bare requests refuse."
+    "BUG-002: reconcile why the bare project-rename path fabricates while the fix report claims bare requests refuse.",
+    {
+      "item": "SQL_REGRESSIONS_FOR_BUG-001_BUG-003_BUG-004",
+      "reason": "PRODUCTION_SQL_PROHIBITED_ON_WORK_PC",
+      "added": "2026-09-10",
+      "detail": "Re-execute qa/scenarios-runner/{departments_hide_or_mark_archived_parent,dashboard_company_count_excludes_archived,memories_null_company_scope_not_a_bypass}.sql (rollback-wrapped) against the deployed build and ship a structured fix/verification report. The Work PC will not run them."
+    }
   ],
   "standing_prohibitions": [
     "DESTRUCTIVE SUBSTITUTE EXECUTION (Issue-5 Class B, company arm): CLOSED AS UNPROVEN / NOT SAFELY REACHABLE, founder decision 2026-09-09. Do not fish for a resolver output proposing a registered synthetic company. Do not request broader destructive production authorization for this class. The remaining execution question belongs to Home-PC source inspection plus a STAGING regression. Do not infer execution from a receipt.",
@@ -246,12 +252,25 @@
     }
   },
   "parallel_qa_orchestration": {
-    "status": "MACHINERY VERIFIED; BROWSER LANES BLOCKED PENDING ISOLATION PROOF",
+    "status": "PARALLEL QA ORCHESTRATION VERIFIED / BROWSER LANES BLOCKED PENDING IDENTITY + ISOLATION PROOF",
     "synthetic_acceptance": "19 of 19 checks pass (qa/runner/PARALLEL_ACCEPTANCE.json). 3 real OS processes overlapped in wall-clock (2092 ms for three 2000 ms workers; serial would be >= 6000 ms), distinct PIDs, isolated run dirs, single-writer audit clean, fixture and browser collisions rejected, crash and capacity isolated, phantom-RUNNING reconstructed from a real PID probe, conflicting evidence surfaced as CONFLICTING_EVIDENCE not voted.",
     "real_pilot": "3 genuine Fable workers on non-browser lanes (W1 cluster analysis, W2 registry drift, W3 regression integrity). All three produced substantive evidence now reconciled into canonical state above. First run was budget-capped at 2 USD before RESULT.json; W3 checkpoint-resumed to a final PASS. Budget calibration: audit-class work needs ~6 USD.",
-    "browser_isolation": "NOT PROVEN, computed not assumed (qa/runner/lib/browser-isolation.mjs). Mechanism exists (@playwright/mcp --isolated / --user-data-dir / --storage-state, verified against --help). Blocker is auth: no exported storageState at qa/runner/.auth/founder-storage-state.json, and Work PC cannot produce one from the MCP tool surface (httpOnly cookies are not readable via browser_evaluate). Until it exists the scheduler refuses browser work in parallel. Non-browser parallel work is live.",
-    "unblock_browser_lanes": "One-time founder or Home-PC action: export the authenticated founder session to qa/runner/.auth/founder-storage-state.json (path is gitignored). Then re-run parallel-acceptance and a browser-lane pilot before classifying browser parallelism verified.",
-    "single_writer": "qa/runner/lib/reconcile.mjs. Only orchestrate.mjs writes canonical files; workers may write only qa/runs/<campaign>/<worker>/{RESULT.json,CHECKPOINT.json,EVIDENCE/**}. Enforced by prompt, audited by mtime, and verified by git status after the pilot.",
-    "entry_points": "node qa/runner/orchestrate.mjs status|recover|reconcile|run <campaign> <plan.json>; node qa/runner/parallel-acceptance.mjs; plans under qa/runner/plans/."
+    "browser_isolation": "NOT VERIFIED - computed LIVE per batch by qa/runner/lib/browser-isolation.mjs, never unlocked by a file. Isolation = PROCESS + BROWSER PROFILE + AUTH IDENTITY + TENANT. browserIsolationVerified is true only when every browser item has a present, non-founder, unique synthetic identity and unique org scope AND a proof record's binding hash equals the hash computed now (machine, runner SHA, code hash, pinned @playwright/mcp 0.0.80, exact tool allow/deny lists, identity ids, org scopes, profile paths). The founder session is never exported, copied or seeded. Until then a single read-only browser item may run serialised only with a provisioned non-founder identity; browser mutation and browser concurrency are refused (lanes.mjs).",
+    "unblock_browser_lanes": "Founder/Home-PC actions, in order: PHASE B - create one dedicated synthetic QA identity per worker (qa-w1/qa-w2/qa-w3, each in its own synthetic org) through the product /people Invite flow and complete the email OTP in an isolated profile (qa/runner/identity-bootstrap.mjs, to be written in Phase B); the Work PC never sees the mailbox. PHASE C - persist each identity's storageState to qa/runner/.auth/<id>.json (gitignored) and register it in FIXTURE_REGISTRY.json. PHASE D - run the positive+negative parallel browser acceptance that writes BROWSER_ISOLATION_PROOF.json with the live binding hash. Entitlements: global employee + role_in_company=manager ONLY in the worker's own synthetic org (BLOCKED - MEMBERSHIP_ROLE_MANAGEMENT_UI_ABSENT until the product ships a governed role-management path; never SQL/RPC/Auth-Admin from this seat). NEVER export the founder session; NEVER admin-set passwords; NEVER put service_role/Auth Admin keys/mailbox credentials on the Work PC.",
+    "single_writer": "qa/runner/lib/reconcile.mjs + orchestrator.mjs. Only the Orchestrator writes canonical files AND, since 2026-09-10, only the Orchestrator writes worker RESULT.json/CHECKPOINT.json/EVIDENCE transcripts: workers have no Write tool at all (BROWSER_QA: no built-ins; SOURCE_AUDIT: Read/Glob/Grep only). Materialised from the worker's final stream-json result; unparseable -> INVALID_TEST.",
+    "entry_points": "node qa/runner/orchestrate.mjs status|recover|reconcile|run <campaign> <plan.json>; node qa/runner/parallel-acceptance.mjs; node qa/runner/security-acceptance.mjs; node qa/runner/run-guard-from-ref.mjs --guard <path> --ref <ref>; plans under qa/runner/plans/ (items carry worker_class, identity_id, org_scope).",
+    "phase_a_security_2026_09_10": {
+      "worker_classes": "qa/runner/lib/worker-policy.mjs - BROWSER_QA (--restricted --tools \"\" --strict-mcp-config, exact 17-tool Playwright allow list, 7 raw primitives denied by name, pinned @playwright/mcp 0.0.80) and SOURCE_AUDIT (--restricted --tools Read,Glob,Grep --strict-mcp-config, cwd = detached source-only worktree outside the repo, git facts supplied by the orchestrator, SOURCE INPUT BEFORE == AFTER fingerprint). bypassPermissions removed from every worker. Live init frame checked on every launch; mismatch kills the worker.",
+      "capability_removal_over_text_filtering": "Primary boundary = tool absence + credential absence. Hook/deny-list/env-strip/PATH shims are defense in depth only.",
+      "credentials_removed": "Supabase CLI logged out + unlinked on the Work PC (verified). No Vercel/GitHub token store present. No GitHub deployment token provisioned (A4 tightened). WEB_SHA remains UNKNOWN honestly.",
+      "sql_gates": "scheduler.mjs enforceNoWorkPcSql on every returned work object (SQL-owned bugs -> product evidence only, never CLOSED from this seat; impact_regression SQL persona matrix -> awaiting_home_pc); run-sql-regressions.mjs refuses via seat marker + env; capability gate shims supabase/psql/pg_*/vercel; hook PRODUCTION_SQL_TRANSPORT ignores rollback.",
+      "guard_provenance": "qa/runner/run-guard-from-ref.mjs + guard-allowlist.json. BUG-006 guard executed at origin/master 55a1591 (blob 17bf39c9) and at 15f46a9 (blob 968797fd): SOURCE_REGRESSION_PASS at both; provenance CANNOT_BIND_TO_DEPLOYED_WEB; no cherry-pick.",
+      "acceptance": "qa/runner/parallel-acceptance.mjs (synthetic, 33 checks) and qa/runner/security-acceptance.mjs (real claude -p probes for both classes; results in qa/runner/SECURITY_ACCEPTANCE.json)."
+    }
+  },
+  "founder_actions_required_2026_09_10": {
+    "item": "PHASE_B_C_D_BROWSER_IDENTITIES",
+    "added": "2026-09-10",
+    "detail": "Provide the QA mailbox domain; perform the one-time invite + OTP bootstrap for qa-w1/qa-w2/qa-w3 (each in its own synthetic org); confirm/ship a governed role-management path for role_in_company=manager. Browser lanes stay BLOCKED until then."
   }
 }

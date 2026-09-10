@@ -118,7 +118,10 @@
         "what_this_needs": "The SQL regression must be RE-EXECUTED and observed passing before the bug can close again. Work PC will NOT run it: production SQL is prohibited for this campaign by founder instruction (2026-09-09 safety block). Home PC re-executes it against the deployed build, or the founder authorises a rollback-wrapped read via qa/runner/run-sql-regressions.mjs.",
         "why_reopen_rather_than_flag": "Under the closure rule a bug is done only when its regression suite passes. Leaving it CLOSED with a recorded failing regression is the flattering-ledger error the coverage script exists to prevent. Reopening costs nothing if the SQL passes; leaving it closed costs trust if it does not.",
         "build": "EDGE v94 (v92 source) / WEB SHA UNKNOWN"
-      }
+      },
+      "regression_reconcile_blocked_reason": "PRODUCTION_SQL_PROHIBITED_ON_WORK_PC",
+      "regression_executor": "HOME_PC",
+      "_sql_axis_2026_09_10": "Founder decision 2026-09-10: NO PRODUCTION SQL FROM WORK PC is absolute and is now enforced in code (scheduler post-filter enforceNoWorkPcSql, run-sql-regressions.mjs seat refusal, capability gate, Supabase CLI logged out + unlinked on the Work PC). The SQL regression qa/scenarios-runner/departments_hide_or_mark_archived_parent.sql is executed by the HOME PC only. Work PC gathers product evidence; the bug is not CLOSED from this seat while this field is set."
     },
     {
       "bug_id": "BUG-002",
@@ -293,7 +296,10 @@
         "what_this_needs": "The SQL regression must be RE-EXECUTED and observed passing before the bug can close again. Work PC will NOT run it: production SQL is prohibited for this campaign by founder instruction (2026-09-09 safety block). Home PC re-executes it against the deployed build, or the founder authorises a rollback-wrapped read via qa/runner/run-sql-regressions.mjs.",
         "why_reopen_rather_than_flag": "Under the closure rule a bug is done only when its regression suite passes. Leaving it CLOSED with a recorded failing regression is the flattering-ledger error the coverage script exists to prevent. Reopening costs nothing if the SQL passes; leaving it closed costs trust if it does not.",
         "build": "EDGE v94 (v92 source) / WEB SHA UNKNOWN"
-      }
+      },
+      "regression_reconcile_blocked_reason": "PRODUCTION_SQL_PROHIBITED_ON_WORK_PC",
+      "regression_executor": "HOME_PC",
+      "_sql_axis_2026_09_10": "Founder decision 2026-09-10: NO PRODUCTION SQL FROM WORK PC is absolute and is now enforced in code (scheduler post-filter enforceNoWorkPcSql, run-sql-regressions.mjs seat refusal, capability gate, Supabase CLI logged out + unlinked on the Work PC). The SQL regression qa/scenarios-runner/dashboard_company_count_excludes_archived.sql is executed by the HOME PC only. Work PC gathers product evidence; the bug is not CLOSED from this seat while this field is set."
     },
     {
       "bug_id": "BUG-004",
@@ -357,7 +363,10 @@
       "regression_reconciliation_2026_09_07": {
         "status": "RECONCILED - EXPECTED_PASS on the SQL axis, run live from the Work-PC seat via the linked CLI at 13:12Z",
         "reason": "qa/scenarios-runner/memories_null_company_scope_not_a_bypass.sql requires SQL impersonation (rolled-back transaction) which this session does not hold. regression_state stays EXPECTED_FAIL so the scheduler keeps surfacing it until a DB-capable director re-runs it. Not inferred to pass."
-      }
+      },
+      "regression_reconcile_blocked_reason": "PRODUCTION_SQL_PROHIBITED_ON_WORK_PC",
+      "regression_executor": "HOME_PC",
+      "_sql_axis_2026_09_10": "Founder decision 2026-09-10: NO PRODUCTION SQL FROM WORK PC is absolute and is now enforced in code (scheduler post-filter enforceNoWorkPcSql, run-sql-regressions.mjs seat refusal, capability gate, Supabase CLI logged out + unlinked on the Work PC). The SQL regression qa/scenarios-runner/memories_null_company_scope_not_a_bypass.sql is executed by the HOME PC only. Work PC gathers product evidence; the bug is not CLOSED from this seat while this field is set."
     },
     {
       "bug_id": "BUG-005",
@@ -876,7 +885,31 @@
         "source": "Parallel worker W3, re-verified by the Director with git cat-file: qa/scenarios-runner/company_ref_no_bare_name_join.mjs is ABSENT from qa/work-pc HEAD and PRESENT on origin/master.",
         "finding": "closure_evidence cites this file as the drift guard the Work PC ran independently (8/8 pass). The QA branch cannot execute a guard it does not contain, and the bug has no regression_path pointing at it.",
         "status_effect": "REMAINS CLOSED. The closure was independently verified at the time and the guard exists on master; this is a branch-hygiene gap in the QA branch, not evidence the fix regressed.",
-        "required_action": "Bring the guard onto qa/work-pc (cherry-pick or merge from master) and set regression_path to it, so the closure is executable from the branch that owns QA truth. Director did NOT cherry-pick during this reconciliation: merging implementation-branch files into the QA branch is a branch-ownership decision, recorded for the founder."
+        "required_action": "OVERRULED by founder decision 2026-09-10: NO cherry-pick/merge of implementation-branch files into qa/work-pc. The guard is executed from a detached worktree pinned to the exact source revision by qa/runner/run-guard-from-ref.mjs, which accepts only allowlisted paths at pinned blob SHAs (qa/runner/guard-allowlist.json). Evidence is bound to {regression_path, regression_source_sha, worktree_sha, deployed_web_sha, result, provenance_status}; provenance_status is CANNOT_BIND_TO_DEPLOYED_WEB while WEB_SHA is UNKNOWN, and PRODUCTION_WEB_PASS is never claimed unless BOUND_TO_DEPLOYED_WEB."
+      },
+      "regression_path": "qa/scenarios-runner/company_ref_no_bare_name_join.mjs",
+      "regression_source_ref": "origin/master",
+      "regression_executor": "WORK_PC via qa/runner/run-guard-from-ref.mjs (allowlisted, pinned worktree)",
+      "guard_execution": {
+        "regression_path": "qa/scenarios-runner/company_ref_no_bare_name_join.mjs",
+        "regression_source_sha": "17bf39c91582811b704e4f8e4fb14c7ccbd701d2",
+        "worktree_sha": "55a1591 (origin/master, detached worktree outside the repo)",
+        "deployed_web_sha": "UNKNOWN",
+        "result": "PASS",
+        "provenance_status": "CANNOT_BIND_TO_DEPLOYED_WEB",
+        "claim": "SOURCE_REGRESSION_PASS_AT_SHA_55a1591",
+        "production_claim": "NONE - CANNOT_BIND_TO_DEPLOYED_WEB",
+        "also_executed_at": {
+          "worktree_sha": "15f46a9",
+          "regression_source_sha": "968797fdb82970d99c454a12bcaa118c67e16777",
+          "result": "PASS",
+          "claim": "SOURCE_REGRESSION_PASS_AT_SHA_15f46a9"
+        },
+        "executed_at": "2026-09-10",
+        "executor": "qa/runner/run-guard-from-ref.mjs (Phase A security acceptance H1/H2)",
+        "db_touched": false,
+        "record_dir": "qa/runs/CSEC-ACCEPT/_guards/",
+        "_meaning": "The source guard passes at both pinned revisions. This says nothing about the deployed web build until WEB_SHA is observable; the bug stays CLOSED on its original independent evidence and the provenance gap is recorded, not papered over."
       }
     },
     {

@@ -7,22 +7,43 @@
 // provable rather than claimed.
 //
 // Worker output is EVIDENCE. Nothing here writes canonical QA state - see reconcile.mjs.
+//
+// Security model (founder decisions 2026-09-10, worker-policy.mjs):
+//   - Every worker is launched under a CLASS POLICY that removes capability at the CLI boundary:
+//     BROWSER_QA has no built-in tools and only reviewed high-level Playwright MCP tools;
+//     SOURCE_AUDIT has only Read/Glob/Grep, from a source-only worktree, with no MCP at all.
+//   - bypassPermissions is never used for a worker. --restricted refuses it anyway.
+//   - The live init frame is checked against the policy; a worker whose tool set differs is
+//     killed before it does anything. That check is the enforcement.
+//   - Workers write NOTHING. RESULT.json, CHECKPOINT.json and the evidence transcript are
+//     materialised by this process from the worker's stream-json output.
+//   - SOURCE_AUDIT: the worktree fingerprint before spawn must equal the one after exit.
+//   - Child environments pass through capability-gate.mjs (defense in depth).
 import { spawn } from 'node:child_process';
-import { createWriteStream, writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { createWriteStream, writeFileSync, readFileSync, existsSync, mkdirSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { P, REPO_ROOT, DIRECTOR_CWD } from './paths.mjs';
+import { P } from './paths.mjs';
 import { resolveClaudeBin, MODEL_ALIAS, killTree } from './director.mjs';
 import {
-  ensureRunDirs, workerDir, runsDir, isPidAlive,
+  ensureRunDirs, runsDir, isPidAlive,
   acquireLeaseSet, releaseAllFor, renewLeasesFor, reapDeadLeases, listLeases,
 } from './worker-lease.mjs';
 import { LANES } from './lanes.mjs';
+import { policyFor, policyArgs, policyHash, checkInitFrame } from './worker-policy.mjs';
+import { ensureSourceWorktree, worktreeFingerprint, fingerprintsEqual, gitContext } from './source-worktree.mjs';
+import { writeSidecarConfig } from './browser-isolation.mjs';
+import { gatedEnv } from './capability-gate.mjs';
 
 export const WORKER_STATES = [
   'QUEUED', 'STARTING', 'RUNNING', 'CHECKPOINTING',
   'PASS', 'FAIL', 'FLAKY', 'BLOCKED', 'CRASHED', 'CAPACITY_BLOCKED', 'COMPLETE',
 ];
+
+export const WORK_PC_SQL_PROHIBITION =
+  'NO PRODUCTION SQL FROM WORK PC. This is absolute and enforced by tool absence: you have no shell, '
+  + 'no database client and no network primitive. If a task appears to need SQL, record BLOCKED with '
+  + 'blocked_reason PRODUCTION_SQL_PROHIBITED_ON_WORK_PC so the Director hands it to the Home PC.';
 
 const nowIso = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 
@@ -48,18 +69,54 @@ function updateWorker(campaignId, workerId, patch) {
   return reg.workers[workerId];
 }
 
+function notLaunched(campaignId, workerId, lane, reason, extra = {}) {
+  const rec = updateWorker(campaignId, workerId, {
+    worker_id: workerId, lane, status: 'BLOCKED', blocked_reason: reason, pid: null, started_at: null, ...extra,
+  });
+  return { launched: false, reason: reason.split(':')[0], worker: rec, promise: Promise.resolve(rec) };
+}
+
+/**
+ * Pull the worker's final structured result out of the stream-json `result` text. The model has
+ * no Write tool, so its last message IS the result. Accepts a bare JSON object, or one wrapped in
+ * a ```json fence, or the last {...} block in the text. Anything else is UNPARSEABLE_RESULT.
+ */
+export function parseWorkerResult(text) {
+  if (typeof text !== 'string' || !text.trim()) return { ok: false, why: 'EMPTY_RESULT' };
+  const candidates = [];
+  const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/g);
+  if (fence) for (const f of fence) candidates.push(f.replace(/```(?:json)?/, '').replace(/```$/, ''));
+  candidates.push(text);
+  const last = text.lastIndexOf('}');
+  const first = text.indexOf('{');
+  if (first >= 0 && last > first) candidates.push(text.slice(first, last + 1));
+  for (const c of candidates) {
+    try {
+      const o = JSON.parse(c.trim());
+      if (o && typeof o === 'object' && !Array.isArray(o)) return { ok: true, value: o };
+    } catch {}
+  }
+  return { ok: false, why: 'UNPARSEABLE_RESULT' };
+}
+
 /**
  * Launch one worker as a real OS process.
  *
  * Fixture leases are acquired BEFORE spawn. A worker that cannot get exclusive ownership of what
  * it would mutate is not started at all - starting it and hoping would be how two workers end up
- * editing one fixture and producing a fabricated defect.
+ * editing one fixture and producing a fabricated defect. Identity and org scope are leased the
+ * same way: two browser workers can never share a synthetic account or a synthetic tenant.
  */
 export function launchWorker({
   campaignId,
   workerId,
   lane,
   directive,
+  workerClass = 'SOURCE_AUDIT',
+  identityId = null,
+  orgScope = null,
+  sourceRef = 'HEAD',
+  baseRef = null,
   assignedCapabilities = [],
   assignedScenarios = [],
   fixtureNamespace,
@@ -67,16 +124,26 @@ export function launchWorker({
   leaseKeys = [],
   browserContextId = null,
   maxBudgetUsd = 6,
+  model = process.env.QA_WORKER_MODEL || MODEL_ALIAS,
   hangMs = 10 * 60_000,
   hardCapMs = 45 * 60_000,
   onStarted = () => {},
   onEvent = () => {},
 }) {
+  let policy;
+  try { policy = policyFor(workerClass); }
+  catch (e) { return notLaunched(campaignId, workerId, lane, e.message); }
+
   const wd = ensureRunDirs(campaignId, workerId);
   const sessionId = randomUUID();
 
   const keys = leaseKeys.length ? leaseKeys : authorizedFixtureIds.map((f) => 'fixture:' + f);
   if (browserContextId) keys.push('browser:' + browserContextId);
+  if (policy.requiresIdentity) {
+    if (!identityId) return notLaunched(campaignId, workerId, lane, 'IDENTITY_REQUIRED: BROWSER_QA needs a dedicated synthetic identity');
+    if (!orgScope) return notLaunched(campaignId, workerId, lane, 'ORG_SCOPE_REQUIRED: BROWSER_QA needs its own synthetic org scope');
+    keys.push('identity:' + identityId, 'org:' + orgScope);
+  }
 
   const lease = keys.length
     ? acquireLeaseSet(campaignId, keys, { workerId, pid: process.pid, kind: 'worker-resource' })
@@ -91,53 +158,87 @@ export function launchWorker({
     return { launched: false, reason: 'FIXTURE_COLLISION', conflict: lease, worker: rec, promise: Promise.resolve(rec) };
   }
 
+  // ---- Class-specific preparation. Failures here are BLOCKED launches, never degraded ones.
+  let cwd, mcpArgs = [], sidecar = null, worktree = null, fpBefore = null, gitCtx = null;
+  try {
+    if (policy.class === 'BROWSER_QA') {
+      sidecar = writeSidecarConfig(campaignId, workerId, { identityId });
+      cwd = wd;
+      mcpArgs = ['--mcp-config', sidecar.path];
+    } else {
+      worktree = ensureSourceWorktree(sourceRef);
+      cwd = worktree.path;
+      fpBefore = worktreeFingerprint(worktree.path);
+      if (fpBefore.dirty) throw Object.assign(new Error('SOURCE_WORKTREE_NOT_CLEAN: dirty before launch'), { code: 'SOURCE_WORKTREE_NOT_CLEAN' });
+      gitCtx = gitContext(worktree.path, { baseRef });
+    }
+  } catch (e) {
+    releaseAllFor(campaignId, workerId);
+    return notLaunched(campaignId, workerId, lane, (e.code || 'LAUNCH_PREP_FAILED') + ': ' + e.message.slice(0, 300));
+  }
+
   const bin = resolveClaudeBin();
   const logPath = join(wd, 'worker.jsonl');
   const log = createWriteStream(logPath, { flags: 'a' });
   const started = Date.now();
+  const resultPath = join(wd, 'RESULT.json');
+  const checkpointPath = join(wd, 'CHECKPOINT.json');
+  const transcriptPath = join(wd, 'EVIDENCE', 'worker-transcript.md');
 
   const prompt = buildWorkerPrompt({
     campaignId, workerId, lane, directive, assignedCapabilities, assignedScenarios,
-    fixtureNamespace, authorizedFixtureIds, wd,
+    fixtureNamespace, authorizedFixtureIds, policy, identityId, orgScope, gitCtx, worktree,
   });
 
+  // No --permission-mode (bypass is refused under --restricted and never wanted); no --add-dir
+  // (a browser worker has no file tool; a source worker is confined to its worktree).
   const args = [
     '-p', prompt,
-    '--model', MODEL_ALIAS,
+    '--model', model,
     '--output-format', 'stream-json',
     '--verbose',
     '--session-id', sessionId,
-    '--permission-mode', 'bypassPermissions',
     '--settings', P.guardSettings,
-    '--mcp-config', P.mcpConfig,
-    '--add-dir', REPO_ROOT,
+    ...policyArgs(policy),
+    ...mcpArgs,
     '--max-budget-usd', String(maxBudgetUsd),
     '--name', 'work-pc-qa-' + workerId,
   ];
+
+  const env = gatedEnv(process.env, {
+    CLAUDE_CODE_WORK_PC_SUPERVISED: '1', QA_WORKER_ID: workerId, QA_CAMPAIGN_ID: campaignId,
+    QA_WORKER_DIR: wd, QA_WORKER_CLASS: policy.class,
+  });
+
+  // The orchestrator - not the worker - writes the provisional result. A budget cut then leaves
+  // "started, did not finish" on disk instead of silence, and the worker never needs a Write tool.
+  writeFileSync(resultPath, JSON.stringify({
+    worker_id: workerId, campaign_id: campaignId, scenario_id: assignedScenarios[0] || null,
+    provisional: true, verdict: 'INVALID_TEST', started_at: new Date(started).toISOString(),
+    materialized_by: 'orchestrator', worker_class: policy.class,
+  }, null, 2) + '\n');
+  appendFileSync(transcriptPath, '# Worker ' + workerId + ' transcript (materialised by the orchestrator)\n\n');
 
   // Same deterministic test seam the single-director launcher uses. Lets the concurrency
   // acceptance prove overlap, crash isolation and restart recovery without spending real runs.
   const fakeBin = process.env.WORKER_FAKE_BIN;
   const child = fakeBin
-    ? spawn(process.execPath, [fakeBin, '--worker-id', workerId, '--campaign', campaignId, ...args], {
-        cwd: DIRECTOR_CWD, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
-        env: { ...process.env, CLAUDE_CODE_WORK_PC_SUPERVISED: '1', QA_WORKER_ID: workerId, QA_CAMPAIGN_ID: campaignId, QA_WORKER_DIR: wd },
-      })
-    : spawn(bin, args, {
-        cwd: DIRECTOR_CWD, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
-        env: { ...process.env, CLAUDE_CODE_WORK_PC_SUPERVISED: '1', QA_WORKER_ID: workerId, QA_CAMPAIGN_ID: campaignId, QA_WORKER_DIR: wd },
-      });
+    ? spawn(process.execPath, [fakeBin, '--worker-id', workerId, '--campaign', campaignId, ...args], { cwd, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'], env })
+    : spawn(bin, args, { cwd, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'], env });
 
   const outcome = {
-    worker_id: workerId, lane, campaign_id: campaignId,
-    pid: child.pid ?? null, session_id: sessionId, log_path: logPath,
-    result_path: join(wd, 'RESULT.json'), checkpoint_path: join(wd, 'CHECKPOINT.json'),
+    worker_id: workerId, lane, campaign_id: campaignId, worker_class: policy.class, policy_hash: policyHash(policy),
+    pid: child.pid ?? null, session_id: sessionId, log_path: logPath, cwd,
+    result_path: resultPath, checkpoint_path: checkpointPath,
     fixture_namespace: fixtureNamespace, authorized_fixture_ids: authorizedFixtureIds,
+    identity_id: identityId, org_scope: orgScope,
     browser_context_id: browserContextId, lease_keys: lease.keys || keys,
+    source_worktree: worktree ? worktree.path : null, source_sha: worktree ? worktree.sha : null,
     started_at: new Date(started).toISOString(), heartbeat: nowIso(),
     status: 'STARTING', current_scenario: assignedScenarios[0] || null,
     exit_code: null, killed_reason: null, cost_usd: null,
     browser_available: null, capacity_blocked: false, auth_failure: false,
+    init_tools: null, boundary_violation: null, result_text: null, num_tool_calls: 0,
   };
 
   updateWorker(campaignId, workerId, outcome);
@@ -145,6 +246,15 @@ export function launchWorker({
 
   let lastOutput = Date.now();
   let stderrTail = '';
+
+  const writeCheckpoint = (progress) => {
+    try {
+      writeFileSync(checkpointPath, JSON.stringify({
+        worker_id: workerId, campaign_id: campaignId, last_scenario: outcome.current_scenario,
+        progress, num_tool_calls: outcome.num_tool_calls, at: nowIso(), materialized_by: 'orchestrator',
+      }, null, 2) + '\n');
+    } catch {}
+  };
 
   const promise = new Promise((resolve) => {
     const finish = (reason) => {
@@ -159,6 +269,7 @@ export function launchWorker({
       outcome.heartbeat = nowIso();
       renewLeasesFor(campaignId, workerId);
       updateWorker(campaignId, workerId, { heartbeat: outcome.heartbeat, idle_ms: idle, status: outcome.status });
+      writeCheckpoint('running');
       if (idle > hangMs) finish('HUNG_NO_OUTPUT_' + Math.round(idle / 1000) + 'S');
       else if (Date.now() - started > hardCapMs) finish('HARD_RUNTIME_CAP');
     }, watchdogMs);
@@ -175,13 +286,40 @@ export function launchWorker({
         if (!line) continue;
         let msg; try { msg = JSON.parse(line); } catch { continue; }
         if (msg.type === 'system' && msg.subtype === 'init') {
-          outcome.browser_available = (msg.tools || []).some((t) => String(t).startsWith('mcp__playwright__'));
-          outcome.status = 'RUNNING';
-          updateWorker(campaignId, workerId, { status: 'RUNNING', browser_available: outcome.browser_available });
+          const tools = (msg.tools || []).map(String);
+          outcome.init_tools = tools;
+          outcome.browser_available = tools.some((t) => t.startsWith('mcp__playwright__'));
+          // ENFORCEMENT POINT. The policy is a claim until the live tool list agrees with it.
+          const check = checkInitFrame(policy, tools);
+          if (!check.ok) {
+            outcome.boundary_violation = { at: 'init', ...check };
+            outcome.status = 'BLOCKED';
+            updateWorker(campaignId, workerId, { status: 'BLOCKED', blocked_reason: check.reason, init_tools: tools, boundary_violation: outcome.boundary_violation });
+            finish(check.reason);
+          } else {
+            outcome.status = 'RUNNING';
+            updateWorker(campaignId, workerId, { status: 'RUNNING', browser_available: outcome.browser_available, init_tools: tools });
+          }
+        } else if (msg.type === 'assistant') {
+          const content = (msg.message && msg.message.content) || [];
+          for (const c of content) {
+            if (c.type === 'text' && c.text) appendFileSync(transcriptPath, c.text + '\n\n');
+            else if (c.type === 'tool_use') {
+              outcome.num_tool_calls++;
+              appendFileSync(transcriptPath, '> tool_use ' + c.name + '\n\n');
+              // Belt and braces: a tool call the policy never allowed is a boundary failure even if
+              // the init frame looked right (e.g. a tool registered late).
+              if (!policy.allowedTools.includes(c.name)) {
+                outcome.boundary_violation = { at: 'tool_use', tool: c.name, reason: 'TOOL_OUTSIDE_POLICY' };
+                finish('TOOL_OUTSIDE_POLICY:' + c.name);
+              }
+            }
+          }
         } else if (msg.type === 'result') {
           outcome.cost_usd = msg.total_cost_usd ?? null;
           outcome.result_subtype = msg.subtype || null;
           outcome.num_turns = msg.num_turns ?? null;
+          outcome.result_text = typeof msg.result === 'string' ? msg.result : null;
           if (msg.api_error_status === 401 || msg.api_error_status === 403) outcome.auth_failure = true;
           // Running out of the budget the orchestrator itself granted is a RESOURCE limit, not a
           // fault. The first real pilot (2026-09-10) classified three budget-capped workers as
@@ -219,26 +357,84 @@ export function launchWorker({
       outcome.stderr_tail = stderrTail.slice(-1200) || null;
       if (CAPACITY_RE.test(stderrTail)) outcome.capacity_blocked = true;
 
+      // SOURCE INPUT BEFORE == SOURCE INPUT AFTER. Checked by this process, after the worker is
+      // gone, so the worker cannot influence the comparison.
+      if (worktree) {
+        try {
+          const fpAfter = worktreeFingerprint(worktree.path);
+          outcome.source_fingerprint = { before: fpBefore, after: fpAfter, equal: fingerprintsEqual(fpBefore, fpAfter) };
+          if (!outcome.source_fingerprint.equal) {
+            outcome.boundary_violation = { at: 'exit', reason: 'WORKER_BOUNDARY_VIOLATION', detail: 'source worktree changed during run', status_after: fpAfter.status.slice(0, 2000) };
+          }
+        } catch (e) {
+          outcome.boundary_violation = outcome.boundary_violation || { at: 'exit', reason: 'WORKER_BOUNDARY_VIOLATION', detail: 'could not re-fingerprint worktree: ' + e.message };
+        }
+      }
+
       // Capacity exhaustion is NOT a crash and NOT a QA failure. Conflating them would let a
       // billing limit masquerade as a product defect, and would take down siblings that are fine.
-      if (outcome.capacity_blocked) outcome.status = 'CAPACITY_BLOCKED';
+      if (outcome.boundary_violation) outcome.status = 'BLOCKED';
+      else if (outcome.capacity_blocked) outcome.status = 'CAPACITY_BLOCKED';
       else if (outcome.killed_reason) outcome.status = 'CRASHED';
       else if (code === 0) outcome.status = 'COMPLETE';
       else outcome.status = 'CRASHED';
 
+      materializeResult(outcome, { resultPath, policy, assignedScenarios });
+      writeCheckpoint(outcome.status === 'COMPLETE' ? 'complete' : outcome.status.toLowerCase());
+
       releaseAllFor(campaignId, workerId);
       updateWorker(campaignId, workerId, {
         status: outcome.status, exit_code: code, killed_reason: outcome.killed_reason,
+        blocked_reason: outcome.boundary_violation ? outcome.boundary_violation.reason : undefined,
         cost_usd: outcome.cost_usd, duration_ms: outcome.duration_ms, pid: null,
         capacity_blocked: outcome.capacity_blocked, capacity_reason: outcome.capacity_reason || null,
         result_subtype: outcome.result_subtype || null, num_turns: outcome.num_turns ?? null,
-        auth_failure: outcome.auth_failure,
+        auth_failure: outcome.auth_failure, boundary_violation: outcome.boundary_violation,
+        init_tools: outcome.init_tools, num_tool_calls: outcome.num_tool_calls,
+        source_fingerprint: outcome.source_fingerprint || null,
       });
       resolve(outcome);
     });
   });
 
   return { launched: true, worker: outcome, promise, pid: child.pid ?? null };
+}
+
+/**
+ * Turn what the worker said into RESULT.json. Single writer: this process. The provisional file
+ * is replaced only when the worker actually finished; a boundary violation becomes INVALID_TEST
+ * regardless of what the worker claimed, because a worker outside its boundary is not evidence.
+ */
+function materializeResult(outcome, { resultPath, policy, assignedScenarios }) {
+  const base = {
+    worker_id: outcome.worker_id, campaign_id: outcome.campaign_id, worker_class: policy.class,
+    scenario_id: assignedScenarios[0] || null, materialized_by: 'orchestrator', materialized_at: nowIso(),
+    started_at: outcome.started_at, completed_at: nowIso(), init_tools: outcome.init_tools,
+    browser_available: outcome.browser_available, source_sha: outcome.source_sha,
+  };
+  if (outcome.boundary_violation) {
+    writeFileSync(resultPath, JSON.stringify({
+      ...base, verdict: 'INVALID_TEST', invalid_reason: outcome.boundary_violation.reason,
+      boundary_violation: outcome.boundary_violation, provisional: false,
+    }, null, 2) + '\n');
+    return;
+  }
+  if (outcome.result_text === null) return; // cut off before a result frame: provisional stays, and says so
+  const parsed = parseWorkerResult(outcome.result_text);
+  if (!parsed.ok) {
+    writeFileSync(resultPath, JSON.stringify({
+      ...base, verdict: 'INVALID_TEST', invalid_reason: parsed.why, result_text_tail: outcome.result_text.slice(-1500), provisional: false,
+    }, null, 2) + '\n');
+    return;
+  }
+  const r = parsed.value;
+  writeFileSync(resultPath, JSON.stringify({
+    ...base, ...r,
+    // Identity fields are the orchestrator's, whatever the worker typed.
+    worker_id: outcome.worker_id, campaign_id: outcome.campaign_id, worker_class: policy.class,
+    materialized_by: 'orchestrator', provisional: false,
+    evidence: { ...(r.evidence || {}), files: [...new Set([...(r.evidence && r.evidence.files || []), 'EVIDENCE/worker-transcript.md'])] },
+  }, null, 2) + '\n');
 }
 
 /**
@@ -292,21 +488,19 @@ export function summariseWorkers(campaignId) {
     active_worker_count: ws.filter((w) => ['RUNNING', 'STARTING', 'CHECKPOINTING'].includes(w.status)).length,
     workers: ws.map((w) => ({
       worker_id: w.worker_id, pid: w.pid, lane: w.lane, state: w.status,
+      worker_class: w.worker_class || null, identity_id: w.identity_id || null, org_scope: w.org_scope || null,
       current_scenario: w.current_scenario || null, heartbeat: w.heartbeat || null,
-      browser_available: w.browser_available ?? null,
+      browser_available: w.browser_available ?? null, blocked_reason: w.blocked_reason || null,
       fixture_namespace: w.fixture_namespace || null, cost_usd: w.cost_usd ?? null,
     })),
   };
 }
 
-function buildWorkerPrompt({ campaignId, workerId, lane, directive, assignedCapabilities, assignedScenarios, fixtureNamespace, authorizedFixtureIds, wd }) {
+function buildWorkerPrompt({ campaignId, workerId, lane, directive, assignedCapabilities, assignedScenarios, fixtureNamespace, authorizedFixtureIds, policy, identityId, orgScope, gitCtx, worktree }) {
   const laneDef = LANES[lane] || { label: lane, owns: [] };
-  const w = wd.replace(/\\/g, '/');
-  return [
-    'You are QA WORKER ' + workerId + ' (' + laneDef.label + ') for SEM Brain OS, launched',
+  const common = [
+    'You are QA WORKER ' + workerId + ' (' + laneDef.label + ', class ' + policy.class + ') for SEM Brain OS, launched',
     'programmatically as one of several PARALLEL workers. There is NO conversational history.',
-    '',
-    'FIRST: read ' + REPO_ROOT.replace(/\\/g, '/') + '/qa/runner/QA_DIRECTOR_BOOT.md for context.',
     '',
     'YOUR LANE: ' + laneDef.label,
     'You own ONLY: ' + (laneDef.owns || []).join(', '),
@@ -320,41 +514,60 @@ function buildWorkerPrompt({ campaignId, workerId, lane, directive, assignedCapa
     'DIRECTIVE:',
     directive,
     '',
+    WORK_PC_SQL_PROHIBITION,
+    '',
     'HARD RULES FOR A PARALLEL WORKER:',
     '- You are EVIDENCE, not a verdict. You do NOT decide capability or bug status.',
-    '- You may write ONLY these paths:',
-    '    ' + w + '/RESULT.json',
-    '    ' + w + '/CHECKPOINT.json',
-    '    ' + w + '/EVIDENCE/**',
-    '- You MUST NOT edit qa/BUG_QUEUE.json, qa/HANDOFF_STATE.json, qa/CAPABILITY_INVENTORY.json,',
-    '  qa/COVERAGE_LEDGER.json, qa/FIXTURE_REGISTRY.json, qa/SYNTHETIC_CLONE_MAP.json,',
-    '  qa/WORK_PC_QA_STATUS.md or qa/BUILD_UNDER_TEST.json. The Orchestrator is the single writer.',
-    '  Editing them corrupts a parallel campaign - report findings in RESULT.json instead.',
-    '- Do NOT git commit or git push. The Orchestrator publishes evidence.',
+    '- You cannot write files, and you must not try. The Orchestrator materialises your result',
+    '  from your FINAL MESSAGE. Your final message must be EXACTLY ONE JSON object and nothing else.',
+    '- Do NOT attempt git, shell, network, SQL or any tool you were not given. If you believe a',
+    '  tool is missing, that is by design: record BLOCKED with the reason instead.',
     '- Mutate ONLY fixtures in your authorized list. Another worker may own the rest.',
     '- If a fixture you need is not authorized to you, record BLOCKED with a blocked_reason.',
-    '- If the browser (mcp__playwright__*) is unavailable, do NOT report UI results at all.',
-    '  Record browser_available:false and BLOCKED. A UI verdict with no browser is a fabrication.',
-    '- Write CHECKPOINT.json as you go so a restart can resume you.',
-    '- YOUR VERY FIRST ACTION: write a PROVISIONAL RESULT.json containing',
-    '    { "worker_id": "' + workerId + '", "campaign_id": "' + campaignId + '", "scenario_id": "<your scenario>",',
-    '      "provisional": true, "verdict": "INVALID_TEST", "started_at": "<now>" }',
-    '  then overwrite it with the real result at the end. If your budget is exhausted mid-run,',
-    '  the provisional file tells the Director you STARTED and did not finish - which is the',
-    '  truth - instead of leaving no trace. The Director never counts a provisional result as a',
-    '  verdict.',
-    '- Budget discipline: write EVIDENCE files incrementally, not only at the end. Evidence that',
-    '  exists when the budget runs out is still evidence; a conclusion held in memory is lost.',
     '',
-    'RESULT.json SHAPE (required):',
+    'FINAL MESSAGE SHAPE (required, one JSON object):',
     '{ "worker_id": "' + workerId + '", "campaign_id": "' + campaignId + '",',
     '  "scenario_id": "...", "capability_id": "...",',
     '  "verdict": "PASS|FAIL|FLAKY|BLOCKED|INVALID_TEST",',
     '  "blocked_reason": "... (required if BLOCKED)",',
     '  "browser_required": true|false, "browser_available": true|false,',
-    '  "evidence": { "observed": "...", "db_state": "...", "files": ["EVIDENCE/..."] },',
+    '  "evidence": { "observed": "...", "receipt": "...", "files": [] },',
     '  "started_at": "...", "completed_at": "..." }',
     '',
     'A PASS or FAIL with no evidence payload is rejected as INVALID_TEST by the reconciler.',
+  ];
+
+  if (policy.class === 'BROWSER_QA') {
+    return [
+      ...common.slice(0, 2),
+      '',
+      'YOU ARE A BROWSER WORKER. Your ONLY tools are high-level Playwright UI actions. You have no',
+      'file tool, no shell, no JavaScript evaluation, no raw HTTP. Everything you learn comes from',
+      'the product UI at https://brain.open-spot.ai, as identity ' + identityId + ' inside org scope',
+      orgScope + '. You are NOT the founder. If the browser is logged out, record BLOCKED with',
+      'blocked_reason BLOCKED_QA_AUTH - never attempt to log in, never enter credentials.',
+      '- Read every list at "All Organizations" unless the scenario says otherwise, and say which.',
+      '- Every claim in your evidence must name the page URL and what was visibly on it.',
+      '- Do NOT mutate anything outside your authorized fixture list; the org you can see is yours.',
+      '',
+      ...common.slice(2),
+    ].join('\n');
+  }
+
+  // SOURCE_AUDIT: read-only over a detached worktree; git facts supplied, never fetched.
+  const w = (worktree && worktree.path || '').replace(/\\/g, '/');
+  return [
+    ...common.slice(0, 2),
+    '',
+    'YOU ARE A SOURCE AUDIT WORKER. Your ONLY tools are Read, Glob and Grep, confined to the',
+    'detached source worktree that is your working directory: ' + w,
+    'It is a pure checkout of commit ' + (gitCtx && gitCtx.head) + '. It contains no runtime state,',
+    'no credentials and no other worker\'s files. Do not try to reach anything outside it.',
+    'FIRST: read qa/runner/QA_DIRECTOR_BOOT.md (relative to your working directory) for context.',
+    '',
+    'GIT CONTEXT (computed by the orchestrator; treat as immutable input - you have no git):',
+    JSON.stringify(gitCtx || {}, null, 2),
+    '',
+    ...common.slice(2),
   ].join('\n');
 }

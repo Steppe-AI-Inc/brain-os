@@ -27,6 +27,27 @@ export const CANONICAL_FILES = [
 
 export const TERMINAL_RESULTS = ['PASS', 'FAIL', 'FLAKY', 'BLOCKED', 'INVALID_TEST'];
 
+// A guard-execution claim (run-guard-from-ref.mjs) is evidence only when it is BOUND: every one
+// of these fields present, and PRODUCTION_WEB_PASS asserted only when the source SHA that ran is
+// the SHA that is deployed. Founder decision 2026-09-10 (BUG-006 branch).
+export const GUARD_BINDING_FIELDS = ['regression_path', 'regression_source_sha', 'worktree_sha', 'deployed_web_sha', 'result', 'provenance_status'];
+export const PROVENANCE_STATUSES = ['CANNOT_BIND_TO_DEPLOYED_WEB', 'SOURCE_SHA_DIFFERS_FROM_DEPLOYED_WEB', 'BOUND_TO_DEPLOYED_WEB'];
+
+export function validateGuardExecution(g) {
+  if (!g || typeof g !== 'object') return { ok: false, why: 'guard_execution not an object' };
+  const missing = GUARD_BINDING_FIELDS.filter((f) => !(f in g) || g[f] === undefined);
+  if (missing.length) return { ok: false, why: 'guard_execution missing ' + missing.join(',') };
+  if (!PROVENANCE_STATUSES.includes(g.provenance_status)) return { ok: false, why: 'unknown provenance_status ' + g.provenance_status };
+  const claim = String(g.claim || '');
+  if (/PRODUCTION_WEB_PASS/i.test(claim) && g.provenance_status !== 'BOUND_TO_DEPLOYED_WEB') {
+    return { ok: false, why: 'PRODUCTION_WEB_PASS claimed without BOUND_TO_DEPLOYED_WEB' };
+  }
+  if (g.provenance_status === 'BOUND_TO_DEPLOYED_WEB' && (!g.deployed_web_sha || g.deployed_web_sha === 'UNKNOWN' || !String(g.worktree_sha).startsWith(String(g.deployed_web_sha).slice(0, 7)))) {
+    return { ok: false, why: 'BOUND_TO_DEPLOYED_WEB asserted but worktree_sha does not match deployed_web_sha' };
+  }
+  return { ok: true, why: null };
+}
+
 const nowIso = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 
 /** Collect every worker RESULT.json for a campaign. Missing/!readable files are reported, not skipped silently. */
@@ -98,6 +119,11 @@ export function classifyResult(r) {
     // A UI verdict from a worker that had no browser is the FALSE_SUCCESS this platform exists
     // to prevent. Downgrade rather than trust it.
     return { verdict: 'INVALID_TEST', why: 'UI verdict claimed without a browser' };
+  }
+  if (r.boundary_violation) return { verdict: 'INVALID_TEST', why: 'WORKER_BOUNDARY_VIOLATION: ' + (r.boundary_violation.reason || 'unspecified') };
+  if (r.guard_execution || /PRODUCTION_WEB_PASS|SOURCE_REGRESSION_/i.test(String(r.claim || ''))) {
+    const g = validateGuardExecution(r.guard_execution || r);
+    if (!g.ok) return { verdict: 'INVALID_TEST', why: g.why };
   }
   return { verdict: r.verdict, why: null };
 }

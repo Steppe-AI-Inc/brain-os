@@ -6,13 +6,21 @@
 // "Do not run db push" as prose is not enforcement. This hook inspects the actual command string
 // the harness is about to execute and refuses it, whatever the prompt said.
 //
-// SCOPE, stated honestly:
+// SCOPE, stated honestly - DEFENSE IN DEPTH ONLY (founder decision 2026-09-10):
 //  - This guards against an autonomous agent's MISTAKE. It is not an adversarial sandbox. An
 //    agent determined to evade it could (e.g. base64 a command, write a script and run it).
-//    The real containment for that is credential scoping, which is a founder decision.
+//    The real containment is CAPABILITY REMOVAL: the Work PC holds no production control-plane
+//    credential (A4), and worker classes have no shell at all (qa/runner/lib/worker-policy.mjs).
+//    CAPABILITY REMOVAL > COMMAND-TEXT FILTERING. Nothing here is the boundary.
 //  - It fails OPEN on internal error, and logs loudly when it does. Failing closed would wedge
 //    every Bash call in the node the first time an unexpected payload shape arrived, which
 //    would silently stop QA - a worse and much less visible outcome than one unguarded command.
+//  - Transport-level rules (PRODUCTION_SQL_TRANSPORT, SUPABASE_DATA_PLANE, CONTROL_PLANE_LOGIN)
+//    deliberately ignore any `rollback` in the text: a rollback-wrapped query is still production
+//    SQL from the Work PC, which is prohibited absolutely.
+//  - MCP payloads are inspected too (url / code / function / expression fields), so a browser
+//    tool asked to fetch the Supabase data plane is caught here as a second layer; the first layer
+//    is that BROWSER_QA workers never receive browser_evaluate/run_code/network_request at all.
 import { appendFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -56,14 +64,40 @@ const RULES = [
     'Force-pushing would rewrite shared QA history and destroy evidence. History rewrites are '
     + 'explicitly excluded by the founder instruction covering the branch-ownership reconciliation.'],
 
+  ['PRODUCTION_SQL_TRANSPORT',
+    (c) => /(supabase\s+db\s+(query|dump|pull|diff|lint|start|remote)|supabase\s+sql|\bpsql\b|\bpgcli\b|\bpg_dump\b|\bpg_restore\b|postgres(ql)?:\/\/|run-sql-regressions\.mjs)/i.test(c),
+    'NO PRODUCTION SQL FROM WORK PC - absolute (founder decision 2026-09-10). A rollback wrapper does '
+    + 'not make it permitted. SQL regressions are executed by the Home PC; record the item as '
+    + 'awaiting_home_pc with PRODUCTION_SQL_PROHIBITED_ON_WORK_PC.'],
+
+  ['SUPABASE_DATA_PLANE',
+    (c) => /supabase\.co\/(rest|rpc|graphql|storage|auth\/v1\/admin)/i.test(c)
+        || /createClient\s*\(/i.test(c) && /supabase/i.test(c)
+        || /(apikey|service_role|SUPABASE_SERVICE_ROLE_KEY)/i.test(c) && /(curl|Invoke-(RestMethod|WebRequest)|fetch\(|wget|http)/i.test(c),
+    'Direct Supabase data-plane access (REST/RPC/GraphQL/Storage/Auth-Admin) bypasses the product path. '
+    + 'Work-PC QA reaches production only through the deployed UI and its application API.'],
+
+  ['CONTROL_PLANE_LOGIN',
+    (c) => /\b(supabase|vercel)\s+(login|link)\b/i.test(c) || /\bgh\s+auth\s+login\b/i.test(c),
+    'Installing a control-plane credential on the QA machine is a founder action, not an autonomous one. '
+    + 'The Work PC is designed to hold none (A4, 2026-09-10).'],
+
   ['DESTRUCTIVE_SQL_OUTSIDE_TRANSACTION',
     (c) => /(psql|supabase\s+db|supabase\s+sql)/i.test(c)
-        && /\b(drop\s+(table|schema|database|policy|function|type)|truncate\b|delete\s+from|alter\s+table)/i.test(c)
-        && !/\brollback\b/i.test(c),
-    'Destructive SQL against the live database without a rollback in the same statement. QA runs '
-    + 'schema/data probes inside begin; ... rollback; - if this is genuinely meant to persist, it is '
-    + 'a founder-gated change, not an autonomous one.'],
+        && /\b(drop\s+(table|schema|database|policy|function|type)|truncate\b|delete\s+from|alter\s+table)/i.test(c),
+    'Destructive SQL against the live database. Superseded by PRODUCTION_SQL_TRANSPORT (which fires '
+    + 'first and ignores rollback); retained so the older rule name still appears in guard.log history.'],
 ];
+
+// MCP / WebFetch payload fields that can carry a URL, code or a function name.
+function payloadText(input) {
+  const parts = [];
+  for (const k of ['command', 'script', 'url', 'code', 'function', 'expression', 'element', 'text', 'value', 'prompt']) {
+    if (input && input[k] != null) parts.push(String(input[k]));
+  }
+  if (input && Array.isArray(input.fields)) for (const f of input.fields) if (f && f.value != null) parts.push(String(f.value));
+  return parts.join('\n');
+}
 
 let raw = '';
 process.stdin.setEncoding('utf8');
@@ -72,14 +106,22 @@ process.stdin.on('end', () => {
   try {
     const payload = JSON.parse(raw || '{}');
     const input = payload.tool_input || {};
-    const cmd = String(input.command ?? input.script ?? '');
+    const toolName = String(payload.tool_name || '');
+    const cmd = payloadText(input);
     if (!cmd) allow();
+
+    // Raw-execution browser tools are absent from every worker class by policy; if one reaches a
+    // hook at all (the solo Director), it is denied outright - a second layer, not the first.
+    if (/^mcp__playwright__browser_(evaluate|run_code_unsafe|network_request)$/.test(toolName)) {
+      log('DENY RAW_BROWSER_PRIMITIVE ' + toolName + ' :: ' + cmd.slice(0, 200));
+      deny('BLOCKED BY WORK-PC QA GUARD [RAW_BROWSER_PRIMITIVE]: ' + toolName + ' is not a product-path action.');
+    }
 
     for (const [name, test, why] of RULES) {
       let hit = false;
       try { hit = test(cmd); } catch (e) { log('RULE_ERROR ' + name + ' ' + e.message); }
       if (hit) {
-        log('DENY ' + name + ' :: ' + cmd.slice(0, 400));
+        log('DENY ' + name + ' [' + toolName + '] :: ' + cmd.slice(0, 400));
         deny('BLOCKED BY WORK-PC QA GUARD [' + name + ']: ' + why);
       }
     }

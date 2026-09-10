@@ -34,9 +34,15 @@ export const LANES = {
 
 export const LANE_IDS = Object.keys(LANES);
 
+// Founder session shapes. A browser item naming one of these is refused outright - the founder
+// session is never exported, copied or seeded into a worker (founder decision 2026-09-10).
+const FOUNDER_RE = /founder|holding[_-]?admin|hr[_-]?finance|super[_-]?admin|default|owner/i;
+
 /**
  * Resources a work item would occupy. Anything not positively identified as read-only is
  * treated as mutable, because the cost of a false "independent" is a fabricated defect.
+ * Identity and org scope are resources too: two workers on one synthetic account or one
+ * synthetic tenant share login state and tenant state exactly as they would share a fixture.
  */
 export function resourcesOf(item) {
   const r = new Set();
@@ -44,6 +50,8 @@ export function resourcesOf(item) {
   for (const c of item.channels || []) r.add('channel:' + c);
   if (item.browser_context) r.add('browser:' + item.browser_context);
   if (item.org_selector) r.add('org_selector:' + item.org_selector);
+  if (item.identity_id) r.add('identity:' + item.identity_id);
+  if (item.org_scope) r.add('org:' + item.org_scope);
   for (const a of item.canonical_artifacts || []) r.add('artifact:' + a);
   if (item.destructive_target) r.add('destructive:' + item.destructive_target);
   return r;
@@ -71,25 +79,40 @@ export function independent(a, b) {
   return { ok: true };
 }
 
+/** Per-item browser admissibility, independent of what else is in the batch. */
+export function browserItemRefusal(item, ctx) {
+  if (!item.requires_browser) return null;
+  if (item.identity_id && FOUNDER_RE.test(String(item.identity_id))) return 'FOUNDER_IDENTITY_REFUSED';
+  if (!item.identity_id) return 'IDENTITY_NOT_PROVISIONED';
+  if (!item.org_scope) return 'ORG_SCOPE_UNKNOWN';
+  if (item.mutates !== false && ctx.browserIsolationVerified !== true) return 'BROWSER_MUTATION_BLOCKED_PENDING_ISOLATION_PROOF';
+  return null;
+}
+
 /**
  * Greedily pick up to `max` mutually independent items.
  *
  * Deliberately greedy and order-preserving rather than optimal: a scheduler that reorders work
  * to maximise occupancy makes runs non-reproducible, and reproducibility matters more here than
  * throughput. Refusals are returned so they can be logged.
+ *
+ * Browser rules: `ctx.browserIsolationVerified` must be EXACTLY true (computed live by
+ * browser-isolation.mjs) for more than one browser item to be in a batch, and for any browser
+ * mutation at all. A single read-only browser item may run alone, serialised, only with a
+ * provisioned non-founder identity. Unknown is treated as not verified.
  */
 export function selectIndependentBatch(candidates, max = 3, ctx = {}) {
   const chosen = [];
   const refused = [];
+  const verified = ctx.browserIsolationVerified === true;
   for (const item of candidates) {
     if (chosen.length >= max) break;
+    const key = item.scenario_id || item.id;
 
-    if (item.requires_browser && ctx.browserIsolationProven === false) {
-      refused.push({ item: item.scenario_id || item.id, reason: 'BROWSER_ISOLATION_UNPROVEN' });
-      continue;
-    }
-    if (item.mutates !== false && item.requires_browser && ctx.browserIsolationProven !== true) {
-      refused.push({ item: item.scenario_id || item.id, reason: 'BROWSER_MUTATION_BLOCKED_PENDING_ISOLATION_PROOF' });
+    const r = browserItemRefusal(item, ctx);
+    if (r) { refused.push({ item: key, reason: r }); continue; }
+    if (item.requires_browser && !verified && chosen.some((c) => c.requires_browser)) {
+      refused.push({ item: key, reason: 'BROWSER_CONCURRENCY_REQUIRES_VERIFIED_ISOLATION' });
       continue;
     }
 
@@ -98,7 +121,7 @@ export function selectIndependentBatch(candidates, max = 3, ctx = {}) {
       const v = independent(item, c);
       if (!v.ok) { conflict = { ...v, against: c.scenario_id || c.id }; break; }
     }
-    if (conflict) { refused.push({ item: item.scenario_id || item.id, ...conflict }); continue; }
+    if (conflict) { refused.push({ item: key, ...conflict }); continue; }
     chosen.push(item);
   }
   return { chosen, refused };

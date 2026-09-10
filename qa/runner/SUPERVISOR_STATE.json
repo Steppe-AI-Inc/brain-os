@@ -1,7 +1,7 @@
 {
   "_doc": "Persistent supervisor state for the Work-PC autonomous QA node. Survives Claude process crashes, supervisor crashes, and Windows restarts - a fresh Fable QA Director invocation reads this FIRST to decide what to do, with zero dependence on conversational memory. NEVER contains secrets, tokens, cookies, storageState, or credentials.",
   "schema_version": 1,
-  "supervisor_state": "STOPPED_BY_POLICY",
+  "supervisor_state": "WATCHING",
   "_supervisor_states": [
     "STARTING",
     "WATCHING",
@@ -21,25 +21,25 @@
     "ERROR",
     "STOPPED_BY_POLICY"
   ],
-  "supervisor_pid": null,
+  "supervisor_pid": 18652,
   "qa_director_pid": null,
   "qa_director_session_id": null,
   "campaign_id": "C002",
-  "latest_origin_master_sha": "15f46a92edfa697d53d7564c74b67852428f92c1",
+  "latest_origin_master_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
   "deployed_product_sha": "256f183cf44b03ec5c4ce9461bbdffe66d5101e4",
   "last_tested_deployed_sha": null,
   "qa_artifact_sha": "1239b920dd60685651f0f3c161f334b1d5896f9f",
-  "last_heartbeat": "2026-09-10T03:07:36Z",
+  "last_heartbeat": "2026-09-10T07:21:07Z",
   "last_director_start": "2026-09-02T11:24:48Z",
   "last_successful_checkpoint": null,
-  "next_action": "No supervisor process running. The 2026-09-02 PAUSED_RESOURCE_LIMIT was a Claude session-usage limit (since reset). Start with: node qa/runner/supervisor.mjs (or the auto-start task once the founder installs it).",
-  "retry_count": 3,
-  "last_error": "exit=1 :: You've hit your session limit · resets 9:40pm (Asia/Ulaanbaatar)",
-  "last_error_at": "2026-09-02T11:24:55Z",
+  "next_action": "C002 - Randomised synthetic digital-twin worlds",
+  "retry_count": 0,
+  "last_error": null,
+  "last_error_at": null,
   "resource_governor": {
     "_doc": "Operational safeguards. These bound cost/load; they must NEVER silently reduce coverage. If a limit pauses QA the status is PAUSED_RESOURCE_LIMIT and remaining work stays QUEUED - never reported as VERIFIED.",
     "max_concurrent_fable_specialists": 3,
-    "_max_concurrent_note": "Starting conservative at 3 (not the charter's 4-8 ceiling) and benchmarking first, per the charter's own explicit benchmark-before-scaling instruction. Every worker hits the SAME production DB as the same founder identity - there is no per-tenant isolation beyond company_id/RLS - so fixture-namespace discipline is the only thing preventing cross-worker contamination. Scale up only after 2-3 workers prove clean.",
+    "_max_concurrent_note": "Starting conservative at 3 (not the charter's 4-8 ceiling) and benchmarking first. Since 2026-09-10 workers are CLASS-POLICED: SOURCE_AUDIT workers run read-only (Read/Glob/Grep) from a detached source-only worktree; BROWSER_QA workers exist only with a dedicated synthetic identity (own auth user, own synthetic org, own isolated profile) and are BLOCKED until Phase B-D bootstrap + isolation proof. No worker ever runs as the founder identity. Fixture-namespace discipline plus identity/org leases prevent cross-worker contamination.",
     "max_playwright_workers": 3,
     "max_campaign_runtime_minutes_before_checkpoint": 90,
     "cooldown_minutes_between_idle_exploratory_campaigns": 30,
@@ -49,15 +49,17 @@
   "authentication": {
     "_doc": "No secrets stored here. Records only WHICH mechanism is in use so a recovering session knows what to check.",
     "claude_code_auth": "inherited from the machine's existing Claude Code login",
-    "supabase_cli_auth": "persisted OS-level credential (already logged in; project pvphxgrtdfrudejjhzjk linked)",
-    "vercel_cli_auth": "persisted OS-level credential (authenticated 2026-08-31 for deployment provenance)",
-    "browser_session": "founder session already authenticated in the Playwright-controlled browser; storageState is exported to a LOCAL, GIT-IGNORED path only - never committed, never logged"
+    "supabase_cli_auth": "NONE - logged out and unlinked on the Work PC 2026-09-10 (founder decision A4; supersedes the CLAUDE.md #22 'stay logged in' ruling for THIS machine). Verified: `supabase projects list` -> LegacyPlatformAuthRequiredError; supabase/.temp/linked-project.json absent.",
+    "vercel_cli_auth": "NONE - Vercel CLI not installed; no auth store present (checked 2026-09-10). Build provenance comes from the Home-PC handoff in qa/BUILD_UNDER_TEST.json; WEB_SHA stays UNKNOWN honestly.",
+    "github_token": "NONE - no gh CLI, no deployment token (founder decision: do not solve UNKNOWN by installing another long-lived credential).",
+    "browser_session": "The founder session is NEVER exported, copied or seeded into any worker or the unattended Director. The Director browser is an isolated profile (qa/runner/.director-profile) on pinned @playwright/mcp 0.0.80; without a bootstrapped qa-director synthetic identity it is logged out and UI work is BLOCKED: IDENTITY_NOT_PROVISIONED. Worker identities are synthetic accounts bootstrapped by the founder/Home PC through the product invite + OTP path (Phase B/C, not started). Expired synthetic session = BLOCKED_QA_AUTH.",
+    "production_sql": "PRODUCTION_SQL_PROHIBITED_ON_WORK_PC - absolute; enforced by credential absence, capability gate, scheduler post-filter, run-sql-regressions.mjs seat refusal, and hook (defense in depth)."
   },
-  "supervisor_lease_id": "d4436b86-0fea-4ea3-a986-c3196db0012f",
-  "supervisor_started_at": "2026-09-02T11:22:32Z",
-  "deployed_edge_function_version": 92,
-  "deployed_build_source": "supabase functions list (live)",
-  "platform_build": "COMPLETE - supervisor, launcher, scheduler, lease, guard hook, acceptance harness all implemented and tested (commit 79cdb2c)",
+  "supervisor_lease_id": "edd0a3ca-2bf7-4028-91c0-cf5c89bfc27e",
+  "supervisor_started_at": "2026-09-10T07:19:12Z",
+  "deployed_edge_function_version": 94,
+  "deployed_build_source": "qa/BUILD_UNDER_TEST.json (Home-PC structured handoff; not re-verified from this seat)",
+  "platform_build": "COMPLETE - supervisor, launcher, scheduler, lease, guard hook, acceptance harness (commit 79cdb2c); parallel orchestration (0d0dd66); Phase A security hardening 2026-09-10: class policies, source-only worktrees, live isolation binding, SQL gates, allowlisted guard executor, credential removal",
   "current_work_kind": "regression_reconcile",
   "current_work_label": "Reconcile 3 regression(s) still EXPECTED_FAIL on a CLOSED bug",
   "qa_director_browser_available": null,
@@ -102,6 +104,17 @@
       "cost_usd": 0.7150007500000001
     }
   ],
-  "browser_isolation_proven": false,
-  "browser_isolation_reason": "AUTHENTICATED_ISOLATION_NOT_ACHIEVABLE"
+  "browser_isolation_reason": "NO_ISOLATION_PROOF_RECORD (computed live per batch; requires Phase B/C synthetic identities + Phase D positive/negative acceptance)",
+  "browser_isolation_verified": false,
+  "production_sql": "PRODUCTION_SQL_PROHIBITED_ON_WORK_PC",
+  "phase_a_security": {
+    "status": "IMPLEMENTED - see qa/runner/SECURITY_ACCEPTANCE.json and qa/runner/PARALLEL_ACCEPTANCE.json",
+    "expected_status_line": "PARALLEL QA ORCHESTRATION VERIFIED / BROWSER LANES BLOCKED PENDING IDENTITY + ISOLATION PROOF",
+    "not_claimed": "PARALLEL BROWSER QA VERIFIED",
+    "next_phases_not_started": [
+      "B invite-flow serial test (founder-driven)",
+      "C bootstrap W1/W2/W3 synthetic identities",
+      "D positive+negative parallel browser acceptance"
+    ]
+  }
 }

@@ -1,13 +1,19 @@
 // Network, repository and deployed-build probes.
 //
 // Every probe here is BOUNDED and non-fatal. The supervisor must survive a flaky office
-// connection, an expired CLI token and a detached HEAD without stopping QA or - worse -
-// recording a product capability as FAIL because the network was down. Network loss is an
-// environment condition, never a test result.
+// connection and a detached HEAD without stopping QA or - worse - recording a product capability
+// as FAIL because the network was down. Network loss is an environment condition, never a test
+// result.
+//
+// Founder decision 2026-09-10 (A4): the Work PC holds NO production control-plane credential.
+// `supabase functions list`, `vercel inspect` and every other authenticated CLI call have been
+// REMOVED from this path. Build provenance comes only from: the Home-PC structured handoff in
+// qa/BUILD_UNDER_TEST.json, product-exposed build metadata when the product ships it, and
+// existing non-secret evidence. UNKNOWN stays UNKNOWN - it is not solved by installing another
+// long-lived credential on the QA machine.
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { readFileSync, existsSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, existsSync } from 'node:fs';
 import { REPO_ROOT, P, QA_BRANCH } from './paths.mjs';
 
 const pexec = promisify(execFile);
@@ -65,81 +71,77 @@ export async function repoState() {
   };
 }
 
-// The Supabase CLI is NOT a PATH binary on this Work PC - it resolves only through npx
-// (verified 2026-09-01: `Get-Command supabase` finds nothing, `npx supabase --version` returns
-// 2.116.0). A supervisor calling a bare `supabase` would fail every probe silently and fall
-// back to the recorded build forever, which is exactly the stale-provenance trap CLAUDE.md #1
-// warns about. So the invoker is resolved explicitly.
-// Two further Windows/Node specifics, both found by running this rather than reasoning about it:
-//  - Node 24 refuses to execFile a .cmd shim (spawn EINVAL, the batch-argument-injection
-//    hardening), so `npx.cmd` cannot be invoked directly.
-//  - npx has already unpacked a real supabase.exe into its cache. Using that is both faster and
-//    immune to the .cmd problem, with `cmd.exe /c npx` kept as the fallback for a pruned cache.
-function resolveSupabase() {
-  if (process.env.QA_SUPABASE_BIN && existsSync(process.env.QA_SUPABASE_BIN)) {
-    return { cmd: process.env.QA_SUPABASE_BIN, pre: [], how: 'env QA_SUPABASE_BIN' };
-  }
-  const cacheRoot = join(process.env.LOCALAPPDATA || '', 'npm-cache', '_npx');
-  if (existsSync(cacheRoot)) {
-    try {
-      for (const d of readdirSync(cacheRoot)) {
-        const exe = join(cacheRoot, d, 'node_modules', '@supabase', 'cli-windows-x64', 'bin', 'supabase.exe');
-        if (existsSync(exe)) return { cmd: exe, pre: [], how: 'npx cache binary' };
-      }
-    } catch {}
-  }
-  return { cmd: process.env.ComSpec || 'cmd.exe', pre: ['/c', 'npx', '--yes', 'supabase@latest'], how: 'cmd.exe /c npx' };
+// Kept as an exported constant so callers that log "how was supabase invoked" get an honest
+// answer rather than a missing symbol.
+export const supabaseInvoker = 'NONE - control-plane CLI removed from the Work-PC path (founder decision 2026-09-10, A4)';
+
+export const PROVENANCE_SOURCES = Object.freeze({
+  HOME_PC_HANDOFF: 'qa/BUILD_UNDER_TEST.json (Home-PC structured handoff; not re-verified from this seat)',
+  PRODUCT_EXPOSED: 'product-exposed build metadata (not shipped yet - Home-PC item)',
+});
+
+// Product-exposed build identity does not exist today (no /api/version, no build id, no commit
+// meta - see BUILD_UNDER_TEST._web_sha_note). The probe is here so that the moment the product
+// ships one, this seat picks it up without a code change and without a credential.
+const PRODUCT_VERSION_URL = 'https://brain.open-spot.ai/api/version';
+
+async function productExposedBuild() {
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), 8_000);
+  try {
+    const res = await fetch(PRODUCT_VERSION_URL, { signal: ac.signal, redirect: 'manual' });
+    if (res.status !== 200) return { present: false, status: res.status };
+    const j = await res.json().catch(() => null);
+    if (!j || typeof j !== 'object') return { present: false, status: 200, error: 'non-JSON' };
+    return { present: true, status: 200, web_sha: j.commit || j.sha || j.web_sha || null, raw_keys: Object.keys(j).slice(0, 10) };
+  } catch (e) {
+    return { present: false, error: String(e.name === 'AbortError' ? 'timeout' : e.message).slice(0, 120) };
+  } finally { clearTimeout(t); }
 }
 
-const SUPABASE = resolveSupabase();
-export const supabaseInvoker = SUPABASE.how;
-const PROJECT_REF = 'pvphxgrtdfrudejjhzjk';
-
-// npx re-resolves the package on every call, so the probe is cached. Re-probing every 60s poll
-// would add minutes of pointless network work per hour and tell us nothing new.
 let buildCache = { at: 0, value: null };
 const BUILD_TTL_MS = 5 * 60_000;
 
 /**
- * Establish what is actually DEPLOYED. Deliberately does not trust the repo: CLAUDE.md #1
- * treats local code, master and the deployed artefact as three separate things.
+ * Establish what is DEPLOYED, from credential-free sources only. Deliberately does not trust the
+ * repo: CLAUDE.md #1 treats local code, master and the deployed artefact as three separate things.
+ * Every field says where it came from; nothing here is "live-verified" unless the product itself
+ * exposed it.
  */
 export async function deployedBuild({ force = false } = {}) {
   if (!force && buildCache.value && Date.now() - buildCache.at < BUILD_TTL_MS) return buildCache.value;
 
-  const out = { edge_function_version: null, edge_function_sha: null, source: null, error: null };
+  const out = {
+    edge_function_version: null, edge_function_sha: null, deployed_product_sha: null, web_sha: 'UNKNOWN',
+    source: null, provenance_sources: [], error: null,
+    control_plane_credential: 'ABSENT_BY_POLICY',
+  };
 
-  const fn = await run(SUPABASE.cmd, [...SUPABASE.pre, 'functions', 'list', '--project-ref', PROJECT_REF], { timeout: 180_000 });
-  if (fn.ok) {
-    try {
-      // Output is JSON ({"functions":[...]}), not the table an older CLI printed.
-      const jsonLine = fn.out.split(/\r?\n/).find((l) => l.trim().startsWith('{'));
-      const parsed = JSON.parse(jsonLine);
-      const f = (parsed.functions || []).find((x) => x.slug === 'sem-ai-command');
-      if (f) {
-        out.edge_function_version = f.version ?? null;
-        out.edge_function_sha = f.ezbr_sha256 ?? null;
-        out.edge_function_status = f.status ?? null;
-        out.edge_function_updated_at = f.updated_at ? new Date(f.updated_at).toISOString() : null;
-        out.source = 'supabase functions list (live)';
-      } else {
-        out.error = 'sem-ai-command not present in functions list';
-      }
-    } catch (e) {
-      out.error = ('could not parse functions list: ' + e.message).slice(0, 200);
-    }
-  } else {
-    out.error = (fn.err || 'supabase CLI unavailable via npx').slice(0, 200);
-  }
-
-  if (!out.source && existsSync(P.buildUnderTest)) {
+  if (existsSync(P.buildUnderTest)) {
     try {
       const b = JSON.parse(readFileSync(P.buildUnderTest, 'utf8'));
-      out.edge_function_version = b.edge_function_version ?? out.edge_function_version;
+      out.edge_function_version = b.edge_function_version ?? null;
+      out.edge_function_sha = b.edge_function_sha ?? null;
+      out.edge_function_status = b.edge_function_status ?? null;
+      out.edge_function_updated_at = b.edge_function_updated_at ?? null;
       out.deployed_product_sha = b.deployed_product_sha ?? null;
-      // Named explicitly so a reader never mistakes a remembered value for a re-verified one.
-      out.source = 'qa/BUILD_UNDER_TEST.json (FALLBACK - not independently re-verified this cycle)';
-    } catch {}
+      out.web_sha = b.web_sha || 'UNKNOWN';
+      out.evidence_label_required = b.evidence_label_required || null;
+      out.source = PROVENANCE_SOURCES.HOME_PC_HANDOFF;
+      out.provenance_sources.push('HOME_PC_HANDOFF');
+    } catch (e) {
+      out.error = ('could not read BUILD_UNDER_TEST.json: ' + e.message).slice(0, 200);
+    }
+  } else {
+    out.error = 'qa/BUILD_UNDER_TEST.json absent';
+  }
+
+  const product = await productExposedBuild();
+  out.product_exposed_build = product;
+  if (product.present && product.web_sha) {
+    out.web_sha = product.web_sha;
+    out.provenance_sources.push('PRODUCT_EXPOSED');
+    out.source = (out.source ? out.source + ' + ' : '') + 'product-exposed build metadata (live)';
   }
 
   buildCache = { at: Date.now(), value: out };

@@ -1,21 +1,36 @@
 {
-  "_doc": "Safety settings for the UNATTENDED QA Director. The deny list is defence in depth; the PreToolUse hook is the actual barrier because it inspects the real command string rather than matching a prefix. See CLAUDE.md #22 for the incident that motivated it.",
+  "_doc": "Safety settings for the UNATTENDED QA Director. DEFENSE IN DEPTH ONLY: the deny list and the PreToolUse hook catch mistakes; the actual barrier is that this machine holds no production control-plane credential and that worker classes have no shell (qa/runner/lib/worker-policy.mjs). See CLAUDE.md #22 for the incident that motivated the hook.",
   "permissions": {
     "deny": [
-      "Bash(supabase db push:*)",
-      "Bash(supabase db reset:*)",
-      "Bash(supabase migration up:*)",
-      "Bash(supabase migration repair:*)",
+      "Bash(supabase db:*)",
+      "Bash(supabase migration:*)",
+      "Bash(supabase sql:*)",
       "Bash(supabase functions deploy:*)",
+      "Bash(supabase login:*)",
+      "Bash(supabase link:*)",
+      "Bash(psql:*)",
+      "Bash(pgcli:*)",
+      "Bash(pg_dump:*)",
       "Bash(vercel deploy:*)",
       "Bash(vercel promote:*)",
-      "Bash(vercel rollback:*)"
+      "Bash(vercel rollback:*)",
+      "Bash(vercel login:*)",
+      "Bash(vercel link:*)",
+      "Bash(node qa/runner/run-sql-regressions.mjs:*)",
+      "WebFetch(domain:pvphxgrtdfrudejjhzjk.supabase.co)",
+      "mcp__playwright__browser_evaluate",
+      "mcp__playwright__browser_run_code_unsafe",
+      "mcp__playwright__browser_network_request",
+      "mcp__playwright__browser_network_requests",
+      "mcp__playwright__browser_file_upload",
+      "mcp__playwright__browser_drag",
+      "mcp__playwright__browser_drop"
     ]
   },
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash|PowerShell",
+        "matcher": "Bash|PowerShell|WebFetch|mcp__.*",
         "hooks": [
           {
             "type": "command",
