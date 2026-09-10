@@ -58,6 +58,10 @@ supabase/control-plane/001_factory_control_plane.sql
 It creates the `factory` schema and six tables: `nodes`, `work_orders`, `work_order_dependencies`,
 `agent_runs`, `surface_locks`, `checkpoints`.
 
+The provisioner **refuses to run against a production-shaped database** — one holding Brain OS business
+tables, Supabase platform schemas, or a migration history. The realistic mistake is not a typo; it is
+pointing this at the database that is already configured and already in a shell history.
+
 **The runner cannot apply it, by design.** `db.mjs` refuses DDL, privilege changes and migration-history
 writes in the client. Creating a schema is a release operation and belongs to whoever holds that authority —
 which is not a factory worker.
@@ -114,6 +118,37 @@ On first run the node generates a uuid identity, persists it in `.factory/node-i
 reports **derived** capabilities — each one a question with a checkable answer, because a capability list
 somebody types is one somebody forgets to update, and that failure is silent.
 
+```
+node scripts/factory-runner/node.mjs health
+```
+
+Run this **first**, on every machine. It proves the whole chain in one command and names the link that
+failed:
+
+```
+factory node health
+  node    node-4d4a74dd-...
+  host    db.example.net:5432
+  db      brain_factory_control_plane
+  sslmode require
+
+  ok   TLS is requested for a REMOTE host
+  ok   connected as factory_runner to brain_factory_control_plane
+  ok   PostgreSQL 18.4 ...
+  ok   the connected role is NOT a superuser
+  ok   the factory schema is present (6 tables)
+  ok   can read the queue (0 work order(s))
+  ok   registered itself (1 node(s) known to this control plane)
+
+HEALTHY — this node can claim work.
+```
+
+Exit code 0 when healthy, 1 otherwise. **It never prints the password or the connection string** — host,
+database and sslmode identify a connection without exposing one.
+
+Each link is reported separately on purpose: a missing grant, an unapplied schema and a wrong role fail
+for different reasons and have different fixes, and "not OK" makes all three look the same.
+
 `node.mjs id` prints the identity. `node.mjs capabilities` prints what this machine can do.
 
 ---
@@ -127,6 +162,7 @@ somebody types is one somebody forgets to update, and that failure is silent.
 | URL connects as `postgres` / `supabase_admin` / a pooler superuser | **refuses** |
 | the runner attempts DDL, GRANT, TRUNCATE, `set role`, migration history | **refuses in the client** |
 | `read()` handed a mutating statement | **refuses** — a reader cannot silently become a writer |
+| a REMOTE host with no `sslmode` | **health fails** — advisory only on loopback, which does not cross a network |
 
 The second row is the one that matters, and it is proven in a child process with `SUPABASE_ACCESS_TOKEN`
 and `SUPABASE_DB_URL` both set. The refusal is structural: there is no code path that can borrow an ambient
