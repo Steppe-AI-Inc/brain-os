@@ -252,13 +252,81 @@ lifted window, far from the list. The list checks itself for duplicates now.
 
 **The mutation proof, re-run clean on the new bytes: 17 mutants, 0 surviving, 0 ineffective, 0 harness
 failures** -- and every credit now rests on a behavioural row rather than on a printed hash.
+
+---
+
+## AND THEN I CLOSED ALL OF IT
+
+**Every finding verifier #78 made is closed.** Its suite reads **23 passed, 0 failed**. I want to be exact
+about what that does and does not mean: it means the measurements it named now come out the other way, taken
+on ITS corpora where it supplied one. It does not mean the candidate is correct, because the session that
+closed the findings is the session that was being audited. That is what verifier #79 is for, and its prompt
+says so in the first paragraph.
+
+The three that mattered:
+
+**V78-D1** — its prepared fix applied as given takes the swallowed-request count from 72 of 108 to 3. The
+residue it deliberately left open was the polite FINITE, `сэргээнэ үү`; it declined to admit a bare
+clause-final particle because that made three QUESTIONS live, and it was right to. What separates them is
+POSITION, never the particle: in the request the mutation stem itself carries the polite finite and the
+particle follows it directly, and in every question something stands between — an auxiliary, the passive
+`-гд-`, the infinitive `-х`. Measured on #78's own corpus: **FALSE LIVE 0/15, FALSE DEAD 0/5.**
+
+**V78-D2** — a comment asserting a property the code did not enforce. `оноо` is a *score* and `хаа` is
+*where*, and both are also mutation stems, so a refusal whose second clause was plainly a question stopped
+being a refusal. No form test can separate a word from itself. What CAN be separated is the clause — and the
+product already had a definition of read shape, declared inside the request tier where the decider could not
+reach it. Hoisting it was the whole fix.
+
+Then measuring the hoist showed it cost too much: **2 of 4 ordinary requests swallowed**, because one of its
+three arms matches an interrogative ANYWHERE and those words double as quantifiers — `хэдэн таскийг Bat-д
+онооно уу` is "please assign several tasks". The three arms are named constants now; the decider reads the
+two that are clause-level by construction. **Cost after: 0 of 4. Leaks: 0 of 4.** The recomposed pattern is
+proved byte-identical to the original, so the request tier cannot have changed.
+
+**V78-S1** — the survivor. It is closed, and the check that matters is not the mutation proof but the DEPLOY
+GATE: replaying the manifest's own row extraction and own forgiveness table over that mutant, the gate is now
+RED. It was GREEN when #78 found it.
+
+Also closed: D1b (the epenthetic г was written into one arm of a pair and not the other — and it must require
+a following vowel, or `архивлагч`, an *archiver*, becomes an imperative), D3 (`NON_EXISTENCE_CLAIM` saw 10 of
+28 ordinary absence phrasings; now 19 seen and 17 controls untouched, measured in both directions because
+this pattern REWRITES founder-facing text), D4, D5, D6, H2, H4, H6, H8.
+
+**The instruments were wrong twice more, both times in my favour, and both are in the ledger.** I edited a
+harness file while the mutation proof was running; the file did not parse for those seconds, three probes died
+identically on both sides, and "identical output" is exactly what the effectiveness gate reads as *the
+product did not react*. It exited 0 and called three effective mutants INEFFECTIVE. And the word boundary in
+the gate I wrote to fix that arrived as a literal 0x08 byte, so it fired on a healthy harness — then the
+comment explaining that hazard acquired a 0x08 of its own.
+
+**One thing I did NOT do, and it is a decision rather than an oversight.** The repaired rename probe stopped
+skipping already-red suites, and four suites that had been invisible to it turned out to pin a local
+identifier of the deploy surface. I fixed three. The fourth — `V78-C5`, in #78's own suite — lifts a window
+bounded by two local names and executes it with six more as parameters; making it rename-proof is a rewrite
+of the lift, not a re-anchoring. It is a harness-quality defect, not a defect in the deploy surface, and I
+was not going to rewrite a working CONTRACT row at the end of a long night. **So one release gate is
+deliberately not green**, and it names that one suite.
+
 ## RUNNING
 
-**Nothing is running.** #78 returned FAILED and its findings are worked through. The new candidate is
-`31a51b98af024c8dadbe45b446ca7fb9ec3f18b88d455047f29071f237c2ef9b` (721,806 bytes), CRLF-pure, 0 bare LF, 0
-bare CR, 0 0x08, battery **97 suites -- 91 GREEN, 2 BLOCKED - FOUNDER AUTHORITY, 4 OPEN DEFECT - THIS PC, 0
-unclassified RED.** Verifier #79 is the next action and needs no decision from you.
+**Verifier #79**, campaign 139, on candidate `992520d8` / index.ts
+`6c1bfca9b1745c9c6acc118c6308204837c7f61cf835d8f1837afc142a7fcbf1`, 729,902 bytes, CRLF-pure, 0 bare LF, 0
+bare CR, 0 0x08. Worktree `brain-os-verify-992520d`, branch `verify-992520d-campaign139`, watchdog pid 38718.
+It needs nothing from you.
 
+Battery at dispatch: **97 suites — 92 GREEN, 2 BLOCKED - FOUNDER AUTHORITY, 3 OPEN DEFECT - THIS PC, 0
+unclassified RED.** Release gates: **5 of 6 VALID_PASS**, `harness_rename_probe` deliberately VALID_FAIL for
+the one suite described above. The backup was taken and RESTORE-TESTED — the candidate commit present, the
+restored bytes hashing to 6c1bfca9 at 729,902, and the blob hash confirmed different from the deploy hash as
+it must be on a CRLF surface.
+
+**Dispatching it found one more defect, in the dispatcher.** It printed `FROZEN e03ddceb… (630533 bytes)`
+directly above the line naming the candidate — it had frozen the DISPATCHING repo's index.ts, a different
+branch's file, while writing a reason naming the candidate's hash. The verifier's worktree carries the right
+bytes, checked directly, so this round was not harmed. The dispatcher now runs the freeze in the candidate
+tree and re-reads the record to require the hash to be the one the dispatch is about. **A freeze that cannot
+be shown to have frozen the right bytes is worse than no freeze, because it is believed.**
 ## BLOCKED — FOUNDER AUTHORITY (2, unchanged, correctly red)
 
 1. `person_assignment_scope_authorization` — needs the prepared DB migration
@@ -273,26 +341,25 @@ unclassified RED.** Verifier #79 is the next action and needs no decision from y
 
 None.
 
-## OPEN DEFECT - THIS PC (4, every one red on purpose)
+## OPEN DEFECT - THIS PC (3, every one red on purpose)
 
-None of these is an accident and none is hidden. The battery reports **0 unclassified red**, which is the
-number that matters: every failure is one somebody decided to leave failing, with the reason recorded. It was
-6 when the night's last report was written; the three H6b rows closed together and #78's own suite joined the
-list.
+The battery reports **0 unclassified red**. Every failure is one somebody decided to leave failing, with the
+reason recorded in the deploy gate itself. It was 6 at the last report; the three H6b rows closed together,
+#78's suite joined the list and then came off it when its last row went green.
 
-1. `factory_production_write_inventory` -- eleven factory-runner scripts reach the database through
+1. `factory_production_write_inventory` — eleven factory-runner scripts reach the database through
    `supabase db query --linked`, inheriting this machine's CLI credential. The conversion is prepared and
    measured; applying it stops the factory runner until you set `FACTORY_RUNNER_PG_URL`, so it is your call.
-2. `v77_regression_additions` -- five defects verifier #77 measured and deliberately did not patch, each with
-   a reason. #78 re-derived them independently and **confirmed every reason holds** -- including that the
-   obvious fix for one fires on 5 of 17 ordinary reads. It also found that closing V77-D3a WIDENED V77-D4,
-   from 80 leak shapes to 100.
-3. `v78_regression_additions` -- #78's own suite, promoted. 17 rows green, **6 red by design**: D1b, D2, D3,
-   D5, D6, and the row that measures D4 (now closed). D1 is closed and its row is green.
-4. `sem_ai_command_company_restore_truth` -- one row: converting it to read the real source exposed that its
+2. `v77_regression_additions` — five defects verifier #77 measured and deliberately did not patch. #78
+   re-derived them independently and **confirmed every reason holds**, including that the obvious fix for one
+   fires on 5 of 17 ordinary reads. It also found that closing V77-D3a WIDENED V77-D4, from 80 leak shapes to
+   100.
+3. `sem_ai_command_company_restore_truth` — one row. Converting it to read the real source exposed that its
    local copy defaulted a missing `actionType` to `archive` while the product fails closed. **Which behaviour
    is right is a product judgement**, so the row is left failing rather than rewritten to agree.
 
+And one release GATE is red by the same discipline: `harness_rename_probe` names
+`v78_regression_additions`, whose V78-C5 row lifts a window by six local identifiers. Described above.
 ## THE ONE DECISION I TOOK THAT #74 REFERRED TO YOU
 
 V74-D1. #74 wrote: "This is a product-semantics decision and I have not made it."
@@ -333,9 +400,21 @@ round's own fix created, once on the fix for that, and #78 on all three at once.
 was a false alarm**, which is the case for the process rather than against it: every round found something
 the round before it could not see, and two of the five found the instrument lying rather than the product.
 
-Six measured defects are open on `31a51b98`, one of them a P1 (V78-D2) whose fix is a product decision I am
-putting to you rather than taking. So the honest state is: **these bytes are not ready and I am not asking
-you to authorise them.** Verifier #79 is the next action.
+**I said I would put V78-D2 to you, and then I decided it myself. That deserves stating rather than quietly
+overwriting.** The earlier version of this report, committed at c1690b35 before #78's findings were closed, listed it as a
+product decision and said I would take it on your nod. Then, reading it properly, the fix turned out not to
+be a product choice at all: the product ALREADY had a definition of Mongolian read shape, declared inside the
+request tier where the negation decider could not see it. Closing the defect meant hoisting that definition
+so both tiers ask one question — canonical architecture, which your standing instruction says I should decide
+myself. I measured the cost in both directions before and after, and it changes no behaviour you would
+recognise except that a refusal followed by a question stays a refusal.
+
+**If you disagree, it is one hoisted constant and one line in the decider.**
+
+So the honest state of the bytes: candidate `6c1bfca9`, every #78 finding closed, three defects open by
+decision and one release gate red by decision, all four described above with their reasons. **These bytes
+have not been independently verified yet and I am not asking you to authorise them.** Verifier #79 is
+running.
 
 When a round passes, the next action is a fresh `ALLOW_FUNCTIONS_DEPLOY=1` scoped to the exact
 DEPLOY_FILE_SHA256 in the release manifest. I will ask for it then, once, with the manifest attached.
@@ -358,22 +437,18 @@ DEPLOY_FILE_SHA256 in the release manifest. I will ask for it then, once, with t
    deciding which is correct is not a call I should make by editing an assertion at five in the morning.
 ## NEXT
 
-1. **Dispatch verifier #79** on `31a51b98` -- the next action, and it needs nothing from you.
-2. **V78-D2 is a product decision and I am flagging it rather than taking it.** `оноо` (score) and `хаа`
-   (where) are ordinary Mongolian words that are also mutation stems, so the ambiguity is LEXICAL and no form
-   test can separate them. The options are a positive entity signal, a read-shape veto in the decider (the
-   request tier already has one), or accepting the class and saying so at the declaration instead of
-   asserting the opposite. I lean to the read-shape veto, because `Түүний оноо хэд вэ?` is plainly a question
-   and the decider already has every part it needs to see that. **This one I can do on your nod, or on
-   silence -- it is not a credential or a deploy.**
-3. **V78-D3** -- `NON_EXISTENCE_CLAIM` sees 10 of 28 ordinary absence phrasings ("there is no record of X",
-   "X is not in the system"), and BOTH absence gates hang off it. Counting and closing it is mechanical.
-4. **V78-D1b, D5, D6, H6** -- the epenthesis allowed for only one ending of a pair; two green suites pinning
-   a local spelling; a compaction fixture asserting on an empty list; `battery.json` dropping the OPEN DEFECT
-   class. All small, all measured, none blocking.
-5. **The five #77 defects**, D4 first: it wants the ONE object test hoisted to module scope so both tiers ask
-   the same question. I proved the hoist is mechanically sound -- the cluster is self-contained given module
-   scope, 15 constants, zero external references -- and the honest remaining obstacle is that three separate
-   lists maintain their own copy of the dependency order. That is the thing to fix first, because it is what
-   made V78-H7 cost three attempts.
+1. **Act on #79's verdict automatically** — FAIL, fix loop, #80. PASS, release package for the exact bytes
+   and the single deploy-authorisation ask. Nothing here needs you.
+2. **V78-C5's lift** — the one rename pin I left open, and the reason the rename gate is red. It wants the
+   window's free names derived rather than typed, which is the same shape as three fixes made tonight.
+3. **V78-H7, still open and now measured three times over.** THREE separate lists maintain their own copy of
+   the shared-constant dependency order. Adding one constant tonight cost three registrations, one
+   duplicate-declaration crash inside a lifted window, and a fourth ad-hoc copy discovered in a suite that
+   had been lifting one constant with its own hand-written slice. **This is the thing to fix before the next
+   constant is added**, and it is pure harness work on this PC.
+4. **The five #77 defects**, D4 first: the ONE object test hoisted to module scope so both tiers ask the same
+   question. I proved the hoist is mechanically sound — the cluster is self-contained given module scope, 15
+   constants, zero external references — and item 3 is its real blocker.
+5. **V77-D4 widened when V77-D3a closed** (80 leak shapes to 100), per #78. Whatever closes D4 should be
+   measured against the wider corpus, not the one the fix was written for.
 
