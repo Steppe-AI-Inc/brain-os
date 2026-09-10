@@ -105,7 +105,11 @@ while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
   # fact about the process and the classifiers are guesses about it.
   if [ "$bytes" -ge 2000 ] && tail -c 4000 "$LOG" | grep -qiE '^[^A-Za-z0-9]*(PASSED|FAILED|VERDICT|CLASSIFICATION)'; then
     log "attempt $attempt: verifier produced a real report (${bytes} bytes) that ends in a verdict; watchdog done. Text classifiers are NOT consulted — a finished report outranks them. The verdict is read from the report, not from rc."
-    break
+    # exit 0, NOT break: the loop is followed by the exhaustion message, so breaking out of it hands back a
+    # real report AND logs "exhausted 6 attempts; work order remains open and NOT certified" over the top of
+    # it. That is the same failure as the classifier this block was added to fix — a true report filed under
+    # a false status — one line further down.
+    exit 0
   fi
 
   # ---- 1. EXECUTION_MODE: an approval/plan gate a detached process can never satisfy. -----
