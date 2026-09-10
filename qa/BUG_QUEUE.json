@@ -28,10 +28,10 @@
   },
   "counts": {
     "open_p0": 1,
-    "open_p1": 15,
+    "open_p1": 16,
     "open_p2": 16,
     "open_p3": 6,
-    "total_open": 38,
+    "total_open": 39,
     "total_closed": 3
   },
   "bugs": [
@@ -2155,6 +2155,33 @@
       "_qa_boundary": "QA did not and will not work around this. No SQL, no RPC, no Supabase Auth Admin, no direct API, no browser_evaluate. Recorded as a Home-PC implementation requirement.",
       "implementation_recommendation": "Add a governed role-management surface (founder/holding_admin only, audited) that updates company_memberships.role_in_company within a company, with the same RLS-enforced authorization the rest of the write paths use, plus a negative test that a company manager cannot promote themselves or anyone else outside their own company.",
       "work_pc_status": "BLOCKED - MEMBERSHIP_ROLE_MANAGEMENT_UI_ABSENT",
+      "regression_executor": "HOME_PC",
+      "build": "EDGE v94 (v92 source) / WEB SHA UNKNOWN"
+    },
+    {
+      "bug_id": "BUG-036",
+      "title": "Auth email delivery is not functional in production - nobody can be invited into a company, and email-OTP signup/recovery cannot complete",
+      "severity": "P1",
+      "status": "OPEN",
+      "discovered_by": "founder (live attempt) + work-pc-qa (Phase B bootstrap)",
+      "discovered_at": "2026-09-10T08:20:00Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "commit_audited": "origin/master 55a1591",
+      "classification": "ONBOARDING_CAPABILITY_ABSENT / EXTERNAL_DEPENDENCY_UNCONFIGURED",
+      "expected": "Pressing Invite on a person with an email address delivers an invitation, and /signup delivers a 6-digit code, so a new member can obtain a login and a company membership.",
+      "actual": "Founder pressed Invite in production on 2026-09-10 and reported: no success state shown, invite email not sent, SMTP server not connected. Every Supabase-Auth email surface depends on the same mailer, so /signup's email OTP (signInWithOtp) and any recovery email are affected identically.",
+      "evidence": {
+        "founder_observation": "Invite produced no success state; founder reports the SMTP server is not connected. EXACT UI ERROR STRING STILL REQUIRED - invitePerson() surfaces it verbatim as 'Invite failed: <message>' (web/lib/data/people.ts).",
+        "repo_configuration": "No SMTP/mailer configuration exists anywhere in the repository: zero matches for smtp|mailer|resend|sendgrid|postmark|mailgun across supabase/, web/lib, web/app and docs. supabase/config.toml has NO [auth] section at all and sets [inbucket] enabled = false; it is a LOCAL dev config (project_id 'brain-os-sem-brain-v1-test', ports 54321/54322) and does not govern production. Production auth email settings live in the Supabase dashboard (control plane), which the Work PC must not access.",
+        "auth_is_otherwise_alive": "Work-PC read-only probe 2026-09-10: 'Continue with Google' on /signup reaches the real Google consent screen for project pvphxgrtdfrudejjhzjk. So the project's auth is functioning; the failure is specific to EMAIL delivery.",
+        "prior_qa_signal": "qa/WORK_PC_QA_STATUS.md:118 already recorded that the blocker for persona work is the lack of a test inbox for OTP; the stronger fact - that delivery itself does not work - was not established until this attempt."
+      },
+      "blast_radius": "invitePerson() is the ONLY code path in the product that inserts a company_memberships row (web/lib/data/people.ts:132; confirmed by grep across web/ - no other insert/update/upsert, and no create_company_invitation/accept_company_invitation RPC exists in supabase/migrations). Because that insert happens only AFTER a successful inviteUserByEmail, a mailer failure means NO ONE can be granted membership of any company by any product path. Self-signup via Google OAuth can still create an account, but such a user lands with no company membership and therefore sees nothing.",
+      "open_question_not_yet_evidence": "Whether the failed invite left a PARTIAL state. GoTrue's inviteUserByEmail may create the auth user before attempting delivery; invitePerson() returns immediately on inviteError, so the profile is never linked to people.profile_id and no membership is inserted. If the auth user was created, a retry would fail with 'already registered' and that person's invite would be permanently unrecoverable through the UI. NOT YET VERIFIED - discriminating observation is whether 'QA Worker 1' now shows a login account/profile on /access or /people. If confirmed this is a separate transactional-integrity defect (CLAUDE.md 10) and will be filed as its own bug.",
+      "_qa_boundary": "QA did not and will not configure SMTP, call Supabase Auth Admin, use service_role, touch the Supabase control plane, or run production SQL to work around this.",
+      "implementation_recommendation": "1) Configure custom SMTP for Supabase Auth in production (founder/Home-PC action in the Supabase dashboard) and verify a real invite and a real /signup OTP end to end. 2) Make invitePerson() resilient: either create the membership independently of mail delivery, or roll back the auth user on delivery failure so a retry is possible. 3) Add a governed 'add an existing user to a company' path so membership does not depend on email at all. 4) Surface mailer failures in the UI as an explicit, actionable error rather than a silent non-success.",
+      "work_pc_status": "BLOCKED - AUTH_EMAIL_DELIVERY_UNAVAILABLE. Phase B (synthetic QA identity bootstrap) cannot proceed.",
       "regression_executor": "HOME_PC",
       "build": "EDGE v94 (v92 source) / WEB SHA UNKNOWN"
     }

@@ -21,3 +21,6 @@ qa/runs/**/worker.jsonl
 qa/runs/**/_leases/
 qa/runs/CSYNTH-*/
 qa/runs/CSEC-*/
+
+# stray MCP output dir from browser probes
+.playwright-mcp/

@@ -276,7 +276,7 @@
     "detail": "Provide the QA mailbox domain; perform the one-time invite + OTP bootstrap for qa-w1/qa-w2/qa-w3 (each in its own synthetic org); confirm/ship a governed role-management path for role_in_company=manager. Browser lanes stay BLOCKED until then."
   },
   "phase_b_identity_bootstrap": {
-    "status": "IN PROGRESS - qa-w1 only, serial, human-in-the-loop",
+    "status": "BLOCKED - AUTH_EMAIL_DELIVERY_UNAVAILABLE (see BUG-036). qa-w1 NOT bootstrapped.",
     "founder_decisions_2026_09_10": {
       "org": "QA-W1-ORG",
       "display_name": "QA Worker 1",
@@ -307,6 +307,22 @@
       "STORAGESTATE SAFE",
       "NO REAL-ORG ACCESS"
     ],
-    "not_started": "qa-w2 and qa-w3 are NOT bootstrapped. Browser lanes remain BLOCKED; Phase D isolation proof has not run."
+    "not_started": "qa-w2 and qa-w3 are NOT bootstrapped. Browser lanes remain BLOCKED; Phase D isolation proof has not run.",
+    "blocked_on_email": {
+      "item": "AUTH_EMAIL_DELIVERY_UNAVAILABLE",
+      "observed": "Founder pressed Invite in production 2026-09-10: no success state, invite email not sent, SMTP not connected.",
+      "why_it_blocks_everything": "invitePerson() is the only product path that inserts a company_memberships row, and it aborts before that insert if the invite email fails. /signup's 6-digit code uses the same mailer. So neither membership nor an email-based login can be obtained.",
+      "google_oauth_status": "CONFIGURED AND WORKING (Work-PC read-only probe: 'Continue with Google' reaches Google's consent screen). It is NOT a sufficient workaround: an OAuth-created user still has no company membership, because membership creation is welded to the invite path.",
+      "unblock_options": [
+        "PREFERRED: founder/Home PC configures custom SMTP for Supabase Auth in production, then re-runs Invite. Phase B then proceeds unchanged.",
+        "PRODUCT FIX: decouple membership creation from mail delivery, and/or ship a governed 'add existing user to company' surface (also fixes BUG-035's sibling gap)."
+      ],
+      "work_pc_will_not": "Configure SMTP, use Supabase Auth Admin/service_role, touch the control plane, run production SQL, or call the data-plane API to mint a session or a membership.",
+      "verification_still_needed_from_founder": [
+        "The exact error string the UI showed after Invite ('Invite failed: <message>').",
+        "Whether 'QA Worker 1' now shows a login account/profile on /access or /people (discriminates a partial-state defect: auth user created but never linked, which would make retry impossible)."
+      ]
+    },
+    "tooling_status": "Bootstrap tooling is built, committed and plumbing-tested read-only (qa/runner/identity-bootstrap.mjs, qa/runner/lib/pw.mjs). It is ready to run the moment email delivery works; nothing about it needs to change."
   }
 }
