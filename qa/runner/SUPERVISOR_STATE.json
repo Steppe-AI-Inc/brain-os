@@ -1,7 +1,7 @@
 {
   "_doc": "Persistent supervisor state for the Work-PC autonomous QA node. Survives Claude process crashes, supervisor crashes, and Windows restarts - a fresh Fable QA Director invocation reads this FIRST to decide what to do, with zero dependence on conversational memory. NEVER contains secrets, tokens, cookies, storageState, or credentials.",
   "schema_version": 1,
-  "supervisor_state": "WATCHING",
+  "supervisor_state": "WAITING_FOR_HOME_PC",
   "_supervisor_states": [
     "STARTING",
     "WATCHING",
@@ -32,7 +32,7 @@
   "last_heartbeat": "2026-09-10T07:21:07Z",
   "last_director_start": "2026-09-02T11:24:48Z",
   "last_successful_checkpoint": null,
-  "next_action": "C002 - Randomised synthetic digital-twin worlds",
+  "next_action": "WAITING_FOR_HOME_PC. Do not resume Phase B. Re-entry requires: Home PC deploys the invitation/delivery fix AND the exact deployed WEB_SHA is known, then SERIAL W1 with the full required-proof set (see qa/home-pc-handoff/HOMEPC-2026-09-10-BUG-036-invitation-delivery.json). Parallel browser lanes remain BLOCKED regardless until Phase D isolation proofs pass.",
   "retry_count": 0,
   "last_error": null,
   "last_error_at": null,
@@ -60,8 +60,8 @@
   "deployed_edge_function_version": 94,
   "deployed_build_source": "qa/BUILD_UNDER_TEST.json (Home-PC structured handoff; not re-verified from this seat)",
   "platform_build": "COMPLETE - supervisor, launcher, scheduler, lease, guard hook, acceptance harness (commit 79cdb2c); parallel orchestration (0d0dd66); Phase A security hardening 2026-09-10: class policies, source-only worktrees, live isolation binding, SQL gates, allowlisted guard executor, credential removal",
-  "current_work_kind": "regression_reconcile",
-  "current_work_label": "Reconcile 3 regression(s) still EXPECTED_FAIL on a CLOSED bug",
+  "current_work_kind": "waiting_for_home_pc",
+  "current_work_label": "BUG-036 invitation/auth email delivery not proven E2E - Phase B blocked",
   "qa_director_browser_available": null,
   "qa_director_tool_count": 51,
   "qa_director_idle_ms": null,
@@ -116,5 +116,11 @@
       "C bootstrap W1/W2/W3 synthetic identities",
       "D positive+negative parallel browser acceptance"
     ]
+  },
+  "blocked_on": {
+    "bug": "BUG-036",
+    "reason": "AUTH_EMAIL_DELIVERY_UNAVAILABLE",
+    "root_cause": "UNCONFIRMED",
+    "handoff": "qa/home-pc-handoff/HOMEPC-2026-09-10-BUG-036-invitation-delivery.json"
   }
 }

@@ -1,0 +1,112 @@
+{
+  "_doc": "Structured Work-PC -> Home-PC handoff. Authored by the Work-PC QA node. No credentials, no provider secrets, no raw provider responses are recorded here or anywhere in this repository.",
+  "handoff_id": "HOMEPC-2026-09-10-BUG-036-invitation-delivery",
+  "created_at": "2026-09-10T08:40:00Z",
+  "created_by": "work-pc-qa (independent production acceptance authority)",
+  "primary_bug": "BUG-036",
+  "child_bug": "BUG-037",
+  "related": [
+    "BUG-035"
+  ],
+  "work_pc_state": "WAITING_FOR_HOME_PC",
+  "blocking": "PHASE B synthetic QA identity bootstrap (qa-w1) and therefore Phase C/D and all parallel browser lanes.",
+  "current_status_canonical": "PHASE B: BLOCKED - AUTH_EMAIL_DELIVERY_UNAVAILABLE. Root cause UNCONFIRMED.",
+  "production_observations_valid": [
+    "Invite action did not show terminal success.",
+    "Expected invite email was not received.",
+    "Invitation delivery is not proven operational E2E."
+  ],
+  "source_only_findings": {
+    "provenance": {
+      "finding_class": "SOURCE_FINDING_ONLY",
+      "source_ref": "origin/master",
+      "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+      "source_blob_shas": {
+        "web/lib/data/people.ts": "45463460d132b09abe4e01d6f451dc0554d01b64",
+        "web/lib/data/access.ts": "8d94f38b5a9bd96699caf760e6973ae4c60bfbfc",
+        "web/app/(app)/access/page.tsx": "aab2c47b0cfd76cdc493f591232e4b7579dd8752",
+        "web/lib/data/organizations.ts": "c86ef84a6ffcc7c315da108edf6cfe20494a8d23",
+        "web/app/signup/actions.ts": "212ec13aa77a9ebb950fa2039b91ee3fd0c9a225",
+        "web/app/login/actions.ts": "a4cfdee3b28e549c73d3547e53ebc9bf4ffc5271"
+      },
+      "deployed_web_sha": "UNKNOWN",
+      "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB",
+      "_meaning": "Read from the named source revision only. It is NOT established that the deployed production web application contains this exact code. Until the deployed WEB_SHA is known and bound, no claim here may be stated as certainly true of production. Production UI BEHAVIOUR observed in the browser remains valid production evidence and is recorded separately.",
+      "_provenance_correction_2026_09_10": "An earlier draft of these findings was read from the qa/work-pc working tree but labelled 'origin/master 55a1591'. Those files genuinely DIFFER between the two revisions (people.ts blob 2211ed83 on qa/work-pc vs 45463460 on origin/master), so the earlier labelling was wrong. The audit was re-run against origin/master blobs and the conclusions below are bound to the blob SHAs above."
+    },
+    "findings": [
+      "invitePerson() (web/lib/data/people.ts:243-246) contains the only company_memberships insert in web/ at the audited revision, and it hardcodes role_in_company 'employee'.",
+      "invitePerson() aborts on inviteError BEFORE the membership insert; it performs five sequential non-transactional writes (auth invite, profile lookup, profiles.active=true, people.profile_id link, company_memberships insert), each with its own distinct partial-failure return.",
+      "No governed surface sets role_in_company (BUG-035).",
+      "No create_company_invitation/accept_company_invitation RPC exists in supabase/migrations.",
+      "No repository-managed SMTP/mailer configuration found (SOURCE_CONFIGURATION_FINDING; NOT equivalent to PRODUCTION_SMTP_NOT_CONFIGURED)."
+    ]
+  },
+  "informational_only": {
+    "google_oauth": "A Work-PC read-only probe observed that 'Continue with Google' reaches Google's consent screen for the project. This is INFORMATIONAL ONLY and is explicitly NOT an alternative bootstrap path: an OAuth-created user still obtains no governed company membership, and the Work PC will not use it as a bypass."
+  },
+  "required_home_pc_actions": {
+    "A": "Bind exact deployed WEB_SHA / build provenance FIRST. Nothing below is conclusive about production until this exists.",
+    "B": "Inspect production Supabase Auth email configuration from the authorized control plane.",
+    "C": "Identify the exact failed invite error from server/runtime/provider evidence (not by repeated production attempts).",
+    "D": "Verify: SMTP/provider configuration; sender/from address; sender/domain verification if required; provider credentials; rate limits; Supabase Auth email settings/templates; redirect URL configuration; application invite server-side authority.",
+    "E": "Configure/fix production email delivery if required.",
+    "F": "Implement a durable invitation state machine if one does not already exist. INVARIANT: INVITATION != MEMBERSHIP. States: INVITATION_CREATED -> DELIVERY_PENDING -> SENT -> ACCEPTED -> MEMBERSHIP_ACTIVE. Failure branches: DELIVERY_FAILED -> RETRY, EXPIRED, CANCELLED. Membership activates only after the authorized recipient accepts/authenticates per the product contract; for an existing auth user the invitation may bind to that identity but membership must remain governed and auditable.",
+    "G": "Ensure invitation send is idempotent and retryable.",
+    "H": "Make the Invite UI terminate explicitly in exactly one of: SENT, DELIVERY_FAILED, ALREADY_MEMBER, INVITATION_ALREADY_PENDING, INVALID_RECIPIENT, RATE_LIMITED, PROVIDER_UNAVAILABLE, UNKNOWN_ERROR. Never leave indefinite/no-success ambiguity (BUG-037).",
+    "I": "Verify the failed-attempt partial-user case: can failed delivery leave AUTH_USER_CREATED with PROFILE/MEMBERSHIP_NOT_CREATED, and does retry produce ALREADY_REGISTERED or another dead end? If confirmed, classify as transactional/idempotency failure. Target implementation must support retry/recovery WITHOUT duplicate memberships, orphan invitations, duplicate auth identities, accidental access, or dead-end 'already registered' states.",
+    "J": "Add/repair governed existing-user membership/invitation handling if the product contract requires it (see also BUG-035).",
+    "K": "Deploy from Home PC.",
+    "L": "Provide the Work PC: deployed WEB_SHA; deployment timestamp/id; relevant fix SHAs; BUG-036 fix report; invitation state-machine contract; readiness declaration for independent retest."
+  },
+  "canonical_entity_suggestion": {
+    "_note": "Recommended shape only; the Home PC owns the design. Do not put secrets or raw provider responses into normal client-visible records.",
+    "company_invitation": [
+      "id",
+      "organization_id",
+      "invited_email",
+      "invited_auth_user_id (nullable)",
+      "requested_role",
+      "inviter_id",
+      "status",
+      "delivery_status",
+      "created_at",
+      "sent_at",
+      "accepted_at",
+      "expires_at",
+      "last_delivery_error_code",
+      "retry_count"
+    ]
+  },
+  "fixture_preservation": {
+    "instruction": "PRESERVE QA-W1-ORG and the 'QA Worker 1' person unless the Home PC explicitly determines the failed transaction requires safe cleanup.",
+    "state": "UNVERIFIED by the Work PC. The founder reported reaching the Invite action, which implies the company and person exist, but the Work PC has not confirmed this and will not inspect it via the control plane. Registration in FIXTURE_REGISTRY.json is deferred until the Home PC confirms actual state."
+  },
+  "work_pc_prohibitions_while_waiting": [
+    "Do not press Invite repeatedly.",
+    "Do not create qa-w1 auth by alternative means.",
+    "Do not use Google OAuth as a bypass.",
+    "Do not create qa-w2/qa-w3.",
+    "No SQL. No Auth Admin. No service_role. No Supabase Dashboard inspection. No SMTP changes. No deployment. No direct membership manipulation."
+  ],
+  "phase_b_re_entry_gate": {
+    "precondition": "Home PC has deployed the fix AND the exact deployed WEB_SHA is known to the Work PC.",
+    "order": "SERIAL W1 first. qa-w2/qa-w3 only after W1 passes.",
+    "required_proof_all_must_pass": [
+      "INVITE_ACTION_TERMINATES_SENT",
+      "INVITE_EMAIL_ACTUALLY_RECEIVED",
+      "RECIPIENT_AUTH_FLOW_SUCCEEDS",
+      "EXPECTED_MEMBERSHIP_CREATED",
+      "EXPECTED_ROLE_CREATED",
+      "WRONG_ORG_ACCESS_DENIED",
+      "RELOAD_PRESERVES_SCOPE",
+      "LOGOUT_RELOGIN_PRESERVES_SCOPE"
+    ],
+    "if_otp_is_in_the_production_auth_path_also_require": [
+      "OTP_EMAIL_ACTUALLY_RECEIVED",
+      "OTP_AUTH_SUCCEEDS"
+    ],
+    "still_blocked_after_w1": "Parallel browser lanes remain BLOCKED until identity, tenant and browser isolation proofs pass (Phase D)."
+  },
+  "no_credentials_statement": "This artifact contains no credentials, tokens, cookies, OTPs, storageState, mailbox addresses or provider secrets, and none will be added."
+}

@@ -205,6 +205,12 @@
       "reason": "PRODUCTION_SQL_PROHIBITED_ON_WORK_PC",
       "added": "2026-09-10",
       "detail": "Re-execute qa/scenarios-runner/{departments_hide_or_mark_archived_parent,dashboard_company_count_excludes_archived,memories_null_company_scope_not_a_bypass}.sql (rollback-wrapped) against the deployed build and ship a structured fix/verification report. The Work PC will not run them."
+    },
+    {
+      "item": "BUG-036_INVITATION_DELIVERY_AND_STATE_MACHINE",
+      "reason": "AUTH_EMAIL_DELIVERY_UNAVAILABLE",
+      "added": "2026-09-10",
+      "detail": "See qa/home-pc-handoff/HOMEPC-2026-09-10-BUG-036-invitation-delivery.json. Blocks Phase B/C/D and all parallel browser lanes."
     }
   ],
   "standing_prohibitions": [
@@ -276,53 +282,33 @@
     "detail": "Provide the QA mailbox domain; perform the one-time invite + OTP bootstrap for qa-w1/qa-w2/qa-w3 (each in its own synthetic org); confirm/ship a governed role-management path for role_in_company=manager. Browser lanes stay BLOCKED until then."
   },
   "phase_b_identity_bootstrap": {
-    "status": "BLOCKED - AUTH_EMAIL_DELIVERY_UNAVAILABLE (see BUG-036). qa-w1 NOT bootstrapped.",
-    "founder_decisions_2026_09_10": {
-      "org": "QA-W1-ORG",
-      "display_name": "QA Worker 1",
-      "identity_id": "qa-w1",
-      "location": "Work PC, isolated human-in-the-loop bootstrap profile",
-      "authentication": "The founder personally types the dedicated QA email address and the emailed OTP. The Work PC never accesses the mailbox, never stores the OTP, never copies founder cookies, never reuses founder storageState, never uses Auth Admin/service_role/control plane/production SQL.",
-      "storage_state": "qa/runner/.auth/qa-w1.json (gitignored) - synthetic state only",
-      "role_target": "membership employee + role_in_company manager ONLY inside QA-W1-ORG; never founder/superadmin/holding_admin/hr_finance; no real-company membership; no cross-org access"
+    "status": "BLOCKED - AUTH_EMAIL_DELIVERY_UNAVAILABLE. Root cause UNCONFIRMED. qa-w1 NOT bootstrapped.",
+    "work_pc_state": "WAITING_FOR_HOME_PC",
+    "canonical_statement": "Invite action did not show terminal success; expected invite email was not received; invitation delivery is therefore not proven operational E2E. Root cause is UNCONFIRMED and will be identified by the Home PC from control-plane/server/provider evidence.",
+    "explicit_non_claim": "No repository-managed SMTP/mailer configuration was found in the inspected source tree (SOURCE_CONFIGURATION_FINDING). That is NOT equivalent to PRODUCTION_SMTP_NOT_CONFIGURED. Production Auth mailer configuration is control-plane state the Work PC must not inspect or modify.",
+    "source_findings_scope": "SOURCE_FINDING_ONLY at origin/master 55a1591; deployed_web_sha UNKNOWN; production_binding CANNOT_BIND_TO_DEPLOYED_WEB. Production UI behaviour observed in the browser remains valid production evidence and is recorded separately.",
+    "bugs": {
+      "primary": "BUG-036 (P1)",
+      "child": "BUG-037 (P2) INVITE_ACTION_HAS_NO_TERMINAL_DELIVERY_STATE",
+      "related": "BUG-035 (P2) role_in_company has no governed writer (SOURCE_FINDING_ONLY)"
     },
-    "tooling": "qa/runner/identity-bootstrap.mjs (founder-step | authenticate | verify | logout | status) + qa/runner/lib/pw.mjs. Every navigation is structurally restricted to https://brain.open-spot.ai; founder-shaped identity ids are refused; the founder step runs in an EPHEMERAL profile that is deleted on close and whose storageState is never saved.",
-    "product_path_established_from_source": "origin/master 55a1591: /companies createCompany -> /people createPerson(email, company) -> Invite (invitePerson) which creates the auth user, links the profile and inserts the QA-W1-ORG membership as 'employee'. The identity then authenticates at /signup, which is the ONLY 6-digit email-OTP surface (/login is password-only, and no password path exists for an invited user). Order is mandatory: invite BEFORE first sign-in, because signInWithOtp with shouldCreateUser would create the auth user first and make the product's invite fail.",
-    "blocked": {
-      "item": "MEMBERSHIP_ROLE_MANAGEMENT_UI_ABSENT",
-      "effect": "qa-w1 can only reach role_in_company='employee' in QA-W1-ORG. The Option-1 'manager inside its own synthetic org' entitlement is NOT achievable through any product path.",
-      "evidence": "See BUG-035. role_in_company has exactly one writer in the product (hardcoded 'employee' in invitePerson); /access is read-only; the AI command function has no membership capability.",
-      "home_pc_requirement": "Ship a governed, audited role-management surface that can set company_memberships.role_in_company within a company. Until then Phase C entitlement acceptance stays blocked and no workaround is permitted.",
-      "work_pc_will_not": "SQL, RPC, Supabase Auth Admin, service_role, direct REST/API, browser_evaluate, or any other control-plane path."
-    },
-    "acceptance_targets": [
-      "INVITE",
-      "OTP AUTH",
-      "SYNTHETIC IDENTITY",
-      "QA-W1-ORG MEMBERSHIP",
-      "TENANT ISOLATION",
-      "RELOAD",
-      "A8 AUTH_OK",
-      "LOGOUT / RE-AUTH",
-      "STORAGESTATE SAFE",
-      "NO REAL-ORG ACCESS"
-    ],
-    "not_started": "qa-w2 and qa-w3 are NOT bootstrapped. Browser lanes remain BLOCKED; Phase D isolation proof has not run.",
-    "blocked_on_email": {
-      "item": "AUTH_EMAIL_DELIVERY_UNAVAILABLE",
-      "observed": "Founder pressed Invite in production 2026-09-10: no success state, invite email not sent, SMTP not connected.",
-      "why_it_blocks_everything": "invitePerson() is the only product path that inserts a company_memberships row, and it aborts before that insert if the invite email fails. /signup's 6-digit code uses the same mailer. So neither membership nor an email-based login can be obtained.",
-      "google_oauth_status": "CONFIGURED AND WORKING (Work-PC read-only probe: 'Continue with Google' reaches Google's consent screen). It is NOT a sufficient workaround: an OAuth-created user still has no company membership, because membership creation is welded to the invite path.",
-      "unblock_options": [
-        "PREFERRED: founder/Home PC configures custom SMTP for Supabase Auth in production, then re-runs Invite. Phase B then proceeds unchanged.",
-        "PRODUCT FIX: decouple membership creation from mail delivery, and/or ship a governed 'add existing user to company' surface (also fixes BUG-035's sibling gap)."
-      ],
-      "work_pc_will_not": "Configure SMTP, use Supabase Auth Admin/service_role, touch the control plane, run production SQL, or call the data-plane API to mint a session or a membership.",
-      "verification_still_needed_from_founder": [
-        "The exact error string the UI showed after Invite ('Invite failed: <message>').",
-        "Whether 'QA Worker 1' now shows a login account/profile on /access or /people (discriminates a partial-state defect: auth user created but never linked, which would make retry impossible)."
-      ]
-    },
-    "tooling_status": "Bootstrap tooling is built, committed and plumbing-tested read-only (qa/runner/identity-bootstrap.mjs, qa/runner/lib/pw.mjs). It is ready to run the moment email delivery works; nothing about it needs to change."
+    "home_pc_handoff": "qa/home-pc-handoff/HOMEPC-2026-09-10-BUG-036-invitation-delivery.json (items A-L)",
+    "google_oauth_note": "INFORMATIONAL ONLY. Observed reachable in a read-only probe. NOT an alternative bootstrap path and will not be used as a bypass.",
+    "fixture_preservation": "PRESERVE QA-W1-ORG and 'QA Worker 1' unless the Home PC determines safe cleanup is required. Work-PC-verified state: UNVERIFIED (not inspected).",
+    "tooling_status": "qa/runner/identity-bootstrap.mjs + qa/runner/lib/pw.mjs are built, committed and read-only plumbing-tested. They need no change; they are gated behind the re-entry gate below.",
+    "re_entry_gate": "See phase_b_re_entry_gate in the Home-PC handoff artifact. Requires known deployed WEB_SHA, SERIAL W1 first, and all of INVITE_ACTION_TERMINATES_SENT / INVITE_EMAIL_ACTUALLY_RECEIVED / RECIPIENT_AUTH_FLOW_SUCCEEDS / EXPECTED_MEMBERSHIP_CREATED / EXPECTED_ROLE_CREATED / WRONG_ORG_ACCESS_DENIED / RELOAD_PRESERVES_SCOPE / LOGOUT_RELOGIN_PRESERVES_SCOPE (plus OTP_EMAIL_ACTUALLY_RECEIVED and OTP_AUTH_SUCCEEDS if OTP is in the production auth path).",
+    "prohibited_while_waiting": [
+      "repeat Invite",
+      "alternative qa-w1 auth",
+      "Google OAuth bypass",
+      "qa-w2/qa-w3",
+      "SQL",
+      "Auth Admin",
+      "service_role",
+      "Supabase Dashboard inspection",
+      "SMTP changes",
+      "deployment",
+      "direct membership manipulation"
+    ]
   }
 }

@@ -29,9 +29,9 @@
   "counts": {
     "open_p0": 1,
     "open_p1": 16,
-    "open_p2": 16,
+    "open_p2": 17,
     "open_p3": 6,
-    "total_open": 39,
+    "total_open": 40,
     "total_closed": 3
   },
   "bugs": [
@@ -2139,51 +2139,172 @@
     },
     {
       "bug_id": "BUG-035",
-      "title": "No governed product path grants role_in_company - every membership is permanently 'employee' unless someone edits the database by hand",
+      "title": "No governed product path grants role_in_company - membership role appears permanently 'employee' (SOURCE FINDING, not bound to deployed web)",
       "severity": "P2",
       "status": "OPEN",
       "discovered_by": "work-pc-qa (Phase B identity bootstrap, source audit)",
       "discovered_at": "2026-09-10T08:00:00Z",
       "campaign_id": "C002",
       "environment": "production",
-      "commit_audited": "origin/master 55a1591",
       "classification": "GOVERNANCE_CAPABILITY_ABSENT",
       "expected": "A founder/admin can grant and revoke elevated company roles (role_in_company in {owner, manager, team_lead}) through a governed product surface, because governance/BRAIN_OS_CONSTITUTION.md defines elevated company access entirely in terms of that column.",
-      "actual": "role_in_company is written in exactly ONE place in the whole product and it is a hardcoded literal: web/lib/data/people.ts:135 inserts company_memberships with role_in_company:'employee' during invitePerson(). There is no UPDATE, upsert or RPC that changes it anywhere in web/. /access (web/app/(app)/access/page.tsx) renders memberships as read-only Badges and has no form or server action; web/lib/data/access.ts is SELECT-only. supabase/functions/sem-ai-command/index.ts contains zero references to company_memberships or role_in_company, so Brain chat cannot do it either. The only occurrence outside the product is a SQL test fixture.",
-      "evidence": "grep across web/ and supabase/functions at origin/master 55a1591: role_in_company appears in web/app/(app)/access/page.tsx:71 (render), web/lib/data/access.ts:20 (select), web/lib/data/people.ts:135 (hardcoded insert), web/types/database.ts (types). No write path. company_memberships is referenced in web/ only by access.ts (select), companies.ts:165 (a cascade label) and people.ts:132 (the invite insert).",
+      "actual": "In the audited source revision there is no governed surface that can set company_memberships.role_in_company. /access renders it read-only and no UPDATE/upsert exists in web/. Whether the deployed production build behaves identically is NOT established.",
+      "evidence": {
+        "source_finding": "At origin/master 55a1591: role_in_company is written in exactly one place - web/lib/data/people.ts:246, a hardcoded literal 'employee' inside invitePerson(). Every other occurrence is a read: web/lib/data/access.ts:21 (select), web/lib/data/organizations.ts:53,63 (select), web/app/(app)/access/page.tsx:77 (Badge render). company_memberships has exactly one write in web/ - people.ts:243 (the invite insert); access.ts:20 and organizations.ts:52 are selects. No create_company_invitation/accept_company_invitation RPC exists in supabase/migrations.",
+        "scope_limit": "SOURCE ONLY. Not verified against the deployed production web build, whose WEB_SHA is UNKNOWN."
+      },
       "blast_radius": "Every company member in production is stuck at 'employee' forever. Any real customer needing a manager/team-lead tier can only be served by a manual database edit, which is exactly the un-audited out-of-band change the governance model exists to prevent. It also blocks the QA programme's Option-1 entitlement design (a synthetic worker that is manager only inside its own synthetic org).",
       "_qa_boundary": "QA did not and will not work around this. No SQL, no RPC, no Supabase Auth Admin, no direct API, no browser_evaluate. Recorded as a Home-PC implementation requirement.",
       "implementation_recommendation": "Add a governed role-management surface (founder/holding_admin only, audited) that updates company_memberships.role_in_company within a company, with the same RLS-enforced authorization the rest of the write paths use, plus a negative test that a company manager cannot promote themselves or anyone else outside their own company.",
       "work_pc_status": "BLOCKED - MEMBERSHIP_ROLE_MANAGEMENT_UI_ABSENT",
       "regression_executor": "HOME_PC",
-      "build": "EDGE v94 (v92 source) / WEB SHA UNKNOWN"
+      "build": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
+      "provenance": {
+        "finding_class": "SOURCE_FINDING_ONLY",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "source_blob_shas": {
+          "web/lib/data/people.ts": "45463460d132b09abe4e01d6f451dc0554d01b64",
+          "web/lib/data/access.ts": "8d94f38b5a9bd96699caf760e6973ae4c60bfbfc",
+          "web/app/(app)/access/page.tsx": "aab2c47b0cfd76cdc493f591232e4b7579dd8752",
+          "web/lib/data/organizations.ts": "c86ef84a6ffcc7c315da108edf6cfe20494a8d23",
+          "web/app/signup/actions.ts": "212ec13aa77a9ebb950fa2039b91ee3fd0c9a225",
+          "web/app/login/actions.ts": "a4cfdee3b28e549c73d3547e53ebc9bf4ffc5271"
+        },
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB",
+        "_meaning": "Read from the named source revision only. It is NOT established that the deployed production web application contains this exact code. Until the deployed WEB_SHA is known and bound, no claim here may be stated as certainly true of production. Production UI BEHAVIOUR observed in the browser remains valid production evidence and is recorded separately.",
+        "_provenance_correction_2026_09_10": "An earlier draft of these findings was read from the qa/work-pc working tree but labelled 'origin/master 55a1591'. Those files genuinely DIFFER between the two revisions (people.ts blob 2211ed83 on qa/work-pc vs 45463460 on origin/master), so the earlier labelling was wrong. The audit was re-run against origin/master blobs and the conclusions below are bound to the blob SHAs above."
+      },
+      "_earlier_wording_corrected": "A previous revision of this entry asserted the absence as a plain fact about production and cited working-tree line numbers as origin/master. Both have been corrected: the claim is now scoped as SOURCE_FINDING_ONLY and bound to blob SHAs."
     },
     {
       "bug_id": "BUG-036",
-      "title": "Auth email delivery is not functional in production - nobody can be invited into a company, and email-OTP signup/recovery cannot complete",
+      "title": "PRODUCTION INVITATION / AUTH EMAIL DELIVERY FAILS TO COMPLETE E2E",
       "severity": "P1",
       "status": "OPEN",
       "discovered_by": "founder (live attempt) + work-pc-qa (Phase B bootstrap)",
       "discovered_at": "2026-09-10T08:20:00Z",
       "campaign_id": "C002",
       "environment": "production",
-      "commit_audited": "origin/master 55a1591",
-      "classification": "ONBOARDING_CAPABILITY_ABSENT / EXTERNAL_DEPENDENCY_UNCONFIGURED",
-      "expected": "Pressing Invite on a person with an email address delivers an invitation, and /signup delivers a 6-digit code, so a new member can obtain a login and a company membership.",
-      "actual": "Founder pressed Invite in production on 2026-09-10 and reported: no success state shown, invite email not sent, SMTP server not connected. Every Supabase-Auth email surface depends on the same mailer, so /signup's email OTP (signInWithOtp) and any recovery email are affected identically.",
-      "evidence": {
-        "founder_observation": "Invite produced no success state; founder reports the SMTP server is not connected. EXACT UI ERROR STRING STILL REQUIRED - invitePerson() surfaces it verbatim as 'Invite failed: <message>' (web/lib/data/people.ts).",
-        "repo_configuration": "No SMTP/mailer configuration exists anywhere in the repository: zero matches for smtp|mailer|resend|sendgrid|postmark|mailgun across supabase/, web/lib, web/app and docs. supabase/config.toml has NO [auth] section at all and sets [inbucket] enabled = false; it is a LOCAL dev config (project_id 'brain-os-sem-brain-v1-test', ports 54321/54322) and does not govern production. Production auth email settings live in the Supabase dashboard (control plane), which the Work PC must not access.",
-        "auth_is_otherwise_alive": "Work-PC read-only probe 2026-09-10: 'Continue with Google' on /signup reaches the real Google consent screen for project pvphxgrtdfrudejjhzjk. So the project's auth is functioning; the failure is specific to EMAIL delivery.",
-        "prior_qa_signal": "qa/WORK_PC_QA_STATUS.md:118 already recorded that the blocker for persona work is the lack of a test inbox for OTP; the stronger fact - that delivery itself does not work - was not established until this attempt."
-      },
-      "blast_radius": "invitePerson() is the ONLY code path in the product that inserts a company_memberships row (web/lib/data/people.ts:132; confirmed by grep across web/ - no other insert/update/upsert, and no create_company_invitation/accept_company_invitation RPC exists in supabase/migrations). Because that insert happens only AFTER a successful inviteUserByEmail, a mailer failure means NO ONE can be granted membership of any company by any product path. Self-signup via Google OAuth can still create an account, but such a user lands with no company membership and therefore sees nothing.",
-      "open_question_not_yet_evidence": "Whether the failed invite left a PARTIAL state. GoTrue's inviteUserByEmail may create the auth user before attempting delivery; invitePerson() returns immediately on inviteError, so the profile is never linked to people.profile_id and no membership is inserted. If the auth user was created, a retry would fail with 'already registered' and that person's invite would be permanently unrecoverable through the UI. NOT YET VERIFIED - discriminating observation is whether 'QA Worker 1' now shows a login account/profile on /access or /people. If confirmed this is a separate transactional-integrity defect (CLAUDE.md 10) and will be filed as its own bug.",
+      "classification": "ONBOARDING_DELIVERY_NOT_PROVEN_E2E",
+      "expected": "Pressing Invite on a person with an email address reaches a terminal SENT state and the invitation is actually delivered, so the recipient can authenticate and obtain the intended company membership.",
+      "actual": "Founder attempted Invite in production on 2026-09-10. The action did not show a terminal success state, and the expected invite email was not received. Invitation delivery is therefore NOT PROVEN OPERATIONAL end to end for this tested path.",
       "_qa_boundary": "QA did not and will not configure SMTP, call Supabase Auth Admin, use service_role, touch the Supabase control plane, or run production SQL to work around this.",
-      "implementation_recommendation": "1) Configure custom SMTP for Supabase Auth in production (founder/Home-PC action in the Supabase dashboard) and verify a real invite and a real /signup OTP end to end. 2) Make invitePerson() resilient: either create the membership independently of mail delivery, or roll back the auth user on delivery failure so a retry is possible. 3) Add a governed 'add an existing user to a company' path so membership does not depend on email at all. 4) Surface mailer failures in the UI as an explicit, actionable error rather than a silent non-success.",
-      "work_pc_status": "BLOCKED - AUTH_EMAIL_DELIVERY_UNAVAILABLE. Phase B (synthetic QA identity bootstrap) cannot proceed.",
+      "implementation_recommendation": "See architecture_requirement (durable invitation state machine) and the structured handoff qa/home-pc-handoff/HOMEPC-2026-09-10-BUG-036-invitation-delivery.json items A-L.",
+      "work_pc_status": "BLOCKED - AUTH_EMAIL_DELIVERY_UNAVAILABLE (delivery not proven E2E). Phase B cannot proceed.",
       "regression_executor": "HOME_PC",
-      "build": "EDGE v94 (v92 source) / WEB SHA UNKNOWN"
+      "build": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
+      "root_cause": "UNCONFIRMED",
+      "production_evidence": {
+        "_note": "Production UI behaviour observed by the founder. This is valid production evidence and is independent of any source or configuration claim.",
+        "observed": [
+          "Invite action did not show terminal success.",
+          "Expected invite email was not received.",
+          "Therefore invitation delivery is not proven operational E2E."
+        ],
+        "build_label": "EDGE v94 (v92 source) / WEB SHA UNKNOWN"
+      },
+      "source_configuration_finding": {
+        "finding": "SOURCE_CONFIGURATION_FINDING: no repository-managed SMTP/mailer configuration was found in the inspected source tree (zero matches for smtp|mailer|resend|sendgrid|postmark|mailgun across supabase/, web/lib, web/app, docs). supabase/config.toml contains no [auth] section and sets [inbucket] enabled = false; it is a LOCAL development config (project_id 'brain-os-sem-brain-v1-test', ports 54321/54322).",
+        "explicitly_not_equivalent_to": "PRODUCTION_SMTP_NOT_CONFIGURED",
+        "why": "Production Supabase Auth mailer configuration is CONTROL-PLANE state. The Work PC must not inspect or modify it, and absence of repository configuration says nothing about what the production control plane holds."
+      },
+      "root_cause_hypotheses_unconfirmed": [
+        "SMTP absent",
+        "SMTP misconfigured",
+        "provider rejection",
+        "rate limiting",
+        "sender/domain problem",
+        "Auth configuration",
+        "application/server error"
+      ],
+      "membership_dependency": {
+        "claim": "In the audited source revision, invitePerson() aborts on inviteError BEFORE the company_memberships insert, so a delivery failure yields no membership.",
+        "provenance": "SOURCE_FINDING_ONLY at origin/master 55a1591 (web/lib/data/people.ts blob 45463460d132): inviteUserByEmail -> abort on error -> profile lookup -> profiles.active=true -> people.profile_id link -> company_memberships insert. Five sequential, non-transactional writes.",
+        "not_claimed": "It is NOT claimed that this is certainly the only membership path in the currently deployed production web application; WEB_SHA is UNKNOWN."
+      },
+      "partial_state_hypothesis": {
+        "status": "HYPOTHESIS ONLY - NOT INVESTIGATED, NOT VERIFIED",
+        "hypothesis": "GoTrue's inviteUserByEmail may create the auth user before attempting delivery. If so, a delivery failure could leave AUTH_USER_CREATED with PROFILE/MEMBERSHIP_NOT_CREATED, and a retry could dead-end on ALREADY_REGISTERED.",
+        "work_pc_will_not_investigate": "No Auth Admin, no SQL, no service_role, no Supabase control plane, no data-plane API from the Work PC.",
+        "home_pc_must_verify": "Whether failed delivery leaves a partial auth user, and what a retry produces. If confirmed, classify as a transactional/idempotency failure."
+      },
+      "architecture_requirement": {
+        "invariant": "INVITATION != MEMBERSHIP",
+        "explicitly_rejected_recommendation": "Do NOT 'decouple membership creation from email delivery' if that means granting company membership before invitation acceptance. An earlier draft of this bug recommended exactly that and it is withdrawn as unsafe.",
+        "target_state_machine": [
+          "INVITATION_CREATED",
+          "DELIVERY_PENDING",
+          "SENT",
+          "ACCEPTED",
+          "MEMBERSHIP_ACTIVE"
+        ],
+        "failure_branches": [
+          "DELIVERY_FAILED -> RETRY",
+          "EXPIRED",
+          "CANCELLED"
+        ],
+        "rule": "Membership becomes active only after the authorized recipient successfully accepts/authenticates according to the product contract. For an already-existing auth user the invitation may bind to that identity, but organization membership must still be governed and auditable.",
+        "work_pc_boundary": "No direct membership injection from the Work PC under any circumstances."
+      },
+      "do_not_reproduce": "Do not ask the founder to press Invite repeatedly. Root cause is to be identified from Home-PC/control-plane/server/provider evidence, not by repeated production attempts.",
+      "child_defects": [
+        "BUG-037"
+      ],
+      "provenance": {
+        "finding_class": "SOURCE_FINDING_ONLY",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "source_blob_shas": {
+          "web/lib/data/people.ts": "45463460d132b09abe4e01d6f451dc0554d01b64",
+          "web/lib/data/access.ts": "8d94f38b5a9bd96699caf760e6973ae4c60bfbfc",
+          "web/app/(app)/access/page.tsx": "aab2c47b0cfd76cdc493f591232e4b7579dd8752",
+          "web/lib/data/organizations.ts": "c86ef84a6ffcc7c315da108edf6cfe20494a8d23",
+          "web/app/signup/actions.ts": "212ec13aa77a9ebb950fa2039b91ee3fd0c9a225",
+          "web/app/login/actions.ts": "a4cfdee3b28e549c73d3547e53ebc9bf4ffc5271"
+        },
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB",
+        "_meaning": "Read from the named source revision only. It is NOT established that the deployed production web application contains this exact code. Until the deployed WEB_SHA is known and bound, no claim here may be stated as certainly true of production. Production UI BEHAVIOUR observed in the browser remains valid production evidence and is recorded separately.",
+        "_provenance_correction_2026_09_10": "An earlier draft of these findings was read from the qa/work-pc working tree but labelled 'origin/master 55a1591'. Those files genuinely DIFFER between the two revisions (people.ts blob 2211ed83 on qa/work-pc vs 45463460 on origin/master), so the earlier labelling was wrong. The audit was re-run against origin/master blobs and the conclusions below are bound to the blob SHAs above."
+      }
+    },
+    {
+      "bug_id": "BUG-037",
+      "title": "INVITE_ACTION_HAS_NO_TERMINAL_DELIVERY_STATE - the Invite action ended with neither terminal success nor an actionable terminal failure",
+      "severity": "P2",
+      "status": "OPEN",
+      "parent_bug": "BUG-036",
+      "classification": "UX_STATE_MACHINE_INDETERMINATE",
+      "discovered_by": "founder (live attempt) - reported to work-pc-qa",
+      "discovered_at": "2026-09-10T08:20:00Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "production_evidence": "Founder pressed Invite in production 2026-09-10 and observed no terminal success state; no actionable terminal failure was surfaced either. The operator was left unable to tell whether the invitation had been created, sent, queued, or rejected.",
+      "expected": "Every invite attempt terminates explicitly in exactly one operator-actionable state.",
+      "required_terminal_states": [
+        "SENT",
+        "DELIVERY_FAILED",
+        "ALREADY_MEMBER",
+        "INVITATION_ALREADY_PENDING",
+        "INVALID_RECIPIENT",
+        "RATE_LIMITED",
+        "PROVIDER_UNAVAILABLE",
+        "UNKNOWN_ERROR"
+      ],
+      "rule": "Never leave indefinite / no-success ambiguity.",
+      "why_separate_from_parent": "BUG-036 is about delivery not completing. This is about the product not telling the operator what happened, which would remain a defect even after delivery is fixed - and which is what made the failure expensive to diagnose.",
+      "do_not_reproduce": "Do not ask the founder to reproduce this repeatedly.",
+      "_qa_boundary": "QA does not implement fixes.",
+      "regression_executor": "HOME_PC",
+      "build": "EDGE v94 (v92 source) / WEB SHA UNKNOWN",
+      "provenance": {
+        "finding_class": "PRODUCTION_UI_BEHAVIOUR",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB",
+        "_meaning": "Observed live in production; the exact deployed build is not identifiable, so the observation is recorded against the split build label."
+      }
     }
   ],
   "observations": [
