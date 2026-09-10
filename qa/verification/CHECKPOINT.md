@@ -12,39 +12,74 @@ independent live acceptance. The Work PC alone closes bugs.
 
 ## CURRENT MILESTONE
 
-**Verifier #82 is RUNNING** on campaign 142, candidate `5fd08a9482af6acb7447965d9659624f808bbfed`,
-index.ts sha256 `eade10fe9fd31a9394c7a328629e160041a4ac3328936e4c88d04b5422b3d19c` (742 549 bytes),
-worktree `C:/Users/Dell/dev/brain-os-verify-5fd08a9`, branch `verify-5fd08a9-campaign142`.
+**Verifier #82 FAILED and IS CLOSED.** Its three P1s are fixed structurally from its own prepared patch;
+its P2 is registered open with its numbers; its harness findings are carried forward with theirs.
 
-Implementation worktree `C:/Users/Dell/dev/brain-os-wo-resolver` (branch `wo/clarification-resolver`), HEAD `5fd08a9482af6acb7447965d9659624f808bbfed`.
+Implementation worktree `C:/Users/Dell/dev/brain-os-wo-resolver` (branch `wo/clarification-resolver`),
+HEAD **`ab3fb939`** — "verifier #82 closure: D1/D2/D3 fixed structurally, D4 registered open, H1 decided".
+index.ts sha256 **`324230d9c9445709498b3a11e2892e5dd693651228971368a563d392c6594dda`**, **748 841 bytes**,
+CRLF-pure, 0 bare LF, 0 bare CR, 0 x 0x08.
 **The main repo `C:/Users/Dell/dev/brain-os` is NOT the candidate** — different, older file, other branch.
 
-### Rounds #74-#81 all FAILED. What the last four were about
+NEXT: gates re-running on the quiet tree, then a fresh restore-tested backup, then the freeze commit, then
+verifier #83 on campaign 143.
+
+### What #82 found, and what was done with it
+
+* **V82-D1 (P1)** Mongolian puts its predicate NOUN last too. #81's positional closure said "a bare
+  imperative is the command exactly when nothing but sentence-final particles follows it", which closed the
+  clause-initial and clause-medial halves and opened the position Mongolian uses for a copular predicate.
+  `Alpha-г битгий устга. Асуудал нь оноо.` stopped being a refusal, so every mutating field survived and
+  **the delete the founder forbade executed**. 18 of 18. CLOSED: a stem after `нь`/`бол` is a predicate
+  noun. 18 -> 0, 0 of 18 live imperatives lost.
+* **V82-D2 (P1)** `typeNamedIn` stripped a trailing `s` while this file has owned `pluraliseEntity` since
+  #72: "companies" -> "companie", "people" -> "people". A non-null WRONG type makes the type-agreement
+  check conclude the denial is about something else, so **the fabrication ships on a turn that canonically
+  READ the row it denies**. 6 of 21. CLOSED by consulting `pluraliseEntity`.
+* **V82-D3 (P1)** a line break is a clause boundary nowhere in this file, so a two-line turn is one clause
+  and all three consumers are wrong differently — the founder's request refused with a false receipt
+  (90 of 90 EN, 6 of 6 MN), a TRUE denial about another entity rewritten (V74-D3 reopened by a newline),
+  and the truthful half of an answer deleted. CLOSED, with the guard as the whole design: a line break is a
+  boundary only where the line FINISHED its clause.
+* **V82-D4 (P2) OPEN, RED, CLASSIFIED — 25 of 25**, a regression #81's closure introduced.
+  `Beta-г архивла одоо` ("archive Beta, now") is answered "you asked me not to". The derived fix has been
+  written and REVERTED TWICE: there is no Mongolian verb lexicon here, so it read an ordinary participle
+  predication as a live command and 15 of 15 nominal predications went live — the expensive direction, and
+  exactly the hole D1 had just closed. **A derived test needs something to derive from.** All 25 rows err
+  in the cheap direction, so this is registered with its number rather than traded away.
+* **V82-H1 DECIDED, not satisfied.** #81's V81-H2 and #82's V82-H1 assert opposite properties of the same
+  digest. Decided in favour of exceptDeploy — normalise the inputs that vary by checkout, hash the deploy
+  surface RAW — because `.gitattributes` guarantees its bytes everywhere and normalising them would leave
+  the gate VALID after a conversion of index.ts to LF. The override is recorded in the source, not only
+  here.
+* **STILL OPEN, and the largest instrument finding of the campaign: V82-H5** — 14 of 102 suites cannot see
+  any mutant (they read the repo copy, not `SEM_INDEX_SRC`), so every mutation-survival number here is
+  about 88 suites. **V82-H6** — `_gate_extract` caches the source at module scope, so an in-process
+  instrument that switches `SEM_INDEX_SRC` measures the FIRST source and reports "nothing changed".
+  Both are in #83's prompt as its opening suspicion.
+
+### Rounds #74-#82 all FAILED. What the last five were about
 
 * **#78, #79, #80** — three consecutive rounds where the previous round's CLOSURE was the next round's P1,
   every time because the closing session measured its change on a corpus that could not exercise it.
   Ledger 166/167/168.
-* **#81** — the first round in four whose P1s were PRE-EXISTING rather than regressions. Mongolian
-  verb-final position had been asserted by a comment and enforced by nothing; `DENIAL_SUBJECT` was decided
-  leftmost-first. Ledger 169.
+* **#81** — the first round in four whose P1s were PRE-EXISTING. Mongolian verb-final position had been
+  asserted by a comment and enforced by nothing; `DENIAL_SUBJECT` was decided leftmost-first. Ledger 169.
+* **#82** — the positional closure met the position Mongolian keeps its nouns in; a plural denial named a
+  type that agreed with nothing; and a line break was a clause boundary nowhere. Ledger 171.
 * **Ledger 170, and the thing to carry forward:** closing #81 exposed a CONTRACT row that reported a defect
-  THAT DOES NOT EXIST. It chose which of two measurements to run by matching the decider's source text; the
-  fix changed that line, and the row silently measured the OLD BLOCKLIST and reported 195 phantom
-  false-live tokens as a reopened defect. **For every red, ask whether the row could be measuring something
-  other than what it names.** A red that names the product, with a number, is the most expensive way for a
-  harness to be wrong.
+  THAT DOES NOT EXIST — it chose which of two measurements to run by matching the decider's source text.
+  **For every red, ask whether the row could be measuring something other than what it names.** #82 added
+  the softer half: a row whose LABEL said the opposite of what it checked, passing green. **For every
+  green, ask whether the row's name describes its assertion.**
 
-### State at #82's dispatch
+### State at this checkpoint
 
-* battery **102 suites — 91 GREEN, 5 GREEN-but-asserts-nothing, 2 BLOCKED-FOUNDER, 4 OPEN DEFECT-THIS PC,
-  0 unclassified RED**, ~3 990 assertion rows
-* **5 of 6 gates VALID_PASS.** `harness_rename_probe` is VALID_FAIL BY DECISION — derived rename set, 38
-  pins and 26 anchors, backlog in `qa/verification/RENAME_PIN_BACKLOG.md`. **Repair a suite; never shrink
-  the set.**
-* a gate's input digest now hashes the FACT, not the checkout's line endings — every gate used to read
-  STALE in a fresh worktree, which is the state every independent verifier starts in
-* a finished report outranks the watchdog's text classifiers — #81's FAILED verdict was nearly discarded
-  because its report contained the words "requires approval" while describing a coverage limit
+* battery **103 suites — 91 GREEN, 5 GREEN-but-asserts-nothing, 2 BLOCKED-FOUNDER, 5 OPEN DEFECT-THIS PC,
+  0 unclassified RED**, 4 010 assertion rows, 67 `.sql` suites named but not run
+* `harness_rename_probe` is VALID_FAIL BY DECISION — derived rename set, 38 pins and 26 anchors, backlog in
+  `qa/verification/RENAME_PIN_BACKLOG.md`. **Repair a suite; never shrink the set.**
+* a finished report outranks the watchdog's text classifiers
 
 ## PRODUCTION (unchanged since the rollback)
 
@@ -186,21 +221,32 @@ assertions pass); `v67` 23/0; `v66` 71/0; `mutation_sweep_safety_contract` **52/
 
 ## NEXT EXECUTABLE ACTION
 
-**Dispatch verifier #80** on the candidate named above. Nothing about it needs founder input.
+**Dispatch verifier #83, campaign 143**, on the freeze commit made from `ab3fb939` in
+`C:/Users/Dell/dev/brain-os-wo-resolver`. Nothing about it needs founder input.
+
+Order, and every step before the dispatch is a durability step:
+
+1. finish the six-gate run on the quiet tree (`node qa/verification/gate_evidence.mjs run`, in the
+   wo-resolver worktree, and **touch no harness file while it runs**)
+2. fresh bundle + **restore test** — V82-H7 found the frozen candidate missing from the newest bundle,
+   which is a provenance gap in the commit being offered for deployment
+3. freeze commit; re-derive the exact index.ts sha256 from the DEPLOY BYTES, not from `git show`
+4. dispatch:
 
 ```
 cd C:/Users/Dell/dev/brain-os
-bash scripts/factory-runner/dispatch-isolated-verifier.sh <candidate-commit> 140 80 \
-    qa/verification/scratch/verifier80_prompt_template.txt
+bash scripts/factory-runner/dispatch-isolated-verifier.sh <freeze-commit> 143 83 \
+    qa/verification/scratch/verifier83_prompt_template.txt
 ```
 
-Build the #80 template from `verifier79_prompt_template.txt`. Derive the round, campaign and ledger number
-from the repository — the header says so, and the dispatcher now REFUSES a prompt containing any
+The #83 template is WRITTEN (`qa/verification/scratch/verifier83_prompt_template.txt`). Its opening
+suspicion is V82-H5/H6 — the suites that cannot see a mutant, and the module-scope source cache that makes
+an in-process instrument report "nothing changed". The dispatcher REFUSES a prompt containing any
 unsubstituted `__PLACEHOLDER__`.
 
 Then act on the verdict automatically: FAIL → reproduce only genuinely new findings → root cause →
 same-defect sweep → structural fix → regression → mutation proof → affected gates → global battery → new
-SHA → backup → dispatch #81. PASS → inspect the real artifact, confirm it tested the exact frozen bytes,
+SHA → backup → dispatch #84. PASS → inspect the real artifact, confirm it tested the exact frozen bytes,
 classify every observation, confirm no unresolved candidate P0/P1, then the release package.
 
 **Do NOT re-run a completed scenario** when its evidence is persisted, its provenance is valid, the
@@ -217,6 +263,19 @@ candidate SHA is unchanged, and the new change cannot affect it.
   has reached these files three times.
 * **Deploy identity comes from the deploy BYTES**, never from `git show` — the blob is LF, the surface is
   CRLF, and the two hashes must differ.
+* **A row's NAME is part of its assertion.** A label that says the opposite of what the test checks passes
+  green and misleads the next reader in the place they are most likely to look — the same class as a row
+  that reports a defect that does not exist, one notch quieter.
+* **A classification that keeps naming a green row is a standing excuse for a red that is not there.**
+  Narrow it the moment the row goes green.
+* **Prose describing an escaping defect crosses the same transport as the code.** Ledger 171's own
+  escape-depth paragraph landed on disk saying a backslash is halved to a backslash — a sentence about two
+  different strings, printing them identically, and therefore stating nothing. Build the characters with
+  `chr(92)` / `String.fromCharCode` in the PROSE too, or write the note through a tool that does not
+  re-escape.
+* **When an exact-match patch fails against text you can see in the file, suspect the transport before the
+  file.** Three replacements failed with "substring not found" this round for exactly that reason.
+
 ## WORK-PC HANDOFF STATE
 
 Branch `qa/home-pc-handoff` at `7abc5a4`, pushed. Six fix reports carry

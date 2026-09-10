@@ -424,20 +424,86 @@ asserts the selector selected correctly; there had been nothing.
   finished report now outranks every text classifier, because a completed report is a fact about the process
   and the classifiers are guesses about it.
 
+## ROUND #82 — the closure met the position the language keeps its nouns in
+
+**#82 failed on three P1s, and the first one is the one to read.**
+
+Round #81 fixed a Mongolian defect by making the rule POSITIONAL: a bare imperative is the sentence's
+command exactly when nothing but a sentence-final particle follows it. That closed two thirds of the
+problem and measured it — 9 of 9 and 6 of 6 — and opened the third, because **Mongolian is not only
+verb-final, it is noun-final**: an ordinary copular sentence has no verb at all and ends with its predicate
+noun. So *"Alpha-г битгий устга. Асуудал нь оноо."* — "Don't delete Alpha. The problem is the score." —
+stopped being read as a refusal, and **the delete you forbade executed**. 18 of 18, and identical on the
+previous build, so it is not a regression: it is the part of the class #81's corpus could not contain.
+
+The English equivalents are 3 of 3 correctly refused. That asymmetry — the gate works in the language the
+tests are written in and not in the language the product is used in — is now five rounds old.
+
+The other two: a denial about "companies" was depluralised to "companie" by a second, weaker spelling of a
+pluraliser this file has owned since round #72, so **a fabrication shipped on a turn that had actually read
+the row it denied** (6 of 21). And **a line break is a clause boundary nowhere in this file** — every arm
+of the boundary vocabulary needs punctuation or a conjunction — so a two-line message is one clause and its
+three consumers were each wrong in a different direction: your request refused with a false receipt (90 of
+90 English, 6 of 6 Mongolian), a TRUE statement about another company deleted, and the truthful half of an
+answer thrown away.
+
+All three are closed structurally, from #82's own prepared patch.
+
+### The one I did NOT close, and why that is the honest answer
+
+**V82-D4: 25 ordinary requests are swallowed** — you type *"Beta-г архивла одоо"* ("archive Beta, now")
+and are told "you asked me not to". It is a regression #81's closure introduced, and I have now written and
+reverted the obvious fix TWICE.
+
+The obvious fix is to stop enumerating what may follow the verb and ask a derived question instead — "does
+a real verb follow?". That works for reads because a live-verb test already exists to derive from. There is
+no Mongolian verb lexicon in this file, so the derived version read *"Хас нь буурсан"* ("the deduction
+dropped") as a live command and **15 of 15 nominal predications went live** — the expensive direction, and
+exactly the hole the first fix had just closed. **A derived test needs something to derive from**, and a
+fifth position heuristic is not a structural answer.
+
+So it stays red, classified, with its number in the ledger and in #83's prompt. Every one of the 25 errs in
+the cheap direction: a request refused with a wrong reason, not a write you forbade. The two errors do not
+cost the same, and I would rather hand you the number than trade it away quietly.
+
+### Two instruments that were lying, one of them in my favour
+
+* **A CONTRACT row's LABEL said the exact opposite of what its test checked**, and it was passing green.
+  This is ledger 170's class one notch quieter: a red that names the product with a number is the most
+  expensive way for a harness to be wrong, and a green whose name misdescribes it is the same thing said
+  softly. So the standing question now has two halves — for every RED, could the row be measuring something
+  other than what it names; for every GREEN, does its name describe its assertion?
+* **Two rows from consecutive verifiers asserted opposite properties of the same digest** and could not
+  both pass. That is a decision, not a bug, and I took it in the source rather than by satisfying whichever
+  row was louder: normalise the inputs that legitimately differ between checkouts, hash the deploy surface
+  RAW — because its bytes are guaranteed everywhere by declaration, and normalising them would leave the
+  gate reading VALID after somebody converted the deploy file's line endings, which is a real change to the
+  exact thing that layer exists to watch. #81's row is green on the property now, and its name has been
+  removed from the release manifest's excuse list, because a classification that keeps naming a green row
+  is a standing excuse for a red that is not there.
+
+### The largest open instrument finding in the campaign, which is NOT fixed
+
+**14 of 102 suites cannot see any change to the deploy file at all** — they read the repository copy
+instead of the copy under test. Every "the mutation was caught" number in this campaign, mine and the
+verifiers', is a statement about 88 suites being reported as a statement about 102. It is named, it is
+open, and it is the first thing #83 is told to attack.
+
 ## RUNNING
 
-**Verifier #82**, campaign 142, on candidate `5fd08a94` / index.ts
-`eade10fe9fd31a9394c7a328629e160041a4ac3328936e4c88d04b5422b3d19c`, 742,549 bytes. Needs nothing from you.
+**Verifier #83**, campaign 143, dispatching on the freeze built from `ab3fb939` / index.ts
+`324230d9c9445709498b3a11e2892e5dd693651228971368a563d392c6594dda`, 748 841 bytes. Needs nothing from you.
 
-Battery at dispatch: **102 suites — 91 GREEN, 5 GREEN-but-asserts-nothing, 2 BLOCKED - FOUNDER AUTHORITY,
-4 OPEN DEFECT - THIS PC, 0 unclassified RED.** Five of six gates VALID_PASS.
+Battery: **103 suites — 91 GREEN, 5 GREEN-but-asserts-nothing, 2 BLOCKED - FOUNDER AUTHORITY, 5 OPEN
+DEFECT - THIS PC, 0 unclassified RED**, 4 010 assertion rows.
 
-**`harness_rename_probe` is RED ON PURPOSE**, and this is the one number that got worse on purpose. It was
+**`harness_rename_probe` is RED ON PURPOSE**, and it is the one number that got worse on purpose. It was
 green because its rename set was ten hand-picked identifiers — so "no suite pins a spelling" meant "no suite
 pins one of these ten". The set is derived now, and the honest count is 38 suites pinning a spelling plus 26
 whose window anchor moves loudly. `RENAME_PIN_BACKLOG.md` records all of it, including where the repair
 technique stops and why the rest is a product question. **A green gate that measures ten names is worse than
 a red gate that measures 192, because the first one is believed.**
+
 ## BLOCKED — FOUNDER AUTHORITY (2, unchanged, correctly red)
 
 1. `person_assignment_scope_authorization` — needs the prepared DB migration
@@ -452,11 +518,11 @@ a red gate that measures 192, because the first one is believed.**
 
 None.
 
-## OPEN DEFECT - THIS PC (3, every one red on purpose)
+## OPEN DEFECT - THIS PC (5, every one red on purpose)
 
 The battery reports **0 unclassified red**. Every failure is one somebody decided to leave failing, with the
-reason recorded in the deploy gate itself. It was 6 at the last report; the three H6b rows closed together,
-#78's suite joined the list and then came off it when its last row went green.
+reason recorded in the deploy gate itself, and forgiven only for the specific rows it is forgiven for — a
+suite that fails while naming no row counts as RED.
 
 1. `factory_production_write_inventory` — eleven factory-runner scripts reach the database through
    `supabase db query --linked`, inheriting this machine's CLI credential. The conversion is prepared and
@@ -468,9 +534,15 @@ reason recorded in the deploy gate itself. It was 6 at the last report; the thre
 3. `sem_ai_command_company_restore_truth` — one row. Converting it to read the real source exposed that its
    local copy defaulted a missing `actionType` to `archive` while the product fails closed. **Which behaviour
    is right is a product judgement**, so the row is left failing rather than rewritten to agree.
+4. `v81_regression_additions` — one row. The absence gate sees 21 of 38 natural phrasings and rewrites 4 of
+   14 sentences that are not absence claims. Widening the exclusion is the FABRICATION direction and the
+   structural fix is at the consumer, so #81 measured it and left it as a product decision.
+5. `v82_regression_additions` — one row, **V82-D4, the 25 swallowed requests described above**. Kept red so
+   it cannot be mistaken for closed.
 
-And one release GATE is red by the same discipline: `harness_rename_probe` names
-`v78_regression_additions`, whose V78-C5 row lifts a window by six local identifiers. Described above.
+And one release GATE is red by the same discipline: `harness_rename_probe`, 38 pins and 26 anchors,
+described above.
+
 ## THE ONE DECISION I TOOK THAT #74 REFERRED TO YOU
 
 V74-D1. #74 wrote: "This is a product-semantics decision and I have not made it."
