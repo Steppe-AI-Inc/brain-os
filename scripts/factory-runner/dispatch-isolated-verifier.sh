@@ -57,6 +57,20 @@ sed -e "s|__CANDIDATE_SHA__|$FULL|g" -e "s|__INDEX_SHA__|$INDEX_SHA|g" \
     -e "s|__CAMPAIGN__|$CAMPAIGN|g" -e "s|__VERIFIER__|$VERIFIER|g" \
     "$TEMPLATE" > "$PROMPT"
 
+# AN UNSUBSTITUTED PLACEHOLDER MUST NOT REACH THE VERIFIER. The substitution list above is fixed, and a
+# template is free to introduce a placeholder nobody fills - `__ROUND__` was written into one this round and
+# would have arrived as the literal text `__ROUND__` in the sentence telling the verifier which round it is.
+# That is the stale-header failure in a new form: three templates in a row named the wrong round, two
+# verifiers correctly refused to believe them, and one would have overwritten a committed suite by obeying.
+# A prompt that cannot say which round it is must not be dispatched at all.
+LEFTOVER=$(grep -o "__[A-Z_]\+__" "$PROMPT" | sort -u | tr "\n" " ")
+if [ -n "$LEFTOVER" ]; then
+  echo "prompt still contains unsubstituted placeholder(s): $LEFTOVER" >&2
+  echo "either the template introduced a placeholder this script does not fill, or a substitution failed" >&2
+  rm -f "$PROMPT"
+  exit 2
+fi
+
 # ---- dispatch metadata (DATA for the supervisor / campaign record — never a command) -----
 cat > "$META" <<EOF
 {
