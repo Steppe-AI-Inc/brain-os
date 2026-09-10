@@ -1,7 +1,7 @@
 {
   "_doc": "Machine-readable cross-machine handoff state. This is the file a Home-PC session reads FIRST to learn what is waiting on it, and what the Work PC is currently doing - without any chat history or founder copy/paste. Written only by the Work-PC Fable QA Director.",
   "schema_version": 1,
-  "last_updated": "2026-09-09T12:20:00Z",
+  "last_updated": "2026-09-10T03:30:00Z",
   "updated_by": "work-pc-independent-qa",
   "qa_artifact_commit": "596c1a3",
   "_qa_artifact_commit_note": "Set to the qa/work-pc commit carrying campaign C001 results (pushed to origin).",
@@ -219,6 +219,39 @@
     "REQUIRED_INVARIANT": "A CONFIRMATION_TOKEN must only authorize an EXISTING machine-bound pending action containing: channel_id, originating_turn_id, action_type, canonical_target_id, org_scope, validated_capability, created_at, status.",
     "forbidden": "A bare confirmation must NEVER cause the model to reconstruct action type, target, people, company, employer, or relationships.",
     "no_valid_pending_action": "If there is no valid machine-bound pending action, \"yes\" must execute NOTHING.",
-    "newer_action_rule": "If a newer action occurs the system must EXPLICITLY either supersede the previous pending action, or retain both and require disambiguation. It must NEVER silently abandon one and invent a third operation - which is exactly what BUG-033 recorded."
+    "newer_action_rule": "If a newer action occurs the system must EXPLICITLY either supersede the previous pending action, or retain both and require disambiguation. It must NEVER silently abandon one and invent a third operation - which is exactly what BUG-033 recorded.",
+    "structural_analysis_2026_09_10": {
+      "source": "Parallel worker W1 (C002-P1-cluster-consolidation), qa/runs/C002/W1/EVIDENCE/cluster-analysis.md. Adopted by the Director as the working decomposition; every conclusion in it cites the queue field it was drawn from and states where the queue is insufficient.",
+      "headline": "No single mechanism covers all seven bugs. One shared DEFECT CLASS (free-text assertions unconstrained by execution/read records) across all seven; one shared hypothesised LOCUS (the clarification / pending-action / confirmation branch) across BUG-005, BUG-010, BUG-029, BUG-030, BUG-033. BUG-002 bare form and BUG-020 lie OUTSIDE that locus.",
+      "confirmation_handler_fix_alone_closes": [
+        "BUG-033 (only if actionType becomes representable for every verb and a bare affirmative can never fall through to free text)",
+        "BUG-005 Class B residual, item D, Class E prose leak (parent stays OPEN by its own closure rule)"
+      ],
+      "confirmation_handler_fix_alone_does_NOT_close": {
+        "BUG-002": "bare form has no pending action; D3 is the truth guard",
+        "BUG-020": "resolver defect on command paths, pre-confirmation",
+        "BUG-029": "resolver + reporting; no id exists to bind",
+        "BUG-010": "contamination is inside the clarifier text before any confirmation",
+        "BUG-030": "free-text provenance; side-effect removal is not closure per its own record"
+      },
+      "minimum_distinct_fixes": {
+        "F1": "Durable machine-bound pending action + strict confirmation binding (actionType for every verb, canonical ids, pending_action_id; explicit target-naming when proposed != named; re-ask or report-dropped on stale/superseded; never free-text on an affirmative; channel-scoped candidates). Closes BUG-033, BUG-005 B/D/E.",
+        "F2": "Executed-operations truth guard, structural not textual (remove && !result.pendingAction; every unsupported path reaches the guard; no keying on surface form). Closes BUG-002 all variants incl. refusal-on-read.",
+        "F3": "Canonical entity resolution on every command path (same named lookup as the question path; candidates from canonical search not truncated context; ids machine-bound before clarification; original target retained). Closes BUG-020, BUG-029 resolution half, BUG-005 Class C.",
+        "F4": "Grounding precedence / no re-entry of unexecuted claims into history; clarification branch re-verifies from a canonical read. Closes BUG-010.",
+        "F5": "Templated existence and provenance statements rendered from real read results; never authored as free text. Closes BUG-030, BUG-029 reporting half.",
+        "F6": "History-window metadata (visible vs total turns) so out-of-window history is disclosed, not renumbered. Closes BUG-005 Class A; required for parent closure."
+      },
+      "possible_consolidation_the_queue_cannot_confirm": "F2 and F5 are both \"the response layer may only render what a structured record hands it\" and could be one layer; F1 and F4 both touch the pending-action branch. Whether that is one change or two is a source-level fact no queue record establishes."
+    }
+  },
+  "parallel_qa_orchestration": {
+    "status": "MACHINERY VERIFIED; BROWSER LANES BLOCKED PENDING ISOLATION PROOF",
+    "synthetic_acceptance": "19 of 19 checks pass (qa/runner/PARALLEL_ACCEPTANCE.json). 3 real OS processes overlapped in wall-clock (2092 ms for three 2000 ms workers; serial would be >= 6000 ms), distinct PIDs, isolated run dirs, single-writer audit clean, fixture and browser collisions rejected, crash and capacity isolated, phantom-RUNNING reconstructed from a real PID probe, conflicting evidence surfaced as CONFLICTING_EVIDENCE not voted.",
+    "real_pilot": "3 genuine Fable workers on non-browser lanes (W1 cluster analysis, W2 registry drift, W3 regression integrity). All three produced substantive evidence now reconciled into canonical state above. First run was budget-capped at 2 USD before RESULT.json; W3 checkpoint-resumed to a final PASS. Budget calibration: audit-class work needs ~6 USD.",
+    "browser_isolation": "NOT PROVEN, computed not assumed (qa/runner/lib/browser-isolation.mjs). Mechanism exists (@playwright/mcp --isolated / --user-data-dir / --storage-state, verified against --help). Blocker is auth: no exported storageState at qa/runner/.auth/founder-storage-state.json, and Work PC cannot produce one from the MCP tool surface (httpOnly cookies are not readable via browser_evaluate). Until it exists the scheduler refuses browser work in parallel. Non-browser parallel work is live.",
+    "unblock_browser_lanes": "One-time founder or Home-PC action: export the authenticated founder session to qa/runner/.auth/founder-storage-state.json (path is gitignored). Then re-run parallel-acceptance and a browser-lane pilot before classifying browser parallelism verified.",
+    "single_writer": "qa/runner/lib/reconcile.mjs. Only orchestrate.mjs writes canonical files; workers may write only qa/runs/<campaign>/<worker>/{RESULT.json,CHECKPOINT.json,EVIDENCE/**}. Enforced by prompt, audited by mtime, and verified by git status after the pilot.",
+    "entry_points": "node qa/runner/orchestrate.mjs status|recover|reconcile|run <campaign> <plan.json>; node qa/runner/parallel-acceptance.mjs; plans under qa/runner/plans/."
   }
 }

@@ -1,0 +1,35 @@
+{
+  "worker_id": "W3",
+  "campaign_id": "C002",
+  "scenario_id": "C002-P3-regression-artifact-integrity",
+  "capability_id": "CAP-REGRESSION-ARTIFACT-INTEGRITY",
+  "verdict": "PASS",
+  "verdict_meaning": "Audit executed completely and is evidence-backed. PASS is for the scenario (the integrity audit ran to completion); the findings below are inputs for the Orchestrator, not a capability or bug verdict.",
+  "browser_required": false,
+  "browser_available": false,
+  "read_only": true,
+  "fixtures_mutated": [],
+  "evidence": {
+    "observed": "Read-only audit of qa/BUG_QUEUE.json (40 records) against 62 files in qa/scenarios-runner on qa/work-pc @ 24e4fb2. Declared regression_path pointers: 9/9 resolve to files on disk. Closure chain for CLOSED bugs is broken in 4 of 5: BUG-001 and BUG-003 are CLOSED/EXPECTED_PASS but their regression_last_result.all_pass=false (SQL explicitly not re-executed at closure); BUG-006 closure cites qa/scenarios-runner/company_ref_no_bare_name_join.mjs which is absent from the qa/work-pc tree (exists only on origin/master) and BUG-006 has no regression_path; ANON-INVESTOR-RLS-HELPER closure cites is_investor_viewer_of_anon_grant_fix.sql which exists nowhere in the repo. BUG-001 also cites a Playwright UI regression in qa/playwright/regression/ which is empty. 47 of 62 scenarios-runner files are referenced by no bug; 34 of those are owned by REGRESSION_CATALOG.md / README.md; 13 are true orphans referenced by nothing (listed in evidence section 2). Status vs regression_state: 0 direct contradictions (no CLOSED+EXPECTED_FAIL, no OPEN+EXPECTED_PASS); BUG-004 has stale prose saying EXPECTED_FAIL while structured fields say EXPECTED_PASS; BUG-010/029/030 carry regressions but stay OPEN instead of REGRESSION_CREATED. Assertion scan: 2 regression files have no assertion or failure condition (_policy_drift_signature.sql, sc088_091_access_revocation.sql) and 1 is soft (sc118_resource_operations_matrix.sql encodes no expected DENIED cells); the other 59 carry an explicit assertion mechanism.",
+    "counts": {
+      "bug_queue_records": 40,
+      "scenarios_runner_files": 62,
+      "declared_regression_paths": 9,
+      "declared_regression_paths_missing": 0,
+      "closure_cited_files_missing": 2,
+      "closed_bugs_with_broken_closure_chain": 4,
+      "closed_bugs_with_broken_closure_chain_ids": ["BUG-001", "BUG-003", "BUG-006", "ANON-INVESTOR-RLS-HELPER"],
+      "files_unreferenced_by_any_bug": 47,
+      "true_orphan_files": 13,
+      "closed_with_expected_fail": 0,
+      "closed_with_last_result_fail": 2,
+      "assertionless_regressions_hard": 2,
+      "assertionless_regressions_soft": 1
+    },
+    "db_state": "N/A - read-only artifact audit, no database access",
+    "files": ["EVIDENCE/regression-integrity.md"]
+  },
+  "started_at": "2026-09-10T02:59:51Z",
+  "resumed_at": "2026-09-10T03:06:47Z",
+  "completed_at": "2026-09-10T03:07:26Z"
+}

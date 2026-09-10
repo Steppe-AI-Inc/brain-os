@@ -1,0 +1,454 @@
+{
+ "LEGACY-C000-company-qa-swarm-test-co": {
+  "fixture_id": {
+   "value": "LEGACY-C000-company-qa-swarm-test-co",
+   "inventory": 0,
+   "bug_queue": 0,
+   "other": {
+    "HANDOFF_STATE.json": 1
+   }
+  },
+  "synthetic_display_name": {
+   "value": "QA-SWARM-TEST-CO-VIA-CHAT",
+   "inventory": 22,
+   "bug_queue": 32,
+   "other": {
+    "BUG010_FABRICATION_PERSISTENCE_MATRIX.md": 1,
+    "FINAL_WORK_PC_QA_HANDOFF_2026-09-01.md": 5,
+    "HANDOFF_STATE.json": 2,
+    "IMPLEMENTATION_HANDOFF.md": 1,
+    "WORK_PC_HANDOVER_2026-09-07.md": 2,
+    "bugs/BUG-001.md": 4,
+    "home-pc-handoff/README.md": 2,
+    "scenarios-runner/bug005_destructive_substitute_requires_explicit_target.md": 1,
+    "home-pc-handoff/fixes/BUG-002.json": 1,
+    "home-pc-handoff/fixes/BUG-010.json": 1,
+    "home-pc-handoff/fixes/BUG-011.json": 1,
+    "home-pc-handoff/fixes/BUG-012.json": 1,
+    "home-pc-handoff/fixes/BUG-013.json": 1,
+    "home-pc-handoff/fixes/BUG-014.json": 4
+   }
+  },
+  "canonical_id": {
+   "value": "7ba01ff2-6404-4c06-8bc5-4449b50df5de",
+   "inventory": 5,
+   "bug_queue": 5,
+   "other": {
+    "WORK_PC_HANDOVER_2026-09-07.md": 1,
+    "bugs/BUG-001.md": 1,
+    "home-pc-handoff/fixes/BUG-014.json": 1
+   }
+  }
+ },
+ "LEGACY-C000-department-qa-swarm-test-dept": {
+  "fixture_id": {
+   "value": "LEGACY-C000-department-qa-swarm-test-dept",
+   "inventory": 0,
+   "bug_queue": 0,
+   "other": {
+    "runner/plans/C002-parallel-pilot.json": 1
+   }
+  },
+  "synthetic_display_name": {
+   "value": "QA-SWARM-TEST-DEPT-EDITED",
+   "inventory": 2,
+   "bug_queue": 1,
+   "other": {
+    "BUG010_FABRICATION_PERSISTENCE_MATRIX.md": 1,
+    "bugs/BUG-001.md": 3,
+    "runner/plans/C002-parallel-pilot.json": 1
+   }
+  },
+  "canonical_id": {
+   "value": "9573a957-eebd-4552-b28a-b8ed2a9de37a",
+   "inventory": 0,
+   "bug_queue": 1,
+   "other": {
+    "bugs/BUG-001.md": 1
+   }
+  }
+ },
+ "C001-W2-person-001": {
+  "fixture_id": {
+   "value": "C001-W2-person-001",
+   "inventory": 0,
+   "bug_queue": 0,
+   "other": {}
+  },
+  "synthetic_display_name": {
+   "value": "QA-SWARM-PERSON-001-EDITED",
+   "inventory": 9,
+   "bug_queue": 8,
+   "other": {
+    "WORK_PC_HANDOVER_2026-09-07.md": 1
+   }
+  },
+  "canonical_id": {
+   "value": "37d03420-96c7-426a-811e-6edf0e14813f",
+   "inventory": 2,
+   "bug_queue": 3,
+   "other": {}
+  }
+ },
+ "C001-W3-task-001": {
+  "fixture_id": {
+   "value": "C001-W3-task-001",
+   "inventory": 0,
+   "bug_queue": 0,
+   "other": {}
+  },
+  "synthetic_display_name": {
+   "value": "QA-SWARM-TASK-001-EDITED",
+   "inventory": 1,
+   "bug_queue": 3,
+   "other": {}
+  },
+  "canonical_id": {
+   "value": "b6ac01d7-0dfe-4d30-bc09-2cc99b343234",
+   "inventory": 2,
+   "bug_queue": 2,
+   "other": {}
+  }
+ },
+ "FX-BUG006-GOAL": {
+  "fixture_id": {
+   "value": "FX-BUG006-GOAL",
+   "inventory": 0,
+   "bug_queue": 0,
+   "other": {}
+  },
+  "name": {
+   "value": "QA-BUG006-GOAL",
+   "inventory": 2,
+   "bug_queue": 2,
+   "other": {}
+  }
+ },
+ "FX-BUG006-PROJECT": {
+  "fixture_id": {
+   "value": "FX-BUG006-PROJECT",
+   "inventory": 0,
+   "bug_queue": 0,
+   "other": {}
+  },
+  "name": {
+   "value": "QA-BUG006-PROJECT",
+   "inventory": 1,
+   "bug_queue": 2,
+   "other": {}
+  }
+ },
+ "FX-C002-PROJ-01": {
+  "fixture_id": {
+   "value": "FX-C002-PROJ-01",
+   "inventory": 0,
+   "bug_queue": 1,
+   "other": {}
+  },
+  "name": {
+   "value": "QA-C002-PROJ-EDITED-01",
+   "inventory": 5,
+   "bug_queue": 29,
+   "other": {
+    "BUG010_FABRICATION_PERSISTENCE_MATRIX.md": 12,
+    "WORK_PC_HANDOVER_2026-09-07.md": 1,
+    "scenarios-runner/bug010_clarification_branch_grounding.md": 1,
+    "scenarios-runner/bug030_no_fabricated_grounding_citation.md": 1
+   }
+  }
+ },
+ "FX-C002-PERSON-02": {
+  "fixture_id": {
+   "value": "FX-C002-PERSON-02",
+   "inventory": 0,
+   "bug_queue": 1,
+   "other": {}
+  },
+  "name": {
+   "value": "QA-C002-MGR-PERSON-02",
+   "inventory": 14,
+   "bug_queue": 10,
+   "other": {
+    "WORK_PC_HANDOVER_2026-09-07.md": 1
+   }
+  },
+  "canonical_id": {
+   "value": "10398be5-0d56-4169-8035-425b294b70cb",
+   "inventory": 2,
+   "bug_queue": 1,
+   "other": {}
+  }
+ },
+ "FX-C002-PERSON-03": {
+  "fixture_id": {
+   "value": "FX-C002-PERSON-03",
+   "inventory": 0,
+   "bug_queue": 1,
+   "other": {}
+  },
+  "name": {
+   "value": "QA-C002-MGR-PERSON-03",
+   "inventory": 5,
+   "bug_queue": 6,
+   "other": {
+    "WORK_PC_HANDOVER_2026-09-07.md": 1
+   }
+  }
+ },
+ "FX-C002-COMPANY-MULTI": {
+  "fixture_id": {
+   "value": "FX-C002-COMPANY-MULTI",
+   "inventory": 2,
+   "bug_queue": 1,
+   "other": {}
+  },
+  "name": {
+   "value": "QA-MULTI-CO",
+   "inventory": 34,
+   "bug_queue": 44,
+   "other": {
+    "COVERAGE_LEDGER.json": 1,
+    "KNOWN_FAILURE_MODES.md": 4,
+    "runner/CAMPAIGN_QUEUE.json": 2,
+    "scenarios-runner/bug005_destructive_substitute_requires_explicit_target.md": 2,
+    "scenarios-runner/bug029_resolution_failure_must_not_be_reported_as_nonexistence.md": 1,
+    "verification/archive/verify-1eda9ce-bugs-11-12-execution-plan-and-context-budget.json": 6
+   }
+  },
+  "canonical_id": {
+   "value": "49ee1875-21b0-4285-bd45-dc1c05f3d987",
+   "inventory": 1,
+   "bug_queue": 3,
+   "other": {}
+  }
+ },
+ "FX-C002-MULTI-PROJ": {
+  "fixture_id": {
+   "value": "FX-C002-MULTI-PROJ",
+   "inventory": 0,
+   "bug_queue": 0,
+   "other": {}
+  },
+  "name": {
+   "value": "QA-C002-MULTI-PROJ",
+   "inventory": 6,
+   "bug_queue": 0,
+   "other": {}
+  }
+ },
+ "FX-C002-MULTI-TASK": {
+  "fixture_id": {
+   "value": "FX-C002-MULTI-TASK",
+   "inventory": 0,
+   "bug_queue": 0,
+   "other": {}
+  },
+  "name": {
+   "value": "QA-C002-MULTI-TASK",
+   "inventory": 3,
+   "bug_queue": 0,
+   "other": {}
+  }
+ },
+ "FX-C002-COMPANY-RENAMED-X": {
+  "fixture_id": {
+   "value": "FX-C002-COMPANY-RENAMED-X",
+   "inventory": 0,
+   "bug_queue": 0,
+   "other": {}
+  },
+  "name": {
+   "value": "QA-C002-RENAMED-X",
+   "inventory": 23,
+   "bug_queue": 34,
+   "other": {
+    "BUG010_FABRICATION_PERSISTENCE_MATRIX.md": 2,
+    "COVERAGE_LEDGER.json": 1,
+    "bugs/BUG-007.md": 1,
+    "runner/CAMPAIGN_QUEUE.json": 2,
+    "scenarios-runner/bug029_resolution_failure_must_not_be_reported_as_nonexistence.md": 5,
+    "scenarios-runner/context_pack_shown_total_pairs.md": 1
+   }
+  },
+  "canonical_id": {
+   "value": "8fdad6e2-fffb-41bc-af0a-df8cab09110b",
+   "inventory": 0,
+   "bug_queue": 4,
+   "other": {
+    "scenarios-runner/bug029_resolution_failure_must_not_be_reported_as_nonexistence.md": 1
+   }
+  }
+ },
+ "FX-C002-DEPT-01": {
+  "fixture_id": {
+   "value": "FX-C002-DEPT-01",
+   "inventory": 1,
+   "bug_queue": 0,
+   "other": {}
+  },
+  "name": {
+   "value": "QA-C002-DEPT-01-RENAMED",
+   "inventory": 5,
+   "bug_queue": 0,
+   "other": {}
+  }
+ },
+ "FX-C002-BU-EMPLOYEE-01": {
+  "fixture_id": {
+   "value": "FX-C002-BU-EMPLOYEE-01",
+   "inventory": 0,
+   "bug_queue": 0,
+   "other": {}
+  },
+  "name": {
+   "value": "QA-C002-BU-EMPLOYEE-01",
+   "inventory": 3,
+   "bug_queue": 0,
+   "other": {}
+  }
+ },
+ "FX-C002-COMPANY-MULTI-TWIN": {
+  "fixture_id": {
+   "value": "FX-C002-COMPANY-MULTI-TWIN",
+   "inventory": 0,
+   "bug_queue": 1,
+   "other": {}
+  },
+  "name": {
+   "value": "QA-MULTI-CO-TWIN",
+   "inventory": 5,
+   "bug_queue": 22,
+   "other": {
+    "runner/CAMPAIGN_QUEUE.json": 1,
+    "scenarios-runner/bug005_destructive_substitute_requires_explicit_target.md": 2,
+    "scenarios-runner/bug029_resolution_failure_must_not_be_reported_as_nonexistence.md": 1
+   }
+  },
+  "canonical_id": {
+   "value": "1628368a-2eef-41cd-8bc7-acfa716db1f1",
+   "inventory": 0,
+   "bug_queue": 1,
+   "other": {}
+  }
+ },
+ "FX-C002-APPROVAL-TASK-01": {
+  "fixture_id": {
+   "value": "FX-C002-APPROVAL-TASK-01",
+   "inventory": 0,
+   "bug_queue": 0,
+   "other": {}
+  },
+  "name": {
+   "value": "QA-C002-APPROVAL-TASK-01",
+   "inventory": 1,
+   "bug_queue": 1,
+   "other": {
+    "COVERAGE_LEDGER.json": 1
+   }
+  }
+ },
+ "FX-C002-PENDING-01": {
+  "fixture_id": {
+   "value": "FX-C002-PENDING-01",
+   "inventory": 0,
+   "bug_queue": 1,
+   "other": {}
+  },
+  "name": {
+   "value": "QA-C002-PENDING-01",
+   "inventory": 1,
+   "bug_queue": 8,
+   "other": {
+    "WORK_PC_HANDOVER_2026-09-07.md": 1,
+    "runner/CAMPAIGN_QUEUE.json": 1
+   }
+  }
+ },
+ "FX-C002-VAR-SURE": {
+  "fixture_id": {
+   "value": "FX-C002-VAR-SURE",
+   "inventory": 0,
+   "bug_queue": 0,
+   "other": {}
+  },
+  "name": {
+   "value": "QA-C002-VAR-SURE",
+   "inventory": 3,
+   "bug_queue": 0,
+   "other": {}
+  }
+ },
+ "FX-C002-VAR-YEAH": {
+  "fixture_id": {
+   "value": "FX-C002-VAR-YEAH",
+   "inventory": 0,
+   "bug_queue": 0,
+   "other": {}
+  },
+  "name": {
+   "value": "QA-C002-VAR-YEAH",
+   "inventory": 2,
+   "bug_queue": 0,
+   "other": {}
+  }
+ },
+ "FX-CFWO-ADV-CO-A": {
+  "fixture_id": {
+   "value": "FX-CFWO-ADV-CO-A",
+   "inventory": 0,
+   "bug_queue": 0,
+   "other": {}
+  },
+  "name": {
+   "value": "CFWO-Adv Co A (emp1=manager)",
+   "inventory": 0,
+   "bug_queue": 1,
+   "other": {}
+  }
+ },
+ "FX-CFWO-ADV-CO-B": {
+  "fixture_id": {
+   "value": "FX-CFWO-ADV-CO-B",
+   "inventory": 0,
+   "bug_queue": 0,
+   "other": {}
+  },
+  "name": {
+   "value": "CFWO-Adv Co B (emp1 NOT a member)",
+   "inventory": 0,
+   "bug_queue": 3,
+   "other": {}
+  }
+ },
+ "FX-C002-ORGB-ANCHOR-PROJ": {
+  "fixture_id": {
+   "value": "FX-C002-ORGB-ANCHOR-PROJ",
+   "inventory": 0,
+   "bug_queue": 0,
+   "other": {}
+  },
+  "name": {
+   "value": "QA-ORGB-ANCHOR-PROJ",
+   "inventory": 0,
+   "bug_queue": 3,
+   "other": {}
+  }
+ },
+ "FX-C002-DEPT-FABTEST-06": {
+  "fixture_id": {
+   "value": "FX-C002-DEPT-FABTEST-06",
+   "inventory": 0,
+   "bug_queue": 1,
+   "other": {}
+  },
+  "name": {
+   "value": "QA-C002-DEPT-FABTEST-06",
+   "inventory": 0,
+   "bug_queue": 36,
+   "other": {
+    "BUG010_FABRICATION_PERSISTENCE_MATRIX.md": 6,
+    "scenarios-runner/bug005_destructive_substitute_requires_explicit_target.md": 1
+   }
+  }
+ }
+}

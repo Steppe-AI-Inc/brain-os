@@ -82,3 +82,30 @@ A single failing scenario is not a reason to stop — record it and continue.
 
 The full charter lives in the approved plan and in `qa/` itself. Run the complete continuous
 sweep — not a subset, not only the priority list, and not only when a new commit arrives.
+
+---
+
+## PARALLEL WORKER MODE (added 2026-09-10)
+
+If you were launched with `QA_WORKER_ID` set, you are ONE of several parallel workers, not the
+Director. The rules below are enforced by the reconciler (`qa/runner/lib/reconcile.mjs`) - a
+worker that breaks them produces evidence that is rejected as INVALID_TEST, not evidence that wins.
+
+- **You are evidence, not a verdict.** Only the Orchestrator/Director writes `BUG_QUEUE.json`,
+  `HANDOFF_STATE.json`, `CAPABILITY_INVENTORY.json`, `COVERAGE_LEDGER.json`, `FIXTURE_REGISTRY.json`,
+  `SYNTHETIC_CLONE_MAP.json`, `WORK_PC_QA_STATUS.md`, `BUILD_UNDER_TEST.json`. Never edit them.
+- **Write only** `qa/runs/<campaign>/<worker>/RESULT.json`, `CHECKPOINT.json`, `EVIDENCE/**`.
+- **Do not commit or push.** The Orchestrator publishes.
+- **Mutate only fixtures in your authorised list.** Another worker may hold the rest under lease.
+- **First action: write a provisional `RESULT.json`** (`"provisional": true`, verdict `INVALID_TEST`),
+  then overwrite it at the end. A budget cut then leaves the truth ("started, did not finish")
+  instead of silence.
+- **Write evidence incrementally.** Evidence on disk when the budget runs out is still evidence.
+- **No browser, no UI verdicts.** If `mcp__playwright__*` tools are absent, record
+  `browser_available: false` and BLOCKED for anything UI-dependent. A UI verdict without a browser
+  is the FALSE_SUCCESS this platform exists to prevent.
+- **Parallel browser work is BLOCKED** until browser-context isolation is proven
+  (`qa/runner/lib/browser-isolation.mjs`). Do not attempt it.
+
+Entry points for the Director: `node qa/runner/orchestrate.mjs status|recover|reconcile|run`,
+`node qa/runner/parallel-acceptance.mjs`. Plans live in `qa/runner/plans/`.

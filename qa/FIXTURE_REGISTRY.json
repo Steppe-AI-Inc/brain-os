@@ -123,7 +123,9 @@
       "registered_at": "2026-09-02T09:08:47Z",
       "created_via": "product UI",
       "entity_id": "6b85d2c2-f520-43a4-aeb3-76a311a89278",
-      "note_2026_09_07": "Description set to \"C002 CAP-GOAL-EDIT-UI probe 2026-09-07 11:29Z\" (CAP-GOAL-EDIT-UI). Detail page shows status Draft - owner to confirm intended state."
+      "note_2026_09_07": "Description set to \"C002 CAP-GOAL-EDIT-UI probe 2026-09-07 11:29Z\" (CAP-GOAL-EDIT-UI). Detail page shows status Draft - owner to confirm intended state.",
+      "mutation_authorized": false,
+      "_mutation_authorized_note": "canonical_id is null. Under the registry safety gate (applied to FX-C002-COMPANY-MULTI-TWIN on 2026-09-09) a fixture without a resolved canonical id is NOT mutation-authorized. Resolve read-only via the org-switcher option value or a create-form company_id before any mutation. Flagged by parallel worker W2, recounted by the Director."
     },
     {
       "fixture_id": "FX-BUG006-PROJECT",
@@ -135,7 +137,9 @@
       "purpose": "Active project under an archived company, same badge case for the /projects surface.",
       "cleanup": "RETAINED while BUG-006 regression needs it; archive via UI when retired.",
       "registered_at": "2026-09-02T09:08:47Z",
-      "created_via": "product UI"
+      "created_via": "product UI",
+      "mutation_authorized": false,
+      "_mutation_authorized_note": "canonical_id is null. Under the registry safety gate (applied to FX-C002-COMPANY-MULTI-TWIN on 2026-09-09) a fixture without a resolved canonical id is NOT mutation-authorized. Resolve read-only via the org-switcher option value or a create-form company_id before any mutation. Flagged by parallel worker W2, recounted by the Director."
     },
     {
       "fixture_id": "FX-C002-PROJ-01",
@@ -153,7 +157,9 @@
       "registered_at": "2026-09-07T10:34:16Z",
       "created_via": "product UI",
       "environment": "production",
-      "parent_state": "parent company ACTIVE (restored 12:00Z)"
+      "parent_state": "parent company ACTIVE (restored 12:00Z)",
+      "mutation_authorized": false,
+      "_mutation_authorized_note": "canonical_id is null. Under the registry safety gate (applied to FX-C002-COMPANY-MULTI-TWIN on 2026-09-09) a fixture without a resolved canonical id is NOT mutation-authorized. Resolve read-only via the org-switcher option value or a create-form company_id before any mutation. Flagged by parallel worker W2, recounted by the Director."
     },
     {
       "fixture_id": "FX-C002-PERSON-02",
@@ -193,7 +199,9 @@
       "registered_at": "2026-09-07T11:05:06Z",
       "created_via": "product UI (/people Add person)",
       "environment": "production",
-      "parent_state": "parent company ACTIVE (restored 12:00Z)"
+      "parent_state": "parent company ACTIVE (restored 12:00Z)",
+      "mutation_authorized": false,
+      "_mutation_authorized_note": "canonical_id is null. Under the registry safety gate (applied to FX-C002-COMPANY-MULTI-TWIN on 2026-09-09) a fixture without a resolved canonical id is NOT mutation-authorized. Resolve read-only via the org-switcher option value or a create-form company_id before any mutation. Flagged by parallel worker W2, recounted by the Director."
     },
     {
       "fixture_id": "FX-C002-COMPANY-MULTI",
@@ -248,7 +256,9 @@
       "cleanup": "Delete via UI kebab when retired.",
       "registered_at": "2026-09-07T11:35:59Z",
       "created_via": "Brain Chat",
-      "environment": "production"
+      "environment": "production",
+      "mutation_authorized": false,
+      "_mutation_authorized_note": "canonical_id is null. Under the registry safety gate (applied to FX-C002-COMPANY-MULTI-TWIN on 2026-09-09) a fixture without a resolved canonical id is NOT mutation-authorized. Resolve read-only via the org-switcher option value or a create-form company_id before any mutation. Flagged by parallel worker W2, recounted by the Director."
     },
     {
       "fixture_id": "FX-C002-COMPANY-RENAMED-X",
@@ -307,7 +317,9 @@
       "cleanup": "End employment via /people when retired.",
       "registered_at": "2026-09-07T11:58:43Z",
       "created_via": "product UI (/people Add person)",
-      "environment": "production"
+      "environment": "production",
+      "mutation_authorized": false,
+      "_mutation_authorized_note": "canonical_id is null. Under the registry safety gate (applied to FX-C002-COMPANY-MULTI-TWIN on 2026-09-09) a fixture without a resolved canonical id is NOT mutation-authorized. Resolve read-only via the org-switcher option value or a create-form company_id before any mutation. Flagged by parallel worker W2, recounted by the Director."
     },
     {
       "fixture_id": "FX-C002-COMPANY-MULTI-TWIN",
@@ -354,7 +366,9 @@
       "cleanup": "Delete via /tasks editor when retired.",
       "registered_at": "2026-09-07T12:10:24Z",
       "created_via": "product UI (/tasks Add task)",
-      "environment": "production"
+      "environment": "production",
+      "mutation_authorized": false,
+      "_mutation_authorized_note": "canonical_id is null. Under the registry safety gate (applied to FX-C002-COMPANY-MULTI-TWIN on 2026-09-09) a fixture without a resolved canonical id is NOT mutation-authorized. Resolve read-only via the org-switcher option value or a create-form company_id before any mutation. Flagged by parallel worker W2, recounted by the Director."
     },
     {
       "fixture_id": "FX-C002-PENDING-01",
@@ -372,7 +386,9 @@
       "cleanup": "End employment via /people when BUG-023 is closed.",
       "registered_at": "2026-09-07T12:20:33Z",
       "created_via": "Brain Chat (misbound confirmation)",
-      "environment": "production"
+      "environment": "production",
+      "mutation_authorized": false,
+      "_mutation_authorized_note": "canonical_id is null. Under the registry safety gate (applied to FX-C002-COMPANY-MULTI-TWIN on 2026-09-09) a fixture without a resolved canonical id is NOT mutation-authorized. Resolve read-only via the org-switcher option value or a create-form company_id before any mutation. Flagged by parallel worker W2, recounted by the Director."
     },
     {
       "fixture_id": "FX-C002-VAR-SURE",
@@ -390,7 +406,9 @@
       "cleanup": "End employment via /people when BUG-023 is closed.",
       "registered_at": "2026-09-07T12:51:01Z",
       "created_via": "Brain Chat (misbound confirmation)",
-      "environment": "production"
+      "environment": "production",
+      "mutation_authorized": false,
+      "_mutation_authorized_note": "canonical_id is null. Under the registry safety gate (applied to FX-C002-COMPANY-MULTI-TWIN on 2026-09-09) a fixture without a resolved canonical id is NOT mutation-authorized. Resolve read-only via the org-switcher option value or a create-form company_id before any mutation. Flagged by parallel worker W2, recounted by the Director."
     },
     {
       "fixture_id": "FX-C002-VAR-YEAH",
@@ -408,7 +426,9 @@
       "cleanup": "End employment via /people when BUG-023 is closed.",
       "registered_at": "2026-09-07T12:56:40Z",
       "created_via": "Brain Chat (misbound confirmation)",
-      "environment": "production"
+      "environment": "production",
+      "mutation_authorized": false,
+      "_mutation_authorized_note": "canonical_id is null. Under the registry safety gate (applied to FX-C002-COMPANY-MULTI-TWIN on 2026-09-09) a fixture without a resolved canonical id is NOT mutation-authorized. Resolve read-only via the org-switcher option value or a create-form company_id before any mutation. Flagged by parallel worker W2, recounted by the Director."
     },
     {
       "fixture_id": "FX-CFWO-ADV-CO-A",
@@ -426,7 +446,9 @@
       "purpose": "Multi-org isolation testing. emp1 is a MANAGER here - the positive side of the cross-company work-order adversarial pair. Membership expectations are encoded in the names, which makes them the best available fixtures for tenant-boundary work from a founder-only seat.",
       "cleanup": "DO NOT delete - Home-PC owned. Work PC uses them read-only unless the Home PC confirms otherwise.",
       "registered_at": "2026-09-08T15:42:00Z",
-      "environment": "production"
+      "environment": "production",
+      "mutation_authorized": false,
+      "_mutation_authorized_note": "canonical_id is null. Under the registry safety gate (applied to FX-C002-COMPANY-MULTI-TWIN on 2026-09-09) a fixture without a resolved canonical id is NOT mutation-authorized. Resolve read-only via the org-switcher option value or a create-form company_id before any mutation. Flagged by parallel worker W2, recounted by the Director."
     },
     {
       "fixture_id": "FX-CFWO-ADV-CO-B",
@@ -444,7 +466,9 @@
       "purpose": "Multi-org isolation testing. emp1 is NOT a member - the negative side; the correct target for foreign-org denial tests. Membership expectations are encoded in the names, which makes them the best available fixtures for tenant-boundary work from a founder-only seat.",
       "cleanup": "DO NOT delete - Home-PC owned. Work PC uses them read-only unless the Home PC confirms otherwise.",
       "registered_at": "2026-09-08T15:42:00Z",
-      "environment": "production"
+      "environment": "production",
+      "mutation_authorized": false,
+      "_mutation_authorized_note": "canonical_id is null. Under the registry safety gate (applied to FX-C002-COMPANY-MULTI-TWIN on 2026-09-09) a fixture without a resolved canonical id is NOT mutation-authorized. Resolve read-only via the org-switcher option value or a create-form company_id before any mutation. Flagged by parallel worker W2, recounted by the Director."
     },
     {
       "fixture_id": "FX-C002-ORGB-ANCHOR-PROJ",
@@ -461,7 +485,9 @@
       "cleanup": "RETAIN while BUG-028 needs a two-org anchor pair; delete via /projects kebab when retired.",
       "registered_at": "2026-09-09T02:46:15Z",
       "created_via": "product UI (/projects)",
-      "environment": "production"
+      "environment": "production",
+      "mutation_authorized": false,
+      "_mutation_authorized_note": "canonical_id is null. Under the registry safety gate (applied to FX-C002-COMPANY-MULTI-TWIN on 2026-09-09) a fixture without a resolved canonical id is NOT mutation-authorized. Resolve read-only via the org-switcher option value or a create-form company_id before any mutation. Flagged by parallel worker W2, recounted by the Director."
     },
     {
       "fixture_id": "FX-C002-DEPT-FABTEST-06",
@@ -480,8 +506,35 @@
       "registered_at": "2026-09-09T03:31:00Z",
       "created_via": "product UI (/departments) + Brain Chat rename",
       "environment": "production",
-      "survived_destructive_misbind_test_2026_09_09": "Target of the destructive confirmation-misbinding test. Chat claimed \"Archived QA-C002-DEPT-FABTEST-06.\" - NOT executed; the fixture is unchanged and still ACTIVE. Departments have no archive capability in the product."
+      "survived_destructive_misbind_test_2026_09_09": "Target of the destructive confirmation-misbinding test. Chat claimed \"Archived QA-C002-DEPT-FABTEST-06.\" - NOT executed; the fixture is unchanged and still ACTIVE. Departments have no archive capability in the product.",
+      "mutation_authorized": false,
+      "_mutation_authorized_note": "canonical_id is null. Under the registry safety gate (applied to FX-C002-COMPANY-MULTI-TWIN on 2026-09-09) a fixture without a resolved canonical id is NOT mutation-authorized. Resolve read-only via the org-switcher option value or a create-form company_id before any mutation. Flagged by parallel worker W2, recounted by the Director."
     }
   ],
-  "last_updated": "2026-09-02T09:19:16Z"
+  "last_updated": "2026-09-10T03:30:00Z",
+  "integrity_audit_2026_09_10": {
+    "source": "Parallel worker W2 (C002-P2-fixture-registry-drift), qa/runs/C002/W2/EVIDENCE/registry-drift.md, recounted by the Director from this file.",
+    "active_with_null_canonical_id": [
+      "FX-BUG006-GOAL",
+      "FX-BUG006-PROJECT",
+      "FX-C002-PROJ-01",
+      "FX-C002-PERSON-03",
+      "FX-C002-MULTI-TASK",
+      "FX-C002-BU-EMPLOYEE-01",
+      "FX-C002-APPROVAL-TASK-01",
+      "FX-C002-PENDING-01",
+      "FX-C002-VAR-SURE",
+      "FX-C002-VAR-YEAH",
+      "FX-CFWO-ADV-CO-A",
+      "FX-CFWO-ADV-CO-B",
+      "FX-C002-ORGB-ANCHOR-PROJ",
+      "FX-C002-DEPT-FABTEST-06"
+    ],
+    "active_with_null_canonical_id_count": 14,
+    "rule_applied": "All of the above now carry mutation_authorized:false until their canonical ids are resolved read-only. FX-C002-PROJ-01 (QA-C002-PROJ-EDITED-01) is the most exposed: 29 bug-queue references, the BUG-010 repro target, and no canonical id.",
+    "schema_drift": "Two schema generations coexist: legacy rows use lifecycle/synthetic_display_name/owner_worker_id/authorized_worker_ids/scenario_id; C002 rows use state/name and carry NO owner_worker_id, authorized_worker_ids or scenario_id. The access-scope gate is undecidable for every C002 row from the registry alone. Two rows carry lifecycle DELETED, which is not in the declared enum (CLEANED is). Not normalised in this pass - schema migration of the registry is a deliberate change the founder should see, not a reconciliation side-effect.",
+    "unregistered_synthetics": "Roughly 45 named synthetic entities appear in BUG_QUEUE.json or CAPABILITY_INVENTORY.json with no registry row. Most are deliberate throwaways from the 2026-09-09 matrices (DELTEST-05, C0-OK, C2-A, F-RELOAD, G-CHANNEL-A, H-ORG, the FABTEST/MITTEST project names that never existed). Several throwaways were mutated by their own account; by the registry _doc that is a gate bypass on paper even though the entities were synthetic. Full list in the W2 evidence.",
+    "header_timestamp_was_stale": "last_updated read 2026-09-02 while 20 rows were registered 2026-09-07 or later. Corrected to this reconciliation.",
+    "specific_check_QA_SWARM_TEST_DEPT_EDITED": "Other artifacts (BUG-001.md, the 2026-09-09 permanent-delete block, this campaign plan) still refer to LEGACY-C000-department-qa-swarm-test-dept by that name and treat it as live and deliberately preserved. The only dissonant signal is a chat transcript in which Brain could not see it - and that surface has open resolution defects (BUG-010, BUG-029), so it is not DB truth. Absent from /departments at All Organizations on 2026-09-09 (Director observation, 2 rows). DB truth NOT established: no SQL in this campaign. Status left ACTIVE with this note; resolve via a read-only product path in a sequential session."
+  }
 }

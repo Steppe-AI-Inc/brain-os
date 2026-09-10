@@ -29,7 +29,7 @@
   "deployed_product_sha": "256f183cf44b03ec5c4ce9461bbdffe66d5101e4",
   "last_tested_deployed_sha": null,
   "qa_artifact_sha": "1239b920dd60685651f0f3c161f334b1d5896f9f",
-  "last_heartbeat": "2026-09-02T11:25:12Z",
+  "last_heartbeat": "2026-09-10T03:07:36Z",
   "last_director_start": "2026-09-02T11:24:48Z",
   "last_successful_checkpoint": null,
   "next_action": "No supervisor process running. The 2026-09-02 PAUSED_RESOURCE_LIMIT was a Claude session-usage limit (since reset). Start with: node qa/runner/supervisor.mjs (or the auto-start task once the founder installs it).",
@@ -63,5 +63,45 @@
   "qa_director_browser_available": null,
   "qa_director_tool_count": 51,
   "qa_director_idle_ms": null,
-  "qa_director_elapsed_ms": null
+  "qa_director_elapsed_ms": null,
+  "qa_orchestrator_pid": 21240,
+  "active_worker_count": 0,
+  "max_worker_count": 1,
+  "workers": [
+    {
+      "worker_id": "W1",
+      "pid": null,
+      "lane": "W1_AI_TRUTH",
+      "state": "CRASHED",
+      "current_scenario": "C002-P1-cluster-consolidation",
+      "heartbeat": "2026-09-10T03:03:36Z",
+      "browser_available": true,
+      "fixture_namespace": "readonly/W1",
+      "cost_usd": 2.4302502500000003
+    },
+    {
+      "worker_id": "W2",
+      "pid": null,
+      "lane": "W2_TENANCY",
+      "state": "CRASHED",
+      "current_scenario": "C002-P2-fixture-registry-drift",
+      "heartbeat": "2026-09-10T03:02:20Z",
+      "browser_available": true,
+      "fixture_namespace": "readonly/W2",
+      "cost_usd": 2.034982
+    },
+    {
+      "worker_id": "W3",
+      "pid": null,
+      "lane": "W3_WEB_PRODUCT",
+      "state": "COMPLETE",
+      "current_scenario": "C002-P3-regression-artifact-integrity",
+      "heartbeat": "2026-09-10T03:07:24Z",
+      "browser_available": true,
+      "fixture_namespace": "readonly/W3",
+      "cost_usd": 0.7150007500000001
+    }
+  ],
+  "browser_isolation_proven": false,
+  "browser_isolation_reason": "AUTHENTICATED_ISOLATION_NOT_ACHIEVABLE"
 }

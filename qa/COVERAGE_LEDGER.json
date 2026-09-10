@@ -1,6 +1,6 @@
 {
   "_doc": "COMPUTED, never hand-edited. Regenerate with `node qa/runner/compute-coverage.mjs`. Numbers here are a mechanical function of CAPABILITY_INVENTORY.json - that is the whole point: it makes 'is the sweep complete?' an arithmetic question rather than an opinion.",
-  "generated_at": "2026-09-09T13:49:19Z",
+  "generated_at": "2026-09-10T03:10:06Z",
   "generator": "qa/runner/compute-coverage.mjs",
   "product_commit_under_test": null,
   "build_identity": {

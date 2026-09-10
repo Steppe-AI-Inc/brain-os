@@ -1,0 +1,1 @@
+{"worker_id":"W2","campaign_id":"C002","scenario_id":"C002-P2-fixture-registry-drift","capability_id":"CAP-FIXTURE-REGISTRY-INTEGRITY","phase":"reading_registry","started_at":"2026-09-10T11:00:00Z","last_update":"2026-09-10T11:00:00Z","notes":"read-only audit; no mutations"}

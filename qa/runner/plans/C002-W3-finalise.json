@@ -1,0 +1,18 @@
+{
+  "_doc": "Checkpoint-resume finalisation for W3 after the first pilot was budget-capped mid-write. Proves acceptance criterion 8 (restart resumes checkpoint) and the end-to-end RESULT.json path on a real worker. Read-only, non-browser.",
+  "campaign_id": "C002",
+  "items": [
+    {
+      "worker_id": "W3",
+      "lane": "W3_WEB_PRODUCT",
+      "scenario_id": "C002-P3-regression-artifact-integrity",
+      "capabilities": ["CAP-REGRESSION-ARTIFACT-INTEGRITY"],
+      "requires_browser": false,
+      "mutates": false,
+      "fixtures": [],
+      "fixture_namespace": "readonly/W3",
+      "max_budget_usd": 4,
+      "directive": "RESUME FROM CHECKPOINT. READ-ONLY, no browser, no production, no mutation.\n\nA previous run of you was cut off by budget after completing the audit. Your own prior work is in your run directory: CHECKPOINT.json and EVIDENCE/regression-integrity.md. Read both FIRST. Do NOT redo the audit from scratch.\n\nYour only remaining job: (1) verify EVIDENCE/regression-integrity.md is complete against CHECKPOINT.json steps_remaining; (2) if any step is genuinely unfinished, finish ONLY that step and append to the evidence file; (3) write the final RESULT.json with verdict PASS (audit complete, evidence-backed) and an evidence block that cites the specific findings - closure chain broken for BUG-001/003/006/ANON-INVESTOR-RLS-HELPER, 13 orphan files, 2 assertion-less regressions. Cite counts from your own evidence file. Do not invent new findings. Finish quickly."
+    }
+  ]
+}

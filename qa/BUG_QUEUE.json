@@ -1,7 +1,7 @@
 {
   "_doc": "Single machine-readable source of truth for QA-discovered defects. OWNED AND WRITTEN EXCLUSIVELY BY THE WORK-PC FABLE QA DIRECTOR. The Home PC never writes to this file - it publishes fix reports to qa/home-pc-handoff/fixes/<BUG_ID>.json instead, and the Work PC reads those and updates this queue itself. This preserves a single writer and keeps bug-closure authority with independent QA.",
   "schema_version": 1,
-  "last_updated": "2026-09-09T13:48:00Z",
+  "last_updated": "2026-09-10T03:30:00Z",
   "updated_by": "work-pc-independent-qa (session 014TswfT)",
   "status_values": [
     "OPEN",
@@ -29,17 +29,17 @@
   "counts": {
     "open_p0": 1,
     "open_p1": 15,
-    "open_p2": 13,
+    "open_p2": 15,
     "open_p3": 6,
-    "total_open": 35,
-    "total_closed": 5
+    "total_open": 37,
+    "total_closed": 3
   },
   "bugs": [
     {
       "bug_id": "BUG-001",
       "title": "/departments presents departments of ARCHIVED companies as active, unmarked - contradicting the same page's own company picker",
       "severity": "P2",
-      "status": "CLOSED",
+      "status": "REOPENED",
       "discovered_by": "fable-qa-director:C001:W1-org",
       "discovered_at": "2026-08-31T09:12:00Z",
       "reproduced_at": "2026-08-31T10:31:12Z",
@@ -108,6 +108,16 @@
         "evidence": "/departments at 11:32Z and 11:57Z: the only department of an archived company is rendered as \"QA-SWARM-DEPT-ARCHIVED-PARENT-TEST | QA-SWARM-TEST-CO-VIA-CHAT Archived\" (marked), and the registered department under the archived company was not presented as active/unmarked. Consistent with the BUG-001 closure on /departments.",
         "caveat": "qa/scenarios-runner/departments_hide_or_mark_archived_parent.sql was NOT re-executed from this seat (no DB session). A DB-capable director should re-run it; if it still reports contradiction_present=true, REOPEN.",
         "remainder": "The 23-surface remainder of the class is BUG-006 (open) - this flip covers /departments only."
+      },
+      "reopened_at": "2026-09-10T03:30:00Z",
+      "reopened_by": "work-pc-qa-director (parallel pilot reconciliation)",
+      "closure_chain_audit_2026_09_10": {
+        "source": "Parallel worker W3 (C002-P3-regression-artifact-integrity), EVIDENCE/regression-integrity.md. Re-verified by the Director directly against BUG_QUEUE.json before this change - the worker result is evidence, this field is the verdict.",
+        "finding": "CLOSED with regression_state EXPECTED_PASS while regression_last_result.all_pass is FALSE. The 2026-09-07 reconciliation closed this bug on the BROWSER axis only and explicitly recorded that the SQL regression \"was NOT re-executed ... if it still reports contradiction_present=true, REOPEN\". The recorded SQL result still reports failure. A CLOSED bug whose only executable regression last reported FAIL contradicts CLAUDE.md sections 12 and 27.",
+        "what_stands": "The browser-axis evidence from 2026-09-07 is NOT withdrawn. The reopen is scoped to the SQL regression axis, which was never reconciled.",
+        "what_this_needs": "The SQL regression must be RE-EXECUTED and observed passing before the bug can close again. Work PC will NOT run it: production SQL is prohibited for this campaign by founder instruction (2026-09-09 safety block). Home PC re-executes it against the deployed build, or the founder authorises a rollback-wrapped read via qa/runner/run-sql-regressions.mjs.",
+        "why_reopen_rather_than_flag": "Under the closure rule a bug is done only when its regression suite passes. Leaving it CLOSED with a recorded failing regression is the flattering-ledger error the coverage script exists to prevent. Reopening costs nothing if the SQL passes; leaving it closed costs trust if it does not.",
+        "build": "EDGE v94 (v92 source) / WEB SHA UNKNOWN"
       }
     },
     {
@@ -225,7 +235,7 @@
       "bug_id": "BUG-003",
       "title": "Dashboard \"Companies\" KPI counts archived companies - 18 shown vs 8 actually active (125% overstatement)",
       "severity": "P2",
-      "status": "CLOSED",
+      "status": "REOPENED",
       "discovered_by": "fable-qa-director:C001:W1-org",
       "discovered_at": "2026-08-31T11:40:00Z",
       "campaign_id": "C001",
@@ -273,6 +283,16 @@
         "axis": "browser (product layer)",
         "evidence": "Dashboard \"Active Companies\" tracked the archive/restore of QA-SWARM-TEST-CO-VIA-CHAT exactly: 11 (11:13Z) -> 10 after archive (11:13:59Z, 11:17Z) -> 11 after UI restore (12:00:59Z), while 9-10 archived companies existed on /companies/archived. Archived companies are not counted.",
         "caveat": "qa/scenarios-runner/dashboard_company_count_excludes_archived.sql was NOT re-executed from this seat. Re-run with a DB session to close the SQL axis."
+      },
+      "reopened_at": "2026-09-10T03:30:00Z",
+      "reopened_by": "work-pc-qa-director (parallel pilot reconciliation)",
+      "closure_chain_audit_2026_09_10": {
+        "source": "Parallel worker W3 (C002-P3-regression-artifact-integrity), EVIDENCE/regression-integrity.md. Re-verified by the Director directly against BUG_QUEUE.json before this change - the worker result is evidence, this field is the verdict.",
+        "finding": "CLOSED with regression_state EXPECTED_PASS while regression_last_result.all_pass is FALSE. The 2026-09-07 reconciliation closed this bug on the BROWSER axis only and explicitly recorded that the SQL regression \"was NOT re-executed ... if it still reports contradiction_present=true, REOPEN\". The recorded SQL result still reports failure. A CLOSED bug whose only executable regression last reported FAIL contradicts CLAUDE.md sections 12 and 27.",
+        "what_stands": "The browser-axis evidence from 2026-09-07 is NOT withdrawn. The reopen is scoped to the SQL regression axis, which was never reconciled.",
+        "what_this_needs": "The SQL regression must be RE-EXECUTED and observed passing before the bug can close again. Work PC will NOT run it: production SQL is prohibited for this campaign by founder instruction (2026-09-09 safety block). Home PC re-executes it against the deployed build, or the founder authorises a rollback-wrapped read via qa/runner/run-sql-regressions.mjs.",
+        "why_reopen_rather_than_flag": "Under the closure rule a bug is done only when its regression suite passes. Leaving it CLOSED with a recorded failing regression is the flattering-ledger error the coverage script exists to prevent. Reopening costs nothing if the SQL passes; leaving it closed costs trust if it does not.",
+        "build": "EDGE v94 (v92 source) / WEB SHA UNKNOWN"
       }
     },
     {
@@ -773,7 +793,14 @@
         "probes_not_run": "P1-P6 were NOT run. The probes are the entire point of the 50-turn design and they require a working chat. Running them against a dead service would produce meaningless results, so they are deferred rather than attempted.",
         "TOKEN_MEASUREMENT_WORTH_KEEPING": "A real measurement survived the halt. Per-request token usage was FLAT across the run: 42,218 at T01, 42,367 at T05, 42,530 at T10, 42,504 at T20. It did not grow with conversation length. That is consistent with a FIXED, CAPPED context window - history beyond the cap is not being sent - and it is independent evidence for the truncation boundary that dimension A inferred from renumbering. Recorded because it is a measurement rather than an inference, and because the founder asked that the window be measured from observable answers rather than assumed.",
         "what_still_needs_running": "The full 50-turn run with probes P1-P6, once chat is healthy. The dimension A finding (WINDOW_RELATIVE_RENUMBERING) has NOT yet been retested at depth, and the questions posed - whether off-by-N scales exactly with omitted turns, whether truncation boundaries are stable, whether default honesty degrades with depth - remain OPEN."
-      }
+      },
+      "regression_path": "qa/scenarios-runner/bug005_destructive_substitute_requires_explicit_target.md",
+      "regression_paths": [
+        "qa/scenarios-runner/bug005_destructive_substitute_requires_explicit_target.md",
+        "qa/scenarios-runner/issue5_channel_state_layer_probe.sql"
+      ],
+      "regression_state": "EXPECTED_FAIL",
+      "regression_path_set_2026_09_10": "Set by the Director after parallel worker W3 found the parent Issue #5 record carried a 10-item regression_paths_required list but no regression_path or regression_state at all - so the two BUG-005 artifacts on disk were orphans referenced only in prose. EXPECTED_FAIL because dimension C2 (BUG-033) and the destructive misbinding are still open."
     },
     {
       "bug_id": "ANON-INVESTOR-RLS-HELPER",
@@ -793,7 +820,12 @@
       "closed_by": "fable-qa-director:C002 (independent Work-PC retest)",
       "closed_at": "2026-09-01T06:07:22Z",
       "closure_evidence": "Work PC independently re-ran is_investor_viewer_of_anon_grant_fix.sql against production: grant_is_live_in_production=true, rls_helper_callable_by_anon_and_returns_false=true, zero_protected_rows_exposed=true, anon_investor_helper_grant_does_not_expose_investor_data=true, and all five tables (companies/goals/financial_reports/documents/memories) query without crashing for anon.",
-      "_qa_boundary": "QA did not implement this fix."
+      "_qa_boundary": "QA did not implement this fix.",
+      "closure_chain_audit_2026_09_10": {
+        "source": "Parallel worker W3, re-verified by the Director: `git log --all -- \"*is_investor_viewer_of_anon_grant_fix*\"` shows commits a0d12e2 and 8f9ae98 touched a file by that name, but no such file exists at that path on any current branch head.",
+        "finding": "closure_evidence cites a guard file that no longer exists in the tree. Closure verified at the time (a0d12e2 \"LIVE VERIFIED\"); the guard artifact was subsequently moved or removed.",
+        "status_effect": "REMAINS CLOSED. Requires either restoring the guard under qa/scenarios-runner/ with a regression_path, or recording that the guard is intentionally retired and why."
+      }
     },
     {
       "bug_id": "BUG-006",
@@ -839,7 +871,13 @@
         "scope_statement": "Live pixel proof covers tasks, goals, projects (this retest) plus departments and people (BUG-001 closure). The remaining join sites are source-and-guard verified, not individually pixel-verified. Closure is on the defect class as filed: no bare companies(name) join remains, and every high-value surface renders the archived marker."
       },
       "regression_state": "EXPECTED_PASS",
-      "work_pc_evidence_2026_09_07": "Goal DETAIL page /goals/6b85d2c2-... renders parent company \"QA-VERIFY-BU\" with no Archived marker, while /goals list, /people and /projects do mark it. One more concrete surface for the remainder class; verified live on the current deployment."
+      "work_pc_evidence_2026_09_07": "Goal DETAIL page /goals/6b85d2c2-... renders parent company \"QA-VERIFY-BU\" with no Archived marker, while /goals list, /people and /projects do mark it. One more concrete surface for the remainder class; verified live on the current deployment.",
+      "closure_chain_audit_2026_09_10": {
+        "source": "Parallel worker W3, re-verified by the Director with git cat-file: qa/scenarios-runner/company_ref_no_bare_name_join.mjs is ABSENT from qa/work-pc HEAD and PRESENT on origin/master.",
+        "finding": "closure_evidence cites this file as the drift guard the Work PC ran independently (8/8 pass). The QA branch cannot execute a guard it does not contain, and the bug has no regression_path pointing at it.",
+        "status_effect": "REMAINS CLOSED. The closure was independently verified at the time and the guard exists on master; this is a branch-hygiene gap in the QA branch, not evidence the fix regressed.",
+        "required_action": "Bring the guard onto qa/work-pc (cherry-pick or merge from master) and set regression_path to it, so the closure is executable from the branch that owns QA truth. Director did NOT cherry-pick during this reconciliation: merging implementation-branch files into the QA branch is a branch-ownership decision, recorded for the founder."
+      }
     },
     {
       "bug_id": "BUG-007",
@@ -2076,5 +2114,37 @@
       "url": "https://brain.open-spot.ai/chat?channel=d1a53ec6-c195-4e35-940a-325a74e4f350",
       "why_not_a_bug": "Single transient occurrence, self-recovered on retry, no data loss observed. Recorded rather than filed because one non-reproducible 500 is not a defect report - but React #441 on a server-rendered chat route is worth Home PC knowing if it recurs."
     }
-  ]
+  ],
+  "parallel_pilot_reconciliation_2026_09_10": {
+    "_doc": "Director reconciliation of the first real parallel campaign. Worker files under qa/runs/C002/W{1,2,3}/ are EVIDENCE; the changes recorded here are the VERDICTS. Single-writer invariant held: no worker modified any canonical file (verified by mtime audit in the acceptance harness and by git status).",
+    "workers": {
+      "W1_AI_TRUTH": {
+        "scenario": "C002-P1-cluster-consolidation",
+        "outcome": "EVIDENCE_WITHOUT_VERDICT_BUDGET_EXHAUSTED",
+        "cost_usd": 2.43,
+        "evidence": "qa/runs/C002/W1/EVIDENCE/cluster-analysis.md (157 lines)",
+        "director_acceptance": "ACCEPTED AS ANALYSIS. Budget-capped one step before RESULT.json; the evidence file is complete and self-caveated. Its six-fix decomposition is adopted into HANDOFF_STATE (see home_pc_priority_cluster). Not re-run: a re-run would only add a verdict wrapper to an already complete analysis."
+      },
+      "W2_TENANCY": {
+        "scenario": "C002-P2-fixture-registry-drift",
+        "outcome": "EVIDENCE_WITHOUT_VERDICT_BUDGET_EXHAUSTED",
+        "cost_usd": 2.03,
+        "evidence": "qa/runs/C002/W2/EVIDENCE/registry-drift.md + audit_registry.py + forward_refs.json",
+        "director_acceptance": "ACCEPTED WITH ONE CORRECTION. The worker wrote \"13 ACTIVE with canonical_id null\" in prose but listed 14 names; the Director recounted directly from FIXTURE_REGISTRY.json: 14. Registry updated accordingly."
+      },
+      "W3_WEB_PRODUCT": {
+        "scenario": "C002-P3-regression-artifact-integrity",
+        "outcome": "first run EVIDENCE_WITHOUT_VERDICT_BUDGET_EXHAUSTED (cost 2.23); checkpoint-resume finalisation run -> PASS",
+        "evidence": "qa/runs/C002/W3/EVIDENCE/regression-integrity.md + RESULT.json",
+        "director_acceptance": "ACCEPTED. Every closure-chain claim was independently re-verified by the Director against git and the queue before any status changed (BUG-006 guard on origin/master only; BUG-001/003 last_all_pass=false). This is also the end-to-end proof of checkpoint-resume on a real worker."
+      }
+    },
+    "platform_defects_found_by_the_pilot_and_fixed": [
+      "orchestrator classified error_max_budget_usd as CRASHED; now CAPACITY_BLOCKED with capacity_reason BUDGET_EXHAUSTED, same family as a provider limit.",
+      "reconciler reported bare NO_RESULT_FILE for workers that had produced complete evidence and been cut off; now EVIDENCE_WITHOUT_VERDICT_<reason> with the evidence file list, and provisional results are excluded from verdict grouping.",
+      "worker prompt now requires a provisional RESULT.json as the first action and incremental evidence writes, so a budget cut leaves a truthful partial instead of silence.",
+      "Director self-caused: rm -rf qa/runs/C002 before the pilot deleted the tracked file persona-matrix-2026-09-07.json; restored from git before commit."
+    ],
+    "budget_calibration": "Read-only repository audits of this size cost 2.0 to 2.4 USD each on Fable and were cut at the 2 USD cap. Set pilot budgets at 6 USD for audit-class work. Recorded as a calibration fact, not a platform defect."
+  }
 }

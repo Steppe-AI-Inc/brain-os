@@ -1,0 +1,362 @@
+files scanned: 186
+
+=== FORWARD: per-fixture references (registry -> artifacts) ===
+
+## LEGACY-C000-company-qa-swarm-test-co  lifecycle=ACTIVE state=None canonical=7ba01ff2-6404-4c06-8bc5-4449b50df5de
+  fixture_id='LEGACY-C000-company-qa-swarm-test-co': INVENTORY=0 BUG_QUEUE=0 other_files=1 [('HANDOFF_STATE.json', 1)]
+  synthetic_display_name='QA-SWARM-TEST-CO-VIA-CHAT': INVENTORY=22 BUG_QUEUE=32 other_files=14 [('BUG010_FABRICATION_PERSISTENCE_MATRIX.md', 1), ('FINAL_WORK_PC_QA_HANDOFF_2026-09-01.md', 5), ('HANDOFF_STATE.json', 2), ('IMPLEMENTATION_HANDOFF.md', 1), ('WORK_PC_HANDOVER_2026-09-07.md', 2), ('bugs/BUG-001.md', 4), ('home-pc-handoff/README.md', 2), ('scenarios-runner/bug005_destructive_substitute_requires_explicit_target.md', 1)]
+  canonical_id='7ba01ff2-6404-4c06-8bc5-4449b50df5de': INVENTORY=5 BUG_QUEUE=5 other_files=3 [('WORK_PC_HANDOVER_2026-09-07.md', 1), ('bugs/BUG-001.md', 1), ('home-pc-handoff/fixes/BUG-014.json', 1)]
+
+## LEGACY-C000-department-qa-swarm-test-dept  lifecycle=ACTIVE state=None canonical=9573a957-eebd-4552-b28a-b8ed2a9de37a
+  fixture_id='LEGACY-C000-department-qa-swarm-test-dept': INVENTORY=0 BUG_QUEUE=0 other_files=1 [('runner/plans/C002-parallel-pilot.json', 1)]
+  synthetic_display_name='QA-SWARM-TEST-DEPT-EDITED': INVENTORY=2 BUG_QUEUE=1 other_files=3 [('BUG010_FABRICATION_PERSISTENCE_MATRIX.md', 1), ('bugs/BUG-001.md', 3), ('runner/plans/C002-parallel-pilot.json', 1)]
+  canonical_id='9573a957-eebd-4552-b28a-b8ed2a9de37a': INVENTORY=0 BUG_QUEUE=1 other_files=1 [('bugs/BUG-001.md', 1)]
+
+## C001-W2-person-001  lifecycle=ACTIVE state=None canonical=37d03420-96c7-426a-811e-6edf0e14813f
+  fixture_id='C001-W2-person-001': INVENTORY=0 BUG_QUEUE=0 other_files=0 []
+  synthetic_display_name='QA-SWARM-PERSON-001-EDITED': INVENTORY=9 BUG_QUEUE=8 other_files=1 [('WORK_PC_HANDOVER_2026-09-07.md', 1)]
+  canonical_id='37d03420-96c7-426a-811e-6edf0e14813f': INVENTORY=2 BUG_QUEUE=3 other_files=0 []
+
+## C001-W3-task-001  lifecycle=ACTIVE state=None canonical=b6ac01d7-0dfe-4d30-bc09-2cc99b343234
+  fixture_id='C001-W3-task-001': INVENTORY=0 BUG_QUEUE=0 other_files=0 []
+  synthetic_display_name='QA-SWARM-TASK-001-EDITED': INVENTORY=1 BUG_QUEUE=3 other_files=0 []
+  canonical_id='b6ac01d7-0dfe-4d30-bc09-2cc99b343234': INVENTORY=2 BUG_QUEUE=2 other_files=0 []
+
+## FX-BUG006-GOAL  lifecycle=None state=ACTIVE canonical=None
+  fixture_id='FX-BUG006-GOAL': INVENTORY=0 BUG_QUEUE=0 other_files=0 []
+  name='QA-BUG006-GOAL': INVENTORY=2 BUG_QUEUE=2 other_files=0 []
+
+## FX-BUG006-PROJECT  lifecycle=None state=ACTIVE canonical=None
+  fixture_id='FX-BUG006-PROJECT': INVENTORY=0 BUG_QUEUE=0 other_files=0 []
+  name='QA-BUG006-PROJECT': INVENTORY=1 BUG_QUEUE=2 other_files=0 []
+
+## FX-C002-PROJ-01  lifecycle=ACTIVE state=ACTIVE canonical=None
+  fixture_id='FX-C002-PROJ-01': INVENTORY=0 BUG_QUEUE=1 other_files=0 []
+  name='QA-C002-PROJ-EDITED-01': INVENTORY=5 BUG_QUEUE=29 other_files=4 [('BUG010_FABRICATION_PERSISTENCE_MATRIX.md', 12), ('WORK_PC_HANDOVER_2026-09-07.md', 1), ('scenarios-runner/bug010_clarification_branch_grounding.md', 1), ('scenarios-runner/bug030_no_fabricated_grounding_citation.md', 1)]
+
+## FX-C002-PERSON-02  lifecycle=ACTIVE state=ACTIVE canonical=10398be5-0d56-4169-8035-425b294b70cb
+  fixture_id='FX-C002-PERSON-02': INVENTORY=0 BUG_QUEUE=1 other_files=0 []
+  name='QA-C002-MGR-PERSON-02': INVENTORY=14 BUG_QUEUE=10 other_files=1 [('WORK_PC_HANDOVER_2026-09-07.md', 1)]
+  canonical_id='10398be5-0d56-4169-8035-425b294b70cb': INVENTORY=2 BUG_QUEUE=1 other_files=0 []
+
+## FX-C002-PERSON-03  lifecycle=ACTIVE state=ACTIVE canonical=None
+  fixture_id='FX-C002-PERSON-03': INVENTORY=0 BUG_QUEUE=1 other_files=0 []
+  name='QA-C002-MGR-PERSON-03': INVENTORY=5 BUG_QUEUE=6 other_files=1 [('WORK_PC_HANDOVER_2026-09-07.md', 1)]
+
+## FX-C002-COMPANY-MULTI  lifecycle=ACTIVE state=ACTIVE canonical=49ee1875-21b0-4285-bd45-dc1c05f3d987
+  fixture_id='FX-C002-COMPANY-MULTI': INVENTORY=2 BUG_QUEUE=1 other_files=0 []
+  name='QA-MULTI-CO': INVENTORY=34 BUG_QUEUE=44 other_files=6 [('COVERAGE_LEDGER.json', 1), ('KNOWN_FAILURE_MODES.md', 4), ('runner/CAMPAIGN_QUEUE.json', 2), ('scenarios-runner/bug005_destructive_substitute_requires_explicit_target.md', 2), ('scenarios-runner/bug029_resolution_failure_must_not_be_reported_as_nonexistence.md', 1), ('verification/archive/verify-1eda9ce-bugs-11-12-execution-plan-and-context-budget.json', 6)]
+  canonical_id='49ee1875-21b0-4285-bd45-dc1c05f3d987': INVENTORY=1 BUG_QUEUE=3 other_files=0 []
+
+## FX-C002-MULTI-PROJ  lifecycle=DELETED state=DELETED canonical=None
+  fixture_id='FX-C002-MULTI-PROJ': INVENTORY=0 BUG_QUEUE=0 other_files=0 []
+  name='QA-C002-MULTI-PROJ': INVENTORY=6 BUG_QUEUE=0 other_files=0 []
+
+## FX-C002-MULTI-TASK  lifecycle=ACTIVE state=ACTIVE canonical=None
+  fixture_id='FX-C002-MULTI-TASK': INVENTORY=0 BUG_QUEUE=0 other_files=0 []
+  name='QA-C002-MULTI-TASK': INVENTORY=3 BUG_QUEUE=0 other_files=0 []
+
+## FX-C002-COMPANY-RENAMED-X  lifecycle=ACTIVE state=ACTIVE canonical=8fdad6e2-fffb-41bc-af0a-df8cab09110b
+  fixture_id='FX-C002-COMPANY-RENAMED-X': INVENTORY=0 BUG_QUEUE=0 other_files=0 []
+  name='QA-C002-RENAMED-X': INVENTORY=23 BUG_QUEUE=34 other_files=6 [('BUG010_FABRICATION_PERSISTENCE_MATRIX.md', 2), ('COVERAGE_LEDGER.json', 1), ('bugs/BUG-007.md', 1), ('runner/CAMPAIGN_QUEUE.json', 2), ('scenarios-runner/bug029_resolution_failure_must_not_be_reported_as_nonexistence.md', 5), ('scenarios-runner/context_pack_shown_total_pairs.md', 1)]
+  canonical_id='8fdad6e2-fffb-41bc-af0a-df8cab09110b': INVENTORY=0 BUG_QUEUE=4 other_files=1 [('scenarios-runner/bug029_resolution_failure_must_not_be_reported_as_nonexistence.md', 1)]
+
+## FX-C002-DEPT-01  lifecycle=DELETED state=DELETED canonical=None
+  fixture_id='FX-C002-DEPT-01': INVENTORY=1 BUG_QUEUE=0 other_files=0 []
+  name='QA-C002-DEPT-01-RENAMED': INVENTORY=5 BUG_QUEUE=0 other_files=0 []
+
+## FX-C002-BU-EMPLOYEE-01  lifecycle=ACTIVE state=ACTIVE canonical=None
+  fixture_id='FX-C002-BU-EMPLOYEE-01': INVENTORY=0 BUG_QUEUE=0 other_files=0 []
+  name='QA-C002-BU-EMPLOYEE-01': INVENTORY=3 BUG_QUEUE=0 other_files=0 []
+
+## FX-C002-COMPANY-MULTI-TWIN  lifecycle=ACTIVE state=ACTIVE canonical=1628368a-2eef-41cd-8bc7-acfa716db1f1
+  fixture_id='FX-C002-COMPANY-MULTI-TWIN': INVENTORY=0 BUG_QUEUE=1 other_files=0 []
+  name='QA-MULTI-CO-TWIN': INVENTORY=5 BUG_QUEUE=22 other_files=3 [('runner/CAMPAIGN_QUEUE.json', 1), ('scenarios-runner/bug005_destructive_substitute_requires_explicit_target.md', 2), ('scenarios-runner/bug029_resolution_failure_must_not_be_reported_as_nonexistence.md', 1)]
+  canonical_id='1628368a-2eef-41cd-8bc7-acfa716db1f1': INVENTORY=0 BUG_QUEUE=1 other_files=0 []
+
+## FX-C002-APPROVAL-TASK-01  lifecycle=ACTIVE state=ACTIVE canonical=None
+  fixture_id='FX-C002-APPROVAL-TASK-01': INVENTORY=0 BUG_QUEUE=0 other_files=0 []
+  name='QA-C002-APPROVAL-TASK-01': INVENTORY=1 BUG_QUEUE=1 other_files=1 [('COVERAGE_LEDGER.json', 1)]
+
+## FX-C002-PENDING-01  lifecycle=ACTIVE state=ACTIVE canonical=None
+  fixture_id='FX-C002-PENDING-01': INVENTORY=0 BUG_QUEUE=1 other_files=0 []
+  name='QA-C002-PENDING-01': INVENTORY=1 BUG_QUEUE=8 other_files=2 [('WORK_PC_HANDOVER_2026-09-07.md', 1), ('runner/CAMPAIGN_QUEUE.json', 1)]
+
+## FX-C002-VAR-SURE  lifecycle=ACTIVE state=ACTIVE canonical=None
+  fixture_id='FX-C002-VAR-SURE': INVENTORY=0 BUG_QUEUE=0 other_files=0 []
+  name='QA-C002-VAR-SURE': INVENTORY=3 BUG_QUEUE=0 other_files=0 []
+
+## FX-C002-VAR-YEAH  lifecycle=ACTIVE state=ACTIVE canonical=None
+  fixture_id='FX-C002-VAR-YEAH': INVENTORY=0 BUG_QUEUE=0 other_files=0 []
+  name='QA-C002-VAR-YEAH': INVENTORY=2 BUG_QUEUE=0 other_files=0 []
+
+## FX-CFWO-ADV-CO-A  lifecycle=ACTIVE state=ACTIVE canonical=None
+  fixture_id='FX-CFWO-ADV-CO-A': INVENTORY=0 BUG_QUEUE=0 other_files=0 []
+  name='CFWO-Adv Co A (emp1=manager)': INVENTORY=0 BUG_QUEUE=1 other_files=0 []
+
+## FX-CFWO-ADV-CO-B  lifecycle=ACTIVE state=ACTIVE canonical=None
+  fixture_id='FX-CFWO-ADV-CO-B': INVENTORY=0 BUG_QUEUE=0 other_files=0 []
+  name='CFWO-Adv Co B (emp1 NOT a member)': INVENTORY=0 BUG_QUEUE=3 other_files=0 []
+
+## FX-C002-ORGB-ANCHOR-PROJ  lifecycle=ACTIVE state=ACTIVE canonical=None
+  fixture_id='FX-C002-ORGB-ANCHOR-PROJ': INVENTORY=0 BUG_QUEUE=0 other_files=0 []
+  name='QA-ORGB-ANCHOR-PROJ': INVENTORY=0 BUG_QUEUE=3 other_files=0 []
+
+## FX-C002-DEPT-FABTEST-06  lifecycle=ACTIVE state=ACTIVE canonical=None
+  fixture_id='FX-C002-DEPT-FABTEST-06': INVENTORY=0 BUG_QUEUE=1 other_files=0 []
+  name='QA-C002-DEPT-FABTEST-06': INVENTORY=0 BUG_QUEUE=36 other_files=2 [('BUG010_FABRICATION_PERSISTENCE_MATRIX.md', 6), ('scenarios-runner/bug005_destructive_substitute_requires_explicit_target.md', 1)]
+
+=== REVERSE: fixture-looking tokens in INVENTORY / BUG_QUEUE not in registry ===
+
+-- CAPABILITY_INVENTORY.json: fixture-like tokens --
+  'CFWO-Adv Co A' x1  <-- NOT IN REGISTRY
+  'FX-C002-COMPANY-MULTI' x2
+  'FX-C002-DEPT-01' x1
+  'QA-BUG006-GOAL' x2
+  'QA-BUG006-PROJECT' x1
+  'QA-C002' x1  <-- NOT IN REGISTRY
+  'QA-C002-APPROVAL-TASK-01' x1
+  'QA-C002-BU-01' x1  <-- NOT IN REGISTRY
+  'QA-C002-BU-EMPLOYEE-01' x3
+  'QA-C002-CLASSB-TARGET' x1  <-- NOT IN REGISTRY
+  'QA-C002-DEPT-01' x2  <-- NOT IN REGISTRY
+  'QA-C002-DEPT-01-RENAMED' x5
+  'QA-C002-MGR-PERSON-02' x14
+  'QA-C002-MGR-PERSON-03' x5
+  'QA-C002-MULTI-PROJ' x6
+  'QA-C002-MULTI-TASK' x3
+  'QA-C002-PENDING-01' x1
+  'QA-C002-PROJ-CHATRENAME-01' x1  <-- NOT IN REGISTRY
+  'QA-C002-PROJ-CREATE-01' x2  <-- NOT IN REGISTRY
+  'QA-C002-PROJ-EDITED-01' x5
+  'QA-C002-RENAMED-X' x22
+  'QA-C002-VAR' x4  <-- NOT IN REGISTRY
+  'QA-C002-VAR-SURE' x3
+  'QA-C002-VAR-YEAH' x2
+  'QA-COMMAND-CENTER-COMMANDS' x1  <-- NOT IN REGISTRY
+  'QA-COMMAND-CENTER-DASHBOARD' x2  <-- NOT IN REGISTRY
+  'QA-COMMAND-CENTER-REALTIME' x1  <-- NOT IN REGISTRY
+  'QA-G1B-EMP' x2  <-- NOT IN REGISTRY
+  'QA-G2-EMP' x1  <-- NOT IN REGISTRY
+  'QA-LIFECYCLE-BU' x1  <-- NOT IN REGISTRY
+  'QA-LIFECYCLE-EMPLOYEE' x2  <-- NOT IN REGISTRY
+  'QA-MULTI' x11  <-- NOT IN REGISTRY
+  'QA-MULTI-CO' x24
+  'QA-MULTI-CO-TWIN' x5
+  'QA-MULTI-CO-V2' x5  <-- NOT IN REGISTRY
+  'QA-MULTI-EMPLOYEE' x1  <-- NOT IN REGISTRY
+  'QA-PLATFORM-REALTIME-CONTROL-PLANE' x1  <-- NOT IN REGISTRY
+  'QA-RENAMED-PROJECT' x1  <-- NOT IN REGISTRY
+  'QA-SWARM' x1  <-- NOT IN REGISTRY
+  'QA-SWARM-DEPT-ARCHIVED-PARENT-TEST' x4  <-- NOT IN REGISTRY
+  'QA-SWARM-PERSON-001' x1  <-- NOT IN REGISTRY
+  'QA-SWARM-PERSON-001-EDITED' x9
+  'QA-SWARM-TASK-001' x2  <-- NOT IN REGISTRY
+  'QA-SWARM-TASK-001-EDITED' x1
+  'QA-SWARM-TEST-CO' x1  <-- NOT IN REGISTRY
+  'QA-SWARM-TEST-CO-RENAMED' x1  <-- NOT IN REGISTRY
+  'QA-SWARM-TEST-CO-VIA-CHAT' x22
+  'QA-SWARM-TEST-DEPT' x1  <-- NOT IN REGISTRY
+  'QA-SWARM-TEST-DEPT-EDITED' x2
+  'QA-VERIFY-BU' x9  <-- NOT IN REGISTRY
+  'QA-VERIFY-EMPLOYEE' x2  <-- NOT IN REGISTRY
+  'QA-VERIFY-TASK' x1  <-- NOT IN REGISTRY
+-- CAPABILITY_INVENTORY.json: uuids --
+  0251abb8-61a6-431c-8955-87da2bfecf8e x1  <-- NOT IN REGISTRY
+  0e47b58d-9c05-45b4-be19-d598d6f6ca91 x1  <-- NOT IN REGISTRY
+  0f6643a8-5328-4e05-9e9a-cbf6318eca07 x1  <-- NOT IN REGISTRY
+  10398be5-0d56-4169-8035-425b294b70cb x2
+  18a876c9-521c-4ea4-96bc-4be28e2081e6 x1  <-- NOT IN REGISTRY
+  32a50c53-06d3-4536-a425-db3d3b687d08 x1  <-- NOT IN REGISTRY
+  37d03420-96c7-426a-811e-6edf0e14813f x2
+  3c4dfaef-0888-4d0d-a4a2-7459bb282076 x1  <-- NOT IN REGISTRY
+  3df887e5-52b6-4fbe-920e-e4181fe6fef6 x1  <-- NOT IN REGISTRY
+  49ee1875-21b0-4285-bd45-dc1c05f3d987 x1
+  5844d51f-89b2-4d6f-b53a-f93c0d50b4ec x1  <-- NOT IN REGISTRY
+  65f779ba-1e48-4d61-b535-daed60861fb7 x1  <-- NOT IN REGISTRY
+  6b85d2c2-f520-43a4-aeb3-76a311a89278 x1  <-- NOT IN REGISTRY
+  6c3f7d30-58b0-4930-9b00-811a946ad674 x1  <-- NOT IN REGISTRY
+  764247a4-5100-4149-925b-f4a6daa6ae60 x1  <-- NOT IN REGISTRY
+  7ba01ff2-6404-4c06-8bc5-4449b50df5de x5
+  8f74aef6-1770-4988-904b-72e7b3575173 x1  <-- NOT IN REGISTRY
+  8fd059d3-5aa3-491b-ba6b-3234387f6738 x1  <-- NOT IN REGISTRY
+  95241a6c-7190-496b-a3b8-d8fbd636bad4 x1  <-- NOT IN REGISTRY
+  a2b98c19-9266-4d96-aa69-275d908f7b46 x1  <-- NOT IN REGISTRY
+  b6ac01d7-0dfe-4d30-bc09-2cc99b343234 x2
+  b86ba609-cef2-4308-964b-4471da30c0b3 x1  <-- NOT IN REGISTRY
+  bf0a9fa0-077f-4d2a-a965-b8720e6e028a x1  <-- NOT IN REGISTRY
+  e084577e-86c8-405c-8cdb-19b565fbd643 x1  <-- NOT IN REGISTRY
+  e6a9225c-4834-4e0b-a88a-b0a5993bbd77 x1  <-- NOT IN REGISTRY
+  f32e9d70-6b78-43b5-85fe-3b4a80835638 x1  <-- NOT IN REGISTRY
+  fb82d49c-c7c1-4601-a0ab-5f968be7fd6a x1  <-- NOT IN REGISTRY
+
+-- BUG_QUEUE.json: fixture-like tokens --
+  'CFWO-Adv Co A' x4  <-- NOT IN REGISTRY
+  'CFWO-Adv Co A selected' x1  <-- NOT IN REGISTRY
+  'CFWO-Adv Co B' x4  <-- NOT IN REGISTRY
+  'CFWO-Adv Goal A' x1  <-- NOT IN REGISTRY
+  'FX-C002-COMPANY-MULTI-TWIN' x1
+  'FX-C002-DEPT-FABTEST-06' x1
+  'FX-C002-PENDING-01' x1
+  'FX-C002-PERSON-02' x1
+  'FX-C002-PERSON-03' x1
+  'FX-C002-PROJ-01' x1
+  'QA-BUG006-GOAL' x2
+  'QA-BUG006-PROJECT' x2
+  'QA-C002' x1  <-- NOT IN REGISTRY
+  'QA-C002-APPROVAL-TASK-01' x1
+  'QA-C002-BU' x2  <-- NOT IN REGISTRY
+  'QA-C002-BU-01' x1  <-- NOT IN REGISTRY
+  'QA-C002-CLASSB-TARGET' x4  <-- NOT IN REGISTRY
+  'QA-C002-D3' x2  <-- NOT IN REGISTRY
+  'QA-C002-DEPT-C0-O' x2  <-- NOT IN REGISTRY
+  'QA-C002-DEPT-C0-OK' x6  <-- NOT IN REGISTRY
+  'QA-C002-DEPT-C2-A' x3  <-- NOT IN REGISTRY
+  'QA-C002-DEPT-DELTEST-05' x7  <-- NOT IN REGISTRY
+  'QA-C002-DEPT-F-RELOAD' x3  <-- NOT IN REGISTRY
+  'QA-C002-DEPT-FABTEST-0' x2  <-- NOT IN REGISTRY
+  'QA-C002-DEPT-FABTEST-06' x36
+  'QA-C002-DEPT-FABTEST-07' x1  <-- NOT IN REGISTRY
+  'QA-C002-DEPT-FABTEST-99' x1  <-- NOT IN REGISTRY
+  'QA-C002-DEPT-G-CHANNEL-A' x2  <-- NOT IN REGISTRY
+  'QA-C002-DEPT-H-ORG' x2  <-- NOT IN REGISTRY
+  'QA-C002-EMP-002' x1  <-- NOT IN REGISTRY
+  'QA-C002-MGR-PERSON-02' x10
+  'QA-C002-MGR-PERSON-03' x6
+  'QA-C002-PENDING-01' x8
+  'QA-C002-PROJ-CHATRENAME-01' x5  <-- NOT IN REGISTRY
+  'QA-C002-PROJ-CHATRENAME-02' x2  <-- NOT IN REGISTRY
+  'QA-C002-PROJ-CREATE-01' x1  <-- NOT IN REGISTRY
+  'QA-C002-PROJ-EDITED-01' x29
+  'QA-C002-PROJ-FABTEST-04' x8  <-- NOT IN REGISTRY
+  'QA-C002-PROJ-FABTEST-07' x3  <-- NOT IN REGISTRY
+  'QA-C002-PROJ-FABTEST-08' x2  <-- NOT IN REGISTRY
+  'QA-C002-PROJ-FABTEST-09' x1  <-- NOT IN REGISTRY
+  'QA-C002-PROJ-MITTEST-01' x2  <-- NOT IN REGISTRY
+  'QA-C002-PROJ-MITTEST-02' x5  <-- NOT IN REGISTRY
+  'QA-C002-PROJ-MITTEST-03' x2  <-- NOT IN REGISTRY
+  'QA-C002-RENAMED-X' x34
+  'QA-C002-RENAMED-Y' x1  <-- NOT IN REGISTRY
+  'QA-C002-VAR-THATONE' x2  <-- NOT IN REGISTRY
+  'QA-LIFECYCLE-BU' x2  <-- NOT IN REGISTRY
+  'QA-LIFECYCLE-EMPLOYEE' x3  <-- NOT IN REGISTRY
+  'QA-LIFECYCLE-EMPLOYEE2' x2  <-- NOT IN REGISTRY
+  'QA-MULTI' x10  <-- NOT IN REGISTRY
+  'QA-MULTI-CO' x16
+  'QA-MULTI-CO-TWIM' x2  <-- NOT IN REGISTRY
+  'QA-MULTI-CO-TWIN' x18
+  'QA-MULTI-CO-TWIN-DOES-NOT-EXIST' x3  <-- NOT IN REGISTRY
+  'QA-MULTI-CO-TWINS' x1  <-- NOT IN REGISTRY
+  'QA-MULTI-CO-V2' x4  <-- NOT IN REGISTRY
+  'QA-MULTI-EMPLOYEE' x2  <-- NOT IN REGISTRY
+  'QA-ORGB-ANCHOR-PROJ' x3
+  'QA-SWARM-DEPT-ARCHIVED-PARENT-TEST' x5  <-- NOT IN REGISTRY
+  'QA-SWARM-PERSON-001-EDITE' x3  <-- NOT IN REGISTRY
+  'QA-SWARM-PERSON-001-EDITED' x8
+  'QA-SWARM-TASK-001-EDITED' x3
+  'QA-SWARM-TEST-CO-VIA-CHAT' x32
+  'QA-SWARM-TEST-DEPT-EDITED' x1
+  'QA-VERIFY-BU' x10  <-- NOT IN REGISTRY
+  'QA-VERIFY-EMPLOYEE' x2  <-- NOT IN REGISTRY
+  'QA-VERIFY-GOAL' x2  <-- NOT IN REGISTRY
+  'QA-VERIFY-TASK' x1  <-- NOT IN REGISTRY
+-- BUG_QUEUE.json: uuids --
+  0251abb8-61a6-431c-8955-87da2bfecf8e x1  <-- NOT IN REGISTRY
+  0cc095fc-e1bd-483e-b1e7-7745acf42194 x1  <-- NOT IN REGISTRY
+  10398be5-0d56-4169-8035-425b294b70cb x1
+  10913e8e-7d1d-46de-96eb-84be8cef90f9 x2  <-- NOT IN REGISTRY
+  125498ce-5ea1-414a-96d3-eca1489c88af x2  <-- NOT IN REGISTRY
+  12572eb2-30bc-4895-b568-9bf6966d788f x1  <-- NOT IN REGISTRY
+  1480f3e1-e07a-4f3f-a68b-b405720dd3e6 x1  <-- NOT IN REGISTRY
+  1628368a-2eef-41cd-8bc7-acfa716db1f1 x1
+  1e70d5b3-ead8-44da-a5d7-764085f12eff x1  <-- NOT IN REGISTRY
+  1ea479c7-7887-43a8-a655-017201ab4b81 x1  <-- NOT IN REGISTRY
+  27347af0-fb2d-4bf1-b0c9-96f28ec08cd8 x1  <-- NOT IN REGISTRY
+  286463ee-d86d-4b4c-942a-01c82008e230 x1  <-- NOT IN REGISTRY
+  2c307625-91ce-47c0-a47f-d2c1de7aea10 x1  <-- NOT IN REGISTRY
+  2d9db47e-f9f7-4a24-9e39-938a6ad2cb9a x1  <-- NOT IN REGISTRY
+  358eddeb-c6ac-4a85-ab26-77dc3960fcba x2  <-- NOT IN REGISTRY
+  37d03420-96c7-426a-811e-6edf0e14813f x3
+  3c4dfaef-0888-4d0d-a4a2-7459bb282076 x1  <-- NOT IN REGISTRY
+  49ee1875-21b0-4285-bd45-dc1c05f3d987 x3
+  4b375a5b-8d4b-4606-99ed-67cb4c561bdb x1  <-- NOT IN REGISTRY
+  532535eb-be0b-45e6-befd-e17ee60e8063 x1  <-- NOT IN REGISTRY
+  55250f5d-5491-4b1f-aa4a-e0a62d2f4323 x1  <-- NOT IN REGISTRY
+  5844d51f-89b2-4d6f-b53a-f93c0d50b4ec x1  <-- NOT IN REGISTRY
+  5d41b404-d083-42f2-8231-915b25b13548 x1  <-- NOT IN REGISTRY
+  65f779ba-1e48-4d61-b535-daed60861fb7 x1  <-- NOT IN REGISTRY
+  69d91d32-18be-46e0-85f8-bab7f8b13162 x1  <-- NOT IN REGISTRY
+  6c41ab75-873c-469e-8092-0c4ce41b60d1 x2  <-- NOT IN REGISTRY
+  7703cae0-2a4f-4f11-b79f-f1bff1904820 x2  <-- NOT IN REGISTRY
+  7ba01ff2-6404-4c06-8bc5-4449b50df5de x5
+  7d262b7b-b1ee-4f72-b6b5-930587ead67f x1  <-- NOT IN REGISTRY
+  7f524eab-cfd9-48f4-97b7-657539235053 x1  <-- NOT IN REGISTRY
+  880401dd-deda-48c4-9a94-a4534ffff14b x2  <-- NOT IN REGISTRY
+  889db0ad-0acf-48f3-a0d3-cede571dd10b x2  <-- NOT IN REGISTRY
+  8a7ba1bc-e784-4d61-840d-08b51345be25 x1  <-- NOT IN REGISTRY
+  8b0bbe5b-346c-4c84-bfdd-1644fa20fa84 x1  <-- NOT IN REGISTRY
+  8bd5804d-ddaa-42d6-9b6d-0d64cf332c98 x1  <-- NOT IN REGISTRY
+  8c81c869-eb6a-495e-bb55-5a5935111b25 x1  <-- NOT IN REGISTRY
+  8f74aef6-1770-4988-904b-72e7b3575173 x2  <-- NOT IN REGISTRY
+  8fd059d3-5aa3-491b-ba6b-3234387f6738 x1  <-- NOT IN REGISTRY
+  8fdad6e2-fffb-41bc-af0a-df8cab09110b x4
+  9016651a-b7c7-4dea-be33-06fbd621b8e0 x2  <-- NOT IN REGISTRY
+  90ca88b4-2e6b-4167-970b-0627dff4db01 x2  <-- NOT IN REGISTRY
+  937eedf9-01d7-4b19-a3e1-392142546a57 x1  <-- NOT IN REGISTRY
+  95241a6c-7190-496b-a3b8-d8fbd636bad4 x1  <-- NOT IN REGISTRY
+  9573a957-eebd-4552-b28a-b8ed2a9de37a x1
+  9fd49e95-7f99-4879-8605-705784bd0dcd x1  <-- NOT IN REGISTRY
+  a2b98c19-9266-4d96-aa69-275d908f7b46 x1  <-- NOT IN REGISTRY
+  a48a0ae0-1f2f-4612-afb3-bc5d9eed0b2e x1  <-- NOT IN REGISTRY
+  ab291ca6-2cec-4e38-a95d-badd5c8f94a6 x1  <-- NOT IN REGISTRY
+  aff4c644-c0af-4700-8ac1-a8228f038509 x1  <-- NOT IN REGISTRY
+  b0f8fa96-1339-4fdf-a493-4436a75a58ae x1  <-- NOT IN REGISTRY
+  b1a593b7-9597-4d0e-8101-207038c1b9f0 x2  <-- NOT IN REGISTRY
+  b6ac01d7-0dfe-4d30-bc09-2cc99b343234 x2
+  b86ba609-cef2-4308-964b-4471da30c0b3 x1  <-- NOT IN REGISTRY
+  b8cbad7e-673e-42e4-ab94-ffd50a8e336c x1  <-- NOT IN REGISTRY
+  b9e0be82-f72c-4285-bf8a-268eb232b9de x2  <-- NOT IN REGISTRY
+  be220c9b-6f61-4f9e-bb46-a17ca1475593 x1  <-- NOT IN REGISTRY
+  c24dc372-8097-46aa-ab1e-3b4636082912 x4  <-- NOT IN REGISTRY
+  ce544151-c10b-49b6-9c79-01b5dfb121ce x2  <-- NOT IN REGISTRY
+  d1a53ec6-c195-4e35-940a-325a74e4f350 x4  <-- NOT IN REGISTRY
+  e084577e-86c8-405c-8cdb-19b565fbd643 x1  <-- NOT IN REGISTRY
+  e6a9225c-4834-4e0b-a88a-b0a5993bbd77 x1  <-- NOT IN REGISTRY
+  e7fd21c6-f626-4d78-be1e-94beb3d3c55d x1  <-- NOT IN REGISTRY
+  e8812313-0169-4ce5-863a-79d557f36a53 x2  <-- NOT IN REGISTRY
+  f32e9d70-6b78-43b5-85fe-3b4a80835638 x1  <-- NOT IN REGISTRY
+  f37387cd-db4a-4bd8-8eb3-d8d49aa8239b x2  <-- NOT IN REGISTRY
+  f5a96959-3356-4952-930c-4a5c941d5b73 x1  <-- NOT IN REGISTRY
+  f76a9f69-077f-4340-b0a0-37cce4ced0c7 x2  <-- NOT IN REGISTRY
+  fed98c71-62b1-4905-8f6e-dbed54a14963 x2  <-- NOT IN REGISTRY
+
+=== STRUCTURE: where do INVENTORY and BUG_QUEUE store fixture refs? ===
+INVENTORY top keys: ['_doc', 'schema_version', 'generated_at', 'product_commit_under_test', 'environment', 'status_values', '_status_note', 'truth_axes', 'discovery_sources', 'coverage_scope_note', 'routes_discovered', 'capabilities', '_product_commit_under_test_note', 'build_identity', 'historical_identifiers']
+BUG_QUEUE top keys: ['_doc', 'schema_version', 'last_updated', 'updated_by', 'status_values', '_authority_rule', 'severity_values', '_severity_rubric', 'counts', 'bugs', 'observations']
+INVENTORY fixture-ish keys: {}
+BUG_QUEUE fixture-ish keys: {'.bugs[]._fixture_safety': 1, '.bugs[].class_b_company_arm_2026_09_09.fixture_safety_gate': 1, '.bugs[].issue5_test_C_2026_09_09.fixtures': 1, '.bugs[].closure_evidence.fixture_build': 1, '.bugs[].resources.company_fixture': 1, '.bugs[].resources.project_fixture': 1, '.bugs[].matrix_class_5_permanent_delete_2026_09_09.fixture': 1, '.bugs[].matrix_class_5_permanent_delete_2026_09_09.why_a_throwaway_fixture': 1, '.bugs[].resources.fixtures': 1}
+
+=== INTERNAL CONSISTENCY ===
+duplicate fixture_ids: []
+duplicate canonical_ids: []
+duplicate names: []
+  FX-BUG006-GOAL: lifecycle=None not in enum; state='ACTIVE' != lifecycle=None; canonical_id null while state ACTIVE; no owner_worker_id; no authorized_worker_ids; no scenario_id
+  FX-BUG006-PROJECT: lifecycle=None not in enum; state='ACTIVE' != lifecycle=None; canonical_id null while state ACTIVE; no owner_worker_id; no authorized_worker_ids; no scenario_id
+  FX-C002-PROJ-01: canonical_id null while mutation-authorized lifecycle; canonical_id null while state ACTIVE; no owner_worker_id; no authorized_worker_ids; no scenario_id
+  FX-C002-PERSON-02: no owner_worker_id; no authorized_worker_ids; no scenario_id
+  FX-C002-PERSON-03: canonical_id null while mutation-authorized lifecycle; canonical_id null while state ACTIVE; no owner_worker_id; no authorized_worker_ids; no scenario_id
+  FX-C002-COMPANY-MULTI: no owner_worker_id; no authorized_worker_ids; no scenario_id
+  FX-C002-MULTI-PROJ: lifecycle='DELETED' not in enum; no owner_worker_id; no authorized_worker_ids; no scenario_id
+  FX-C002-MULTI-TASK: canonical_id null while mutation-authorized lifecycle; canonical_id null while state ACTIVE; no owner_worker_id; no authorized_worker_ids; no scenario_id
+  FX-C002-COMPANY-RENAMED-X: no owner_worker_id; no authorized_worker_ids; no scenario_id
+  FX-C002-DEPT-01: lifecycle='DELETED' not in enum; no owner_worker_id; no authorized_worker_ids; no scenario_id
+  FX-C002-BU-EMPLOYEE-01: canonical_id null while mutation-authorized lifecycle; canonical_id null while state ACTIVE; no owner_worker_id; no authorized_worker_ids; no scenario_id
+  FX-C002-COMPANY-MULTI-TWIN: no owner_worker_id; no authorized_worker_ids; no scenario_id
+  FX-C002-APPROVAL-TASK-01: canonical_id null while mutation-authorized lifecycle; canonical_id null while state ACTIVE; no owner_worker_id; no authorized_worker_ids; no scenario_id
+  FX-C002-PENDING-01: canonical_id null while mutation-authorized lifecycle; canonical_id null while state ACTIVE; no owner_worker_id; no authorized_worker_ids; no scenario_id
+  FX-C002-VAR-SURE: canonical_id null while mutation-authorized lifecycle; canonical_id null while state ACTIVE; no owner_worker_id; no authorized_worker_ids; no scenario_id
+  FX-C002-VAR-YEAH: canonical_id null while mutation-authorized lifecycle; canonical_id null while state ACTIVE; no owner_worker_id; no authorized_worker_ids; no scenario_id
+  FX-CFWO-ADV-CO-A: canonical_id null while mutation-authorized lifecycle; canonical_id null while state ACTIVE; no owner_worker_id; no authorized_worker_ids; no scenario_id
+  FX-CFWO-ADV-CO-B: canonical_id null while mutation-authorized lifecycle; canonical_id null while state ACTIVE; no owner_worker_id; no authorized_worker_ids; no scenario_id
+  FX-C002-ORGB-ANCHOR-PROJ: canonical_id null while mutation-authorized lifecycle; canonical_id null while state ACTIVE; no owner_worker_id; no authorized_worker_ids; no scenario_id
+  FX-C002-DEPT-FABTEST-06: canonical_id null while mutation-authorized lifecycle; canonical_id null while state ACTIVE; no owner_worker_id; no authorized_worker_ids; no scenario_id

@@ -1,0 +1,44 @@
+{
+  "_doc": "First REAL parallel QA campaign: 3 workers, non-browser lanes only. Browser work is deliberately excluded because browser-context isolation is NOT PROVEN (no exported storageState), and the founder rule is to block parallel browser work rather than fake it. These three tasks are real outstanding QA needs that require no browser, so the pilot produces genuine evidence instead of a synthetic rehearsal.",
+  "campaign_id": "C002",
+  "concurrency": 3,
+  "browser_required_by_any_item": false,
+  "items": [
+    {
+      "worker_id": "W1",
+      "lane": "W1_AI_TRUTH",
+      "scenario_id": "C002-P1-cluster-consolidation",
+      "capabilities": ["CAP-AI-TRUTH-CLUSTER-ANALYSIS"],
+      "requires_browser": false,
+      "mutates": false,
+      "fixtures": [],
+      "fixture_namespace": "readonly/W1",
+      "max_budget_usd": 2,
+      "directive": "READ-ONLY REPOSITORY ANALYSIS. No browser, no production, no mutation.\n\nRead qa/BUG_QUEUE.json and analyse ONLY these seven bugs: BUG-002, BUG-005, BUG-010, BUG-020, BUG-029, BUG-030, BUG-033.\n\nProduce a consolidated structural analysis answering: (1) what single underlying mechanism, if any, do they share; (2) which of them would be closed by a fix to the confirmation handler alone; (3) which would survive such a fix and why; (4) the minimum set of distinct fixes needed to close all seven. Cite bug ids and the exact field names you drew each conclusion from. Where the queue's own evidence is insufficient to decide, say so explicitly rather than inferring.\n\nWrite your analysis to EVIDENCE/cluster-analysis.md and summarise in RESULT.json with verdict PASS (analysis produced) or BLOCKED (with blocked_reason). This is an analysis task: PASS means the analysis is complete and evidence-backed, not that the product passed anything."
+    },
+    {
+      "worker_id": "W2",
+      "lane": "W2_TENANCY",
+      "scenario_id": "C002-P2-fixture-registry-drift",
+      "capabilities": ["CAP-FIXTURE-REGISTRY-INTEGRITY"],
+      "requires_browser": false,
+      "mutates": false,
+      "fixtures": [],
+      "fixture_namespace": "readonly/W2",
+      "max_budget_usd": 2,
+      "directive": "READ-ONLY REPOSITORY AUDIT. No browser, no production, no mutation.\n\nAudit qa/FIXTURE_REGISTRY.json for internal consistency and for drift against qa/CAPABILITY_INVENTORY.json and qa/BUG_QUEUE.json.\n\nReport: (1) fixtures whose state is ACTIVE but which are referenced nowhere; (2) fixtures referenced by a bug or capability but ABSENT from the registry; (3) fixtures with canonical_id null; (4) duplicate or contradictory entries; (5) any fixture whose recorded name disagrees with how other artifacts refer to it. A known example to verify: the registry lists LEGACY-C000-department-qa-swarm-test-dept as ACTIVE under the name QA-SWARM-TEST-DEPT-EDITED - determine from repository evidence alone whether any other artifact still refers to that name.\n\nDo NOT modify the registry - you are evidence, not the writer. Write findings to EVIDENCE/registry-drift.md and summarise in RESULT.json."
+    },
+    {
+      "worker_id": "W3",
+      "lane": "W3_WEB_PRODUCT",
+      "scenario_id": "C002-P3-regression-artifact-integrity",
+      "capabilities": ["CAP-REGRESSION-ARTIFACT-INTEGRITY"],
+      "requires_browser": false,
+      "mutates": false,
+      "fixtures": [],
+      "fixture_namespace": "readonly/W3",
+      "max_budget_usd": 2,
+      "directive": "READ-ONLY REPOSITORY AUDIT. No browser, no production, no mutation.\n\nFor every bug in qa/BUG_QUEUE.json that declares a regression_path, verify the file actually exists on disk under qa/scenarios-runner/ (or wherever the path points).\n\nReport: (1) declared regression_path values with NO corresponding file; (2) regression files present on disk that no bug references; (3) bugs with status CLOSED whose regression_state is still EXPECTED_FAIL, or the reverse; (4) any regression file that does not state what it asserts or how it can fail.\n\nThis matters because a regression that does not exist cannot protect anything, and a CLOSED bug guarded by an EXPECTED_FAIL regression is a contradiction. Write findings to EVIDENCE/regression-integrity.md and summarise in RESULT.json."
+    }
+  ]
+}
