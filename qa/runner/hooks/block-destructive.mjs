@@ -96,7 +96,9 @@ const RULES = [
 // the hook fails CLOSED - a navigation refused by an internal error is a harmless retry, unlike a
 // wedged Bash call.
 const NAV_ALLOWED_HOSTS = new Set(['brain.open-spot.ai', 'pvphxgrtdfrudejjhzjk.supabase.co']);
-const NAV_TOOLS = /^mcp__playwright__browser_(navigate|tabs)$/;
+// DEFENSE IN DEPTH ONLY: the primary navigation boundary is qa/runner/mcp-safe-browser.mjs, which
+// validates URLs below the model. This mirrors it for the Director's shell-capable session.
+const NAV_TOOLS = /^mcp__playwright__(safe_browser_navigate|browser_navigate|browser_tabs)$/;
 function navigationRefusal(toolName, input) {
   if (!NAV_TOOLS.test(toolName)) return null;
   const raw = input && (input.url ?? input.href);

@@ -33,7 +33,7 @@ const runMs = Number(process.env.FAKE_RUN_MS || 1500);
 const verdict = process.env.FAKE_VERDICT || 'PASS';
 
 const DEFAULT_TOOLS = cls === 'BROWSER_QA'
-  ? ['mcp__playwright__browser_navigate', 'mcp__playwright__browser_snapshot', 'mcp__playwright__browser_click', 'mcp__playwright__browser_type']
+  ? ['mcp__playwright__safe_browser_navigate', 'mcp__playwright__browser_snapshot', 'mcp__playwright__browser_click', 'mcp__playwright__browser_type']
   : ['Read', 'Glob', 'Grep'];
 const tools = process.env.FAKE_TOOLS !== undefined
   ? process.env.FAKE_TOOLS.split(',').map((s) => s.trim()).filter(Boolean)

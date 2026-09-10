@@ -17,7 +17,7 @@ import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { P, RUNNER_DIR } from './paths.mjs';
 import { join } from 'node:path';
 import { PLAYWRIGHT_MCP_VERSION, BROWSER_QA_DENY } from './worker-policy.mjs';
-import { DEFAULT_ALLOWED_ORIGINS } from './browser-isolation.mjs';
+import { DEFAULT_ALLOWED_ORIGINS, SAFE_BROWSER_PROXY } from './browser-isolation.mjs';
 
 const HOOK = join(RUNNER_DIR, 'hooks', 'block-destructive.mjs');
 export const DIRECTOR_PROFILE_DIR = join(RUNNER_DIR, '.director-profile');
@@ -44,13 +44,16 @@ export function ensureLaunchConfigs() {
   ensureSeatMarker();
   const directorIdentity = existsSync(DIRECTOR_IDENTITY_PATH);
 
-  // --isolated = in-memory profile (0.0.80 refuses --user-data-dir alongside it). Nothing from a
-  // director session persists on disk; DIRECTOR_PROFILE_DIR is kept only for sidecar output files.
+  // The Director, like every worker, talks to the safe-browser proxy (qa/runner/mcp-safe-browser.mjs),
+  // never to @playwright/mcp directly: reviewed tools only, safe_browser_navigate with https:+host
+  // validation below the model, pinned upstream, in-memory --isolated profile (nothing persists on
+  // disk; DIRECTOR_PROFILE_DIR holds only sidecar output files).
   const args = [
-    '@playwright/mcp@' + PLAYWRIGHT_MCP_VERSION,
-    '--isolated',
+    SAFE_BROWSER_PROXY,
+    '--upstream-version', PLAYWRIGHT_MCP_VERSION,
+    '--allowed-hosts', 'brain.open-spot.ai',
+    '--network-hosts', DEFAULT_ALLOWED_ORIGINS.map((o) => new URL(o).hostname).join(','),
     '--output-dir', DIRECTOR_PROFILE_DIR,
-    '--allowed-origins', DEFAULT_ALLOWED_ORIGINS.join(';'),
   ];
   if (directorIdentity) args.push('--storage-state', DIRECTOR_IDENTITY_PATH);
 
@@ -62,7 +65,7 @@ export function ensureLaunchConfigs() {
     _identity: directorIdentity ? 'qa-director (synthetic, bootstrapped by founder/Home PC)' : 'NONE - UI work is BLOCKED: IDENTITY_NOT_PROVISIONED',
     _mcp_version: PLAYWRIGHT_MCP_VERSION,
     mcpServers: {
-      playwright: { type: 'stdio', command: 'npx', args, env: {} },
+      playwright: { type: 'stdio', command: process.execPath, args, env: { QA_SAFE_BROWSER_LOG: join(DIRECTOR_PROFILE_DIR, 'safe-browser.jsonl') } },
     },
   };
 

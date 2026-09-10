@@ -73,7 +73,7 @@ export function buildPreflightDirective({ campaignId, workerId, identityId, orgS
     'EXPECTED (do not assume it is true - observe): identity_id=' + identityId + ' org_scope=' + orgScope,
     '',
     'Steps:',
-    '1. browser_navigate https://brain.open-spot.ai/ then browser_snapshot. Record the final URL and whether it is the',
+    '1. safe_browser_navigate https://brain.open-spot.ai/ then browser_snapshot. Record the final URL and whether it is the',
     '   login page (Sign in) or an app page (sidebar/navigation present).',
     '2. If an app page: open the account/profile/user menu if one is visible and record any email or display name shown',
     '   verbatim. If none is visible, say "no marker visible".',

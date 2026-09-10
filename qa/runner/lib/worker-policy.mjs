@@ -34,10 +34,13 @@ export const KNOWN_BUILTIN_TOOLS = Object.freeze([
 
 const PW = (n) => 'mcp__playwright__' + n;
 
-// Reviewed, human-equivalent UI operations only. Exact names from the registered tool set of
-// @playwright/mcp 0.0.80. No wildcard: a tool not in this list does not exist for the worker.
+// Reviewed, human-equivalent UI operations only, as exposed by qa/runner/mcp-safe-browser.mjs (the
+// proxy the worker actually connects to; it wraps pinned @playwright/mcp 0.0.80). Navigation is
+// `safe_browser_navigate` - the proxy validates protocol + exact hostname BELOW the model and the
+// raw upstream `browser_navigate` is never exposed. No wildcard: a tool not in this list does not
+// exist for the worker.
 export const BROWSER_QA_ALLOW = Object.freeze([
-  'browser_navigate', 'browser_navigate_back', 'browser_snapshot', 'browser_click', 'browser_type',
+  'safe_browser_navigate', 'browser_navigate_back', 'browser_snapshot', 'browser_click', 'browser_type',
   'browser_fill_form', 'browser_select_option', 'browser_press_key', 'browser_hover',
   'browser_wait_for', 'browser_tabs', 'browser_take_screenshot', 'browser_find',
   'browser_handle_dialog', 'browser_close', 'browser_resize', 'browser_console_messages',
@@ -46,7 +49,7 @@ export const BROWSER_QA_ALLOW = Object.freeze([
 // Raw execution / network / arbitrary-path primitives. Denied by exact name in addition to being
 // absent from the allow list, so that a future rename or alias is still caught by the deny side.
 export const BROWSER_QA_DENY = Object.freeze([
-  'browser_evaluate', 'browser_run_code_unsafe', 'browser_network_request',
+  'browser_navigate', 'browser_evaluate', 'browser_run_code_unsafe', 'browser_network_request',
   'browser_network_requests', 'browser_file_upload', 'browser_drag', 'browser_drop',
 ].map(PW));
 

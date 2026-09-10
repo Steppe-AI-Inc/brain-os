@@ -20,6 +20,7 @@ import { launchWorker, readWorkerRegistry, writeWorkerRegistry, recoverWorkers, 
 import { reconcile, classifyResult, CANONICAL_FILES, allowedWorkerPaths } from './lib/reconcile.mjs';
 import { selectIndependentBatch, independent } from './lib/lanes.mjs';
 import { ensureSourceWorktree } from './lib/source-worktree.mjs';
+import { storageStatePathFor } from './lib/browser-isolation.mjs';
 
 const CAMPAIGN = 'CSYNTH-ACCEPT';
 const FAKE = join(QA_DIR, 'runner', 'fake-worker.mjs');
@@ -203,6 +204,17 @@ async function main() {
     leak.status === 'BLOCKED' && leak.boundary_violation && leak.boundary_violation.reason === 'SOURCE_AUDIT_CLASS_BLOCKED_NO_ENFORCEABLE_BOUNDARY'
       && leak.killed_reason && leakRes && leakRes.verdict === 'INVALID_TEST',
     'status=' + leak.status + ' reason=' + (leak.boundary_violation && leak.boundary_violation.reason) + ' unexpected=' + (leak.boundary_violation && leak.boundary_violation.unexpected.join(',')));
+
+  // ---------------------------------------------------------------- 6.71 upstream browser_navigate must never reach a browser worker
+  writeFileSync(storageStatePathFor('qa-synth'), JSON.stringify({ cookies: [], origins: [] }));
+  try {
+    cleanRunDir('WRAWNAV');
+    const rawNav = await withEnv({ FAKE_BEHAVIOUR: 'ok', FAKE_RUN_MS: '1200', FAKE_TOOLS: 'mcp__playwright__browser_navigate,mcp__playwright__browser_snapshot' }, async () =>
+      launchWorker({ campaignId: CAMPAIGN, ...mkAssign('WRAWNAV', 'W3_WEB_PRODUCT', 'ok', { launch: { workerClass: 'BROWSER_QA', launchMode: 'BOUNDARY_PROBE', identityId: 'qa-synth', orgScope: 'QA-SYNTH-ORG' } }) }).promise);
+    check(6.71, 'a browser worker whose live init frame exposes the UNRESTRICTED upstream browser_navigate is killed (CAPABILITY_BOUNDARY_NOT_ENFORCED)',
+      rawNav.status === 'BLOCKED' && rawNav.boundary_violation && rawNav.boundary_violation.reason === 'CAPABILITY_BOUNDARY_NOT_ENFORCED' && rawNav.boundary_violation.denied.includes('mcp__playwright__browser_navigate'),
+      'status=' + rawNav.status + ' denied=' + (rawNav.boundary_violation && rawNav.boundary_violation.denied.join(',')));
+  } finally { try { unlinkSync(storageStatePathFor('qa-synth')); } catch {} }
 
   // ---------------------------------------------------------------- 6.8 source-tree tamper detection
   cleanRunDir('WTAMPER');

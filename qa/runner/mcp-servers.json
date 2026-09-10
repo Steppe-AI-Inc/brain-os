@@ -5,16 +5,21 @@
   "mcpServers": {
     "playwright": {
       "type": "stdio",
-      "command": "npx",
+      "command": "C:\\Program Files\\nodejs\\node.exe",
       "args": [
-        "@playwright/mcp@0.0.80",
-        "--isolated",
+        "C:\\Users\\DELL\\My Drive\\17.4. R&D CLAUDE CODE\\brain-os-sem-brain-v1\\qa\\runner\\mcp-safe-browser.mjs",
+        "--upstream-version",
+        "0.0.80",
+        "--allowed-hosts",
+        "brain.open-spot.ai",
+        "--network-hosts",
+        "brain.open-spot.ai,pvphxgrtdfrudejjhzjk.supabase.co",
         "--output-dir",
-        "C:\\Users\\DELL\\My Drive\\17.4. R&D CLAUDE CODE\\brain-os-sem-brain-v1\\qa\\runner\\.director-profile",
-        "--allowed-origins",
-        "https://brain.open-spot.ai;https://pvphxgrtdfrudejjhzjk.supabase.co"
+        "C:\\Users\\DELL\\My Drive\\17.4. R&D CLAUDE CODE\\brain-os-sem-brain-v1\\qa\\runner\\.director-profile"
       ],
-      "env": {}
+      "env": {
+        "QA_SAFE_BROWSER_LOG": "C:\\Users\\DELL\\My Drive\\17.4. R&D CLAUDE CODE\\brain-os-sem-brain-v1\\qa\\runner\\.director-profile\\safe-browser.jsonl"
+      }
     }
   }
 }

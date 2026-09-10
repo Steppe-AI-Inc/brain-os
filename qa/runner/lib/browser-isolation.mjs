@@ -26,6 +26,7 @@ import { hostname, userInfo } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { RUNNER_DIR, REPO_ROOT } from './paths.mjs';
+export const SAFE_BROWSER_PROXY = join(RUNNER_DIR, 'mcp-safe-browser.mjs');
 import { workerDir } from './worker-lease.mjs';
 import { POLICIES, policyHash, PLAYWRIGHT_MCP_VERSION, BROWSER_QA_ALLOW, BROWSER_QA_DENY } from './worker-policy.mjs';
 
@@ -82,24 +83,30 @@ export function writeSidecarConfig(campaignId, workerId, { identityId, allowedOr
   const wd = workerDir(campaignId, workerId);
   mkdirSync(wd, { recursive: true });
 
-  // @playwright/mcp 0.0.80 refuses --user-data-dir together with --isolated ("Browser userDataDir
-  // is not supported in isolated mode" - found by the Phase A real probe, 2026-09-10). --isolated
-  // is the stronger choice: the profile lives only in the sidecar process's memory, seeded from
-  // the worker's own storageState, and nothing is written to disk that another worker could read.
-  // Profile identity for the isolation binding is therefore the worker's run directory.
+  // The worker connects to qa/runner/mcp-safe-browser.mjs, NOT to @playwright/mcp directly. The
+  // proxy spawns the pinned upstream (--isolated: in-memory profile seeded from this identity's
+  // storageState; 0.0.80 refuses --user-data-dir with --isolated), exposes only the reviewed tools,
+  // and validates every URL (https: + exact host) below the model. Profile identity for the
+  // isolation binding is the worker's run directory.
+  const evidenceDir = join(wd, 'EVIDENCE');
+  mkdirSync(evidenceDir, { recursive: true });
   const args = [
-    '@playwright/mcp@' + PLAYWRIGHT_MCP_VERSION,
-    '--isolated',
+    SAFE_BROWSER_PROXY,
+    '--upstream-version', PLAYWRIGHT_MCP_VERSION,
     '--storage-state', storageState,
-    '--allowed-origins', allowedOrigins.join(';'),
+    '--allowed-hosts', new URL(APP_ORIGIN).hostname,
+    '--network-hosts', allowedOrigins.map((o) => new URL(o).hostname).join(','),
+    '--output-dir', join(wd, '.playwright-mcp'),
   ];
   const cfg = {
-    _doc: 'Sidecar Playwright MCP for parallel QA worker ' + workerId + ' as synthetic identity ' + id
-      + '. Pinned version, in-memory isolated profile (--isolated), own storageState, origins confined to '
-      + 'the product. The worker model has no file tool and cannot read this file or the storageState it names.',
+    _doc: 'Safe-browser MCP proxy for parallel QA worker ' + workerId + ' as synthetic identity ' + id
+      + '. The proxy wraps pinned @playwright/mcp ' + PLAYWRIGHT_MCP_VERSION + ' (in-memory isolated profile, own '
+      + 'storageState) and exposes only reviewed tools; navigation is safe_browser_navigate (https: + exact host, '
+      + 'validated below the model). The worker model has no file tool and cannot read this file or the storageState it names.',
     _identity: id,
     _mcp_version: PLAYWRIGHT_MCP_VERSION,
-    mcpServers: { playwright: { type: 'stdio', command: 'npx', args, env: {} } },
+    _proxy: SAFE_BROWSER_PROXY,
+    mcpServers: { playwright: { type: 'stdio', command: process.execPath, args, env: { QA_SAFE_BROWSER_LOG: join(evidenceDir, 'safe-browser.jsonl') } } },
   };
   const path = join(wd, 'mcp-servers.json');
   writeFileSync(path, JSON.stringify(cfg, null, 2) + '\n');
@@ -140,6 +147,9 @@ const BOUND_FILES = ['orchestrator.mjs', 'browser-isolation.mjs', 'lanes.mjs', '
 function runnerSha() {
   try { return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: REPO_ROOT, encoding: 'utf8', windowsHide: true }).trim(); } catch { return 'UNKNOWN'; }
 }
+function proxyHash() {
+  try { return createHash('sha256').update(readFileSync(SAFE_BROWSER_PROXY, 'utf8')).digest('hex'); } catch { return 'MISSING'; }
+}
 function codeHash() {
   const h = createHash('sha256');
   for (const f of BOUND_FILES) { try { h.update(f + '\n' + readFileSync(join(RUNNER_DIR, 'lib', f), 'utf8') + '\n'); } catch { h.update(f + '\nMISSING\n'); } }
@@ -155,6 +165,7 @@ export function computeIsolationBinding({ identities = [], orgScopes = [], profi
     machine: hostname() + '/' + (safeUser()),
     runner_sha: runnerSha(),
     code_hash: codeHash(),
+    proxy_hash: proxyHash(),
     mcp_version: PLAYWRIGHT_MCP_VERSION,
     allow: [...BROWSER_QA_ALLOW].sort(),
     deny: [...BROWSER_QA_DENY].sort(),

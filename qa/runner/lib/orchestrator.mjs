@@ -133,6 +133,9 @@ export function launchWorker({
   model = process.env.QA_WORKER_MODEL || MODEL_ALIAS,
   launchMode = 'SCENARIO',
   preflight = null,
+  // Acceptance seam: lets the harness launch a worker WITHOUT the PreToolUse hook to prove the
+  // hook is not the boundary. Recorded in the registry as settings_override so it is never silent.
+  guardSettingsPath = P.guardSettings,
   hangMs = 10 * 60_000,
   hardCapMs = 45 * 60_000,
   onStarted = () => {},
@@ -220,7 +223,7 @@ export function launchWorker({
     '--output-format', 'stream-json',
     '--verbose',
     '--session-id', sessionId,
-    '--settings', P.guardSettings,
+    '--settings', guardSettingsPath,
     ...policyArgs(policy),
     ...mcpArgs,
     '--max-budget-usd', String(maxBudgetUsd),
@@ -250,6 +253,7 @@ export function launchWorker({
 
   const outcome = {
     worker_id: workerId, lane, campaign_id: campaignId, worker_class: policy.class, policy_hash: policyHash(policy), launch_mode: launchMode,
+    settings_override: guardSettingsPath !== P.guardSettings ? guardSettingsPath : null,
     pid: child.pid ?? null, session_id: sessionId, log_path: logPath, cwd,
     result_path: resultPath, checkpoint_path: checkpointPath,
     fixture_namespace: fixtureNamespace, authorized_fixture_ids: authorizedFixtureIds,
@@ -579,8 +583,9 @@ function buildWorkerPrompt({ campaignId, workerId, lane, directive, assignedCapa
       'the product UI at https://brain.open-spot.ai, as identity ' + identityId + ' inside org scope',
       orgScope + '. You are NOT the founder. If the browser is logged out, record BLOCKED with',
       'blocked_reason BLOCKED_QA_AUTH - never attempt to log in, never enter credentials.',
-      'Navigate ONLY to https://brain.open-spot.ai/... URLs. file:, data:, javascript:, chrome:, about:',
-      'and non-product hosts are refused by the guard; do not try them except when a probe asks you to.',
+      'Navigation is safe_browser_navigate (https://brain.open-spot.ai/... only). file:, data:, javascript:,',
+      'chrome:, about:, http: and non-product hosts are rejected by the safe-browser wrapper before the browser',
+      'sees them; do not try them except when a probe asks you to.',
       (launchMode === 'SCENARIO'
         ? 'LAUNCH MODE: SCENARIO (identity preflight AUTH_OK on record).'
         : 'LAUNCH MODE: ' + launchMode + ' - OBSERVATION ONLY. You have NO mutation authority: never submit a form, never create/edit/archive/restore/delete anything.'),
