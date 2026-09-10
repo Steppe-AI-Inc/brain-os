@@ -25,6 +25,16 @@ import { fileURLToPath } from 'node:url';
 import * as provider from './provider.mjs';
 import * as supervisor from './supervisor.mjs';
 
+// THE DATABASE IS REACHED THROUGH THE CANONICAL ACCESSOR, NOT THROUGH THE MACHINE.
+//
+// This script used to carry a private runSql() that shelled out to `npx supabase db query --linked`,
+// which borrowed whatever Supabase CLI credential the machine happened to hold — on the Home PC, full
+// production write. db.mjs connects with an explicit FACTORY_RUNNER_PG_URL, refuses to start without
+// one, refuses a superuser connection, and refuses DDL, privilege changes and migration-history writes
+// in the client. read() and write() are separate so a reader cannot silently become a writer.
+import * as db from './db.mjs';
+
+
 const execFileAsync = promisify(execFile);
 const REPO_ROOT = 'C:\\Users\\Dell\\dev\\brain-os';
 const DEFAULT_MAX_CONCURRENT = 4;
@@ -32,23 +42,6 @@ const DEFAULT_MAX_CONCURRENT = 4;
 function sqlEscape(s) {
   if (s === null || s === undefined) return 'null';
   return `'${String(s).replace(/'/g, "''")}'`;
-}
-
-async function runSql(sql) {
-  const file = join(tmpdir(), `scheduler-${Date.now()}-${Math.random().toString(36).slice(2)}.sql`);
-  writeFileSync(file, sql, 'utf8');
-  try {
-    const { stdout } = await execFileAsync('npx', ['supabase', 'db', 'query', '--linked', '-f', file], {
-      cwd: REPO_ROOT,
-      shell: true,
-      maxBuffer: 10 * 1024 * 1024,
-    });
-    const jsonStart = stdout.indexOf('{');
-    if (jsonStart === -1) throw new Error(`no JSON found in db query output: ${stdout}`);
-    return JSON.parse(stdout.slice(jsonStart));
-  } finally {
-    unlinkSync(file);
-  }
 }
 
 // ============================================================================
@@ -134,7 +127,7 @@ export function selectTasksToDispatch(allTasks, availableSlots) {
 // ============================================================================
 
 export async function refreshHeartbeats() {
-  const result = await runSql(`
+  const result = await db.read(`
 select id, provider_run_id from public.agent_runs where status = 'in_progress'::work_status and provider_run_id is not null;
 `);
   const runs = result.rows ?? [];
@@ -144,7 +137,7 @@ select id, provider_run_id from public.agent_runs where status = 'in_progress'::
   for (const run of runs) {
     const live = await provider.getRunStatus(run.provider_run_id);
     if (live) {
-      await runSql(`update public.agent_runs set last_heartbeat_at = now() where id = ${sqlEscape(run.id)}::uuid;`);
+      await db.write(`update public.agent_runs set last_heartbeat_at = now() where id = ${sqlEscape(run.id)}::uuid;`);
       refreshed.push(run.id);
     } else {
       // Session no longer known to `claude agents` at all - do NOT refresh the
@@ -181,7 +174,7 @@ select id, provider_run_id from public.agent_runs where status = 'in_progress'::
         try {
           await supervisor.recordCapacityBlock(run.id, capacityRaw || capacity.matched, { attemptCount: 1 });
         } catch {
-          await runSql(`
+          await db.write(`
 update public.agent_runs
    set status = 'blocked'::work_status,
        blocked_reason = ${sqlEscape(`${capacity.classification}: ${capacity.matched} — retryable; provider quota, not a Factory failure`)},
@@ -207,7 +200,7 @@ update public.agent_runs
 // notification. Once a run recovers (heartbeat resumes) or is resolved by the founder,
 // a LATER genuine stale episode for the same run is free to notify again.
 export async function notifyStaleAgents() {
-  const result = await runSql(`
+  const result = await db.read(`
 select ls.id, ls.canonical_work_order_id, ls.agent_id, a.name as agent_name
 from public.agent_runs_with_live_status ls
 join public.agents a on a.id = ls.agent_id
@@ -216,7 +209,7 @@ where ls.live_run_status = 'STALE';
   const staleRuns = result.rows ?? [];
   const notified = [];
   for (const run of staleRuns) {
-    const insertResult = await runSql(`
+    const insertResult = await db.write(`
 select public.create_founder_notification(
   'FACTORY_AGENT_STALE', 'warning',
   ${sqlEscape(`Agent stalled: ${run.agent_name}`)},
@@ -235,13 +228,13 @@ export async function dispatchReadyTasks(workOrderId, maxConcurrent = DEFAULT_MA
   // a complete depends_on status map (a dependency that already reached 'done' must
   // still resolve correctly), not just the still-open candidates. See scheduler.mjs's
   // own header comment on selectTasksToDispatch for the real bug this fixed live.
-  const tasksResult = await runSql(`
+  const tasksResult = await db.read(`
 select id, title, status, depends_on, required_capabilities, company_id, created_at
 from public.tasks where canonical_work_order_id = ${sqlEscape(workOrderId)}::uuid;
 `);
   const tasks = tasksResult.rows ?? [];
 
-  const runningResult = await runSql(`
+  const runningResult = await db.read(`
 select count(*) as n from public.agent_runs where status = 'in_progress'::work_status;
 `);
   const currentlyRunning = Number(runningResult.rows?.[0]?.n ?? 0);
@@ -250,7 +243,7 @@ select count(*) as n from public.agent_runs where status = 'in_progress'::work_s
   const toDispatch = selectTasksToDispatch(tasks, availableSlots);
   if (toDispatch.length === 0) return { dispatched: [], reason: availableSlots === 0 ? 'concurrency_cap_reached' : 'no_ready_tasks' };
 
-  const agentsResult = await runSql(`
+  const agentsResult = await db.read(`
 select a.id, a.name, a.capabilities,
   (select count(*) from public.agent_runs ar where ar.agent_id = a.id and ar.status = 'in_progress'::work_status) as active_run_count
 from public.agents a
@@ -274,7 +267,7 @@ where a.active = true and a.has_production_authority = true and a.execution_prov
       agent.id,
       `Real Software Factory task "${task.title}" (id ${task.id}), dispatched by the capability-based scheduler under Work Order ${workOrderId}. You were selected because your registered capabilities matched this task's required_capabilities (${JSON.stringify(task.required_capabilities)}). Do the real work this task describes; do not fabricate progress.`
     );
-    await runSql(`
+    await db.write(`
 insert into public.agent_runs (agent_id, task_id, canonical_work_order_id, company_id, agent_definition_path, execution_provider, provider_run_id, status, started_at, last_heartbeat_at, attached_skills)
 select ${sqlEscape(agent.id)}::uuid, ${sqlEscape(task.id)}::uuid, ${sqlEscape(workOrderId)}::uuid, ${sqlEscape(task.company_id)}::uuid, a.definition_path, 'claude_code_background', ${sqlEscape(providerRunId)}, 'in_progress'::work_status, now(), now(), ${sqlEscape(JSON.stringify(attachedSkills ?? []))}::jsonb
 from public.agents a where a.id = ${sqlEscape(agent.id)}::uuid;

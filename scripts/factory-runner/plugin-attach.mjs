@@ -42,6 +42,16 @@ import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { syncAttachedCapabilities } from './sync-agents.mjs';
 
+// THE DATABASE IS REACHED THROUGH THE CANONICAL ACCESSOR, NOT THROUGH THE MACHINE.
+//
+// This script used to carry a private runSql() that shelled out to `npx supabase db query --linked`,
+// which borrowed whatever Supabase CLI credential the machine happened to hold — on the Home PC, full
+// production write. db.mjs connects with an explicit FACTORY_RUNNER_PG_URL, refuses to start without
+// one, refuses a superuser connection, and refuses DDL, privilege changes and migration-history writes
+// in the client. read() and write() are separate so a reader cannot silently become a writer.
+import * as db from './db.mjs';
+
+
 const execFileAsync = promisify(execFile);
 const REPO_ROOT = 'C:\\Users\\Dell\\dev\\brain-os';
 // A real component's content may only ever come from this repo itself or the local
@@ -70,23 +80,6 @@ function sqlEscape(s) {
   return `'${String(s).replace(/'/g, "''")}'`;
 }
 
-async function runSql(sql) {
-  const file = join(tmpdir(), `plugin-attach-${Date.now()}-${Math.random().toString(36).slice(2)}.sql`);
-  writeFileSync(file, sql, 'utf8');
-  try {
-    const { stdout } = await execFileAsync('npx', ['supabase', 'db', 'query', '--linked', '-f', file], {
-      cwd: REPO_ROOT,
-      shell: true,
-      maxBuffer: 10 * 1024 * 1024,
-    });
-    const jsonStart = stdout.indexOf('{');
-    if (jsonStart === -1) throw new Error(`no JSON found in db query output: ${stdout}`);
-    return JSON.parse(stdout.slice(jsonStart));
-  } finally {
-    unlinkSync(file);
-  }
-}
-
 export function hashFile(definitionPath) {
   // Externally-adopted skills (e.g. obra/superpowers) live outside REPO_ROOT, in the
   // Claude Code plugin cache — an absolute definitionPath is stored and hashed as-is;
@@ -105,7 +98,7 @@ export function hashFile(definitionPath) {
 // stays 'discovered' until reviewComponent()/sandboxTest() actually run.
 export async function discoverComponent(sourceId, slug, componentType, definitionPath) {
   const definitionHash = hashFile(definitionPath);
-  const result = await runSql(`
+  const result = await db.write(`
 insert into public.plugin_components (source_id, slug, component_type, definition_path, definition_hash, install_status)
 values (${sqlEscape(sourceId)}::uuid, ${sqlEscape(slug)}, ${sqlEscape(componentType)}, ${sqlEscape(definitionPath)}, ${sqlEscape(definitionHash)}, 'discovered')
 on conflict (source_id, slug) do update set
@@ -128,12 +121,12 @@ export const registerComponent = discoverComponent;
 // not silently continue. Passing both moves the component to 'quarantined': reviewed, not
 // yet sandbox-tested, still not attachable.
 export async function reviewComponent(componentId, licensePassed, licenseNotes, securityPassed, securityNotes) {
-  await runSql(`
+  await db.write(`
 update public.plugin_components set install_status = 'reviewing', updated_at = now()
 where id = ${sqlEscape(componentId)}::uuid and install_status = 'discovered';
 `);
   const nextStatus = licensePassed && securityPassed ? 'quarantined' : 'failed';
-  return runSql(`
+  return db.write(`
 update public.plugin_components set
   license_review_status = ${sqlEscape(licensePassed ? 'passed' : 'failed')},
   security_review_status = ${sqlEscape(securityPassed ? 'passed' : 'failed')},
@@ -150,17 +143,17 @@ returning id, slug, license_review_status, security_review_status, install_statu
 // and has demonstrably run) or 'failed'. This is the state that finally distinguishes
 // "discovered on GitHub" from "actually installed" — the founder's central requirement.
 export async function sandboxTest(componentId, passed, notes) {
-  const current = await runSql(`select install_status from public.plugin_components where id = ${sqlEscape(componentId)}::uuid;`);
+  const current = await db.read(`select install_status from public.plugin_components where id = ${sqlEscape(componentId)}::uuid;`);
   const row = current.rows?.[0];
   if (!row) throw new Error(`plugin-attach: no plugin_components row ${componentId}`);
   if (row.install_status !== 'quarantined') {
     throw new Error(`plugin-attach: cannot sandbox-test ${componentId} from install_status=${row.install_status} — must be 'quarantined' (passed review) first`);
   }
-  await runSql(`update public.plugin_components set install_status = 'testing', updated_at = now() where id = ${sqlEscape(componentId)}::uuid;`);
+  await db.write(`update public.plugin_components set install_status = 'testing', updated_at = now() where id = ${sqlEscape(componentId)}::uuid;`);
   const nextStatus = passed ? 'installed' : 'failed';
   // Real evidence persisted, not just returned to the caller and discarded — the whole
   // point of this stage is that "installed" must be backed by something checkable later.
-  const result = await runSql(`
+  const result = await db.write(`
 update public.plugin_components set
   install_status = ${sqlEscape(nextStatus)},
   manifest = jsonb_set(manifest, '{sandbox_test}', jsonb_build_object('passed', ${passed}, 'notes', ${sqlEscape(notes ?? null)}, 'tested_at', now()), true),
@@ -182,13 +175,13 @@ returning id, slug, install_status, manifest -> 'sandbox_test' as sandbox_test;
 // founder's own explicit smoke-test sequence) failed on the re-enable step even though it
 // is a completely legitimate operation.
 export async function enableComponent(componentId) {
-  const current = await runSql(`select install_status from public.plugin_components where id = ${sqlEscape(componentId)}::uuid;`);
+  const current = await db.read(`select install_status from public.plugin_components where id = ${sqlEscape(componentId)}::uuid;`);
   const row = current.rows?.[0];
   if (!row) throw new Error(`plugin-attach: no plugin_components row ${componentId}`);
   if (!['installed', 'enabled', 'disabled'].includes(row.install_status)) {
     throw new Error(`plugin-attach: cannot enable ${componentId} from install_status=${row.install_status} — must be 'installed' or 'disabled' first (discover -> review -> sandbox-test -> enable[/disable/enable])`);
   }
-  const result = await runSql(`
+  const result = await db.write(`
 update public.plugin_components set enabled = true, install_status = 'enabled', updated_at = now()
 where id = ${sqlEscape(componentId)}::uuid
 returning id, slug, enabled, install_status;
@@ -198,7 +191,7 @@ returning id, slug, enabled, install_status;
 }
 
 export async function disableComponent(componentId) {
-  const result = await runSql(`
+  const result = await db.write(`
 update public.plugin_components set enabled = false, install_status = 'disabled', updated_at = now()
 where id = ${sqlEscape(componentId)}::uuid
 returning id, slug, enabled, install_status;
@@ -218,7 +211,7 @@ returning id, slug, enabled, install_status;
 // must re-sync provenance for every agent currently attached to it, not just the caller of
 // attach/detach.
 async function resyncAllAttachedAgents(componentId) {
-  const attached = await runSql(`
+  const attached = await db.read(`
 select distinct agent_id from public.agent_plugin_attachments
 where plugin_component_id = ${sqlEscape(componentId)}::uuid and detached_at is null;
 `);
@@ -234,7 +227,7 @@ where plugin_component_id = ${sqlEscape(componentId)}::uuid and detached_at is n
 // they first become real) — append-only, never a destructive overwrite, so update/
 // rollback always has real history to act on.
 async function snapshotVersion(componentId, reason) {
-  return runSql(`
+  return db.write(`
 insert into public.plugin_component_versions
   (plugin_component_id, pinned_commit_sha, definition_path, definition_hash, installed_version, install_status, recorded_reason)
 select pc.id, ps.pinned_commit_sha, pc.definition_path, pc.definition_hash, pc.installed_version, pc.install_status, ${sqlEscape(reason)}
@@ -246,7 +239,7 @@ returning id, plugin_component_id, definition_hash, recorded_reason, recorded_at
 }
 
 export async function listVersions(componentId) {
-  return runSql(`
+  return db.read(`
 select id, pinned_commit_sha, definition_path, definition_hash, installed_version, install_status, recorded_reason, recorded_at
 from public.plugin_component_versions
 where plugin_component_id = ${sqlEscape(componentId)}::uuid
@@ -260,13 +253,13 @@ order by recorded_at desc;
 // applyUpdate() below genuinely swaps it, matching the required "sandbox B before it's
 // ever live" semantics.
 export async function detectUpdate(componentId, latestUpstreamSha) {
-  const current = await runSql(`select install_status from public.plugin_components where id = ${sqlEscape(componentId)}::uuid;`);
+  const current = await db.read(`select install_status from public.plugin_components where id = ${sqlEscape(componentId)}::uuid;`);
   const row = current.rows?.[0];
   if (!row) throw new Error(`plugin-attach: no plugin_components row ${componentId}`);
   if (!['installed', 'enabled'].includes(row.install_status)) {
     throw new Error(`plugin-attach: cannot flag an update for ${componentId} from install_status=${row.install_status} — only an installed/enabled component can have an update`);
   }
-  return runSql(`
+  return db.write(`
 update public.plugin_components set install_status = 'update_available', updated_at = now()
 where id = ${sqlEscape(componentId)}::uuid
 returning id, slug, install_status;
@@ -295,12 +288,12 @@ returning id, slug, install_status;
 export async function applyUpdate(componentId, newDefinitionPath, newPinnedCommitSha, newInstalledVersion) {
   const newHash = hashFile(newDefinitionPath);
   await snapshotVersion(componentId, 'update');
-  const sourceRow = await runSql(`select source_id from public.plugin_components where id = ${sqlEscape(componentId)}::uuid;`);
+  const sourceRow = await db.read(`select source_id from public.plugin_components where id = ${sqlEscape(componentId)}::uuid;`);
   const sourceId = sourceRow.rows?.[0]?.source_id;
   if (sourceId) {
-    await runSql(`update public.plugin_sources set pinned_commit_sha = ${sqlEscape(newPinnedCommitSha)}, updated_at = now() where id = ${sqlEscape(sourceId)}::uuid;`);
+    await db.write(`update public.plugin_sources set pinned_commit_sha = ${sqlEscape(newPinnedCommitSha)}, updated_at = now() where id = ${sqlEscape(sourceId)}::uuid;`);
   }
-  const result = await runSql(`
+  const result = await db.write(`
 update public.plugin_components set
   definition_path = ${sqlEscape(newDefinitionPath)},
   definition_hash = ${sqlEscape(newHash)},
@@ -320,7 +313,7 @@ returning id, slug, definition_path, definition_hash, installed_version, install
 // path's actual current on-disk content (proves the restored file still really exists and
 // hashes to what it should — never trusts the stored snapshot hash blindly).
 export async function rollbackComponent(componentId, targetVersionId) {
-  const target = await runSql(`
+  const target = await db.read(`
 select pinned_commit_sha, definition_path, installed_version from public.plugin_component_versions
 where id = ${sqlEscape(targetVersionId)}::uuid and plugin_component_id = ${sqlEscape(componentId)}::uuid;
 `);
@@ -332,12 +325,12 @@ where id = ${sqlEscape(targetVersionId)}::uuid and plugin_component_id = ${sqlEs
   // transition behind it.
   const restoredHash = hashFile(row.definition_path);
   await snapshotVersion(componentId, 'rollback');
-  const sourceRow = await runSql(`select source_id from public.plugin_components where id = ${sqlEscape(componentId)}::uuid;`);
+  const sourceRow = await db.read(`select source_id from public.plugin_components where id = ${sqlEscape(componentId)}::uuid;`);
   const sourceId = sourceRow.rows?.[0]?.source_id;
   if (sourceId && row.pinned_commit_sha) {
-    await runSql(`update public.plugin_sources set pinned_commit_sha = ${sqlEscape(row.pinned_commit_sha)}, updated_at = now() where id = ${sqlEscape(sourceId)}::uuid;`);
+    await db.write(`update public.plugin_sources set pinned_commit_sha = ${sqlEscape(row.pinned_commit_sha)}, updated_at = now() where id = ${sqlEscape(sourceId)}::uuid;`);
   }
-  const result = await runSql(`
+  const result = await db.write(`
 update public.plugin_components set
   definition_path = ${sqlEscape(row.definition_path)},
   definition_hash = ${sqlEscape(restoredHash)},
@@ -352,7 +345,7 @@ returning id, slug, definition_path, definition_hash, installed_version, install
 }
 
 export async function attachSkill(agentId, componentId) {
-  const check = await runSql(`
+  const check = await db.read(`
 select install_status, enabled from public.plugin_components where id = ${sqlEscape(componentId)}::uuid;
 `);
   const row = check.rows?.[0];
@@ -362,7 +355,7 @@ select install_status, enabled from public.plugin_components where id = ${sqlEsc
       `plugin-attach: component ${componentId} is not attachable (install_status=${row.install_status}, enabled=${row.enabled}) - must have completed discover -> review -> sandbox-test -> enable first`
     );
   }
-  await runSql(`
+  await db.write(`
 insert into public.agent_plugin_attachments (agent_id, plugin_component_id)
 values (${sqlEscape(agentId)}::uuid, ${sqlEscape(componentId)}::uuid)
 on conflict (agent_id, plugin_component_id) do update set detached_at = null, attached_at = now();
@@ -373,7 +366,7 @@ on conflict (agent_id, plugin_component_id) do update set detached_at = null, at
 }
 
 export async function detachSkill(agentId, componentId) {
-  await runSql(`
+  await db.write(`
 update public.agent_plugin_attachments set detached_at = now()
 where agent_id = ${sqlEscape(agentId)}::uuid and plugin_component_id = ${sqlEscape(componentId)}::uuid and detached_at is null;
 `);
@@ -382,7 +375,7 @@ where agent_id = ${sqlEscape(agentId)}::uuid and plugin_component_id = ${sqlEsca
 }
 
 export async function listAttached(agentId) {
-  return runSql(`
+  return db.read(`
 select pc.slug, pc.component_type, pc.definition_hash, apa.attached_at
 from public.agent_plugin_attachments apa
 join public.plugin_components pc on pc.id = apa.plugin_component_id

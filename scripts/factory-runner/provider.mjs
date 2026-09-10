@@ -20,6 +20,16 @@ import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
+// THE DATABASE IS REACHED THROUGH THE CANONICAL ACCESSOR, NOT THROUGH THE MACHINE.
+//
+// This script used to carry a private runSql() that shelled out to `npx supabase db query --linked`,
+// which borrowed whatever Supabase CLI credential the machine happened to hold — on the Home PC, full
+// production write. db.mjs connects with an explicit FACTORY_RUNNER_PG_URL, refuses to start without
+// one, refuses a superuser connection, and refuses DDL, privilege changes and migration-history writes
+// in the client. read() and write() are separate so a reader cannot silently become a writer.
+import * as db from './db.mjs';
+
+
 const execFileAsync = promisify(execFile);
 const REPO_ROOT = 'C:\\Users\\Dell\\dev\\brain-os';
 
@@ -314,23 +324,6 @@ export async function healthCheck() {
 // "unknown agent cannot execute": there is no code path here that accepts a name/path
 // string directly from untrusted input and hands it to `claude --agent`.
 
-async function runSqlSelect(sql) {
-  const file = join(tmpdir(), `provider-registry-${Date.now()}-${Math.random().toString(36).slice(2)}.sql`);
-  writeFileSync(file, sql, 'utf8');
-  try {
-    const { stdout } = await execFileAsync('npx', ['supabase', 'db', 'query', '--linked', '-f', file], {
-      cwd: REPO_ROOT,
-      shell: true,
-      maxBuffer: 10 * 1024 * 1024,
-    });
-    const jsonStart = stdout.indexOf('{');
-    if (jsonStart === -1) throw new Error(`no JSON found in db query output: ${stdout}`);
-    return JSON.parse(stdout.slice(jsonStart));
-  } finally {
-    unlinkSync(file);
-  }
-}
-
 /**
  * Real read of the trusted registry - the only source of truth for what a given
  * canonical Agent ID is actually allowed to do.
@@ -342,7 +335,7 @@ export async function resolveAgentFromRegistry(agentId) {
   }
   const sql = `select id, name, active, execution_provider, has_production_authority, definition_path, definition_hash, provenance
 from public.agents where id = '${agentId}'::uuid;`;
-  const result = await runSqlSelect(sql);
+  const result = await db.write(sql);
   const row = result.rows?.[0];
   if (!row) return null;
   return {

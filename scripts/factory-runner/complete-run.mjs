@@ -27,27 +27,20 @@ import { writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
+// THE DATABASE IS REACHED THROUGH THE CANONICAL ACCESSOR, NOT THROUGH THE MACHINE.
+//
+// This script used to carry a private runSql() that shelled out to `npx supabase db query --linked`,
+// which borrowed whatever Supabase CLI credential the machine happened to hold — on the Home PC, full
+// production write. db.mjs connects with an explicit FACTORY_RUNNER_PG_URL, refuses to start without
+// one, refuses a superuser connection, and refuses DDL, privilege changes and migration-history writes
+// in the client. read() and write() are separate so a reader cannot silently become a writer.
+import * as db from './db.mjs';
+
+
 const execFileAsync = promisify(execFile);
 const REPO_ROOT = 'C:\\Users\\Dell\\dev\\brain-os';
 const VALID_STATUSES = new Set(['draft', 'queued', 'in_progress', 'blocked', 'needs_approval', 'qa_review', 'done', 'rejected', 'archived']);
 const VALID_VERIFICATION_STATUSES = new Set(['pending', 'live_verified', 'e2e_verified', 'failed', 'blocked']);
-
-async function runSql(sql) {
-  const file = join(tmpdir(), `complete-run-${Date.now()}-${Math.random().toString(36).slice(2)}.sql`);
-  writeFileSync(file, sql, 'utf8');
-  try {
-    const { stdout } = await execFileAsync('npx', ['supabase', 'db', 'query', '--linked', '-f', file], {
-      cwd: REPO_ROOT,
-      shell: true,
-      maxBuffer: 10 * 1024 * 1024,
-    });
-    const jsonStart = stdout.indexOf('{');
-    if (jsonStart === -1) throw new Error(`no JSON found in db query output: ${stdout}`);
-    return JSON.parse(stdout.slice(jsonStart));
-  } finally {
-    unlinkSync(file);
-  }
-}
 
 function sqlEscape(s) {
   if (s === null || s === undefined) return 'null';
@@ -93,7 +86,7 @@ async function main() {
   // founder profile id, same fixture identity already used throughout
   // qa/scenarios-runner/*.sql (see qa/scenarios-runner/README.md's "Fixture identities").
   const FOUNDER_AUTH_UID = 'cbcc41cf-830d-4600-8545-3b9e22c8297f';
-  const result = await runSql(`
+  const result = await db.write(`
 set local role authenticated;
 select set_config('request.jwt.claims', json_build_object('sub','${FOUNDER_AUTH_UID}','role','authenticated')::text, true);
 select public.complete_agent_run(${sqlEscape(agentRunId)}::uuid, ${sqlEscape(status)}::work_status, ${sqlEscape(headCommit)}, ${sqlEscape(verificationStatus)}, ${sqlEscape(summary)}) as result;

@@ -25,6 +25,16 @@ import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
+// THE DATABASE IS REACHED THROUGH THE CANONICAL ACCESSOR, NOT THROUGH THE MACHINE.
+//
+// This script used to carry a private runSql() that shelled out to `npx supabase db query --linked`,
+// which borrowed whatever Supabase CLI credential the machine happened to hold — on the Home PC, full
+// production write. db.mjs connects with an explicit FACTORY_RUNNER_PG_URL, refuses to start without
+// one, refuses a superuser connection, and refuses DDL, privilege changes and migration-history writes
+// in the client. read() and write() are separate so a reader cannot silently become a writer.
+import * as db from './db.mjs';
+
+
 const execFileAsync = promisify(execFile);
 const REPO_ROOT = 'C:\\Users\\Dell\\dev\\brain-os';
 
@@ -68,23 +78,6 @@ function sqlEscape(s) {
 
 function sqlTextArray(arr) {
   return `array[${(arr ?? []).map(sqlEscape).join(',')}]::text[]`;
-}
-
-async function runSql(sql) {
-  const file = join(tmpdir(), `sync-agents-${Date.now()}-${Math.random().toString(36).slice(2)}.sql`);
-  writeFileSync(file, sql, 'utf8');
-  try {
-    const { stdout } = await execFileAsync('npx', ['supabase', 'db', 'query', '--linked', '-f', file], {
-      cwd: REPO_ROOT,
-      shell: true,
-      maxBuffer: 10 * 1024 * 1024,
-    });
-    const jsonStart = stdout.indexOf('{');
-    if (jsonStart === -1) throw new Error(`no JSON found in db query output: ${stdout}`);
-    return JSON.parse(stdout.slice(jsonStart));
-  } finally {
-    unlinkSync(file);
-  }
 }
 
 export function buildAgentRow(entry) {
@@ -141,7 +134,7 @@ on conflict (name) do update set
   updated_at = now()
 returning id, name, definition_hash;
 `;
-  return runSql(sql);
+  return db.write(sql);
 }
 
 export async function deactivateMissing() {
@@ -151,7 +144,7 @@ update public.agents set active = false, updated_at = now()
 where category is not null and name not in (${names})
 returning id, name;
 `;
-  return runSql(sql);
+  return db.write(sql);
 }
 
 // Real, non-cosmetic wiring for Phase 1's "attaching a skill must affect the actual
@@ -161,7 +154,7 @@ returning id, name;
 // already designed. This is what dispatch-task.mjs reads at dispatch time to build the
 // real skill-injection prompt block and populate agent_runs.attached_skills.
 export async function resolveAttachedCapabilities(agentId) {
-  const result = await runSql(`
+  const result = await db.read(`
 select pc.slug, pc.definition_path, pc.definition_hash, ps.github_owner, ps.github_repo, ps.pinned_commit_sha
 from public.agent_plugin_attachments apa
 join public.plugin_components pc on pc.id = apa.plugin_component_id
@@ -203,7 +196,7 @@ order by pc.slug;
 export async function syncAttachedCapabilities(agentId, baseProvenance) {
   const externalCapabilities = await resolveAttachedCapabilities(agentId);
   const provenance = { ...baseProvenance, external_capabilities: externalCapabilities };
-  await runSql(`
+  await db.write(`
 update public.agents set provenance = ${sqlEscape(JSON.stringify(provenance))}::jsonb, updated_at = now()
 where id = ${sqlEscape(agentId)}::uuid;
 `);

@@ -18,29 +18,22 @@ import { hostname, platform, release } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 
+// THE DATABASE IS REACHED THROUGH THE CANONICAL ACCESSOR, NOT THROUGH THE MACHINE.
+//
+// This script used to carry a private runSql() that shelled out to `npx supabase db query --linked`,
+// which borrowed whatever Supabase CLI credential the machine happened to hold — on the Home PC, full
+// production write. db.mjs connects with an explicit FACTORY_RUNNER_PG_URL, refuses to start without
+// one, refuses a superuser connection, and refuses DDL, privilege changes and migration-history writes
+// in the client. read() and write() are separate so a reader cannot silently become a writer.
+import * as db from './db.mjs';
+
+
 const execFileAsync = promisify(execFile);
 const REPO_ROOT = 'C:\\Users\\Dell\\dev\\brain-os';
 
 function sqlEscape(s) {
   if (s === null || s === undefined) return 'null';
   return `'${String(s).replace(/'/g, "''")}'`;
-}
-
-async function runSql(sql) {
-  const file = join(tmpdir(), `register-worker-${Date.now()}-${Math.random().toString(36).slice(2)}.sql`);
-  writeFileSync(file, sql, 'utf8');
-  try {
-    const { stdout } = await execFileAsync('npx', ['supabase', 'db', 'query', '--linked', '-f', file], {
-      cwd: REPO_ROOT,
-      shell: true,
-      maxBuffer: 10 * 1024 * 1024,
-    });
-    const jsonStart = stdout.indexOf('{');
-    if (jsonStart === -1) throw new Error(`no JSON found in db query output: ${stdout}`);
-    return JSON.parse(stdout.slice(jsonStart));
-  } finally {
-    unlinkSync(file);
-  }
 }
 
 async function getClaudeCodeVersion() {
@@ -54,7 +47,7 @@ async function getClaudeCodeVersion() {
 
 export async function registerWorker(workerRole, maxConcurrency) {
   const claudeVersion = await getClaudeCodeVersion();
-  const result = await runSql(`
+  const result = await db.write(`
 insert into public.workers (hostname, display_name, worker_role, os_platform, node_version, claude_code_version, max_concurrency, last_heartbeat_at)
 values (${sqlEscape(hostname())}, ${sqlEscape(hostname())}, ${sqlEscape(workerRole ?? null)}, ${sqlEscape(`${platform()} ${release()}`)}, ${sqlEscape(process.version)}, ${sqlEscape(claudeVersion)}, ${maxConcurrency ? Number(maxConcurrency) : 'null'}, now())
 on conflict (hostname) do update set
@@ -75,14 +68,14 @@ returning id, hostname, worker_role, last_heartbeat_at;
 // plugin-attach.mjs pipeline actually touched (attached at least once) - a worker
 // doesn't "have" every component that merely exists in the registry.
 export async function recordInstalledComponents(workerId) {
-  const attached = await runSql(`
+  const attached = await db.read(`
 select distinct pc.id, pc.definition_hash, pc.installed_version
 from public.agent_plugin_attachments apa
 join public.plugin_components pc on pc.id = apa.plugin_component_id
 where apa.detached_at is null;
 `);
   for (const row of attached.rows ?? []) {
-    await runSql(`
+    await db.write(`
 insert into public.worker_plugin_installs (worker_id, plugin_component_id, installed_version, installed_definition_hash, configuration_drift, last_checked_at)
 values (${sqlEscape(workerId)}::uuid, ${sqlEscape(row.id)}::uuid, ${sqlEscape(row.installed_version)}, ${sqlEscape(row.definition_hash)}, false, now())
 on conflict (worker_id, plugin_component_id) do update set

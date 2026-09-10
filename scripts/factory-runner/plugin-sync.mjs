@@ -20,31 +20,22 @@ import { writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
+// THE DATABASE IS REACHED THROUGH THE CANONICAL ACCESSOR, NOT THROUGH THE MACHINE.
+//
+// This script used to carry a private runSql() that shelled out to `npx supabase db query --linked`,
+// which borrowed whatever Supabase CLI credential the machine happened to hold — on the Home PC, full
+// production write. db.mjs connects with an explicit FACTORY_RUNNER_PG_URL, refuses to start without
+// one, refuses a superuser connection, and refuses DDL, privilege changes and migration-history writes
+// in the client. read() and write() are separate so a reader cannot silently become a writer.
+import * as db from './db.mjs';
+
+
 const execFileAsync = promisify(execFile);
 const REPO_ROOT = 'C:\\Users\\Dell\\dev\\brain-os';
 
 function sqlEscape(s) {
   if (s === null || s === undefined) return 'null';
   return `'${String(s).replace(/'/g, "''")}'`;
-}
-
-async function runSql(sql) {
-  const file = join(tmpdir(), `plugin-sync-${Date.now()}-${Math.random().toString(36).slice(2)}.sql`);
-  writeFileSync(file, sql, 'utf8');
-  try {
-    // --linked ALONE — never combined with --project-ref (see
-    // docs/software-factory/PHASE_8_SECURITY_INCIDENT.md).
-    const { stdout } = await execFileAsync('npx', ['supabase', 'db', 'query', '--linked', '-f', file], {
-      cwd: REPO_ROOT,
-      shell: true,
-      maxBuffer: 10 * 1024 * 1024,
-    });
-    const jsonStart = stdout.indexOf('{');
-    if (jsonStart === -1) throw new Error(`no JSON found in db query output: ${stdout}`);
-    return JSON.parse(stdout.slice(jsonStart));
-  } finally {
-    unlinkSync(file);
-  }
 }
 
 // Real GitHub API read via `gh api` — never HTML scraping, never a bare `git clone` of
@@ -103,18 +94,18 @@ on conflict (github_owner, github_repo) do update set
   updated_at = now()
 returning id, github_owner, github_repo, trust_status, license, latest_upstream_sha;
 `;
-  return runSql(sql);
+  return db.write(sql);
 }
 
 export async function checkUpdates(sourceId) {
   const where = sourceId ? `where id = ${sqlEscape(sourceId)}::uuid` : '';
-  const result = await runSql(`select id, github_owner, github_repo, pinned_commit_sha from public.plugin_sources ${where};`);
+  const result = await db.read(`select id, github_owner, github_repo, pinned_commit_sha from public.plugin_sources ${where};`);
   const rows = result.rows ?? [];
   const updates = [];
   for (const row of rows) {
     const meta = await fetchRepoMetadata(row.github_owner, row.github_repo);
     const updateAvailable = !!row.pinned_commit_sha && row.pinned_commit_sha !== meta.latestUpstreamSha;
-    await runSql(`
+    await db.write(`
 update public.plugin_sources set
   latest_upstream_sha = ${sqlEscape(meta.latestUpstreamSha)},
   update_available = ${updateAvailable},

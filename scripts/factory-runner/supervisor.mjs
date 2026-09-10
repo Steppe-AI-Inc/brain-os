@@ -33,6 +33,16 @@ import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import * as provider from './provider.mjs';
 
+// THE DATABASE IS REACHED THROUGH THE CANONICAL ACCESSOR, NOT THROUGH THE MACHINE.
+//
+// This script used to carry a private runSql() that shelled out to `npx supabase db query --linked`,
+// which borrowed whatever Supabase CLI credential the machine happened to hold — on the Home PC, full
+// production write. db.mjs connects with an explicit FACTORY_RUNNER_PG_URL, refuses to start without
+// one, refuses a superuser connection, and refuses DDL, privilege changes and migration-history writes
+// in the client. read() and write() are separate so a reader cannot silently become a writer.
+import * as db from './db.mjs';
+
+
 const execFileAsync = promisify(execFile);
 const REPO_ROOT = 'C:\\Users\\Dell\\dev\\brain-os';
 // Bounded backoff for a provider that gives no reset time. Never an aggressive loop.
@@ -42,32 +52,6 @@ export const MAX_ATTEMPTS = 6;
 function sqlEscape(s) {
   if (s === null || s === undefined) return 'null';
   return `'${String(s).replace(/'/g, "''")}'`;
-}
-
-async function runSql(sql) {
-  const file = join(tmpdir(), `supervisor-${Date.now()}-${Math.random().toString(36).slice(2)}.sql`);
-  writeFileSync(file, sql, 'utf8');
-  try {
-    // R-D9 (DB review round 2): this carried `shell: true`, which contradicts this file's
-    // own security rule that DB-controlled strings never reach a shell. No database value
-    // is passed here today — the SQL travels via a harness-generated temp FILE and the argv
-    // is fixed — so it was not exploitable. It was still wrong to leave: `shell: true` means
-    // the argv is re-parsed by cmd.exe, so the day anyone adds a DB-derived argument the
-    // injection is silent and total. The guarantee has to hold by CONSTRUCTION, not because
-    // nobody has edited this line yet.
-    //
-    // `shell: true` was there because bare `npx` is not directly executable on Windows;
-    // naming the real `npx.cmd` keeps argv semantics with no shell anywhere in the path.
-    const npxBin = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-    const { stdout } = await execFileAsync(npxBin, ['supabase', 'db', 'query', '--linked', '-f', file], {
-      cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024,
-    });
-    const jsonStart = stdout.indexOf('{');
-    if (jsonStart === -1) throw new Error(`no JSON in db query output: ${stdout}`);
-    return JSON.parse(stdout.slice(jsonStart));
-  } finally {
-    unlinkSync(file);
-  }
 }
 
 // ============================================================================
@@ -247,7 +231,7 @@ export function buildResumePrompt(run, plan) {
 export async function recordCapacityBlock(runId, providerOutput, checkpoint = {}) {
   const { retryAfter, source } = computeRetryAfter(providerOutput, checkpoint.attemptCount ?? 1);
   const reason = `${provider.PROVIDER_CAPACITY_BLOCKED}: retryable provider quota (retry_after from ${source})`;
-  await runSql(`
+  await db.write(`
 update public.agent_runs
    set status = 'blocked'::work_status,
        blocked_reason = ${sqlEscape(reason)},
@@ -284,7 +268,7 @@ export async function pollOnce(supervisorId, currentSourceSha) {
   try {
     // run13/R-D5: the cap is PASSED explicitly, so the exported constant and the SQL
     // default can never drift into two silent copies of the same rule.
-    claimed = await runSql(`select * from public.claim_blocked_run_for_retry(${sqlEscape(supervisorId)}, ${Number(MAX_ATTEMPTS)});`);
+    claimed = await db.write(`select * from public.claim_blocked_run_for_retry(${sqlEscape(supervisorId)}, ${Number(MAX_ATTEMPTS)});`);
   } catch (e) {
     // run12/D4: these were collapsed into ONE "not available" answer, so a permission
     // DENIAL reported itself as "migration not applied" — an operator would conclude the
@@ -329,14 +313,14 @@ export async function pollOnce(supervisorId, currentSourceSha) {
     // actually ran; the argv itself comes from the pure, tested verifierDispatchArgv().
     const mode = provider.EXECUTION_MODES.TOP_LEVEL_ISOLATED_PROCESS;
     try {
-      await runSql(`update public.agent_runs set execution_mode = ${sqlEscape(mode)} where id = ${sqlEscape(run.id)}::uuid;`);
+      await db.write(`update public.agent_runs set execution_mode = ${sqlEscape(mode)} where id = ${sqlEscape(run.id)}::uuid;`);
     } catch { /* column absent until 202609030001 is applied; the dispatch still records mode in its log */ }
     await execFileAsync('claude', provider.verifierDispatchArgv(prompt, mode), {
       cwd: safeWorktree(run.worktree), maxBuffer: 10 * 1024 * 1024,
     });
   } catch (spawnError) {
     try {
-      await runSql(`
+      await db.write(`
 update public.agent_runs
    set status = 'blocked'::work_status,
        claimed_by = null,

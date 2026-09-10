@@ -17,6 +17,16 @@ import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { reviewComponent, sandboxTest, applyUpdate, rollbackComponent } from './plugin-attach.mjs';
 
+// THE DATABASE IS REACHED THROUGH THE CANONICAL ACCESSOR, NOT THROUGH THE MACHINE.
+//
+// This script used to carry a private runSql() that shelled out to `npx supabase db query --linked`,
+// which borrowed whatever Supabase CLI credential the machine happened to hold — on the Home PC, full
+// production write. db.mjs connects with an explicit FACTORY_RUNNER_PG_URL, refuses to start without
+// one, refuses a superuser connection, and refuses DDL, privilege changes and migration-history writes
+// in the client. read() and write() are separate so a reader cannot silently become a writer.
+import * as db from './db.mjs';
+
+
 const REPO_ROOT = 'C:\\Users\\Dell\\dev\\brain-os';
 const execFileAsync = promisify(execFile);
 
@@ -25,25 +35,8 @@ function sqlEscape(s) {
   return `'${String(s).replace(/'/g, "''")}'`;
 }
 
-async function runSql(sql) {
-  const file = join(tmpdir(), `poll-plugin-ops-${Date.now()}-${Math.random().toString(36).slice(2)}.sql`);
-  writeFileSync(file, sql, 'utf8');
-  try {
-    const { stdout } = await execFileAsync('npx', ['supabase', 'db', 'query', '--linked', '-f', file], {
-      cwd: REPO_ROOT,
-      shell: true,
-      maxBuffer: 10 * 1024 * 1024,
-    });
-    const jsonStart = stdout.indexOf('{');
-    if (jsonStart === -1) throw new Error(`no JSON found in db query output: ${stdout}`);
-    return JSON.parse(stdout.slice(jsonStart));
-  } finally {
-    unlinkSync(file);
-  }
-}
-
 async function fetchPending() {
-  const result = await runSql(`
+  const result = await db.read(`
 select id, plugin_component_id, agent_id, operation, params
 from public.plugin_operation_requests
 where status = 'pending'
@@ -54,18 +47,18 @@ limit 5;
 }
 
 async function markRunning(id) {
-  await runSql(`update public.plugin_operation_requests set status = 'running', started_at = now() where id = ${sqlEscape(id)}::uuid;`);
+  await db.write(`update public.plugin_operation_requests set status = 'running', started_at = now() where id = ${sqlEscape(id)}::uuid;`);
 }
 
 async function markDone(id, result) {
-  await runSql(`
+  await db.write(`
 update public.plugin_operation_requests set status = 'done', result = ${sqlEscape(JSON.stringify(result))}::jsonb, completed_at = now()
 where id = ${sqlEscape(id)}::uuid;
 `);
 }
 
 async function markFailed(id, error) {
-  await runSql(`
+  await db.write(`
 update public.plugin_operation_requests set status = 'failed', error = ${sqlEscape(String(error?.message ?? error))}, completed_at = now()
 where id = ${sqlEscape(id)}::uuid;
 `);
@@ -77,7 +70,7 @@ where id = ${sqlEscape(id)}::uuid;
 // proven this session, codified so a UI-triggered request has a real, deterministic
 // pass/fail rather than a rubber-stamp.
 async function runAutomatedSandboxTest(componentId) {
-  const row = await runSql(`select definition_path, definition_hash from public.plugin_components where id = ${sqlEscape(componentId)}::uuid;`);
+  const row = await db.read(`select definition_path, definition_hash from public.plugin_components where id = ${sqlEscape(componentId)}::uuid;`);
   const { definition_path, definition_hash } = row.rows?.[0] ?? {};
   if (!definition_path) throw new Error(`no plugin_components row ${componentId}`);
   const { hashFile } = await import('./plugin-attach.mjs');

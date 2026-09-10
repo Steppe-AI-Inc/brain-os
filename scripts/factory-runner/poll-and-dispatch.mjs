@@ -21,28 +21,21 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import * as provider from './provider.mjs';
 
+// THE DATABASE IS REACHED THROUGH THE CANONICAL ACCESSOR, NOT THROUGH THE MACHINE.
+//
+// This script used to carry a private runSql() that shelled out to `npx supabase db query --linked`,
+// which borrowed whatever Supabase CLI credential the machine happened to hold — on the Home PC, full
+// production write. db.mjs connects with an explicit FACTORY_RUNNER_PG_URL, refuses to start without
+// one, refuses a superuser connection, and refuses DDL, privilege changes and migration-history writes
+// in the client. read() and write() are separate so a reader cannot silently become a writer.
+import * as db from './db.mjs';
+
+
 const execFileAsync = promisify(execFile);
 const REPO_ROOT = 'C:\\Users\\Dell\\dev\\brain-os';
 
 // Real, registered Factory Director agent id (Phase 6 sync, verified live).
 const FACTORY_DIRECTOR_AGENT_ID = '33123660-2f38-4290-8de7-35b8f696247a';
-
-async function runSql(sql) {
-  const file = join(tmpdir(), `poll-dispatch-${Date.now()}-${Math.random().toString(36).slice(2)}.sql`);
-  writeFileSync(file, sql, 'utf8');
-  try {
-    const { stdout } = await execFileAsync('npx', ['supabase', 'db', 'query', '--linked', '-f', file], {
-      cwd: REPO_ROOT,
-      shell: true,
-      maxBuffer: 10 * 1024 * 1024,
-    });
-    const jsonStart = stdout.indexOf('{');
-    if (jsonStart === -1) throw new Error(`no JSON found in db query output: ${stdout}`);
-    return JSON.parse(stdout.slice(jsonStart));
-  } finally {
-    unlinkSync(file);
-  }
-}
 
 async function findQueuedWorkOrders() {
   const sql = `
@@ -51,7 +44,7 @@ from public.canonical_work_orders wo
 where wo.status = 'queued'
   and not exists (select 1 from public.agent_runs ar where ar.canonical_work_order_id = wo.id);
 `;
-  const result = await runSql(sql);
+  const result = await db.write(sql);
   return result.rows ?? [];
 }
 
@@ -67,7 +60,7 @@ Per your own agent definition: read the master plan, decompose this Work Order i
     const { providerRunId } = await provider.startRunByAgentId(FACTORY_DIRECTOR_AGENT_ID, task);
     console.log(`Dispatched Work Order ${wo.id} -> Factory Director, provider_run_id ${providerRunId}`);
 
-    await runSql(`
+    await db.write(`
 insert into public.agent_runs (agent_id, canonical_work_order_id, company_id, agent_definition_path, execution_provider, provider_run_id, status, started_at)
 values ('${FACTORY_DIRECTOR_AGENT_ID}'::uuid, '${wo.id}'::uuid, ${wo.company_id ? `'${wo.company_id}'::uuid` : 'null'}, '.claude/agents/brain-os-factory-director.md', 'claude_code_background', '${providerRunId}', 'in_progress'::work_status, now());
 update public.canonical_work_orders set status = 'in_progress'::work_status, updated_at = now() where id = '${wo.id}'::uuid;
