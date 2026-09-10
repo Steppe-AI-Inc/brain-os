@@ -607,18 +607,21 @@ the next one), and a shared text tool that turned an optional parameter into a s
 
 ## RUNNING
 
-**Verifier #83**, campaign 143, dispatching on the freeze built from `ab3fb939` / index.ts
-`324230d9c9445709498b3a11e2892e5dd693651228971368a563d392c6594dda`, 748 841 bytes. Needs nothing from you.
+The **seven release gates** on the new bytes
+`32048acd598fadd0ae31a5e284afb3ad3cc80c5ee483b9ec097c98064bd70a53`, 751 395 bytes — the #83 closure. Then a
+restore-tested backup, the freeze, and **verifier #84 on campaign 144**. Needs nothing from you.
 
-Battery: **103 suites — 91 GREEN, 5 GREEN-but-asserts-nothing, 2 BLOCKED - FOUNDER AUTHORITY, 5 OPEN
-DEFECT - THIS PC, 0 unclassified RED**, 4 010 assertion rows.
+Battery on these bytes: **104 suites — 91 GREEN, 5 GREEN-but-asserts-nothing, 2 BLOCKED - FOUNDER
+AUTHORITY, 6 OPEN DEFECT - THIS PC, 0 unclassified RED**, 4 046 assertion rows.
 
 **`harness_rename_probe` is RED ON PURPOSE**, and it is the one number that got worse on purpose. It was
 green because its rename set was ten hand-picked identifiers — so "no suite pins a spelling" meant "no suite
 pins one of these ten". The set is derived now, and the honest count is 38 suites pinning a spelling plus 26
-whose window anchor moves loudly. `RENAME_PIN_BACKLOG.md` records all of it, including where the repair
-technique stops and why the rest is a product question. **A green gate that measures ten names is worse than
-a red gate that measures 192, because the first one is believed.**
+whose window anchor moves loudly. **A green gate that measures ten names is worse than a red gate that
+measures 192, because the first one is believed.**
+
+There is a **seventh gate** now. It takes the source away and requires every suite that claims to be about
+it either to notice or to be declared, in writing, with a reason.
 
 ## BLOCKED — FOUNDER AUTHORITY (2, unchanged, correctly red)
 
@@ -634,7 +637,7 @@ a red gate that measures 192, because the first one is believed.**
 
 None.
 
-## OPEN DEFECT - THIS PC (5, every one red on purpose)
+## OPEN DEFECT - THIS PC (6, every one red on purpose)
 
 The battery reports **0 unclassified red**. Every failure is one somebody decided to leave failing, with the
 reason recorded in the deploy gate itself, and forgiven only for the specific rows it is forgiven for — a
@@ -655,6 +658,12 @@ suite that fails while naming no row counts as RED.
    structural fix is at the consumer, so #81 measured it and left it as a product decision.
 5. `v82_regression_additions` — one row, **V82-D4, the 25 swallowed requests described above**. Kept red so
    it cannot be mistaken for closed.
+6. `v83_regression_additions` — two rows verifier #83 measured and deliberately left open. **5 of 27**
+   places a line can wrap inside an ordinary denial still let a fabricated denial through, because whether
+   a break is a soft wrap or a list item is not derivable from anything in that file and widening the guard
+   until those rows go green starts swallowing real requests. And **5 of 5** Mongolian noun phrases with no
+   grammatical marker read as commands — which needs a verb dictionary the product does not have, and
+   round #82 is the standing proof of what guessing costs.
 
 And one release GATE is red by the same discipline: `harness_rename_probe`, 38 pins and 26 anchors,
 described above.
@@ -741,18 +750,19 @@ DEPLOY_FILE_SHA256 in the release manifest. I will ask for it then, once, with t
    deciding which is correct is not a call I should make by editing an assertion at five in the morning.
 ## NEXT
 
-1. **Act on #80's verdict automatically** — FAIL, fix loop, #81; PASS, inspect the artifact, confirm it
-   tested the exact frozen bytes, classify every observation, and prepare the release package. Nothing in
-   that path needs you.
-2. **V77-D4** — the last product defect I can reach, and its blocker is now gone. It wants the ONE object
-   test hoisted to module scope so both tiers ask the same question; the cluster is self-contained (19
-   constants, zero external references) and the four duplicated dependency lists that made every such move
-   expensive are converged. #78 measured that closing V77-D3a WIDENED this one, 80 leak shapes to 100, so it
-   gets measured against the wider corpus, not the one the fix was written for.
-3. **The remaining four #77 defects** — D2, D3b, D5, D6. #78 re-derived every reason independently and
-   confirmed all four hold.
-4. **The 67 `.sql` suites nobody runs.** They are named now. Making them runnable needs a database, which
-   is item G below.
+1. **Verifier #84, on campaign 144.** The seven gates are running on the new bytes; then a restore-tested
+   backup, the freeze, and the dispatch. Its verdict gets acted on automatically the same way the last six
+   have been — FAIL, fix loop, #85; PASS, inspect the artifact, confirm it tested the exact frozen bytes,
+   classify every observation, and prepare the release package. **Nothing in that path needs you.**
+2. **The residuals #83 measured and deliberately did not close** — 5 of 27 wrapped denials, 5 of 5
+   marker-less Mongolian fragments — and the 25 swallowed requests from #82. All three err in a direction
+   somebody chose on purpose, and all three are red, classified, and carrying their numbers.
+3. **V77-D4** — the last product defect I can reach, and its blocker is gone. It wants the ONE object test
+   hoisted so both tiers ask the same question. #78 measured that closing V77-D3a WIDENED this one, 80 leak
+   shapes to 100, so it gets measured against the wider corpus rather than the one the fix was written for.
+4. **The remaining four #77 defects** — D2, D3b, D5, D6, every reason independently re-derived by #78.
+5. **The 67 `.sql` suites nobody runs.** They are named, and a runner for them exists in `qa/dbtest/`; what
+   is missing is a database, which is item G below.
 
 ### Three documents written this round that are for you rather than for me
 
