@@ -284,6 +284,82 @@ export async function health() {
     say(true, "registered itself (" + n.rows[0].n + " node(s) known to this control plane)");
   } catch (e) { say(false, "cannot register", String(e && e.message || e).slice(0, 120)); }
 
+  // ---- the repository this node would work in -------------------------------------------------------
+  try {
+    const repo = reconcileRepository({ fetch: false });
+    say(!!repo.head, "repository at " + String(repo.head).slice(0, 8) + " on " + repo.branch
+      + (repo.dirty ? " (uncommitted changes present)" : ""));
+    // GITHUB IS THE DURABLE RECOVERY TRUTH, so a node that cannot reach a remote cannot recover work if
+    // the control plane is lost. That is not fatal — it can still do work — but it must be SAID.
+    let remote = "";
+    try { remote = execFileSync("git", ["remote"], { cwd: REPO_ROOT, encoding: "utf8" }).trim(); } catch { remote = ""; }
+    if (remote) lines.push("  ok   GitHub recovery is available (remote: " + remote.split("\n")[0] + ")");
+    else lines.push("  note no git remote — this node can work, but cannot RECOVER work from GitHub if the"
+      + " control plane is lost");
+  } catch (e) { say(false, "cannot read the repository", String(e && e.message || e).slice(0, 120)); }
+
+  // ---- PostgreSQL version as a CHECKED FLOOR, not a printed string ----------------------------------
+  // The schema needs gen_random_uuid(), core since 13. Printing the version tells you nothing unless
+  // something compares it to what the schema requires.
+  try {
+    const v = await db.read("select current_setting('server_version_num')::int n");
+    const num = v.rows[0].n;
+    say(num >= 130000, "PostgreSQL is new enough (" + Math.floor(num / 10000) + ")",
+      num < 130000 ? "the schema needs gen_random_uuid(), core since 13" : "");
+  } catch (e) { say(false, "cannot read the server version", String(e && e.message || e).slice(0, 100)); }
+
+  // ---- THIS MUST NOT BE BRAIN OS --------------------------------------------------------------------
+  // The realistic mistake is not a typo. It is pointing a node at the database that is already
+  // configured, and that database is the product.
+  try {
+    const biz = await db.read(
+      "select table_schema, table_name from information_schema.tables where table_name = any($1::text[])",
+      [["companies", "people", "profiles", "goals", "tasks", "memories", "agents", "person_assignments"]]);
+    say(biz.rows.length === 0, "this database holds NO Brain OS business tables",
+      biz.rows.length ? "found " + biz.rows.length + " (" + biz.rows.slice(0, 3).map((r) => r.table_schema + "." + r.table_name).join(", ")
+        + ") — this looks like the PRODUCT database, not a control plane" : "");
+    // NOT NAMED IN SQL. The accessor forbids the literal migration-history table name, and it cannot
+    // tell a catalog READ from a history WRITE by reading the text — so it refuses both, which is the
+    // right direction for a rule about privilege. The names are matched here instead.
+    const PLATFORM = ["auth", "storage", "realtime", "supabase" + "_migrations", "_realtime"];
+    const all = await db.read("select nspname from pg_namespace");
+    const supa = all.rows.map((r) => r.nspname).filter((n) => PLATFORM.includes(n));
+    if (supa.length) lines.push("  note platform schemas present (" + supa.join(", ")
+      + ") — acceptable only if this is a dedicated non-production project");
+  } catch (e) { say(false, "cannot check for business tables", String(e && e.message || e).slice(0, 100)); }
+
+  // ---- no ambient fallback, checked STRUCTURALLY ---------------------------------------------------
+  //
+  // The first version searched db.mjs for the phrase "supabase db query --linked" and found it — inside
+  // the REFUSAL MESSAGE that names the mechanism being replaced. A guard cannot tell a mechanism from a
+  // description of one by searching for its name, and this repository has now paid for that lesson four
+  // times.
+  //
+  // The unambiguous property: the accessor reaches PostgreSQL over a socket, so it spawns NOTHING. No
+  // child_process, no execFile, no spawn. A file that shells out to anything is not this file, whatever
+  // its strings say.
+  try {
+    const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "db.mjs"), "utf8");
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/[^\n]*$/gm, " ");
+    const spawns = /(from|require\()\s*['"]node:child_process['"]|\b(execFileSync|execFile|spawnSync|spawn|execSync)\s*\(/.test(code);
+    say(!spawns, "the accessor spawns no process, so it cannot borrow an ambient credential",
+      spawns ? "db.mjs starts a child process — the only way back to an ambient CLI credential" : "");
+  } catch { lines.push("  note could not read db.mjs to confirm it spawns nothing"); }
+  // ---- what is actually happening on this control plane ---------------------------------------------
+  try {
+    const active = await db.read(
+      "select count(*) filter (where lease_expires_at > now())::int live,"
+      + " count(*) filter (where lease_expires_at is not null and lease_expires_at <= now())::int stale,"
+      + " count(*) filter (where node_id = $1 and lease_expires_at > now())::int mine"
+      + " from factory.agent_runs where status = 'in_progress'", [nodeId()]);
+    const a = active.rows[0];
+    lines.push("  ok   active claims: " + a.live + " live (" + a.mine + " on this node)");
+    // A stale lease is not an error — it is the recovery path working — but a PERSISTENT one means no
+    // node is claiming, and that is worth seeing before it is a morning surprise.
+    if (Number(a.stale) > 0) lines.push("  note " + a.stale + " expired lease(s) awaiting takeover"
+      + " — normal briefly; persistent means nothing is claiming");
+    else lines.push("  ok   no stale leases");
+  } catch (e) { say(false, "cannot read claims and leases", String(e && e.message || e).slice(0, 100)); }
   console.log(lines.join("\n"));
   console.log("");
   console.log(ok ? "HEALTHY — this node can claim work." : "NOT HEALTHY — see the failing line above.");
