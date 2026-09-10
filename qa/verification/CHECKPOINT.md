@@ -12,18 +12,53 @@ independent live acceptance. The Work PC alone closes bugs.
 
 ## CURRENT MILESTONE
 
+**Verifier #83 is RUNNING** on campaign 143, candidate `25f17508cc2352b55e24b676e480da26f2dd871f`,
+index.ts sha256 `324230d9c9445709498b3a11e2892e5dd693651228971368a563d392c6594dda` (**748 841 bytes**),
+worktree `C:/Users/Dell/dev/brain-os-verify-25f1750`, branch `verify-25f1750-campaign143`, watchdog pid
+44643. The candidate tree is FROZEN — a write was attempted and refused by the filesystem, so the freeze is
+measured rather than asserted.
+
+Implementation worktree `C:/Users/Dell/dev/brain-os-wo-resolver` (branch `wo/clarification-resolver`).
+**The main repo `C:/Users/Dell/dev/brain-os` is NOT the candidate** — different, older file, other branch.
+
 **Verifier #82 FAILED and IS CLOSED.** Its three P1s are fixed structurally from its own prepared patch;
 its P2 is registered open with its numbers; its harness findings are carried forward with theirs.
 
-Implementation worktree `C:/Users/Dell/dev/brain-os-wo-resolver` (branch `wo/clarification-resolver`),
-HEAD **`ab3fb939`** — "verifier #82 closure: D1/D2/D3 fixed structurally, D4 registered open, H1 decided".
-index.ts sha256 **`324230d9c9445709498b3a11e2892e5dd693651228971368a563d392c6594dda`**, **748 841 bytes**,
-CRLF-pure, 0 bare LF, 0 bare CR, 0 x 0x08.
-**The main repo `C:/Users/Dell/dev/brain-os` is NOT the candidate** — different, older file, other branch.
+State at dispatch: **five of six gates VALID_PASS** (`harness_rename_probe` VALID_FAIL by decision),
+battery **103 suites — 91 GREEN, 5 GREEN-but-asserts-nothing, 2 BLOCKED-FOUNDER, 5 OPEN DEFECT-THIS PC,
+0 unclassified RED**, 4 010 assertion rows. **V82-H7 is closed**: a fresh bundle was cut AFTER the freeze
+commit and RESTORE-TESTED — cloned, the commit checked out, the file on disk hashed to the candidate.
 
-NEXT: gates re-running on the quiet tree, then a fresh restore-tested backup, then the freeze commit, then
-verifier #83 on campaign 143.
+### While #83 runs — harness work that cannot touch the frozen bytes
 
+Queued, in order. All of it is under `qa/`; none of it can reach `index.ts`, which the filesystem now
+refuses to write.
+
+1. **A NEW FINDING, from scanning for the class instead of the instance.** The escape/source-hygiene guard
+   looks for ONE control byte, 0x08, because a backspace is what escape-depth instance 9 left behind. A
+   scan for every C0 control character found **SEVEN literal control bytes** — two in LIVE BATTERY SUITES
+   (`extractor_runtime_equivalence_contract`, `function_redefinition_preserves_ancestor_guards`) and five
+   in verifier harnesses — each a separator written as a backslash escape whose backslash the transport
+   halved away. **Nothing is broken**: in JavaScript a literal NUL and the escape are the same value. The
+   cost is that **grep calls such a file BINARY and suppresses its content lines**, so every ad-hoc text
+   search over the suite directory silently reads nothing out of those two suites and reports success — it
+   happened twice to this session while investigating. No committed evidence is affected (every harness
+   reads through Node, which handles NUL). Widen the guard to the class; rewrite the sites with
+   `String.fromCharCode(N)`, which is also what makes the intent visible.
+2. **V82-H6** — `_gate_extract`'s shared-constant cache is keyed on nothing, so an in-process instrument
+   that switches `SEM_INDEX_SRC` measures the FIRST source and reports "nothing changed" about a mutation
+   that changed everything. Key it on the resolved path AND a digest of the bytes, with ONE resolver used
+   by both the key and the read.
+3. **V82-H5** — measure, rather than grep, which suites can see a change to the deploy surface. A grep for
+   `SEM_INDEX_SRC` says 91 can and 12 test a different surface entirely; a grep answers whether the token
+   is present, and this campaign has been wrong four times trusting a token for a behaviour. Then a
+   structural ratchet so a new suite cannot quietly join the blind set.
+4. **`backup_restore` is STALE BY CONSTRUCTION in any committed tree** — HEAD is a declared input, so
+   committing the gate's own passing evidence invalidates it, forever. Make the HEAD/bundle pair a LIVE
+   check at status time instead of part of the digest.
+5. **The rename-pin backlog**, CODEX-A release-blocker witnesses (A2, A4, A9, A12) first.
+
+### What #82 found, and what was done with it
 ### What #82 found, and what was done with it
 
 * **V82-D1 (P1)** Mongolian puts its predicate NOUN last too. #81's positional closure said "a bare

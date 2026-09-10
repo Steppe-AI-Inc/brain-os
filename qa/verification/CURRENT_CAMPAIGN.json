@@ -95,8 +95,8 @@
       "text": "Committed on verify-1d72018-campaign115: qa/verification/proposed/v55_known_failure_modes_entry_118.md, v55_PROMOTION_NOTE.md, v55_regression_additions.mjs; scratch/v55/* (scanner, delta, corpus, differential, mutations, possessive sizing + prepared fix, matcher diff, battery/standing-reds logs, runtime probes). The launch prompt's v48_* names collide with verifier #48's files; #48's v48_regression_additions.mjs was byte-restored from HEAD."
     }
   ],
-  "campaign": 142,
-  "verifier": 82,
+  "campaign": 143,
+  "verifier": 83,
   "kind": "CONTRACT-CONFORMANCE DEPLOY GATE (v92 = reference corpus, never the bar)",
   "status": "verifier #81 FAILED c5eb10c8 with two PRE-EXISTING P1s (the first round in four whose findings were not regressions from the previous fix): Mongolian verb-final position was asserted by a comment and enforced by nothing, and DENIAL_SUBJECT was decided leftmost-first. Both CLOSED with #81's applier; ledger 169 promoted. Closing them exposed a CONTRACT row that reported a defect that does not exist: v77's V77-C1 chose which of two measurements to run by matching the decider's source text, the fix changed that line, and the row silently measured the OLD BLOCKLIST and reported 195 phantom false-live tokens as a reopened defect. Ledger 170, and V77-C0 now asserts the selector selected correctly. Also closed: V81-H1 (a row read a gitignored generated file, so a clean checkout disagreed with the recorded evidence) and V81-H2 (gate digests hashed the checkout's line endings, so every gate read STALE in a fresh worktree). The watchdog now lets a finished report outrank its text classifiers - #81's own FAILED verdict was nearly discarded because the report said a tool 'requires approval'. Verifier #82 dispatched on 5fd08a94 / eade10fe, campaign 142. Battery 102 suites / 91 GREEN / 0 unclassified RED; 5 of 6 gates pass, harness_rename_probe red by decision.",
   "closure_commit": "6c7f5e7",
@@ -882,5 +882,16 @@
       "the can we / can I asymmetry should go the DELIBERATIVE way — done",
       "the embeddings deferral was CORRECT, but only because it stays named — it must appear in the deploy authorisation"
     ]
-  }
+  },
+  "verifier83_dispatched_at": "2026-09-10T08:45:58.237Z",
+  "verifier83_candidate": "25f17508cc2352b55e24b676e480da26f2dd871f",
+  "verifier83_index_sha256": "324230d9c9445709498b3a11e2892e5dd693651228971368a563d392c6594dda",
+  "verifier83_index_bytes": 748841,
+  "verifier83_worktree": "C:/Users/Dell/dev/brain-os-verify-25f1750",
+  "verifier83_branch": "verify-25f1750-campaign143",
+  "verifier83_status": "DISPATCHED",
+  "verifier83_gates": "5 VALID_PASS; harness_rename_probe VALID_FAIL by decision (38 pins / 26 anchors)",
+  "verifier83_battery": "103 suites: 91 GREEN, 5 GREEN-but-asserts-nothing, 2 BLOCKED-FOUNDER, 5 OPEN DEFECT-THIS PC, 0 unclassified RED, 4010 assertion rows",
+  "verifier83_backup": "brain-os-<ts>-v83-frozen.bundle, RESTORE-TESTED at the freeze commit (V82-H7 closed)",
+  "note_top_level_keys": "campaign/verifier had been stale since verifier #75; corrected here. The per-verifier keys remain the live record."
 }
