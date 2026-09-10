@@ -308,25 +308,81 @@ of the lift, not a re-anchoring. It is a harness-quality defect, not a defect in
 was not going to rewrite a working CONTRACT row at the end of a long night. **So one release gate is
 deliberately not green**, and it names that one suite.
 
+
+---
+
+## VERIFIER #79 FAILED `6c1bfca9` — and both P1s were in my closures, from the same mistake
+
+It is worth naming the mistake precisely, because it was the same one twice in two unrelated subjects:
+**I measured a change against a corpus that could not exercise the mechanism I had changed, and reported the
+result as if it had.**
+
+**The Mongolian read-shape veto.** I kept two of three arms on the argument that they are "clause-level by
+construction", and measured the cost at 0 of 4. Every row of that corpus exercised the interrogative-WORD
+arm and not one the predicate arm. `байгаа` is the ordinary attributive participle — *pending*, *lagging*,
+*inactive* — so an imperative clause routinely contains a read predicate without being a read. Measured
+properly: **11 of 20 ordinary requests swallowed, worse than the 7 of 20 before the veto existed.**
+`Хүлээгдэж байгаа зөвшөөрлийг цуцла` — "cancel the pending approval" — came back as "you asked me not to,
+so nothing was executed".
+
+**`NON_EXISTENCE_CLAIM`.** I widened it and checked the false-positive direction with 17 controls, every one
+an assertion of PRESENCE. The actual risk is a truthful assertion of ABSENCE — of a field, an event, a
+capability. **16 of 21 truthful sentences matched; 3 of 5 truthful answers were being destroyed.**
+
+Both are closed. The first with #79's own fix — Mongolian is verb-final, so a clause's own predicate is
+clause-final, and that is the position the arm now asks for. The second by narrowing four arms.
+
+**Then I checked the direction my own fix could have broken, and it had.** The narrowing excluded the
+indefinite article to protect truthful sentences about EVENTS — and swallowed the entity denials that take
+one: **3 of 13 genuine fabricated denials escaped the gate**, including "There is no record of a company
+called ACME." A narrowing that opens a fabrication path is not a fix. What separates them is not the
+article but whether a TYPE is NAMED. Now 13 of 13 seen, 0 of 9 rewritten, and both directions are checked
+together by a promoted suite so the pair cannot drift apart again.
+
+## What else closed
+
+**V78-H7 — four lists became one.** Four places kept their own copy of the shared-constant dependency order,
+and adding a single constant cost FIVE registrations in one session. Before converging them I checked, as
+you asked, that they express the same graph — and **the first probe I wrote to check that was wrong and its
+numbers were discarded**: it hand-rolled a fifth declaration scanner that mis-parsed regex literals, so one
+function's "declaration" came out as 2,491 lines and it produced 26 violations that were all artifacts. The
+shared extractor already had the correct scanner. Re-measured: one graph, so convergence was safe. A
+consumer now supplies an unordered REQUEST and the resolver supplies order, closure and deduplication — it
+cannot be wrong about order because it no longer expresses order. 12-row ratchet, four deliberate drifts
+proved to break it.
+
+**The rename gate is green for the first time in the campaign.** No suite asserts a product property by
+naming a local identifier. The window lift that was the last offender now derives its bounds (a canonical
+shared constant and the founder-facing sentence it emits), its parameters (the slice's free identifiers) and
+its input ROLES (how the slice uses each one) — and all four properties are measured: a 12-identifier rename
+leaves it green, a real semantic change turns it red, a removed anchor is a loud harness failure, and the
+extraction is runtime-equivalent.
+
+**The deploy gate stopped overstating itself** (V79-H2). It counted suites and never rows, so five
+SUPERSEDED stubs that assert nothing counted as coverage — they are their own class now, and `green` means
+90 suites that actually assert something rather than 95. It also never mentioned the **67 `.sql` suites it
+does not run**; they are named, with the reason. And a header claiming "MODULE-LEVEL CONSTANTS" while 19 of
+88 are not is now a checked fact rather than a sentence (V79-H3).
+
+**The mutation proof now refuses counts taken while its own input was changing** — the guard for the mistake
+I made earlier, where editing a harness file mid-run made three effective mutants look ineffective. Proving
+it took two corrections of my own: the probe testing it used a synchronous call that blocked the event loop,
+so it never performed the edit it was testing; and the guard's "before" fingerprint was taken after the
+expensive phase, so it compared an already-changed tree with itself.
+
 ## RUNNING
 
-**Verifier #79**, campaign 139, on candidate `992520d8` / index.ts
-`6c1bfca9b1745c9c6acc118c6308204837c7f61cf835d8f1837afc142a7fcbf1`, 729,902 bytes, CRLF-pure, 0 bare LF, 0
-bare CR, 0 0x08. Worktree `brain-os-verify-992520d`, branch `verify-992520d-campaign139`, watchdog pid 38718.
-It needs nothing from you.
+**Verifier #80**, campaign 140, on candidate `dc27e034` / index.ts
+`056569671f7cd1bbc0e6b6fa0de1d95960a774c40eecb6eda4f75ebd588a0373`, 733,146 bytes. It needs nothing from
+you.
 
-Battery at dispatch: **97 suites — 92 GREEN, 2 BLOCKED - FOUNDER AUTHORITY, 3 OPEN DEFECT - THIS PC, 0
-unclassified RED.** Release gates: **5 of 6 VALID_PASS**, `harness_rename_probe` deliberately VALID_FAIL for
-the one suite described above. The backup was taken and RESTORE-TESTED — the candidate commit present, the
-restored bytes hashing to 6c1bfca9 at 729,902, and the blob hash confirmed different from the deploy hash as
-it must be on a CRLF surface.
+At dispatch: battery **100 suites — 90 GREEN, 5 GREEN-but-asserts-nothing, 2 BLOCKED - FOUNDER AUTHORITY,
+3 OPEN DEFECT - THIS PC, 0 unclassified RED**, 3,939 assertion rows executed; **all six release gates
+VALID_PASS** for the first time in the campaign, including a restore-tested backup.
 
-**Dispatching it found one more defect, in the dispatcher.** It printed `FROZEN e03ddceb… (630533 bytes)`
-directly above the line naming the candidate — it had frozen the DISPATCHING repo's index.ts, a different
-branch's file, while writing a reason naming the candidate's hash. The verifier's worktree carries the right
-bytes, checked directly, so this round was not harmed. The dispatcher now runs the freeze in the candidate
-tree and re-reads the record to require the hash to be the one the dispatch is about. **A freeze that cannot
-be shown to have frozen the right bytes is worse than no freeze, because it is believed.**
+Dispatching it also caught a defect in the dispatcher: it had been freezing the DISPATCHING repo's index.ts
+— a different branch's file — while printing the candidate's hash beside it. It now runs the freeze in the
+candidate tree and re-reads the record to require the hash to be the one the dispatch is about.
 ## BLOCKED — FOUNDER AUTHORITY (2, unchanged, correctly red)
 
 1. `person_assignment_scope_authorization` — needs the prepared DB migration
@@ -411,10 +467,15 @@ recognise except that a refusal followed by a question stays a refusal.
 
 **If you disagree, it is one hoisted constant and one line in the decider.**
 
-So the honest state of the bytes: candidate `6c1bfca9`, every #78 finding closed, three defects open by
-decision and one release gate red by decision, all four described above with their reasons. **These bytes
-have not been independently verified yet and I am not asking you to authorise them.** Verifier #79 is
-running.
+So the honest state of the bytes: candidate `05656967`, every finding from verifiers #78 AND #79 closed,
+three defects open by decision, all six release gates green and a restore-tested backup. **These bytes have
+not been independently verified yet** — #80 is running — **and I am not asking you to authorise them.**
+
+Six rounds ran and all six failed. Not one was a false alarm, and the shape of the failures has changed:
+the early ones found product defects, the last three found INSTRUMENTS that flattered the session that
+built them. That is uncomfortable and it is the system working — each round found something the round
+before it could not see, and twice the thing it found was that a number I had reported was measured on a
+corpus that could not produce a different answer.
 
 When a round passes, the next action is a fresh `ALLOW_FUNCTIONS_DEPLOY=1` scoped to the exact
 DEPLOY_FILE_SHA256 in the release manifest. I will ask for it then, once, with the manifest attached.
@@ -437,18 +498,28 @@ DEPLOY_FILE_SHA256 in the release manifest. I will ask for it then, once, with t
    deciding which is correct is not a call I should make by editing an assertion at five in the morning.
 ## NEXT
 
-1. **Act on #79's verdict automatically** — FAIL, fix loop, #80. PASS, release package for the exact bytes
-   and the single deploy-authorisation ask. Nothing here needs you.
-2. **V78-C5's lift** — the one rename pin I left open, and the reason the rename gate is red. It wants the
-   window's free names derived rather than typed, which is the same shape as three fixes made tonight.
-3. **V78-H7, still open and now measured three times over.** THREE separate lists maintain their own copy of
-   the shared-constant dependency order. Adding one constant tonight cost three registrations, one
-   duplicate-declaration crash inside a lifted window, and a fourth ad-hoc copy discovered in a suite that
-   had been lifting one constant with its own hand-written slice. **This is the thing to fix before the next
-   constant is added**, and it is pure harness work on this PC.
-4. **The five #77 defects**, D4 first: the ONE object test hoisted to module scope so both tiers ask the same
-   question. I proved the hoist is mechanically sound — the cluster is self-contained given module scope, 15
-   constants, zero external references — and item 3 is its real blocker.
-5. **V77-D4 widened when V77-D3a closed** (80 leak shapes to 100), per #78. Whatever closes D4 should be
-   measured against the wider corpus, not the one the fix was written for.
+1. **Act on #80's verdict automatically** — FAIL, fix loop, #81; PASS, inspect the artifact, confirm it
+   tested the exact frozen bytes, classify every observation, and prepare the release package. Nothing in
+   that path needs you.
+2. **V77-D4** — the last product defect I can reach, and its blocker is now gone. It wants the ONE object
+   test hoisted to module scope so both tiers ask the same question; the cluster is self-contained (19
+   constants, zero external references) and the four duplicated dependency lists that made every such move
+   expensive are converged. #78 measured that closing V77-D3a WIDENED this one, 80 leak shapes to 100, so it
+   gets measured against the wider corpus, not the one the fix was written for.
+3. **The remaining four #77 defects** — D2, D3b, D5, D6. #78 re-derived every reason independently and
+   confirmed all four hold.
+4. **The 67 `.sql` suites nobody runs.** They are named now. Making them runnable needs a database, which
+   is item G below.
+
+### Three documents written this round that are for you rather than for me
+
+* `PRODUCTION_WRITE_AUTHORITY_MAP.md` — the exact map, seven routes, two closed and five open, **with the
+  dependency between them**: the Vercel session regenerates the key one route protects, and the Credential
+  Manager entry is why the CLI credential survives environment scrubbing. The order is B → C → D → E → F.
+* `PERSON_ASSIGNMENTS_RLS_STATUS.md` — plus the rollback SQL, which did not exist. It restores the original
+  policy copied byte-for-byte from the migration rather than from a description of it, and its header says
+  plainly that applying it reopens the finding.
+* `BLOCKED_AND_RED_BASELINE.md` — re-derived: it is **five** classified reds, not three. The "three" is the
+  founder ACTIONS, which is a different set, and conflating them is how a red suite once got attributed to
+  your authority when it was ours.
 
