@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { classifyError, result as invitationResult } from "./invitation-outcome";
+import type { InvitationResult } from "./invitation-outcome";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { callLifecycleRpc } from "@/lib/contracts/lifecycle";
@@ -180,7 +181,7 @@ function bookkeepingFailure(personId: string, name: string, what: string) {
   console.error("invitePerson: invite accepted but bookkeeping failed", { personId, what });
   return { ok: false as const, ...invitationResult("UNKNOWN_ERROR", name) };
 }
-export async function invitePerson(personId: string): Promise<{ ok: boolean; message: string }> {
+export async function invitePerson(personId: string): Promise<{ ok: boolean } & InvitationResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -193,7 +194,11 @@ export async function invitePerson(personId: string): Promise<{ ok: boolean; mes
     .eq("auth_user_id", user.id)
     .maybeSingle();
   if (!actingProfile || !["founder", "holding_admin"].includes(actingProfile.role)) {
-    return { ok: false, ...invitationResult("NOT_PERMITTED", person?.full_name ?? "that person") };
+    // NOT `person.full_name`: that row has not been read yet (it is declared below), and an
+    // unauthorised caller must not be told the name they were just refused. Reading it here threw
+    // from the temporal dead zone, which REJECTED the Server Action — BUG-037 exactly, on the one
+    // path the fix for BUG-037 introduced it.
+    return { ok: false, ...invitationResult("NOT_PERMITTED", "that person") };
   }
 
   const { data: person, error: personError } = await supabase

@@ -160,6 +160,105 @@ check('the invite caller clears its in-flight state even when the action rejects
   /finally/.test(confirm) || /catch/.test(confirm),
   'setInvitingId(null) after a bare await is unreachable on rejection — the row spins for ever');
 
+// THE SUITE REPORTED 17 OF 17 AGAINST A FILE THAT DID NOT COMPILE (2026-09-11).
+//
+// Both defects were inside invitePerson, the one function this suite exists to guard, and both were
+// sitting in source it already held in a string. A source contract cannot typecheck and this one does
+// not pretend to - the typecheck is a SEPARATE required instrument, and its absence is why these two
+// shipped. What a source contract CAN do is ask the two questions below, so it now does.
+
+// CODE IS NOT COMMENTS AND IT IS NOT STRING TEXT.
+//
+// The first draft of ROW A matched `person` inside the literal "that person" and reported a dead-zone
+// read on a file that had just been fixed - a scan that cannot tell code from text answers a different
+// question from the one its name claims. Comment bodies and string interiors are blanked to spaces,
+// LENGTH PRESERVED, so the offsets this row reports still index the real file.
+function codeOnly(t) {
+  const S = " ", LF = String.fromCharCode(10), BS = String.fromCharCode(92);
+  let out = "", i = 0;
+  while (i < t.length) {
+    const c = t[i], d = t[i] + t[i + 1];
+    if (d === "//") { while (i < t.length && t[i] !== LF) { out += S; i++; } continue; }
+    if (d === "/*") {
+      while (i < t.length && t[i] + t[i + 1] !== "*/") { out += (t[i] === LF ? LF : S); i++; }
+      out += S + S; i += 2; continue;
+    }
+    if (c === '"' || c === "'" || c === "`") {
+      out += c; i++;
+      while (i < t.length) {
+        if (t[i] === BS) { out += S + S; i += 2; continue; }
+        if (t[i] === c) { out += c; i++; break; }
+        out += (t[i] === LF ? LF : S); i++;
+      }
+      continue;
+    }
+    out += c; i++;
+  }
+  return out;
+}
+
+// ROW A - THE TEMPORAL DEAD ZONE. Derived from the declarations themselves, never from a list of names.
+// `person?.full_name` on a const declared twelve lines lower throws ReferenceError: optional chaining
+// guards the PROPERTY, not the BINDING. Inside a Server Action that throw becomes a REJECTION, which IS
+// BUG-037 - so the fix for the spinning row reintroduced the spinning row on the not-permitted path.
+{
+  const code = codeOnly(invite);
+  // Earliest declaration wins, so a name bound twice is not reported as reading its own later shadow.
+  const first = new Map();
+  const note = (name, at) => { if (!first.has(name) || at < first.get(name)) first.set(name, at); };
+  let m;
+  const decl = /(?:const|let)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*[=:]/g;
+  while ((m = decl.exec(code))) note(m[1], m.index);
+  // Destructured bindings: `const { data: person, error: personError }` binds the names AFTER the colons,
+  // and `const { data: { user } }` binds the innermost. Both shapes appear in this function.
+  const destr = /(?:const|let)\s*{([^}]*(?:{[^}]*}[^}]*)*)}\s*=/g;
+  while ((m = destr.exec(code))) {
+    const at = m.index;
+    for (const part of m[1].split(",")) {
+      const t = part.trim().replace(/[{}]/g, " ").trim();
+      if (!t) continue;
+      const name = (t.includes(":") ? t.slice(t.lastIndexOf(":") + 1) : t).trim();
+      if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name)) note(name, at);
+    }
+  }
+  const early = [];
+  for (const [name, at] of first) {
+    const seen = code.slice(0, at).search(new RegExp("\\b" + name + "\\b"));
+    if (seen >= 0) early.push(name + " read at " + seen + ", declared at " + at);
+  }
+  check("no binding in invitePerson is read above its own declaration (temporal dead zone)",
+    first.size > 0 && early.length === 0,
+    first.size === 0 ? "no bindings found at all - the extraction is broken, not the source"
+      : early.join("; ") + " - a TDZ read throws ReferenceError, and a throw inside a Server Action"
+        + " REJECTS it, which is exactly the BUG-037 spinner this suite exists to prevent");
+}
+
+// ROW B - THE DECLARED RETURN TYPE MUST CARRY WHAT THE CALLER READS.
+// Every return path did carry an outcome; the SIGNATURE erased it, so the caller branching on
+// `result.outcome` was reading a property the type system says is not there. The check expands the named
+// type from ITS OWN DEFINITION rather than accepting the name as sufficient - a signature saying
+// `InvitationResult` proves nothing if InvitationResult has no `outcome`.
+//
+// The return type is taken from the declaration LINE, not with `[^{]*`: the first `{` in this signature
+// is the one inside `Promise<{ ok: boolean } & InvitationResult>`, so stopping at it silently yields an
+// empty field list and a row that fails for the wrong reason.
+{
+  const line = (people.match(/export async function invitePerson[^\n]*/) || [""])[0];
+  const ret = line.slice(line.indexOf("):") + 2).replace(/{\s*$/, "");
+  let fields = ret.match(/[A-Za-z_$][A-Za-z0-9_$]*(?=\s*[?]?:)/g) || [];
+  for (const named of ret.match(/\bInvitation[A-Za-z]*\b/g) || []) {
+    const body = (src.match(new RegExp("type\\s+" + named + "[^=]*=\\s*{([^}]*)}")) || [, ""])[1];
+    fields = fields.concat(body.match(/[A-Za-z_$][A-Za-z0-9_$]*(?=\s*[?]?:)/g) || []);
+  }
+  const read = [...new Set((confirm.match(/\bresult\.[A-Za-z_$][A-Za-z0-9_$]*/g) || [])
+    .map((r) => r.slice("result.".length)))];
+  const missing = read.filter((r) => !fields.includes(r));
+  check("invitePerson's declared return type carries every property the caller reads ("
+    + read.join(", ") + ")",
+    read.length > 0 && missing.length === 0,
+    read.length === 0 ? "the caller reads nothing off the result - this row would pass vacuously"
+      : "declared: [" + fields.join(", ") + "] but the caller reads: " + missing.join(", "));
+}
 console.log('');
 console.log('invitation_outcome_contract: ' + pass + ' passed, ' + failures.length + ' failed');
 if (failures.length) { console.log('FAILURES:'); for (const f of failures) console.log(' - ' + f); process.exit(1); }
