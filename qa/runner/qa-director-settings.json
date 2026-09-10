@@ -18,6 +18,7 @@
       "Bash(vercel link:*)",
       "Bash(node qa/runner/run-sql-regressions.mjs:*)",
       "WebFetch(domain:pvphxgrtdfrudejjhzjk.supabase.co)",
+      "mcp__playwright__browser_navigate",
       "mcp__playwright__browser_evaluate",
       "mcp__playwright__browser_run_code_unsafe",
       "mcp__playwright__browser_network_request",
