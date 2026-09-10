@@ -38,16 +38,44 @@ In fairness: on `5fd08a94` an unpunctuated two-line answer was rewritten wholesa
 answer, and the candidate fixes that. **Only one side of the trade was measured when it shipped** — which
 is the recurring error, not the line break.
 
-### Closure in progress
+### #83 closure — what is done
 
 Applied: `v83_prepared_fix-apply.mjs` (10 edits) + `v83_prepared_fix-register-shared-constants.mjs`
-(1 edit) — refusals 9/23 -> **23/23**, contradicted denials shipping 8/27 -> **5/27**,
-`v83_regression_additions` 16/7 -> **21/2**. Promoted and classified with its two deliberately-open rows
-(V83-D5's 5/27 wrapped denials, V83-D4's 5/5 marker-less Mongolian fragments).
+(1 edit); they must land together or `shared_constant_order_contract` goes red, correctly. Refusals 9/23 ->
+**23/23**, contradicted denials shipping 8/27 -> **5/27**, `v83_regression_additions` 16/7 -> **21/2**,
+promoted and classified for exactly its two deliberately-open rows.
 
-New candidate bytes: **`32048acd598fadd0ae31a5e284afb3ad3cc80c5ee483b9ec097c98064bd70a53`**, **751 395**
-bytes, 8 941 CRLF, 0 bare LF, 0 bare CR, 0 x 0x08. NOT yet frozen; battery running, then the seven gates,
-then a restore-tested bundle, then verifier #84 on campaign 144.
+Then the two repairs #83's note asked for:
+
+* **V83-H1** — `H7-D1`'s label claimed no suite is a second authority on shared-constant order; its
+  assertion was three hand-typed source shapes, and #83 wrote a second authority in a fourth shape, put it
+  in the battery, and watched the ratchet pass 13 of 13. The derived rule now lives **once**, in
+  `_gate_extract` beside the resolver it protects, and both `H7-D1` and #83's own `V83-H1` call it. Two
+  copies of one rule is the defect the ratchet exists to prevent.
+* **V83-H2** — the mutation proof carried nineteen mutants spanning #72–#79 and **none for the round in
+  flight**, while the gate described it as "nine across #72 and #73". Five mutants added for this round's
+  guard, every anchor checked to occur EXACTLY ONCE in the current surface first, because an anchor that
+  stops resolving is a mutant silently skipped. They share one probe over fourteen shapes — the dangerous
+  ones, where a negator ends the line, and the ones that must split. The gate description no longer
+  carries a count at all: a description of a number goes stale, and this one did.
+
+Battery on the fix: **104 suites, GREEN 91, GREEN-ASSERTS-NOTHING 5, BLOCKED-FOUNDER 2, OPEN DEFECT-THIS
+PC 6, RED 0, 4 046 assertion rows.**
+
+**RUNNING NOW:** the seven gates on `32048acd`. Then a restore-tested bundle, the freeze, and verifier #84
+on campaign 144 — its template is written
+(`qa/verification/scratch/verifier84_prompt_template.txt`) and its opening suspicion is #83's measurement
+that the battery was byte-identical with three P1 regressions present and with them fixed.
+
+### Queued after #84 is dispatched
+
+* **#83's four PATH-SENSITIVE suites** — verdicts that change when `SEM_INDEX_SRC` points at
+  BYTE-IDENTICAL content. Registered by #83, not chased.
+* **V83-H5** the stale clause enumeration (679 lines from its constant, omitting the arm added this
+  round), **V83-H7** the ternary-default stripper gap, **V83-H8** #83's own ineffective mutants.
+* the rename-pin backlog — two identifiers account for most of it, both the same fixable shape.
+* **Product, and frozen once #84 starts:** V82-D4, V81-D3, the five #77 defects, V82-O1/H4, and the
+  V82-H3 comment (thaw queue item 7).
 
 ### #83's harness findings, and the convergence
 
