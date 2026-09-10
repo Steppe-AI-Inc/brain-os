@@ -560,6 +560,51 @@ below a thousand lines the file is treated as missing rather than clean. And thi
 release gate**, so the number of tests that can actually see the product is measured every round instead of
 estimated. Ledger 173.
 
+## VERIFIER #83 FAILED — and it failed on the guard we said was the whole design
+
+Round #82 made a line break end a sentence, and wrapped that in a guard, and the comment above the guard
+says in capitals **THE GUARD IS THE WHOLE DESIGN** and names the exact thing it prevents: *"do not" on one
+line and "delete Alpha" on the next must not become a live command.*
+
+**The guard fails in precisely that way.** #83 measured it: a blank line between them, or five spaces, or a
+tab, and the refusal stops being a refusal — **7 of 19 phrasings** — and the delete you forbade executes.
+All seven refused correctly on the previous build. The cause is a magic number in the guard that stops
+looking after four characters and never looks past a newline at all.
+
+Two more, both introduced by the same change:
+
+* **The line break ends the Mongolian clause too**, which removes the marker that round #82's *other* fix
+  depends on — so change three reopened change one **inside a single commit**. 4 of 4.
+* **8 of 27** places a line can wrap inside an ordinary denial now let a **fabricated** denial ship, on a
+  turn that had actually read the row it denies. That was 0 of 27 before.
+
+### The sentence in the report that matters most
+
+> **The battery is byte-identical with these defects present and with them fixed.** 103 suites, 91 green, 0
+> red, 4 010 assertion rows — both times. Not one row saw any of this, in either direction.
+
+The deploy gate would have signed it off. That is the third round running where the thing that caught the
+defect was the independent verifier and not the battery, and it is the argument for keeping the verifier in
+the loop no matter how long it takes.
+
+**In fairness to the change**: the previous build destroyed a truthful two-line answer by rewriting it
+wholesale, and the candidate fixes that. Only one side of the trade was measured when it shipped. That is
+the recurring error, not the line break.
+
+#83's fix is applied — refusals go from 9/23 to **23/23**, fabricated denials from 8/27 to **5/27** — with
+the two residuals it deliberately left open stated with their numbers rather than closed by widening a
+guard until the tests go quiet.
+
+### It also found two instrument defects we had missed, an hour after we found two it also found
+
+Both #83 and this session independently discovered the same thing at the same time: **a hygiene test
+printing 26 green rows against a completely empty file.** Its fixes and ours merged without conflict, which
+is the most reassuring thing in this report.
+
+It found two we did not: a green row whose **name did not describe its assertion** (it forgave a stray
+character that no longer exists — a forgiveness that outlived the thing forgiven is a standing permit for
+the next one), and a shared text tool that turned an optional parameter into a syntax error.
+
 ## RUNNING
 
 **Verifier #83**, campaign 143, dispatching on the freeze built from `ab3fb939` / index.ts
