@@ -524,6 +524,42 @@ was **asked** about rather than the first one it ever read (an instrument built 
 construction** — its own passing evidence had to be committed, and committing it invalidated the evidence,
 forever. Every round of this campaign has handed its verifier a stale backup gate for that reason.
 
+## AND THEN I MADE THE SAME MISTAKE, ONE HOUR LATER
+
+Verifier #82 had said **14 of 102 suites cannot see any change to the file they are testing**, which would
+mean every "the test caught it" number in this campaign is about a smaller battery than it claims.
+
+I answered that by searching each test for the right variable name and reported that **none** of them had
+the problem. That answer is worth nothing, and I had written the entry about instruments that answer
+confidently about nothing an hour earlier. A search tells you a name is present. It does not tell you
+anything depended on it.
+
+So I measured it instead — **took the file away** and pointed every test at an empty one:
+
+* **83 of 103 failed**, which is what a test that actually reads the file does;
+* 10 passed and are about something else entirely (migrations, the web app, the tooling);
+* **10 passed while claiming to be about the file.** Five of those are honestly-labelled retired stubs and
+  two were mistakes in my own classifier. **Three were real.**
+
+### The one worth your time
+
+One test opens by asking "does this build have the block I guard?" — and if not, prints **NOT APPLICABLE**
+and reports success. The reasoning was sound: the old deployed build genuinely has no such block, and
+saying so beats passing silently.
+
+But that question is also exactly what a **deleted** block looks like. **Delete the thing that test exists
+to protect, and the test reports success.** A guard that goes green precisely when its subject disappears
+is worse than no guard, because the battery counts it as coverage.
+
+The other two were passing on an empty file because everything they assert is trivially true of one — no
+bad line endings in nothing, no broken patterns in nothing.
+
+Fixed: a missing subject is now a **failure**, and skipping requires the caller to say so explicitly with a
+flag — a flag is visible in the command that set it, an inference never is. The other two got a floor:
+below a thousand lines the file is treated as missing rather than clean. And this is now a **seventh
+release gate**, so the number of tests that can actually see the product is measured every round instead of
+estimated. Ledger 173.
+
 ## RUNNING
 
 **Verifier #83**, campaign 143, dispatching on the freeze built from `ab3fb939` / index.ts
