@@ -121,7 +121,7 @@
       },
       "regression_reconcile_blocked_reason": "PRODUCTION_SQL_PROHIBITED_ON_WORK_PC",
       "regression_executor": "HOME_PC",
-      "_sql_axis_2026_09_10": "Founder decision 2026-09-10: NO PRODUCTION SQL FROM WORK PC is absolute and is now enforced in code (scheduler post-filter enforceNoWorkPcSql, run-sql-regressions.mjs seat refusal, capability gate, Supabase CLI logged out + unlinked on the Work PC). The SQL regression qa/scenarios-runner/departments_hide_or_mark_archived_parent.sql is executed by the HOME PC only. Work PC gathers product evidence; the bug is not CLOSED from this seat while this field is set."
+      "_sql_axis_2026_09_10": "Founder decision 2026-09-10: NO PRODUCTION SQL FROM WORK PC is absolute and enforced in code (scheduler post-filter, run-sql-regressions.mjs seat refusal, capability gate, Supabase CLI logged out + unlinked on the Work PC). This bug is REOPENED on its SQL axis; that axis is re-executed by the HOME PC only. The Work PC gathers product evidence and will not re-close the bug while regression_reconcile_blocked_reason is set."
     },
     {
       "bug_id": "BUG-002",
@@ -299,7 +299,7 @@
       },
       "regression_reconcile_blocked_reason": "PRODUCTION_SQL_PROHIBITED_ON_WORK_PC",
       "regression_executor": "HOME_PC",
-      "_sql_axis_2026_09_10": "Founder decision 2026-09-10: NO PRODUCTION SQL FROM WORK PC is absolute and is now enforced in code (scheduler post-filter enforceNoWorkPcSql, run-sql-regressions.mjs seat refusal, capability gate, Supabase CLI logged out + unlinked on the Work PC). The SQL regression qa/scenarios-runner/dashboard_company_count_excludes_archived.sql is executed by the HOME PC only. Work PC gathers product evidence; the bug is not CLOSED from this seat while this field is set."
+      "_sql_axis_2026_09_10": "Founder decision 2026-09-10: NO PRODUCTION SQL FROM WORK PC is absolute and enforced in code (scheduler post-filter, run-sql-regressions.mjs seat refusal, capability gate, Supabase CLI logged out + unlinked on the Work PC). This bug is REOPENED on its SQL axis; that axis is re-executed by the HOME PC only. The Work PC gathers product evidence and will not re-close the bug while regression_reconcile_blocked_reason is set."
     },
     {
       "bug_id": "BUG-004",
@@ -366,7 +366,7 @@
       },
       "regression_reconcile_blocked_reason": "PRODUCTION_SQL_PROHIBITED_ON_WORK_PC",
       "regression_executor": "HOME_PC",
-      "_sql_axis_2026_09_10": "Founder decision 2026-09-10: NO PRODUCTION SQL FROM WORK PC is absolute and is now enforced in code (scheduler post-filter enforceNoWorkPcSql, run-sql-regressions.mjs seat refusal, capability gate, Supabase CLI logged out + unlinked on the Work PC). The SQL regression qa/scenarios-runner/memories_null_company_scope_not_a_bypass.sql is executed by the HOME PC only. Work PC gathers product evidence; the bug is not CLOSED from this seat while this field is set."
+      "_sql_axis_2026_09_10": "Existing closure evidence stands: regression_last_result.all_pass=true was recorded from a live rollback-wrapped run before the 2026-09-10 Work-PC SQL prohibition, and the canonical status remains CLOSED. Any future SQL-axis revalidation of qa/scenarios-runner/memories_null_company_scope_not_a_bypass.sql is HOME_PC-only; the Work PC cannot independently re-close or re-run that SQL axis (PRODUCTION_SQL_PROHIBITED_ON_WORK_PC is now enforced in code). The prohibition does not retroactively invalidate the recorded passing result."
     },
     {
       "bug_id": "BUG-005",

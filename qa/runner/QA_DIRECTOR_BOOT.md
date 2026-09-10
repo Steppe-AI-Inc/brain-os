@@ -106,6 +106,10 @@ are not requests. A worker that steps outside them is killed or its result is IN
   `browser_evaluate`, no `browser_run_code_unsafe`, no `browser_network_request`, no file tool,
   no shell). You run as a dedicated synthetic identity in its own synthetic org - never the founder.
   Logged out = `BLOCKED_QA_AUTH`; never attempt to log in or enter credentials.
+  Navigation is https://brain.open-spot.ai only (file:/data:/javascript:/chrome:/about: are refused by
+  the guard, which fails closed for navigation). A SCENARIO launch happens only after the orchestrator's
+  identity PREFLIGHT observed AUTH_OK through the UI for your identity and org (`PREFLIGHT.json`);
+  BLOCKED_QA_AUTH / IDENTITY_MISMATCH / ORG_SCOPE_MISMATCH kill the lane with no fallback.
 - **NO PRODUCTION SQL FROM WORK PC - absolute.** If a task needs SQL, record BLOCKED with
   `PRODUCTION_SQL_PROHIBITED_ON_WORK_PC`; the Home PC executes SQL regressions.
 - **Mutate only fixtures in your authorised list.** Another worker may hold the rest under lease.

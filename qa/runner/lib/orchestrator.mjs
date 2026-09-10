@@ -32,8 +32,14 @@ import {
 import { LANES } from './lanes.mjs';
 import { policyFor, policyArgs, policyHash, checkInitFrame } from './worker-policy.mjs';
 import { ensureSourceWorktree, worktreeFingerprint, fingerprintsEqual, gitContext } from './source-worktree.mjs';
-import { writeSidecarConfig } from './browser-isolation.mjs';
+import { writeSidecarConfig, assertSyntheticIdentity } from './browser-isolation.mjs';
 import { gatedEnv } from './capability-gate.mjs';
+import { preflightAuthorises, readPreflight, runIdentityPreflight, PREFLIGHT_SUFFIX } from './identity-preflight.mjs';
+
+// Launch modes. SCENARIO carries mutation authority (authorized fixtures) and therefore requires a
+// fresh AUTH_OK identity preflight for BROWSER_QA (A8). PREFLIGHT and BOUNDARY_PROBE are
+// observation-only launches: they never receive authorized fixtures.
+export const LAUNCH_MODES = Object.freeze(['SCENARIO', 'PREFLIGHT', 'BOUNDARY_PROBE']);
 
 export const WORKER_STATES = [
   'QUEUED', 'STARTING', 'RUNNING', 'CHECKPOINTING',
@@ -125,6 +131,8 @@ export function launchWorker({
   browserContextId = null,
   maxBudgetUsd = 6,
   model = process.env.QA_WORKER_MODEL || MODEL_ALIAS,
+  launchMode = 'SCENARIO',
+  preflight = null,
   hangMs = 10 * 60_000,
   hardCapMs = 45 * 60_000,
   onStarted = () => {},
@@ -133,6 +141,9 @@ export function launchWorker({
   let policy;
   try { policy = policyFor(workerClass); }
   catch (e) { return notLaunched(campaignId, workerId, lane, e.message); }
+  if (!LAUNCH_MODES.includes(launchMode)) return notLaunched(campaignId, workerId, lane, 'UNKNOWN_LAUNCH_MODE: ' + launchMode);
+  // Observation-only launches carry no mutation authority whatever the caller passed.
+  if (launchMode !== 'SCENARIO') authorizedFixtureIds = [];
 
   const wd = ensureRunDirs(campaignId, workerId);
   const sessionId = randomUUID();
@@ -142,7 +153,16 @@ export function launchWorker({
   if (policy.requiresIdentity) {
     if (!identityId) return notLaunched(campaignId, workerId, lane, 'IDENTITY_REQUIRED: BROWSER_QA needs a dedicated synthetic identity');
     if (!orgScope) return notLaunched(campaignId, workerId, lane, 'ORG_SCOPE_REQUIRED: BROWSER_QA needs its own synthetic org scope');
+    // Founder-shaped or malformed identities are refused before any gate, lease or browser is touched.
+    try { assertSyntheticIdentity(identityId); } catch (e) { return notLaunched(campaignId, workerId, lane, (e.code || 'INVALID_IDENTITY') + ': ' + e.message); }
     keys.push('identity:' + identityId, 'org:' + orgScope);
+    // A8: a SCENARIO launch needs a fresh AUTH_OK preflight bound to this campaign/worker/identity/org.
+    // storageState existence is not authentication proof; the record comes from a real UI observation.
+    if (launchMode === 'SCENARIO') {
+      const rec = preflight || readPreflight(campaignId, workerId);
+      const auth = preflightAuthorises(rec, { campaignId, workerId, identityId, orgScope });
+      if (!auth.ok) return notLaunched(campaignId, workerId, lane, auth.reason + ': identity preflight did not authorise a scenario launch for ' + identityId + '/' + orgScope, { launch_mode: launchMode, preflight_classification: rec && rec.classification || null });
+    }
   }
 
   const lease = keys.length
@@ -162,6 +182,8 @@ export function launchWorker({
   let cwd, mcpArgs = [], sidecar = null, worktree = null, fpBefore = null, gitCtx = null;
   try {
     if (policy.class === 'BROWSER_QA') {
+      // The preflight worker and its scenario worker never coexist; suffix keeps run dirs apart.
+      if (launchMode === 'PREFLIGHT' && !workerId.endsWith(PREFLIGHT_SUFFIX)) throw Object.assign(new Error('PREFLIGHT_WORKER_ID_SUFFIX_REQUIRED'), { code: 'PREFLIGHT_WORKER_ID_SUFFIX_REQUIRED' });
       sidecar = writeSidecarConfig(campaignId, workerId, { identityId });
       cwd = wd;
       mcpArgs = ['--mcp-config', sidecar.path];
@@ -187,7 +209,7 @@ export function launchWorker({
 
   const prompt = buildWorkerPrompt({
     campaignId, workerId, lane, directive, assignedCapabilities, assignedScenarios,
-    fixtureNamespace, authorizedFixtureIds, policy, identityId, orgScope, gitCtx, worktree,
+    fixtureNamespace, authorizedFixtureIds, policy, identityId, orgScope, gitCtx, worktree, launchMode,
   });
 
   // No --permission-mode (bypass is refused under --restricted and never wanted); no --add-dir
@@ -227,7 +249,7 @@ export function launchWorker({
     : spawn(bin, args, { cwd, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'], env });
 
   const outcome = {
-    worker_id: workerId, lane, campaign_id: campaignId, worker_class: policy.class, policy_hash: policyHash(policy),
+    worker_id: workerId, lane, campaign_id: campaignId, worker_class: policy.class, policy_hash: policyHash(policy), launch_mode: launchMode,
     pid: child.pid ?? null, session_id: sessionId, log_path: logPath, cwd,
     result_path: resultPath, checkpoint_path: checkpointPath,
     fixture_namespace: fixtureNamespace, authorized_fixture_ids: authorizedFixtureIds,
@@ -444,6 +466,17 @@ function materializeResult(outcome, { resultPath, policy, assignedScenarios }) {
 export async function runBatch(campaignId, assignments, opts = {}) {
   const max = opts.maxWorkers || 3;
   const batch = assignments.slice(0, max);
+  // A8 lifecycle: every BROWSER_QA scenario assignment is preflighted (serially, read-only) before
+  // its scenario worker is launched. A failed preflight becomes the worker's BLOCKED record; the
+  // lane is not started and nothing falls back to another session.
+  for (const a of batch) {
+    const cls = a.workerClass || 'SOURCE_AUDIT';
+    if (cls !== 'BROWSER_QA' || (a.launchMode && a.launchMode !== 'SCENARIO') || a.preflight) continue;
+    a.preflight = await runIdentityPreflight({
+      campaignId, workerId: a.workerId, lane: a.lane, identityId: a.identityId, orgScope: a.orgScope,
+      expectedMarkers: a.expectedMarkers || [], allowedOrgs: a.allowedOrgs || [], launch: launchWorker, model: a.model,
+    });
+  }
   const handles = batch.map((a) => launchWorker({ campaignId, ...a, ...(opts.launchOverrides || {}) }));
   const settled = await Promise.allSettled(handles.map((h) => h.promise));
   return handles.map((h, i) => ({
@@ -496,7 +529,7 @@ export function summariseWorkers(campaignId) {
   };
 }
 
-function buildWorkerPrompt({ campaignId, workerId, lane, directive, assignedCapabilities, assignedScenarios, fixtureNamespace, authorizedFixtureIds, policy, identityId, orgScope, gitCtx, worktree }) {
+function buildWorkerPrompt({ campaignId, workerId, lane, directive, assignedCapabilities, assignedScenarios, fixtureNamespace, authorizedFixtureIds, policy, identityId, orgScope, gitCtx, worktree, launchMode = 'SCENARIO' }) {
   const laneDef = LANES[lane] || { label: lane, owns: [] };
   const common = [
     'You are QA WORKER ' + workerId + ' (' + laneDef.label + ', class ' + policy.class + ') for SEM Brain OS, launched',
@@ -546,6 +579,11 @@ function buildWorkerPrompt({ campaignId, workerId, lane, directive, assignedCapa
       'the product UI at https://brain.open-spot.ai, as identity ' + identityId + ' inside org scope',
       orgScope + '. You are NOT the founder. If the browser is logged out, record BLOCKED with',
       'blocked_reason BLOCKED_QA_AUTH - never attempt to log in, never enter credentials.',
+      'Navigate ONLY to https://brain.open-spot.ai/... URLs. file:, data:, javascript:, chrome:, about:',
+      'and non-product hosts are refused by the guard; do not try them except when a probe asks you to.',
+      (launchMode === 'SCENARIO'
+        ? 'LAUNCH MODE: SCENARIO (identity preflight AUTH_OK on record).'
+        : 'LAUNCH MODE: ' + launchMode + ' - OBSERVATION ONLY. You have NO mutation authority: never submit a form, never create/edit/archive/restore/delete anything.'),
       '- Read every list at "All Organizations" unless the scenario says otherwise, and say which.',
       '- Every claim in your evidence must name the page URL and what was visibly on it.',
       '- Do NOT mutate anything outside your authorized fixture list; the org you can see is yours.',

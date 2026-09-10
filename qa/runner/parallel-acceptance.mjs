@@ -187,8 +187,10 @@ async function main() {
   check(6.4, 'BROWSER_QA without a synthetic identity is not launched', noIdentity.launched === false && noIdentity.reason === 'IDENTITY_REQUIRED', noIdentity.reason);
   const founderLaunch = launchWorker({ campaignId: CAMPAIGN, ...mkAssign('WFOUNDER', 'W3_WEB_PRODUCT', 'ok', { launch: { workerClass: 'BROWSER_QA', identityId: 'founder', orgScope: 'X' } }) });
   check(6.5, 'BROWSER_QA with a founder-shaped identity is refused at launch', founderLaunch.launched === false && founderLaunch.reason === 'FOUNDER_IDENTITY_REFUSED', founderLaunch.reason);
-  const noSession = launchWorker({ campaignId: CAMPAIGN, ...mkAssign('WNOSESS', 'W3_WEB_PRODUCT', 'ok', { launch: { workerClass: 'BROWSER_QA', identityId: 'qa-nonexistent', orgScope: 'QA-X' } }) });
+  const noSession = launchWorker({ campaignId: CAMPAIGN, ...mkAssign('WNOSESS', 'W3_WEB_PRODUCT', 'ok', { launch: { workerClass: 'BROWSER_QA', launchMode: 'BOUNDARY_PROBE', identityId: 'qa-nonexistent', orgScope: 'QA-X' } }) });
   check(6.6, 'BROWSER_QA with an un-bootstrapped identity is BLOCKED_QA_AUTH (never falls back)', noSession.launched === false && noSession.reason === 'BLOCKED_QA_AUTH', noSession.reason);
+  const noPreflight = launchWorker({ campaignId: CAMPAIGN, ...mkAssign('WNOPF', 'W3_WEB_PRODUCT', 'ok', { launch: { workerClass: 'BROWSER_QA', identityId: 'qa-nonexistent', orgScope: 'QA-X' } }) });
+  check(6.61, 'BROWSER_QA SCENARIO launch without an identity preflight is refused BEFORE any browser is touched (PREFLIGHT_REQUIRED)', noPreflight.launched === false && noPreflight.reason === 'PREFLIGHT_REQUIRED', noPreflight.reason);
 
   // ---------------------------------------------------------------- 6.7 init-frame boundary enforcement
   cleanRunDir('WLEAK');

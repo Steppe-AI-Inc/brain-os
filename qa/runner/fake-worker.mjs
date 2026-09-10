@@ -80,6 +80,7 @@ const resultObject = () => ({
   evidence: { observed: 'synthetic evidence from ' + workerId, files: ['EVIDENCE/timeline.jsonl'] },
   started_at: new Date(Date.now() - runMs).toISOString(),
   completed_at: new Date().toISOString(),
+  ...(process.env.FAKE_PREFLIGHT_JSON ? { preflight: JSON.parse(process.env.FAKE_PREFLIGHT_JSON) } : {}),
 });
 
 if (behaviour === 'crash') {

@@ -89,6 +89,25 @@ const RULES = [
     + 'first and ignores rollback); retained so the older rule name still appears in guard.log history.'],
 ];
 
+// A7 (2026-09-10): browser_navigate is retained for BROWSER_QA, so it must not become a raw
+// file/code primitive. The pinned sidecar already blocks file: itself, but data:text/html executes
+// script in an opaque origin and chrome:// loads browser-internal pages. This gate is STRUCTURAL
+// (URL parsed, protocol + hostname compared) rather than a text heuristic, and for browser_navigate
+// the hook fails CLOSED - a navigation refused by an internal error is a harmless retry, unlike a
+// wedged Bash call.
+const NAV_ALLOWED_HOSTS = new Set(['brain.open-spot.ai', 'pvphxgrtdfrudejjhzjk.supabase.co']);
+const NAV_TOOLS = /^mcp__playwright__browser_(navigate|tabs)$/;
+function navigationRefusal(toolName, input) {
+  if (!NAV_TOOLS.test(toolName)) return null;
+  const raw = input && (input.url ?? input.href);
+  if (raw == null) return null;
+  let u;
+  try { u = new URL(String(raw)); } catch { return 'unparseable URL "' + String(raw).slice(0, 120) + '"'; }
+  if (u.protocol !== 'https:') return 'scheme "' + u.protocol + '" is not https: (file:/javascript:/data:/chrome:/about:/http: are never product paths)';
+  if (!NAV_ALLOWED_HOSTS.has(u.hostname)) return 'host "' + u.hostname + '" is not a product host';
+  return null;
+}
+
 // MCP / WebFetch payload fields that can carry a URL, code or a function name.
 function payloadText(input) {
   const parts = [];
@@ -110,6 +129,12 @@ process.stdin.on('end', () => {
     const cmd = payloadText(input);
     if (!cmd) allow();
 
+    const nav = navigationRefusal(toolName, input);
+    if (nav) {
+      log('DENY NAVIGATION_SCHEME [' + toolName + '] :: ' + cmd.slice(0, 300));
+      deny('BLOCKED BY WORK-PC QA GUARD [NAVIGATION_SCHEME]: ' + nav + '. Browser workers navigate only to https:// product hosts.');
+    }
+
     // Raw-execution browser tools are absent from every worker class by policy; if one reaches a
     // hook at all (the solo Director), it is denied outright - a second layer, not the first.
     if (/^mcp__playwright__browser_(evaluate|run_code_unsafe|network_request)$/.test(toolName)) {
@@ -127,6 +152,11 @@ process.stdin.on('end', () => {
     }
     allow();
   } catch (e) {
+    // Navigation fails CLOSED; everything else fails open (see header).
+    if (/browser_(navigate|tabs)/.test(raw)) {
+      log('FAIL_CLOSED_NAVIGATION ' + e.message + ' :: ' + raw.slice(0, 300));
+      deny('BLOCKED BY WORK-PC QA GUARD [NAVIGATION_SCHEME]: hook error while validating a navigation; refused.');
+    }
     log('FAIL_OPEN ' + e.message + ' :: ' + raw.slice(0, 300));
     allow();
   }
