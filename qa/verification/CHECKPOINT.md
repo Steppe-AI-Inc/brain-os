@@ -12,64 +12,42 @@ independent live acceptance. The Work PC alone closes bugs.
 
 ## CURRENT MILESTONE
 
-**Campaign #139 closed as FAILED. The candidate for verifier #80 is prepared and NOT yet dispatched.**
+**Verifier #81 is RUNNING** on campaign 141, candidate `db555d5aa0d49c33bb9b3981971ee6394d265267`,
+index.ts sha256 `c5eb10c83ff403e0e14e62a3ce92905002eda40d1689cd57d41d3c02b62faf2c` (736,739 bytes),
+worktree `C:/Users/Dell/dev/brain-os-verify-db555d5`, branch `verify-db555d5-campaign141`.
 
-| | |
-|---|---|
-| implementation worktree | `C:/Users/Dell/dev/brain-os-wo-resolver` (branch `wo/clarification-resolver`) |
-| candidate commit | `39ef2f76f53bfe4356dfc5cf2f1b706e65cb4bfc` |
-| DEPLOY_FILE_SHA256 | `b3d5e7a49e17d912e0a70fa8bc036c76ce214b62ae2ebdbbb0a1aad967abe408` |
-| DEPLOY_FILE_BYTE_LENGTH | 732356 |
-| line endings | CRLF-pure: 0 bare LF, 0 bare CR, 0 0x08 |
-| battery | 99 suites — 94 GREEN, 2 BLOCKED-FOUNDER, 3 OPEN DEFECT-THIS PC, 0 unclassified RED |
+The implementation worktree is `C:/Users/Dell/dev/brain-os-wo-resolver` (branch `wo/clarification-resolver`), HEAD
+`e37bf402fbdf251872e22c8d24f624f4ee012883`, index.ts `c5eb10c83ff403e0e14e62a3ce92905002eda40d1689cd57d41d3c02b62faf2c`.
 
-**THE MAIN REPO `C:/Users/Dell/dev/brain-os` IS NOT THE CANDIDATE.** Its `index.ts` is a different, older
-file (630,533 bytes, `e03ddceb…`) on branch `p1/execution-truth-governance`. A verifier dispatch once froze
-THAT file while printing the candidate's hash beside it; the dispatcher now verifies what it froze. When
-resuming, take the candidate from the worktree above, never from this repo's working tree.
+**THE MAIN REPO `C:/Users/Dell/dev/brain-os` IS NOT THE CANDIDATE** — its index.ts is a different, older
+file on `p1/execution-truth-governance`. A dispatch once froze THAT file while printing the candidate's
+hash beside it; the dispatcher now verifies what it froze and refuses a prompt containing an unsubstituted
+placeholder.
 
-### The five rounds of 2026-09-09/10, and what each cost
+### Rounds #74-#80 all FAILED, and the pattern is the thing to resume with
 
-Rounds #74-#79 all FAILED, and not one was a false alarm. The pattern that matters for whoever resumes:
-**three of the five failures were in the instruments, not the product**, and two of those flattered the
-session that built them.
+**Three consecutive rounds found the previous round's CLOSURE to be the next round's P1**, and every time
+the cause was identical: the closing session measured its change on a corpus that could not exercise the
+mechanism it changed. #79 found #78's fix swallowed the language's ordinary request; #80 found #79's fix
+had traded 5 fewer swallowed requests for **8 more forbidden writes**. Ledger 166, 167 and 168 carry it.
 
-* **#77** — the mutation proof was crediting always-red suites with catching every mutant.
-* **#78** — the same proof was crediting a suite for PRINTING A SHA256 (its output differed for every
-  mutant by construction), and behind that credit sat a real survivor the deploy gate reported GREEN.
-  Also: the V77 Mongolian allowlist had turned the language's ORDINARY POLITE REQUEST from live into dead,
-  72 of 108 mixed turns swallowed.
-* **#79** — both P1s were in #78's closures, and both had the same cause: **a change measured against a
-  corpus that could not exercise the mechanism it changed.** The read-shape veto's cost was measured at
-  0 of 4 on rows that exercised only one of its three arms; the real figure was 11 of 20, worse than before
-  the veto existed. `NON_EXISTENCE_CLAIM`'s false-positive controls were 17 assertions of PRESENCE, when
-  the risk is a truthful assertion of ABSENCE — 3 of 5 truthful answers were being destroyed.
+**The question that catches it**, and the one to ask of every number in any report including this file's:
+*what would this measurement have looked like if the defect were present?* If the answer is "the same", the
+number is not evidence.
 
-Both #79 P1s are CLOSED (ledger 166), each pinned as a mutation-proof mutant so neither can reopen
-silently. Ledger 167 records the rule: **a control set must be derived from the mechanism, not from the
-author's imagination.**
+### State at #81's dispatch
 
-### V78-H7 is CLOSED — one dependency order, four consumers
+* battery **101 suites — 91 GREEN, 5 GREEN-but-asserts-nothing, 2 BLOCKED-FOUNDER, 3 OPEN DEFECT-THIS PC,
+  0 unclassified RED**, 3,967 assertion rows
+* **5 of 6 gates VALID_PASS.** `harness_rename_probe` is VALID_FAIL BY DECISION — its rename set is now
+  DERIVED (184 renames) instead of ten hand-picked names, and the honest count is ~18 suites pinning a
+  spelling plus 7 whose window anchor moves loudly. `qa/verification/RENAME_PIN_BACKLOG.md` has all of it.
+  **If that gate is inconvenient, repair a suite; never shrink the set.**
+* V78-H7 CLOSED — one canonical dependency order, four consumers, a 13-row ratchet, four proved drifts
+* the CODEX-A release-blocker witnesses had a nine-command ALL-ENGLISH corpus and were green through three
+  rounds in which Mongolian turns of their exact shape were not refused. Twelve Mongolian witnesses added
+  and proved against the pre-fix bytes
 
-Four hand-maintained lists carried their own copy of the shared-constant dependency order. Adding ONE
-constant cost five registrations in a single session. Before converging them it was CHECKED (not assumed)
-that all four express the same graph — and the first probe written to check that was WRONG and its numbers
-discarded, because it hand-rolled a fifth declaration scanner that mis-parsed regex literals.
-
-`sharedConstantsFor(names)` in `_gate_extract.mjs` is now the one authority: a consumer supplies an
-unordered REQUEST, the resolver supplies order, transitive closure and deduplication.
-`qa/scenarios-runner/shared_constant_order_contract.mjs` is the ratchet (12 rows), and four deliberate
-order drifts are proved to break it.
-
-### The instrument guards now in place
-
-* an already-red suite is credited only if its output moved, with the source PATH **and DIGEST** erased
-* a probe that CRASHES on the candidate side is a HARNESS FAILURE, not an ineffective mutant, and exits 1
-* **the mutation proof's whole input is fingerprinted before and after**; a mid-run harness edit voids the
-  run. Proved with a valid, harmless edit 2.5s into a run — the case a crash-based gate cannot see
-* the release manifest forgives per ROW, never wholesale; a classification with no named rows is RED; a
-  GREEN suite still carrying a classification is RED (stale claim)
-* generated mutants are untracked, so `WORKING_TREE_CLEAN` means something
 ## PRODUCTION (unchanged since the rollback)
 
 | | |
