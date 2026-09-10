@@ -274,5 +274,39 @@
     "item": "PHASE_B_C_D_BROWSER_IDENTITIES",
     "added": "2026-09-10",
     "detail": "Provide the QA mailbox domain; perform the one-time invite + OTP bootstrap for qa-w1/qa-w2/qa-w3 (each in its own synthetic org); confirm/ship a governed role-management path for role_in_company=manager. Browser lanes stay BLOCKED until then."
+  },
+  "phase_b_identity_bootstrap": {
+    "status": "IN PROGRESS - qa-w1 only, serial, human-in-the-loop",
+    "founder_decisions_2026_09_10": {
+      "org": "QA-W1-ORG",
+      "display_name": "QA Worker 1",
+      "identity_id": "qa-w1",
+      "location": "Work PC, isolated human-in-the-loop bootstrap profile",
+      "authentication": "The founder personally types the dedicated QA email address and the emailed OTP. The Work PC never accesses the mailbox, never stores the OTP, never copies founder cookies, never reuses founder storageState, never uses Auth Admin/service_role/control plane/production SQL.",
+      "storage_state": "qa/runner/.auth/qa-w1.json (gitignored) - synthetic state only",
+      "role_target": "membership employee + role_in_company manager ONLY inside QA-W1-ORG; never founder/superadmin/holding_admin/hr_finance; no real-company membership; no cross-org access"
+    },
+    "tooling": "qa/runner/identity-bootstrap.mjs (founder-step | authenticate | verify | logout | status) + qa/runner/lib/pw.mjs. Every navigation is structurally restricted to https://brain.open-spot.ai; founder-shaped identity ids are refused; the founder step runs in an EPHEMERAL profile that is deleted on close and whose storageState is never saved.",
+    "product_path_established_from_source": "origin/master 55a1591: /companies createCompany -> /people createPerson(email, company) -> Invite (invitePerson) which creates the auth user, links the profile and inserts the QA-W1-ORG membership as 'employee'. The identity then authenticates at /signup, which is the ONLY 6-digit email-OTP surface (/login is password-only, and no password path exists for an invited user). Order is mandatory: invite BEFORE first sign-in, because signInWithOtp with shouldCreateUser would create the auth user first and make the product's invite fail.",
+    "blocked": {
+      "item": "MEMBERSHIP_ROLE_MANAGEMENT_UI_ABSENT",
+      "effect": "qa-w1 can only reach role_in_company='employee' in QA-W1-ORG. The Option-1 'manager inside its own synthetic org' entitlement is NOT achievable through any product path.",
+      "evidence": "See BUG-035. role_in_company has exactly one writer in the product (hardcoded 'employee' in invitePerson); /access is read-only; the AI command function has no membership capability.",
+      "home_pc_requirement": "Ship a governed, audited role-management surface that can set company_memberships.role_in_company within a company. Until then Phase C entitlement acceptance stays blocked and no workaround is permitted.",
+      "work_pc_will_not": "SQL, RPC, Supabase Auth Admin, service_role, direct REST/API, browser_evaluate, or any other control-plane path."
+    },
+    "acceptance_targets": [
+      "INVITE",
+      "OTP AUTH",
+      "SYNTHETIC IDENTITY",
+      "QA-W1-ORG MEMBERSHIP",
+      "TENANT ISOLATION",
+      "RELOAD",
+      "A8 AUTH_OK",
+      "LOGOUT / RE-AUTH",
+      "STORAGESTATE SAFE",
+      "NO REAL-ORG ACCESS"
+    ],
+    "not_started": "qa-w2 and qa-w3 are NOT bootstrapped. Browser lanes remain BLOCKED; Phase D isolation proof has not run."
   }
 }

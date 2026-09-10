@@ -29,9 +29,9 @@
   "counts": {
     "open_p0": 1,
     "open_p1": 15,
-    "open_p2": 15,
+    "open_p2": 16,
     "open_p3": 6,
-    "total_open": 37,
+    "total_open": 38,
     "total_closed": 3
   },
   "bugs": [
@@ -2136,6 +2136,27 @@
       "regression_requirement": "A chat turn must reach a terminal state within a bounded time - either a response or an explicit, user-visible failure with a retry affordance. Assert that no turn remains in an in-progress state beyond a defined timeout. This is testable independently of whatever caused the outage.",
       "_qa_boundary": "Observed, not induced. Read-only prompts only. No mutation attempted.",
       "per_verifier_instruction": "If Home PC finds this was transient infrastructure, the AVAILABILITY half may close - but the MISSING TIMEOUT half must not close with it. They are separable and only the second is a code defect."
+    },
+    {
+      "bug_id": "BUG-035",
+      "title": "No governed product path grants role_in_company - every membership is permanently 'employee' unless someone edits the database by hand",
+      "severity": "P2",
+      "status": "OPEN",
+      "discovered_by": "work-pc-qa (Phase B identity bootstrap, source audit)",
+      "discovered_at": "2026-09-10T08:00:00Z",
+      "campaign_id": "C002",
+      "environment": "production",
+      "commit_audited": "origin/master 55a1591",
+      "classification": "GOVERNANCE_CAPABILITY_ABSENT",
+      "expected": "A founder/admin can grant and revoke elevated company roles (role_in_company in {owner, manager, team_lead}) through a governed product surface, because governance/BRAIN_OS_CONSTITUTION.md defines elevated company access entirely in terms of that column.",
+      "actual": "role_in_company is written in exactly ONE place in the whole product and it is a hardcoded literal: web/lib/data/people.ts:135 inserts company_memberships with role_in_company:'employee' during invitePerson(). There is no UPDATE, upsert or RPC that changes it anywhere in web/. /access (web/app/(app)/access/page.tsx) renders memberships as read-only Badges and has no form or server action; web/lib/data/access.ts is SELECT-only. supabase/functions/sem-ai-command/index.ts contains zero references to company_memberships or role_in_company, so Brain chat cannot do it either. The only occurrence outside the product is a SQL test fixture.",
+      "evidence": "grep across web/ and supabase/functions at origin/master 55a1591: role_in_company appears in web/app/(app)/access/page.tsx:71 (render), web/lib/data/access.ts:20 (select), web/lib/data/people.ts:135 (hardcoded insert), web/types/database.ts (types). No write path. company_memberships is referenced in web/ only by access.ts (select), companies.ts:165 (a cascade label) and people.ts:132 (the invite insert).",
+      "blast_radius": "Every company member in production is stuck at 'employee' forever. Any real customer needing a manager/team-lead tier can only be served by a manual database edit, which is exactly the un-audited out-of-band change the governance model exists to prevent. It also blocks the QA programme's Option-1 entitlement design (a synthetic worker that is manager only inside its own synthetic org).",
+      "_qa_boundary": "QA did not and will not work around this. No SQL, no RPC, no Supabase Auth Admin, no direct API, no browser_evaluate. Recorded as a Home-PC implementation requirement.",
+      "implementation_recommendation": "Add a governed role-management surface (founder/holding_admin only, audited) that updates company_memberships.role_in_company within a company, with the same RLS-enforced authorization the rest of the write paths use, plus a negative test that a company manager cannot promote themselves or anyone else outside their own company.",
+      "work_pc_status": "BLOCKED - MEMBERSHIP_ROLE_MANAGEMENT_UI_ABSENT",
+      "regression_executor": "HOME_PC",
+      "build": "EDGE v94 (v92 source) / WEB SHA UNKNOWN"
     }
   ],
   "observations": [
