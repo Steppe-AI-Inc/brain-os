@@ -15,9 +15,10 @@
 // real round end-to-end — that needs a verifier session, and FOUNDER_POKE_NOT_REQUIRED already holds the
 // claim that a director dispatches without input.
 import { verifierRound, readVerdict, readWatchdog } from '../../scripts/factory-runner/handlers/verifier-round.mjs';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const NL = String.fromCharCode(10);
 let pass = 0;
@@ -184,6 +185,37 @@ try {
     + ' cannot clear a model-scoped refusal',
     /different model/.test(unrun.nextAction) && /waiting cannot clear/.test(unrun.nextAction),
     unrun.nextAction);
+
+  // ── EVERY HANDLER IS REGISTERED, OR IT IS DEAD CODE WITH PASSING TESTS ───────────────────────────
+  //
+  // This file had 20 green rows over a handler no director could reach. verifier-round.mjs was written,
+  // tested, and checked against two live rounds - and never added to director-start.mjs, so the loop meant
+  // to cross the campaign boundary had no handler for it while the acceptance case saying the founder is
+  // not the Factory heartbeat went on passing. A test proves a handler WORKS; only registration proves
+  // anything will ever CALL it.
+  {
+    const runner = join(dirname(fileURLToPath(import.meta.url)), '../../scripts/factory-runner');
+    const files = readdirSync(join(runner, 'handlers')).filter((f) => f.endsWith('.mjs'));
+    const startText = readFileSync(join(runner, 'director-start.mjs'), 'utf8');
+    // COMMENTS ARE NOT REGISTRATION. Both files name the handlers in prose; only a call counts.
+    const code = startText.split(NL).filter((l) => !/^\s*(?:\/\/|\*|\/\*)/.test(l)).join(NL);
+    const registered = [...code.matchAll(/registerHandler\(\s*['"][^'"]+['"]\s*,\s*(\w+)\s*\)/g)]
+      .map((m) => m[1]);
+    const unregistered = files.filter((f) => {
+      const exported = [...readFileSync(join(runner, 'handlers', f), 'utf8')
+        .matchAll(/export const (\w+)\s*=/g)].map((m) => m[1]);
+      return !exported.some((e) => registered.includes(e));
+    });
+    check('R1 every handler in handlers/ is REGISTERED with the director — a handler nothing can reach is'
+      + ' dead code with passing tests',
+      unregistered.length === 0,
+      'unregistered: ' + JSON.stringify(unregistered) + '; registered: ' + JSON.stringify(registered));
+
+    check('R2 ...and the check reads REGISTRATION CALLS rather than prose, since both files name the'
+      + ' handlers in comments',
+      registered.includes('verifierRound') && registered.length >= 2,
+      'registered symbols: ' + JSON.stringify(registered));
+  }
 
   // A work order that cannot say what it is about must stop, not guess.
   const vague = await verifierRound.observe({ workOrder: { work_order_id: 'x', payload: {} } });

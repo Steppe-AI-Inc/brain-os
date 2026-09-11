@@ -10,8 +10,19 @@ import { hostname } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { start, registerHandler } from './director.mjs';
 import { acceptanceEcho } from './handlers/acceptance-echo.mjs';
+import { verifierRound } from './handlers/verifier-round.mjs';
 
+// `acceptance_echo` exists to BE PROVED — it is what FOUNDER_POKE_NOT_REQUIRED drives, and it does no real
+// work. `verifier_round` is the real one: it reads an Edge verifier round from the files the round itself
+// writes and says what state it is in, which is the boundary this campaign has stalled at every time.
+//
+// A HANDLER THAT IS NEVER REGISTERED IS DEAD CODE WITH PASSING TESTS. verifier-round.mjs was written, given
+// 20 passing rows and a live check against two real rounds, and left unregistered — so no director could
+// ever have dispatched it, while the acceptance case saying the founder is not the heartbeat went on
+// passing over a handler nothing could reach. Registering it is the difference between a proof and a
+// product, and forgetting to is how a campaign accumulates machinery it does not run.
 registerHandler('acceptance_echo', acceptanceEcho);
+registerHandler('verifier_round', verifierRound);
 
 const argv = process.argv.slice(2);
 const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] ? argv[i + 1] : d; };
