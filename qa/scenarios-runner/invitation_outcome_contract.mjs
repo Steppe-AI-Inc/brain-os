@@ -45,7 +45,10 @@ check('the outcome vocabulary is present and non-trivial (' + OUTCOMES.length + 
 
 // The founder's list, verbatim. A vocabulary that quietly loses a member is how "no terminal state" comes
 // back one outcome at a time.
-for (const required of ['SENT', 'DELIVERY_FAILED', 'ALREADY_MEMBER', 'INVITATION_ALREADY_PENDING',
+// INVITATION_ALREADY_PENDING IS DELIBERATELY ABSENT (founder lifecycle, 2026-09-11). A second click on a
+// live invitation REFRESHES it and returns DELIVERY_PENDING; naming it "already pending" made a normal
+// resend read as a refusal, and a founder who reads a refusal clicks again.
+for (const required of ['SENT', 'DELIVERY_FAILED', 'ALREADY_MEMBER', 'DELIVERY_PENDING',
   'INVALID_RECIPIENT', 'RATE_LIMITED', 'PROVIDER_UNAVAILABLE', 'UNKNOWN_ERROR']) {
   check('the vocabulary contains ' + required, OUTCOMES.includes(required));
 }
@@ -100,7 +103,10 @@ if (classify) {
     [{ status: 429, message: 'Email rate limit exceeded' }, 'RATE_LIMITED'],
     [{ message: 'over_email_send_rate_limit: too many requests' }, 'RATE_LIMITED'],
     [{ message: 'Unable to validate email address: invalid format' }, 'INVALID_RECIPIENT'],
-    [{ message: 'A user with this email address has already been registered' }, 'INVITATION_ALREADY_PENDING'],
+    // AN EXISTING AUTH ACCOUNT IS NOT A FAILURE and is no longer classified as one. It reaches
+    // UNKNOWN_ERROR here only because this fixture asks classifyError about it at all; the real path
+    // tests isExistingAuthUser FIRST and never consults the classifier. The row below pins that.
+    [{ message: 'A user with this email address has already been registered' }, 'UNKNOWN_ERROR'],
     [{ code: 'ECONNREFUSED', message: 'connect ECONNREFUSED 10.0.0.1:587' }, 'PROVIDER_UNAVAILABLE'],
     [{ message: 'fetch failed' }, 'PROVIDER_UNAVAILABLE'],
     [{ status: 503, message: 'Service Unavailable' }, 'PROVIDER_UNAVAILABLE'],
@@ -258,6 +264,17 @@ function codeOnly(t) {
     read.length > 0 && missing.length === 0,
     read.length === 0 ? "the caller reads nothing off the result - this row would pass vacuously"
       : "declared: [" + fields.join(", ") + "] but the caller reads: " + missing.join(", "));
+}
+// THE MECHANISM, NOT THE FIXTURE. The classifier is asked about an existing account only by this suite.
+// The product tests isExistingAuthUser first and treats it as control flow, so the invitation stands and
+// the person signs in to accept. This row fails if that test is ever removed, which is the regression
+// that would restore the permanent dead end.
+{
+  const vocabSrc = readFileSync(join(ROOT, 'web/lib/data/invitation-outcome.ts'), 'utf8');
+  const peopleSrc = readFileSync(join(ROOT, 'web/lib/data/people.ts'), 'utf8');
+  check('an existing auth account is CONTROL FLOW in the invite action, not a classified failure',
+    /export function isExistingAuthUser/.test(vocabSrc) && /isExistingAuthUser\(/.test(peopleSrc),
+    'without this the second click classifies as a failure and the invitation looks unrepeatable');
 }
 console.log('');
 console.log('invitation_outcome_contract: ' + pass + ' passed, ' + failures.length + ' failed');

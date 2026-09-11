@@ -167,7 +167,13 @@ export function classifyError(err: unknown): InvitationOutcome {
     status === 502 || status === 503 || status === 504
     || /econnrefused|enotfound|etimedout|socket hang up|network|fetch failed|timeout/.test(text)
   ) return 'PROVIDER_UNAVAILABLE';
-  if (/smtp|mail|sender|relay|bounce|delivery/.test(text)) return 'DELIVERY_FAILED';
+  // WORD-BOUNDED, AND BARE `mail` IS GONE: it matched inside `email`, so every provider message that
+  // mentioned an email address was reported as a delivery failure the founder should retry. `sender` is
+  // gone for the same reason in a different direction - "sender identity not verified" is configuration,
+  // not delivery, and PROVIDER_UNAVAILABLE already covers transport. What remains names delivery.
+  if (/\bsmtp\b|\bmailer\b|\brelay\b|bounced?|\bundeliverable\b|(?:not|could not|failed to) be? ?deliver(?:ed)?|\bdelivery (?:failed|error)/.test(text)) {
+    return 'DELIVERY_FAILED';
+  }
   return 'UNKNOWN_ERROR';
 }
 
