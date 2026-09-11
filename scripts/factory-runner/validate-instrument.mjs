@@ -24,7 +24,7 @@
 import { existsSync, readFileSync, writeFileSync, mkdtempSync, rmSync, copyFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
-import { join, basename } from 'node:path';
+import { join, basename, dirname, resolve } from 'node:path';
 
 const NL = String.fromCharCode(10);
 
@@ -51,7 +51,7 @@ import { INSTRUMENT_CLASSES, deriveInstrumentClass } from './instrument-classes.
  */
 export function validateInstrument(file, {
   cwd = undefined, env = {}, minRows = 1, rowPattern = null, klass = null,
-  negativeControl = null, expectNonZeroExit = false,
+  negativeControl = null, negativeControlDir = 'tmp', expectNonZeroExit = false,
 } = {}) {
   const results = [];
   const add = (level, name, ok, detail) => results.push({ level, name, ok, detail });
@@ -103,16 +103,30 @@ export function validateInstrument(file, {
     measured.detail + (klass ? '' : ' — class DERIVED from the output, not declared'));
 
   // 6. NEGATIVE CONTROL — the level that separates an instrument from a formality.
+  //
+  // WHERE THE COPY RUNS IS PART OF THE CONTROL. An instrument that resolves its repository from
+  // `import.meta.url` — the release manifest does — throws "repo root not found" when it is copied to a
+  // temp directory. It exits non-zero, level 6 goes green, and the control proved nothing except that a
+  // file outside its repository cannot run. `negativeControlDir` puts the copy beside the original, where
+  // the only thing different about it is the break that was introduced.
   if (negativeControl) {
-    const dir = mkdtempSync(join(tmpdir(), 'instr-'));
+    const beside = negativeControlDir === 'beside';
+    const dir = beside ? dirname(resolve(file)) : mkdtempSync(join(tmpdir(), 'instr-'));
+    const copy = beside
+      ? join(dir, basename(file).replace(/\.mjs$/, '') + '.negative-control.mjs')
+      : join(dir, basename(file));
     try {
-      const copy = join(dir, basename(file));
       writeFileSync(copy, negativeControl(readFileSync(file, 'utf8')));
       const broken = run(copy, { cwd, env });
       add(6, 'NEGATIVE CONTROL: a deliberately broken input makes it FAIL',
         broken.code !== 0 || /\bFAIL\b/.test(broken.out),
-        'exit ' + broken.code + ' — an instrument that passes on a broken input is not measuring its subject');
-    } finally { rmSync(dir, { recursive: true, force: true }); }
+        'exit ' + broken.code + ' — an instrument that passes on a broken input is not measuring its subject'
+        + (beside ? '' : ' (run in a temp directory: check the break is why it failed, not the move)'));
+      results.negativeControlOutput = broken.out;
+    } finally {
+      if (beside) rmSync(copy, { force: true });
+      else rmSync(dir, { recursive: true, force: true });
+    }
   } else {
     add(6, 'NEGATIVE CONTROL: none supplied, so level 6 is UNPROVEN for this instrument', true,
       'a caller that supplies none is accepting that this instrument has not been shown to be able to fail');
