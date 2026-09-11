@@ -160,6 +160,31 @@ try {
       return w.attempts === 2 && /ABORT/.test(w.aborted);
     })(), JSON.stringify(readWatchdog('[t] attempt 1: dispatching' + NL + '[t] ABORT: exhausted')));
 
+  // ── THE ROUND THAT ENDED WITHOUT RUNNING ─────────────────────────────────────────────────────────
+  //
+  // Verifier #89, live: 33 minutes, then a provider safeguard refusal, 491 bytes, and a watchdog line
+  // saying "watchdog done". No verdict. Reported as `waiting`, that is a wait with no end condition; as
+  // `repair_required`, it would say the candidate FAILED, which it did not - it was never judged.
+  write('verifier94_dispatch.json', '{"round":94}');
+  write('verifier94_output.log', "API Error: Opus 5's safeguards flagged this message"
+    + ' (https://www.anthropic.com/legal/aup). Claude Code cannot respond to this message with Opus 5.'
+    + NL + 'Try rephrasing the request in a new session or change your model.' + NL + 'Details: `[bio]`');
+  write('watchdog-verifier94_output.state', '[t] attempt 1: dispatching' + NL
+    + '[t] attempt 1: verifier produced a real report (491 bytes); watchdog done.');
+  const unrun = await verifierRound.observe({ workOrder: wo({ round: 94, campaign: 154 }) });
+  check('B17 a round whose WATCHDOG SAYS DONE with no verdict is blocked_external, not waiting — a wait'
+    + ' with no end condition is how a dead round stays open for ever',
+    unrun.outcome === 'blocked_external', JSON.stringify({ outcome: unrun.outcome }));
+
+  check('B18 ...and it is explicitly NOT recorded as a FAIL, because the candidate was never judged',
+    /must never be\s+recorded as one|not a FAIL/.test(unrun.nextAction) && !/repair_required/.test(unrun.outcome),
+    unrun.nextAction);
+
+  check('B19 ...and it names the remedy the provider itself states: a different model, because waiting'
+    + ' cannot clear a model-scoped refusal',
+    /different model/.test(unrun.nextAction) && /waiting cannot clear/.test(unrun.nextAction),
+    unrun.nextAction);
+
   // A work order that cannot say what it is about must stop, not guess.
   const vague = await verifierRound.observe({ workOrder: { work_order_id: 'x', payload: {} } });
   check('B16 a work order that does not name a round and a repository STOPS — a handler that guesses'

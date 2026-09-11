@@ -69,7 +69,12 @@ export function readWatchdog(text) {
   const lines = String(text).split(/\r?\n/).filter(Boolean);
   const attempts = lines.filter((l) => /attempt \d+: dispatching/.test(l)).length;
   const aborted = lines.find((l) => /ABORT|source sha changed|exhausted/i.test(l)) || null;
-  return { attempts, aborted, last: lines[lines.length - 1] || null };
+  // THE WATCHDOG CAN FINISH WITHOUT A ROUND FINISHING. Verifier #89 hit a provider safeguard refusal and
+  // the watchdog logged "watchdog done" over 491 bytes of API error. If nobody reads this line, a round
+  // that never started waits for a report that will never be written — this handler said `waiting` about
+  // it, forever, which is the quiet half of the same defect.
+  const done = /watchdog done/i.test(text);
+  return { attempts, aborted, done, last: lines[lines.length - 1] || null };
 }
 
 export const verifierRound = {
@@ -158,6 +163,21 @@ export const verifierRound = {
         evidence: 'watchdog: ' + wd.aborted,
         nextAction: 'the watchdog stopped the round before a report existed — read its state file before'
           + ' dispatching anything, because a sha change means the candidate moved underneath it',
+      };
+    }
+
+    // THE WATCHDOG SAYS DONE AND THERE IS NO VERDICT. The round is over and produced nothing to read.
+    // Verifier #89 is the live case: 33 minutes, then a provider safeguard refusal, 491 bytes, and a
+    // watchdog line saying done. Reporting this as `waiting` would be a wait with no end condition.
+    if (wd.done) {
+      const head = String(log).trim().split(/\r?\n/)[0] || '(the log is empty)';
+      return {
+        outcome: 'blocked_external',
+        evidence: 'the watchdog finished but the log carries NO VERDICT (' + log.length + ' bytes): ' + head,
+        nextAction: 'round ' + round + ' ENDED WITHOUT RUNNING. This is not a FAIL and must never be'
+          + ' recorded as one — the candidate was not judged. Re-dispatch it, and if the log shows a'
+          + ' model-scoped provider refusal, on a different model: waiting cannot clear a refusal and the'
+          + ' same model with the same prompt reproduces it exactly.',
       };
     }
 
