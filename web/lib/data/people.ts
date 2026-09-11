@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { classifyError, result as invitationResult } from "./invitation-outcome";
+import { classifyError, isExistingAuthUser, result as invitationResult } from "./invitation-outcome";
 import type { InvitationResult } from "./invitation-outcome";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -164,42 +164,55 @@ export async function setPersonManager(personId: string, managerPersonId: string
   return null;
 }
 
-// Real login-account onboarding: a `people` row is just an HR record, it never grants
-// access. This sends a real Supabase invite email, then links the resulting profile back
-// onto the person and grants company membership. Uses the service-role client for
-// auth.admin.inviteUserByEmail (the one operation RLS can't gate), so unlike every other
-// action in this file it does its own founder/admin check up front — RLS alone doesn't
-// protect that call.
-// A FAILURE AFTER THE MESSAGE WAS ACCEPTED IS NOT A DELIVERY FAILURE.
+// THE GOVERNED INVITATION ROUTE — founder product decision, 2026-09-11: INVITE != ADD MEMBER.
 //
-// The mailer took the message; what failed is local bookkeeping. Reporting these as DELIVERY_FAILED
-// would tell the founder to retry the email — and retrying is precisely what produces the "already
-// registered" dead end, because the auth user now exists. They are terminal, honest, and not
-// retryable by repetition. The partial state they leave behind is BUG-036 territory and is recorded
-// in the log with the person id so it can be reconciled deliberately.
-function bookkeepingFailure(personId: string, name: string, what: string) {
-  console.error("invitePerson: invite accepted but bookkeeping failed", { personId, what });
-  return { ok: false as const, ...invitationResult("UNKNOWN_ERROR", name) };
+// A `people` row is an HR record and has never granted access. What changed is that this action no
+// longer grants access either. It creates a governed invitation and starts delivery. That is all.
+//
+//   INVITATION_CREATED -> DELIVERY_PENDING -> SENT -> ACCEPTED -> MEMBERSHIP_ACTIVE
+//
+// Everything from ACCEPTED onward belongs to `accept_company_invitation(token)`, which derives company,
+// role and recipient authority FROM THE STORED ROW and takes no company or role parameter at all.
+//
+// WHAT THIS FUNCTION NO LONGER DOES, each of which was a contract violation:
+//   * it does not insert company_memberships;
+//   * it does not set profiles.active = true as a substitute for acceptance;
+//   * it does not grant company authority before acceptance;
+//   * it does not create a pseudo-invitation that cannot be revoked or expire;
+//   * it does not claim "not a member until acceptance" while having just made them one.
+//
+// AND `bookkeepingFailure` IS GONE WITH THEM. It existed to report the partial state left when one of
+// five writes after the mail call failed. There are no writes after the mail call now, so that whole
+// class of half-finished invitation cannot occur — the defect is removed rather than reported better.
+//
+// ORDER IS A SECURITY PROPERTY HERE. The invitation is created FIRST, through
+// `create_company_invitation` on the CALLER’S OWN client: it is `security invoker`, so RLS and its own
+// `is_founder_or_admin() or is_company_manager(company)` check are the authority. The service-role
+// client is constructed only AFTER that gate has passed, so an unauthorised caller never reaches it.
+// The old code did its own founder/admin list check and then used the admin client — a duplicated
+// authority list that could drift from the one the database actually enforces, and did: it refused
+// company managers whom the governed model permits.
+
+// Where the invitation link lands. Read from the deployment’s own public URL so no environment can
+// quietly send a bearer token to a different origin; empty base yields a relative path, which is
+// correct for a same-origin deployment and never points somewhere else.
+function acceptInvitationUrl(token: string): string {
+  const base = (process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/+$/, "");
+  return base + "/accept-invitation?token=" + encodeURIComponent(token);
 }
+
+// `ok` MEANS ONE THING: AN INVITATION NOW EXISTS IN THE GOVERNED LIFECYCLE.
+//
+// It does not mean an email arrived, and it certainly does not mean anyone joined anything. So
+// DELIVERY_FAILED returns ok: true — the invitation is real, revocable and retryable, and telling the
+// founder "nothing happened" would be false and would invite a duplicate. The refusals return false
+// because they genuinely changed nothing.
 export async function invitePerson(personId: string): Promise<{ ok: boolean } & InvitationResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, ...invitationResult("NOT_PERMITTED", "that person") };
-
-  const { data: actingProfile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-  if (!actingProfile || !["founder", "holding_admin"].includes(actingProfile.role)) {
-    // NOT `person.full_name`: that row has not been read yet (it is declared below), and an
-    // unauthorised caller must not be told the name they were just refused. Reading it here threw
-    // from the temporal dead zone, which REJECTED the Server Action — BUG-037 exactly, on the one
-    // path the fix for BUG-037 introduced it.
-    return { ok: false, ...invitationResult("NOT_PERMITTED", "that person") };
-  }
 
   const { data: person, error: personError } = await supabase
     .from("people")
@@ -210,90 +223,92 @@ export async function invitePerson(personId: string): Promise<{ ok: boolean } & 
     console.error("invitePerson: person record not found", { personId, error: personError });
     return { ok: false, ...invitationResult("UNKNOWN_ERROR", "that person") };
   }
-  if (person.profile_id) return { ok: false, ...invitationResult("ALREADY_MEMBER", person.full_name) };
   if (!person.email) return { ok: false, ...invitationResult("INVALID_RECIPIENT", person.full_name) };
+  // An invitation is always to ONE company — company_invitations.company_id is NOT NULL. Without one
+  // there is nothing to invite them to, and saying so beats a foreign-key error.
+  if (!person.company_id) return { ok: false, ...invitationResult("NO_COMPANY", person.full_name) };
 
-  // EVERY AWAIT BELOW IS INSIDE THIS TRY (BUG-037). Five of them can throw rather than return an error
-  // object — a dropped connection, a PostgREST fault, a provider timeout — and a throw here makes the
-  // Server Action REJECT, which the caller cannot turn into a message. The previous version wrapped only
-  // createAdminClient(), which is why a contract row asking merely for "a try before the invite" passed
-  // against the broken function.
+  // EVERY AWAIT BELOW IS INSIDE THIS TRY (BUG-037). A throw inside a Server Action REJECTS it, and the
+  // caller cannot turn a rejection into a message.
   try {
+    // ALREADY A MEMBER IS A MEMBERSHIP QUESTION, NOT A profile_id QUESTION. The old code refused on
+    // `person.profile_id` alone, which is a link between an HR record and a login — evidence of
+    // neither acceptance nor membership. Treating it as membership is what made a half-finished
+      // invitation permanently unrepeatable.
+    if (person.profile_id) {
+      const { data: membership } = await supabase
+        .from("company_memberships")
+        .select("profile_id")
+        .eq("company_id", person.company_id)
+        .eq("profile_id", person.profile_id)
+        .eq("active", true)
+        .maybeSingle();
+      if (membership) return { ok: false, ...invitationResult("ALREADY_MEMBER", person.full_name) };
+    }
+
+    // THE AUTHORIZATION GATE, AND THE IDEMPOTENCY, ARE BOTH HERE.
+    //
+    // create_company_invitation carries `on conflict (company_id, email) where status = 'pending' do
+    // update set ... token = <fresh>`, so a second click REFRESHES the live invitation instead of
+    // creating a second one or failing. A partial unique index makes two live invitations for one
+    // (company, email) impossible at the database level rather than by convention. An expired or
+    // revoked row is outside that index, so resending after either correctly starts a new invitation.
+    const { data: created, error: createError } = await supabase.rpc("create_company_invitation", {
+      p_company_id: person.company_id,
+      p_email: person.email,
+    });
+    if (createError) {
+      const outcome = classifyError(createError);
+      console.error("invitePerson: the invitation was not created", { personId, outcome, error: createError });
+      return { ok: false, ...invitationResult(outcome, person.full_name) };
+    }
+    const invitation = Array.isArray(created) ? created[0] : created;
+    if (!invitation?.token) {
+      console.error("invitePerson: the invitation RPC returned no token", { personId });
+      return { ok: false, ...invitationResult("UNKNOWN_ERROR", person.full_name) };
+    }
+
+    // DELIVERY STARTS ONLY NOW, AND IT CANNOT GRANT ANYTHING.
+    //
+    // The service-role client is needed for auth.admin.inviteUserByEmail — the one operation RLS
+    // cannot gate — and is constructed only after the authorization gate above has passed. The
+    // redirect carries the governed token, so the link the recipient follows leads to acceptance
+    // rather than to an inert account with nothing to redeem.
     let admin;
     try {
       admin = createAdminClient();
     } catch (e) {
-      // The setup error names configuration; it goes to the log, not to the screen.
-      console.error("invitePerson: admin client setup failed", { personId, error: e });
-      return { ok: false, ...invitationResult("PROVIDER_UNAVAILABLE", person.full_name) };
+      // THE INVITATION EXISTS. A configuration fault is a delivery failure, which is retryable, and
+      // saying "nothing was changed" here would be false and would invite a duplicate.
+      console.error("invitePerson: admin client setup failed after the invitation was created", { personId, error: e });
+      return { ok: true, ...invitationResult("DELIVERY_FAILED", person.full_name) };
     }
-    const { data: inviteData, error: inviteError } = await admin.auth.admin.inviteUserByEmail(person.email, {
+    const { error: mailError } = await admin.auth.admin.inviteUserByEmail(person.email, {
       data: { full_name: person.full_name },
+      redirectTo: acceptInvitationUrl(invitation.token),
     });
-    // THE SAME CLASSIFIER AS A THROW. A rate limit reported as an error object and one reported as an
-    // exception mean the same thing and must not report differently. The provider text goes to the
-    // log, never to the person clicking Invite.
-    if (inviteError) {
-      const outcome = classifyError(inviteError);
-      console.error("invitePerson: provider rejected the invite", { personId, outcome, error: inviteError });
-      return { ok: false, ...invitationResult(outcome, person.full_name) };
+
+    // AN EXISTING AUTH ACCOUNT IS NOT A FAILURE. The invitation is created, redeemable and bound to
+    // this email; the person signs in and accepts it. The old code classified "already registered" as
+    // a failure, which is what turned a second attempt into a permanent dead end.
+    if (mailError && !isExistingAuthUser(mailError)) {
+      const outcome = classifyError(mailError);
+      console.error("invitePerson: delivery failed, invitation retained", { personId, outcome, error: mailError });
+      // Only a transport-shaped failure is DELIVERY_FAILED; a rate limit or an unreachable provider
+      // keeps its own name, and all of them leave the invitation standing.
+      return { ok: true, ...invitationResult(outcome === "UNKNOWN_ERROR" ? "DELIVERY_FAILED" : outcome, person.full_name) };
     }
-
-    const newAuthUserId = inviteData.user?.id;
-    if (!newAuthUserId) return bookkeepingFailure(personId, person.full_name, "no user id came back from the invite");
-
-    // handle_new_auth_user (schema-v0.7-production-core.sql) fires synchronously on the
-    // auth.users insert above, so the profiles row already exists by the time we look.
-    const { data: newProfile } = await admin
-      .from("profiles")
-      .select("id")
-      .eq("auth_user_id", newAuthUserId)
-      .maybeSingle();
-    if (!newProfile) {
-      return bookkeepingFailure(personId, person.full_name, "no profile was created by the auth trigger");
-    }
-
-    // BUG-004 follow-on regression, found live tonight: handle_new_auth_user()
-    // (202608310009) now creates every new signup inert (active=false) by design -
-    // correct for public self-signup, but this function is a DIFFERENT, already
-    // founder/admin-gated path (checked at the top of this function) that deserves real
-    // activation, same as accept_company_invitation() grants. Without this, using the
-    // existing "Invite" button on /people would produce a permanently-inert account that
-    // lands on /pending-activation forever despite a fully legitimate invite.
-    const { error: activateError } = await admin.from("profiles").update({ active: true }).eq("id", newProfile.id);
-    if (activateError) {
-      return bookkeepingFailure(personId, person.full_name, "profile activation failed: " + activateError.message);
-    }
-
-    const { error: linkError, data: linkedRows } = await supabase
-      .from("people")
-      .update({ profile_id: newProfile.id })
-      .eq("id", personId)
-      .select("id");
-    if (linkError || !linkedRows?.length) {
-      return bookkeepingFailure(personId, person.full_name, "person link failed: " + (linkError?.message ?? "no rows updated"));
-    }
-
-    if (person.company_id) {
-      const { error: memberError } = await supabase.from("company_memberships").insert({
-        company_id: person.company_id,
-        profile_id: newProfile.id,
-        role_in_company: "employee",
-      });
-      if (memberError) {
-        return bookkeepingFailure(personId, person.full_name, "membership insert failed: " + memberError.message);
-      }
-    }
-
 
     revalidatePath("/people");
-    return { ok: true, ...invitationResult("SENT", person.full_name) };
+    revalidatePath("/access");
+    // NOT `SENT`. The contract requires SENT to mean the delivery contract reached its terminal success
+    // state, and a mailer accepting a message is not that. Nothing here can observe delivery, so the
+    // honest state is DELIVERY_PENDING — this is the FALSE SENT defect closed at its root.
+    return { ok: true, ...invitationResult("DELIVERY_PENDING", person.full_name) };
   } catch (e) {
-    // A THROW IS STILL AN ENDING. classifyError is total: every input produces an outcome, so no path
-    // out of here leaves the caller waiting. The provider text goes to the server log; the person
-    // clicking Invite gets a sentence.
+    // A THROW IS STILL AN ENDING. classifyError is total, so no path leaves the caller waiting.
     const outcome = classifyError(e);
-    console.error("invitePerson failed", { personId, outcome, error: e });
+    console.error("invitePerson: threw", { personId, outcome, error: e });
     return { ok: false, ...invitationResult(outcome, person.full_name) };
   }
 }

@@ -120,7 +120,13 @@ export function PeopleTable({
       try {
         const result = await invitePerson(p.id);
         setInviteMessage(result.message);
-        if (result.outcome === "SENT") router.refresh();
+        // REFRESH WHENEVER AN INVITATION NOW EXISTS, not only on a delivery success.
+        //
+        // This used to test `outcome === "SENT"`, which the governed lifecycle never returns: SENT means
+        // the delivery contract reached terminal success and nothing here can observe that. `ok` means
+        // exactly "an invitation now exists", which is the condition under which the page has something
+        // new to show — including after DELIVERY_FAILED, where the invitation is real and retryable.
+        if (result.ok) router.refresh();
       } catch {
         setInviteMessage(
           "The invitation could not be completed and the server did not answer. Nothing was changed — you can try again.",
