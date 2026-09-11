@@ -143,6 +143,68 @@ otherwise become a sentence in a later report.
 
 ---
 
+## THE DIRECTOR — added 2026-09-11, because the founder was the heartbeat
+
+**The defect, named by the founder and it was real.** Every primitive in the audit above already
+existed: nodes register, claim work under a lease, heartbeat, checkpoint, complete runs. What did not
+exist was the component that **reconciles a work order, reads a finished verifier’s real artifact, and
+creates the next run**. An interactive Claude session did that. So PASS, FAIL, a completed verifier, a
+dead process and a fresh branch each required the founder to type `KEEP WORKING`.
+
+> **A model conversation is not a scheduler.** Claude is an execution and reasoning provider. The thing
+> that remembers what to do next must outlive any one conversation:
+>
+> ```
+> process lifetime            != work order lifetime
+> director lifetime           != work order lifetime
+> MODEL CONVERSATION lifetime != work order lifetime
+> ```
+
+### What was built
+
+| | |
+|---|---|
+| `supabase/control-plane/002_director_state_machine.sql` | ten director states, kept SEPARATE from `status` — `in_progress` cannot distinguish an agent writing code from a verifier running from a dead run whose lease has not expired, and those need different next actions. Plus `founder_notifications`, whose four fields are `NOT NULL` so an empty notification is unrepresentable, with a partial unique index making a duplicate live notification impossible. Plus a single-row `director_lease`. |
+| `scripts/factory-runner/director.mjs` | the loop, the lease, and the continuation policy in ONE place so it cannot drift per work-order kind. Handlers return an **observation**, never a state. |
+| `scripts/factory-runner/director-start.mjs` | the entry point — `brain-factory director start` in repository-native form. Separate from the loop so the loop stays importable and can be driven a tick at a time. |
+| `scripts/factory-runner/handlers/` | one module per work-order kind. **A work order whose handler is unknown is LEFT ALONE with a recorded reason** — a director that invents a next action for work it does not understand is worse than an idle one. |
+| `qa/factory/founder_poke_not_required.mjs` | the permanent acceptance case. |
+
+### The continuation policy, written once
+
+```
+PASS              -> advance dependent work
+FAIL              -> repair_required; the repair run is created, not requested
+PROCESS DIED      -> retryable, up to a ceiling; a retry that never stops is a loop
+PROVIDER CAPACITY -> retryable with the reason recorded
+FOUNDER BLOCKER   -> blocked_founder on THAT work order only; everything else keeps running
+NO RUNNABLE WORK  -> sleep and poll
+```
+
+### FOUNDER_POKE_NOT_REQUIRED — 12 of 12
+
+**The harness is forbidden from being the director.** It starts a disposable PostgreSQL, seeds one work
+order, spawns the director as a separate detached OS process, and then only **reads**. It never ticks and
+never writes a work-order row — if it did, it would be proving that a chat session can still be the
+scheduler, which is the defect.
+
+It proves the order reached `completed` across **two real worker boundaries** whose artifacts were written
+by processes that are neither the director nor the harness; that with the director **dead** new work does
+not advance; and that a **restarted** director finishes the new order without re-running the finished one
+or duplicating a round.
+
+**Not proved, and the test says so in its own output:** machine-level independence of the *database*.
+`embedded-postgres` is bound to the harness process. With `FACTORY_RUNNER_PG_URL` pointing at a real
+server — still the one founder action — the same acceptance runs unchanged and that dependency is gone.
+
+### The Edge campaign is deliberately NOT on it yet
+
+No handler for the Edge campaign is registered, so the director **cannot** act on it. Verifier #88 holds
+frozen bytes `49884ee6` and the interactive session remains the temporary orchestration authority until
+handoff is tested deliberately **at a campaign boundary** — never mid-round.
+
+---
+
 ## THE ONE FOUNDER ACTION, AT THE END
 
 After local acceptance passes and `FACTORY_CONTROL_PLANE_SETUP.md` is written:
