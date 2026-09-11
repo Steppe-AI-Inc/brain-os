@@ -1,5 +1,6 @@
 import { KeyRound } from "lucide-react";
 import { getProfiles, getMemberships } from "@/lib/data/access";
+import { MembershipsCard } from "./memberships-card";
 import { getPendingInvitations } from "@/lib/data/invitations";
 import { InvitationsCard } from "./invitations-card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -55,40 +56,7 @@ export default async function AccessPage() {
             </Table>
           </CardContent>
         </Card>
-        <Card className="overflow-hidden bg-card/80 backdrop-blur">
-          <CardHeader>
-            <CardTitle className="text-base">Company memberships</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Person</TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Role</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {memberships.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell className="font-medium">{m.profiles?.full_name ?? "—"}</TableCell>
-                    <TableCell>{m.companies?.name ?? "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{m.role_in_company}</Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {memberships.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground">
-                      No memberships yet.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <MembershipsCard memberships={memberships} />
       </div>
       <InvitationsCard invitations={invitations} />
     </div>

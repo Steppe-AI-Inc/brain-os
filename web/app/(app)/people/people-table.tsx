@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { updatePerson, endPersonEmployment, restorePersonEmployment, invitePerson, setPersonManager, type PersonInput } from "@/lib/data/people";
+import { COMPANY_ROLES, COMPANY_ROLE_LABELS, DEFAULT_COMPANY_ROLE, type CompanyRole } from "@/lib/data/company-roles";
 import { generateOnboardingPlan } from "@/lib/data/onboarding";
 
 type PersonRow = {
@@ -58,6 +59,10 @@ export function PeopleTable({
   const [invitingId, setInvitingId] = useState<string | null>(null);
   const [inviteMessage, setInviteMessage] = useState<string | null>(null);
   const [inviteConfirm, setInviteConfirm] = useState<PersonRow | null>(null);
+  // THE ROLE IS CHOSEN WITH THE INVITATION, not edited into a membership afterwards (BUG-035, RI-D1).
+  // It resets to the schema default every time the dialog opens, so a role chosen for one person is never
+  // silently applied to the next one.
+  const [invitedRole, setInvitedRole] = useState<CompanyRole>(DEFAULT_COMPANY_ROLE);
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
   const [managerFor, setManagerFor] = useState<PersonRow | null>(null);
@@ -103,6 +108,11 @@ export function PeopleTable({
     });
   }
 
+  function openInvite(p: PersonRow) {
+    setInvitedRole(DEFAULT_COMPANY_ROLE);
+    setInviteConfirm(p);
+  }
+
   function confirmInvite() {
     const p = inviteConfirm;
     if (!p) return;
@@ -118,7 +128,7 @@ export function PeopleTable({
       // the failures it cannot: a dropped connection, a timeout, a deploy mid-request. A caller that
       // trusts the server to always answer has no answer when it does not.
       try {
-        const result = await invitePerson(p.id);
+        const result = await invitePerson(p.id, invitedRole);
         setInviteMessage(result.message);
         // REFRESH WHENEVER AN INVITATION NOW EXISTS, not only on a delivery success.
         //
@@ -207,7 +217,7 @@ export function PeopleTable({
                         title={!parentPolicy(p.companies, p.company_id).canActOnChild ? (parentPolicy(p.companies, p.company_id).reason ?? "Unavailable") : p.email ? "Invite to log in" : "Add an email before inviting"}
                         disabled={!p.email || !parentPolicy(p.companies, p.company_id).canActOnChild || (isPending && invitingId === p.id)}
                         className="opacity-70 hover:opacity-100 group-hover/row:opacity-100"
-                        onClick={() => setInviteConfirm(p)}
+                        onClick={() => openInvite(p)}
                       >
                         <UserPlus className="h-3.5 w-3.5" />
                       </Button>
@@ -329,6 +339,25 @@ export function PeopleTable({
               and use Brain OS chat as an employee of {inviteConfirm?.companies?.name ?? "their company"} once they accept.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="grid gap-2 py-2">
+            <Label htmlFor="invited-role">Role in this company</Label>
+            <Select value={invitedRole} onValueChange={(v) => setInvitedRole(v as CompanyRole)}>
+              <SelectTrigger id="invited-role" disabled={!!invitingId}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {COMPANY_ROLES.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {COMPANY_ROLE_LABELS[r]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Recorded on the invitation and applied when they accept it. Choosing it here does not give
+              anyone access now.
+            </p>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={!!invitingId}>Cancel</AlertDialogCancel>
             <AlertDialogAction disabled={!!invitingId} onClick={confirmInvite}>

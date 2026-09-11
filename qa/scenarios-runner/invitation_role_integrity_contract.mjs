@@ -137,7 +137,10 @@ check('DEFECT', 'RI-D1 some governed surface lets an inviter CHOOSE the invited 
 
 console.log('');
 console.log('invitation_role_integrity_contract: ' + pass + ' passed, ' + failures.length + ' failed');
-console.log('RED BY DESIGN: RI-D1 is BUG-035 from the invitation side — the role pipeline is sound end to end,');
-console.log('and nothing lets a human choose the role, so every invitation takes the default. Separate defect');
-console.log('identity, deliberately not merged into the invitation work and deliberately not reported closed.');
+console.log('RI-D1 IS NOW GREEN. It was red because the role pipeline was sound end to end and nothing let a');
+console.log('human choose the role, so every invitation took the `employee` default and the constrained,');
+console.log('auditable per-invitation role the schema has modelled since 202608310009 was unreachable. invitePerson');
+console.log('now takes an invitedRole and the /people invite dialog offers the CHECK-constrained list. The role');
+console.log('is still applied at ACCEPTANCE, from the stored row - choosing it grants nothing. BUG-035 keeps its');
+console.log('identity and is NOT reported closed: that is the Work PC decision, on its own retest.');
 if (failures.length) { console.log('FAILURES:'); for (const f of failures) console.log(' - ' + f); process.exit(1); }

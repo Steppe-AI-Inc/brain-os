@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { classifyError, isExistingAuthUser, result as invitationResult } from "./invitation-outcome";
 import type { InvitationResult } from "./invitation-outcome";
 import { createClient } from "@/lib/supabase/server";
+import { isCompanyRole, type CompanyRole } from "@/lib/data/company-roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { callLifecycleRpc } from "@/lib/contracts/lifecycle";
 import { COMPANY_REF } from "@/lib/data/company-ref";
@@ -207,12 +208,36 @@ function acceptInvitationUrl(token: string): string {
 // DELIVERY_FAILED returns ok: true — the invitation is real, revocable and retryable, and telling the
 // founder "nothing happened" would be false and would invite a duplicate. The refusals return false
 // because they genuinely changed nothing.
-export async function invitePerson(personId: string): Promise<{ ok: boolean } & InvitationResult> {
+//
+// THE ROLE IS PART OF THE INVITATION, NOT AN EDIT MADE AFTERWARDS (BUG-035, RI-D1).
+//
+// `company_invitations.invited_role` has existed since 202608310009_invite_only_signup.sql, constrained by a
+// CHECK and applied at ACCEPTANCE by accept_company_invitation, which reads it from the stored row. Nothing
+// in the product ever passed one, so every invitation took the `employee` default and the constrained,
+// auditable, per-invitation role the schema models was unreachable. Roles were then corrected afterwards by
+// editing a membership, which is the opposite of auditable: the invitation no longer says what the person
+// was invited AS.
+//
+// Passing it here grants nothing. The role sits on the invitation until the recipient accepts, and
+// acceptance still derives company and role FROM THE STORED ROW — this function cannot choose anyone's
+// authority, which is the founder's prohibition and stays intact.
+export async function invitePerson(
+  personId: string,
+  invitedRole?: CompanyRole | string,
+): Promise<{ ok: boolean } & InvitationResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, ...invitationResult("NOT_PERMITTED", "that person") };
+
+  // AN UNKNOWN ROLE IS REFUSED BEFORE ANYTHING IS CREATED. The CHECK constraint is still the authority — a
+  // caller bypassing this cannot store a role outside it — but arriving as a constraint violation would make
+  // the classifier guess, and a guess about why an invitation failed is what this lifecycle exists to
+  // remove. An ABSENT role is not an invalid one: it means "use the default the schema chooses".
+  if (invitedRole !== undefined && !isCompanyRole(invitedRole)) {
+    return { ok: false, ...invitationResult("INVALID_ROLE", "that person") };
+  }
 
   const { data: person, error: personError } = await supabase
     .from("people")
@@ -256,6 +281,10 @@ export async function invitePerson(personId: string): Promise<{ ok: boolean } & 
     const { data: created, error: createError } = await supabase.rpc("create_company_invitation", {
       p_company_id: person.company_id,
       p_email: person.email,
+      // OMITTED, NOT DEFAULTED HERE. When no role was chosen the parameter is left off entirely so the
+      // database applies its own default. Sending "employee" from here would put a SECOND copy of that
+      // decision in the product, and the two would drift the first time the schema default changed.
+      ...(invitedRole === undefined ? {} : { p_invited_role: invitedRole }),
     });
     if (createError) {
       const outcome = classifyError(createError);

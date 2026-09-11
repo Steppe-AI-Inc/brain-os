@@ -67,6 +67,7 @@ export const INVITATION_OUTCOMES = [
   // refusals — no invitation was created or changed
   'ALREADY_MEMBER',
   'INVALID_RECIPIENT',
+  'INVALID_ROLE',
   'NO_COMPANY',
   'NOT_PERMITTED',
   'RATE_LIMITED',
@@ -129,6 +130,9 @@ export function describeOutcome(outcome: InvitationOutcome, name: string): strin
       return `${name} is already a member of this company.`;
     case 'INVALID_RECIPIENT':
       return `${name} has no usable email address. Add one before inviting.`;
+    case 'INVALID_ROLE':
+      return `That is not a role this system recognises, so no invitation was created for ${name}. The
+        role must be one the invitation table's CHECK constraint accepts.`;
     case 'NO_COMPANY':
       return `${name} is not assigned to a company, and an invitation is always to one specific company.`;
     case 'NOT_PERMITTED':

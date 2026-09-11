@@ -249,8 +249,27 @@ function codeOnly(t) {
 // is the one inside `Promise<{ ok: boolean } & InvitationResult>`, so stopping at it silently yields an
 // empty field list and a row that fails for the wrong reason.
 {
-  const line = (people.match(/export async function invitePerson[^\n]*/) || [""])[0];
-  const ret = line.slice(line.indexOf("):") + 2).replace(/{\s*$/, "");
+  // A SIGNATURE IS NOT A LINE. This read `[^\n]*` and produced an EMPTY field list the moment invitePerson
+  // gained a second parameter and wrapped across three lines — reporting that the declared return type
+  // carries nothing the caller reads, about a return type that had not changed at all. The declaration runs
+  // from the name to the brace that opens the BODY: the first `{` after the parameter list closes, at
+  // paren-depth and angle-depth zero. Anything less structural reads a type as a body or a body as a type.
+  const decl = (() => {
+    const at = people.indexOf("export async function invitePerson");
+    if (at < 0) return "";
+    let i = people.indexOf("(", at), paren = 0, angle = 0;
+    for (; i < people.length; i++) {
+      const c = people[i];
+      if (c === "(") paren++;
+      else if (c === ")") paren--;
+      else if (c === "<") angle++;
+      else if (c === ">" && people[i - 1] !== "=") angle--;
+      else if (c === "{" && paren === 0 && angle === 0) return people.slice(at, i);
+    }
+    return "";
+  })();
+  const line = decl.replace(/[\r\n]+/g, " ");
+  const ret = line.slice(line.lastIndexOf("):") + 2);
   let fields = ret.match(/[A-Za-z_$][A-Za-z0-9_$]*(?=\s*[?]?:)/g) || [];
   for (const named of ret.match(/\bInvitation[A-Za-z]*\b/g) || []) {
     const body = (src.match(new RegExp("type\\s+" + named + "[^=]*=\\s*{([^}]*)}")) || [, ""])[1];

@@ -173,7 +173,10 @@ check('DEFECT', 'IM-D5 a company membership can be deactivated through some gove
 
 console.log('');
 console.log('invitation_membership_contract: ' + pass + ' passed, ' + failures.length + ' failed');
-console.log('IM-D1..D4 are GREEN: the /people invite path now creates a governed invitation and grants');
-console.log('nothing. IM-D5 stays RED and is BUG-035, a separate defect — no governed surface deactivates');
-console.log('a membership, including the ones the OLD path already created, which routing does not undo.');
+console.log('IM-D1..D4 are GREEN: the /people invite path creates a governed invitation and grants nothing.');
+console.log('IM-D5 IS NOW GREEN TOO. It was red because no governed surface could deactivate a membership -');
+console.log('including the ones the OLD path created, which routing the button did not undo. The surface now');
+console.log('exists: web/lib/data/memberships.ts and the memberships card on /access, deactivate only, with no');
+console.log('way to activate one from the application. BUG-035 keeps its identity and is NOT reported closed -');
+console.log('closing it is the Work PC decision, on its own retest.');
 if (failures.length) { console.log('FAILURES:'); for (const f of failures) console.log(' - ' + f); process.exit(1); }

@@ -87,15 +87,47 @@ check('CONTRACT', 'MA-C0 the acceptance gate and its caller are both present',
   + appFiles.length + ' application files scanned');
 
 // ── The grant exists in exactly one place, and it is SQL ────────────────────────────────────────────
+// CREATES OR ACTIVATES. NOT "WRITES".
+//
+// This scan used to match `.insert | .upsert | .update` on company_memberships, while its claim is "creates
+// or ACTIVATES". Those are not the same set, and the difference surfaced the moment BUG-035's IM-D5 was
+// closed: a governed surface that DEACTIVATES a membership — which another suite REQUIRES to exist, because
+// without it an accepted invitation produces an active member no screen can undo — was reported here as a
+// second authority granting membership. It grants nothing. It only ever takes access away.
+//
+// Two suites contradicting each other is the signal; the resolution is to make the predicate say what the
+// sentence says. An insert, an upsert, or an update that sets `active: true`. MA-C1b keeps the narrowing
+// honest by proving an activating update is still caught.
+const activatesMembership = (t) => /company_memberships"\)\.(insert|upsert)/.test(t)
+  || /company_memberships"\)[\s\S]{0,80}\.update\(\{[^}]*active:true/.test(t);
 const tsWriters = appFiles.filter((f) => {
   const t = commentsBlanked(readFileSync(f, 'utf8')).replace(/[ \t\r\n]+/g, '');
-  return /company_memberships"\)\.(insert|upsert|update)/.test(t);
+  return activatesMembership(t);
 });
 check('CONTRACT', 'MA-C1 NO application file creates or activates a company membership (' + appFiles.length
   + ' files scanned)',
   tsWriters.length === 0,
   'writers found: ' + JSON.stringify(tsWriters.map((f) => f.replace(ROOT, ''))) + ' — every one of these is a'
   + ' second authority over membership that the acceptance gate cannot see');
+
+// A NARROWED CHECK NEEDS A FIXTURE, or the narrowing is just a way of going green.
+{
+  const caught = [
+    'supabase.from("company_memberships").insert({company_id:c,profile_id:p,active:true})',
+    'supabase.from("company_memberships").upsert({company_id:c,profile_id:p})',
+    'supabase.from("company_memberships").eq("id",id).update({active:true})',
+  ].map((t) => activatesMembership(t.replace(/[ \t\r\n]+/g, '')));
+  const notCaught = [
+    'supabase.from("company_memberships").eq("id",id).update({active:false})',
+    'supabase.from("company_memberships").select("id,active")',
+  ].map((t) => activatesMembership(t.replace(/[ \t\r\n]+/g, '')));
+  check('CONTRACT', 'MA-C1b the narrowed scan still catches every ACTIVATING write, and no longer reports a'
+    + ' deactivation as one',
+    caught.every(Boolean) && notCaught.every((x) => x === false),
+    'activating shapes caught: ' + JSON.stringify(caught) + ', deactivation/read caught: '
+    + JSON.stringify(notCaught) + ' — if the first three are not all true, this row is the finding and MA-C1'
+    + ' above is green for the wrong reason');
+}
 
 check('CONTRACT', 'MA-C2 the gate grants membership with the company AND role read from the stored row',
   /insert into public\.company_memberships[\s\S]{0,200}v_invitation\.company_id[\s\S]{0,120}v_invitation\.invited_role/.test(sql),
