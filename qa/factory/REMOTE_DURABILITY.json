@@ -1,0 +1,65 @@
+{
+  "_what": "Which Brain OS branches exist on the GitHub remote, at exactly which SHA, and for the ones that do not, the precise reason. Durability has two halves and this file records only one of them: a remote does not replace the restore-tested offline bundle, and the bundle does not replace the remote.",
+  "recorded_at": "2026-09-11T14:05:00Z",
+  "authorization": "FOUNDER, 2026-09-11: remote branch backup / durability only. Explicitly NOT authorization to merge to master, deploy web or Edge, apply migrations, alter Auth/SMTP, change rulesets or protected environments, create releases or deployment tags, push secrets, or force-push.",
+  "remote": "origin  https://github.com/Steppe-AI-Inc/brain-os.git",
+  "repository_visibility": "PUBLIC — verified via the Vercel deployment metadata (githubRepoVisibility). Everything pushed is world-readable, which is why the secret scan below is a precondition and not a formality.",
+
+  "PUSHED": [
+    {
+      "branch": "wo/invitation-delivery",
+      "sha": "c762258d969dedd3bd3f3785cec2530f5aa50064",
+      "verified": "LOCAL_HEAD == REMOTE_HEAD, re-read from origin after the push",
+      "was": "a new ref — no remote history existed, so nothing could be overwritten",
+      "carries": "BUG-036 / BUG-037 implementation, the governed invitation lifecycle, the acceptance surface, BUG-035's two rows, and ten invitation contract suites"
+    }
+  ],
+
+  "NOT_PUSHED": [
+    {
+      "branch": "p1/execution-truth-governance",
+      "sha": "2ae8c623faf12b5335e43093805c8ae1a658c2ce",
+      "remote_sha": "26c0f3ea47030c7d245f0ec7091529e8af2f87c2",
+      "ahead": 156,
+      "status": "BLOCKED — FOUNDER / DEPLOYMENT SAFETY",
+      "reason": "The repository's own .githooks/pre-push refuses any push whose diff touches supabase/functions/**, and this range touches supabase/functions/sem-ai-command/index.ts. The hook offers ALLOW_FUNCTIONS_DEPLOY=1 as the override; in this project that flag MEANS 'this push is the deploy', the founder's 2026-09-08 grant of it was declared VOID, and this authorization explicitly excludes deploying Edge Functions. Not overridden."
+    },
+    {
+      "branch": "wo/clarification-resolver",
+      "sha": "34f748269de569b17dbb21874775c73096300ae9",
+      "remote_sha": null,
+      "status": "BLOCKED — FOUNDER / DEPLOYMENT SAFETY",
+      "reason": "Same hook, same path. This is the Edge candidate branch, so its diff against master necessarily contains index.ts. It is also the branch verifier #89 is bound to; a push would not move it, but it stays untouched either way."
+    },
+    {
+      "branch": "factory/computer-agnostic-control-plane",
+      "sha": "153259b3bbe853193c10d4392e81134828116b4d",
+      "remote_sha": null,
+      "status": "BLOCKED — FOUNDER / DEPLOYMENT SAFETY",
+      "reason": "Same hook. This branch carries no Edge work of its own, but it forked from a point whose diff against origin/master still includes index.ts, so the hook's range test fires on inherited history rather than on anything this branch changed."
+    }
+  ],
+
+  "WHAT_THE_HOOK_ACTUALLY_PROTECTS": {
+    "hook": ".githooks/pre-push, active via core.hooksPath",
+    "behaviour": "blocks on the PATH supabase/functions/** and does NOT test the target branch",
+    "measured_deploy_trigger": "supabase-functions.yml on every one of these four branches is `on: push: branches: [master]` plus workflow_dispatch. migration-validation.yml is `push: branches: [master]` plus pull_request. production-db-release.yml is workflow_dispatch ONLY, with required authorization inputs, and exists on master alone.",
+    "therefore": "a push of these three branches would not, on the measured evidence, deploy anything. The block is the local control being conservative, not a deploy path being open. That distinction is stated here so the founder can decide with the evidence rather than on a summary — and it is NOT a reason to override the control unilaterally, which is exactly the pattern this campaign keeps finding."
+  },
+
+  "PRE_PUSH_CHECKS": {
+    "worktree_state": "recorded per branch; uncommitted files are runtime verifier artifacts and are not pushed by a push",
+    "non_force": "every push was a plain push; three targets had no remote ref at all, and p1's remote SHA is an ancestor of local (fast-forward)",
+    "secret_scan": "the only value-shaped credential in any of the four trees is a Supabase key whose JWT payload decodes to {\"role\":\"anon\"} in js/core/store.js — a publishable browser key, byte-identical to the line already public on origin/master, so the push adds no exposure. ZERO service_role JWTs in any tree. .env.example contains placeholders only. Classified PRESENT-BUT-ALREADY-PUBLIC and BY-DESIGN-PUBLIC; no rotation is implied and none is asked for.",
+    "production_action": "none possible from these refs on the measured workflow triggers"
+  },
+
+  "OFFLINE_BUNDLE": {
+    "note": "GitHub does not replace this and this does not replace GitHub.",
+    "path": "E:/My Drive/17.4. R&D CLAUDE CODE/backups/",
+    "restore_tested": "brain-os-20260911T133540-v89-frozen.bundle — backup_restore gate re-run against it: PASS, candidate commit recoverable, restored deploy bytes hash to 3e8526ba",
+    "all_branches": "brain-os-20260911T134xxx-all-branches.bundle — all five active heads verified present, history complete"
+  },
+
+  "PRODUCTION_CHANGED": "NO"
+}
