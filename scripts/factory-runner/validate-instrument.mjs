@@ -38,6 +38,10 @@ function run(file, { cwd, env, timeout = 900000 } = {}) {
   }
 }
 
+// The evidence contract for each instrument class lives beside this file, because it is a DECLARATION
+// about what each kind of instrument must report, not part of the running of one. See level 5 below.
+import { INSTRUMENT_CLASSES, deriveInstrumentClass } from './instrument-classes.mjs';
+
 /**
  * Validate one executable QA instrument.
  *
@@ -46,7 +50,7 @@ function run(file, { cwd, env, timeout = 900000 } = {}) {
  * which is the definition of a vacuous check.
  */
 export function validateInstrument(file, {
-  cwd = undefined, env = {}, minRows = 1, rowPattern = null,
+  cwd = undefined, env = {}, minRows = 1, rowPattern = null, klass = null,
   negativeControl = null, expectNonZeroExit = false,
 } = {}) {
   const results = [];
@@ -68,7 +72,12 @@ export function validateInstrument(file, {
   // 2-4. MODULE LOAD, SYMBOL RESOLUTION and EXECUTION are all observed by actually running it. A
   // ReferenceError surfaces here and nowhere earlier.
   const real = run(file, { cwd, env });
-  const threw = /\b(ReferenceError|TypeError|SyntaxError|ERR_MODULE_NOT_FOUND)\b/.test(real.out);
+  // AN INSTRUMENT MAY QUOTE AN ERROR IT DELIBERATELY CAUSED. The regression for this very file validates a
+  // fixture that throws a ReferenceError on purpose and prints it, so scanning the output for the WORD was
+  // subject-wider-than-invariant one more time. The question is whether THIS process died, and a process
+  // that reached a clean exit did not — so the signature only counts alongside a non-zero exit.
+  const errorSignature = /\b(ReferenceError|TypeError|SyntaxError|ERR_MODULE_NOT_FOUND)\b/.test(real.out);
+  const threw = errorSignature && real.code !== 0;
   add(2, 'MODULE LOAD + SYMBOL RESOLUTION: it evaluates without a missing reference',
     !threw, threw ? real.out.split(NL).slice(0, 4).join(' | ') : '');
   add(4, 'EXECUTION: it ran to completion and reported',
@@ -76,20 +85,22 @@ export function validateInstrument(file, {
     'exit ' + real.code + (real.signal ? ' signal ' + real.signal : ''));
 
   // 5. NON-VACUOUS — a suite that asserts nothing exits 0 just as happily as one that asserts everything.
-  // THE PATTERN MUST FIT THE INSTRUMENT. A suite reports "N pass"; a release manifest reports
-  // "assertion rows executed N". Defaulting to one shape made level 5 report ZERO rows for a manifest that
-  // had just executed 4 175 of them, and call a healthy instrument invalid — QA_CHECK_SUBJECT_WIDER_THAN
-  // _INVARIANT inside the file whose job is to name that family. All three shapes are tried; a caller may
-  // still supply its own, which is the only way to be sure for an instrument with its own vocabulary.
-  const PATTERNS = rowPattern ? [rowPattern] : [
-    new RegExp("(\\d+)" + "\\s+pass(?:ed)?", "i"),
-    new RegExp("assertion rows executed" + "\\s+(\\d+)", "i"),
-    new RegExp("(\\d+)" + "\\s+rows?\\b", "i"),
-  ];
-  const m = PATTERNS.map((re) => re.exec(real.out)).find(Boolean);
-  const rows = m ? Number(m[1]) : 0;
-  add(5, 'NON-VACUOUS: it reported at least ' + minRows + ' assertion row(s)', rows >= minRows,
-    'parsed ' + rows + ' from its own output');
+  //
+  // THE CHECK MUST HAVE THE SAME SUBJECT AS THE INSTRUMENT. Level 5 originally carried ONE textual pattern,
+  // `N pass`, and applied it to everything. A release manifest reports `assertion rows executed 4175`, so
+  // level 5 parsed ZERO rows from a run that had just executed four thousand of them and called a healthy
+  // instrument invalid. That is QA_CHECK_SUBJECT_WIDER_THAN_INVARIANT inside the file whose job is to name
+  // the family — the sixth instance this week, and the first one inside the fix for it.
+  //
+  // So an instrument DECLARES its class, or the class is DERIVED from what its own output claims. Each class
+  // states the evidence contract it must satisfy: what it has to report, and what would make that report
+  // vacuous. The validator then measures the subject the instrument actually claims to measure.
+  const cls = klass && INSTRUMENT_CLASSES[klass] ? klass : deriveInstrumentClass(real.out, rowPattern);
+  const contract = INSTRUMENT_CLASSES[cls];
+  const measured = contract.measure(real.out, rowPattern);
+  add(5, 'NON-VACUOUS [' + cls + ']: ' + contract.claim + ' (at least ' + minRows + ')',
+    measured.value !== null && measured.value >= minRows && measured.ok,
+    measured.detail + (klass ? '' : ' — class DERIVED from the output, not declared'));
 
   // 6. NEGATIVE CONTROL — the level that separates an instrument from a formality.
   if (negativeControl) {

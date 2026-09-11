@@ -17,6 +17,7 @@
 // SIX PRINCIPLES, each with a row that FAILS on a fixture exhibiting the defect. A principle without a
 // failing fixture is a slogan.
 import { validateInstrument } from '../../scripts/factory-runner/validate-instrument.mjs';
+import { INSTRUMENT_CLASSES, deriveInstrumentClass } from '../../scripts/factory-runner/instrument-classes.mjs';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -88,6 +89,67 @@ try {
   check('E6 NEGATIVE CONTROL: an instrument that passes on a deliberately broken input is rejected',
     av.ok === false && av.results.some((r) => r.level === 6 && !r.ok),
     JSON.stringify(av.results.map((r) => r.level + ':' + (r.ok ? 'ok' : 'FAIL'))));
+
+  // ── G. THE CHECK MUST HAVE THE SAME SUBJECT AS THE INSTRUMENT ─────────────────────────────────────
+  //
+  // Instance six, and it was inside the fix for the family. Level 5 carried ONE pattern, `N pass`, and a
+  // release manifest reports `assertion rows executed 4175`. So the validator parsed ZERO rows from a run
+  // that had just executed four thousand of them and called a healthy instrument invalid.
+  const manifestShaped = write('manifest-shaped.mjs', [
+    'console.log("14 suites run");',
+    'console.log("assertion rows executed 4175");',
+  ].join(NL));
+
+  const suiteOnly = validateInstrument(manifestShaped, { minRows: 1, rowPattern: /(\d+)\s+pass(?:ed)?\b/i });
+  check('G1 the DEFECT reproduces: measured with a suite-only pattern, a manifest that executed 4 175 rows'
+    + ' is called vacuous',
+    suiteOnly.ok === false && suiteOnly.results.some((r) => r.level === 5 && !r.ok),
+    JSON.stringify(suiteOnly.results.filter((r) => r.level === 5).map((r) => r.detail)));
+
+  const asManifest = validateInstrument(manifestShaped, { minRows: 100 });
+  check('G2 ...and the class-aware level 5 reads its OWN evidence contract: 4 175 assertion rows executed',
+    asManifest.ok === true
+      && asManifest.results.some((r) => r.level === 5 && r.ok && /4175/.test(r.detail)),
+    JSON.stringify(asManifest.results.filter((r) => r.level === 5).map((r) => r.name + ' :: ' + r.detail)));
+
+  // A mutation proof's subject is killed/surviving/ineffective. "N pass" is not a statement about it.
+  const proofOut = ['=== m1-a', '=== m2-b', '=== m3-c', '4175 pass, 0 fail',
+    'effective mutants surviving the battery: 0', 'ineffective mutants (proving nothing):  0'].join(NL);
+  check('G3 an output carrying BOTH a suite count and a mutation report is classified by its most specific'
+    + ' claim, so a proof is never measured as a suite',
+    deriveInstrumentClass(proofOut) === 'mutation'
+      && INSTRUMENT_CLASSES.mutation.measure(proofOut).value === 3,
+    'derived ' + deriveInstrumentClass(proofOut) + ', measured '
+    + JSON.stringify(INSTRUMENT_CLASSES.mutation.measure(proofOut)));
+
+  const noIneffective = ['=== m1-a', '=== m2-b', 'effective mutants surviving the battery: 0'].join(NL);
+  check('G4 a mutation proof that does not state its INEFFECTIVE count fails its contract — an unreported'
+    + ' ineffective mutant is one that could never have failed',
+    INSTRUMENT_CLASSES.mutation.measure(noIneffective).ok === false,
+    JSON.stringify(INSTRUMENT_CLASSES.mutation.measure(noIneffective)));
+
+  // ── H. ESCAPE DEPTH IS PART OF THE INSTRUMENT ─────────────────────────────────────────────────────
+  //
+  // This one recurred while writing the fix above. The class table was first built with
+  // `new RegExp("(\\d+)...")` through a shell transport that halves backslashes. The patterns arrived as
+  // `(d+)` — matching the letter d — and three `\b` sequences became literal BACKSPACE bytes inside the
+  // source. The file parsed, loaded, ran, and measured nothing. `node --check` had no opinion.
+  const halved = new RegExp('(' + BS + 'd+)' + BS + 's+pass');  // what the literal would have meant
+  const halvedWrong = new RegExp('(d+)s+pass');                  // what the transport actually delivered
+  check('H1 a halved escape changes WHAT IS MATCHED, not whether the file parses: `(\\d+)` becomes `(d+)`,'
+    + ' which matches the letter d',
+    halved.test('8 pass') === true && halvedWrong.test('8 pass') === false
+      && halvedWrong.test('dddd  pass') === false && halvedWrong.test('ddsspass') === true,
+    'literal matches "8 pass" and the halved form does not; the halved form matches "ddsspass", which is'
+    + ' the letter d followed by the letter s — a pattern no QA output ever contains, so the check silently'
+    + ' measures nothing');
+
+  const withBackspace = 'detect: (out) => /' + String.fromCharCode(8) + 'd+/.test(out)';
+  check('H2 a C0 byte injected by that transport is INVISIBLE in a diff and legal in the source — so the'
+    + ' instrument must be scanned for control bytes, not just parsed',
+    [...withBackspace].some((c) => c.charCodeAt(0) < 32 && !NL.includes(c))
+      && !/[ -]/.test('detect: (out) => /' + BS + 'd+/.test(out)'),
+    'the damaged form carries char code 8 where the healthy one carries a backslash');
 
   // ── A. COMMENTS_ARE_NOT_STATE ─────────────────────────────────────────────────────────────────────
   const stripComments = (t) => t.split(NL).filter((l) => !/^\s*\/\//.test(l)).join(NL);
