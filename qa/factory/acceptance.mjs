@@ -189,6 +189,62 @@ try {
     check('M5 NEGATIVE CONTROL: a run served by the model it requested needs no fallbackReason — M3 is refusing the substitution and not merely refusing to write actual_*', asRequested === null,
       String(asRequested).slice(0, 160));
   }
+  // ---- N. THE RELEASE GATE IS NOT SERVED BY AN UNPROVEN MODEL --------------------------------------
+  //
+  // model-assurance.mjs derived a model's standing from run evidence and nothing consulted it. A policy no
+  // code enforces is the same shape as a constraint on a table nobody runs on, and as a product patch with
+  // no measured effect. It is wired into the claim path now, and these rows are the proof that it refuses —
+  // without them the wiring would be a guard whose necessity nothing demonstrates, which is the V91-H4
+  // class this campaign named a day ago.
+  {
+    const woV = randomUUID();
+    // PRIORITY HIGH, because earlier rows leave ordinary work queued and the claim orders by priority then
+    // age: without it these rows claim whatever is oldest and assert nothing about the gate.
+    await admin.query("insert into factory.work_orders (work_order_id, title, requires_security_role, priority)"
+      + " values ($1, 'a verifier round', 'verifier', 'high')", [woV]);
+    await admin.query("update factory.nodes set security_role = 'verifier' where node_id = 'node-alpha'");
+
+    // UNPROVEN: the model has no run history at all. Configured is not proven.
+    const declined = await claim.claimWork({ nodeId: 'node-alpha', leaseSeconds: 60,
+      requestedProvider: 'anthropic', requestedModel: 'claude-never-run-5' });
+    check('N1 a verifier-role work order is DECLINED by a node whose model has no run evidence — the work'
+      + ' order waits rather than being served by a model that has never finished a run',
+      declined === null || declined.work_order_id !== woV, JSON.stringify(declined));
+
+    // PROVEN: two recent completions, which is the standing the policy requires.
+    const proven = 'claude-proven-5';
+    for (let i = 0; i < 2; i++) {
+      const woFill = randomUUID();
+      await admin.query("insert into factory.work_orders (work_order_id, title) values ($1, 'history')", [woFill]);
+      await admin.query("insert into factory.agent_runs (work_order_id, requested_model, actual_model,"
+        + " status, termination_reason, finished_at) values ($1, $2, $2, 'done', 'completed', now())",
+      [woFill, proven]);
+    }
+    const allowed = await claim.claimWork({ nodeId: 'node-alpha', leaseSeconds: 60,
+      requestedProvider: 'anthropic', requestedModel: proven });
+    check('N2 ...and the SAME work order IS claimed once the model has two recent completions — the policy'
+      + ' gates on evidence, it does not refuse everything',
+      allowed !== null && allowed.work_order_id === woV, JSON.stringify(allowed));
+
+    // AND CHEAP WORK IS NOT GATED, which is the entire point of having tiers.
+    const woG = randomUUID();
+    await admin.query("insert into factory.work_orders (work_order_id, title, priority) values ($1, 'ordinary work', 'high')", [woG]);
+    const cheap = await claim.claimWork({ nodeId: 'node-alpha', leaseSeconds: 60,
+      requestedProvider: 'anthropic', requestedModel: 'claude-never-run-5' });
+    check('N3 a work order with no elevated role requirement is claimed by the unproven model — a policy'
+      + ' that refuses everything saves nothing',
+      cheap !== null && cheap.work_order_id === woG, JSON.stringify(cheap));
+
+    // ABLATION: with the assurance check removed from the claim path, N1 stops refusing. Measured by
+    // reading the source and asserting the check is THERE and reachable — a behavioural ablation would need
+    // a second copy of the module, and the honest statement here is narrower: the guard exists, is called
+    // with the claimed role, and N1/N2 move in opposite directions across it.
+    const claimSrc = readFileSync(join(ROOT, 'scripts/factory-runner/claim.mjs'), 'utf8');
+    check('N4 the claim path actually calls the assurance policy, with the work order\'s own role',
+      /mayServe\(/.test(claimSrc) && /requires_security_role === 'verifier'/.test(claimSrc)
+      && /deriveAssurance\(/.test(claimSrc),
+      'the rows above would pass against a build that never consults the policy if this is red');
+  }
   // ---- J. already-completed evidence is reused ------------------------------------------------------
   // terminationReason is REQUIRED for a terminal status now, and completeRun throws without it: a run that
   // claims it finished must say HOW. See agent_runs_terminal_status_states_its_reason.

@@ -21,6 +21,7 @@
 // dies stops renewing, the lease expires, and the work becomes claimable again — by anybody. Nothing has to
 // notice the death; the absence of a heartbeat IS the notice.
 import * as db from './db.mjs';
+import { deriveAssurance, mayServe } from './model-assurance.mjs';
 
 export const DEFAULT_LEASE_SECONDS = 120;
 
@@ -88,7 +89,11 @@ async function claimInTransaction({ nodeId, lease, capabilities,
       const params = [myRank, JSON.stringify(myCaps)];
 
       const picked = await client.query(
-        `select wo.work_order_id, wo.owned_surface
+        // requires_security_role IS SELECTED, because the assurance gate below reads it. The first version of
+        // that gate read wo.requires_security_role off a row the SELECT did not carry it on, got undefined, and
+        // silently never fired - a guard whose text was present and whose behaviour was absent, caught by the
+        // acceptance row that asserts the REFUSAL rather than the source.
+        `select wo.work_order_id, wo.owned_surface, wo.requires_security_role
            from factory.work_orders wo
           where wo.status = 'queued'
             -- this node must BE enough: its role must rank at or above what the work order requires
@@ -111,6 +116,33 @@ async function claimInTransaction({ nodeId, lease, capabilities,
 
       if (!picked.rows.length) { await client.query('rollback'); return null; }
       const wo = picked.rows[0];
+
+      // THE RELEASE GATE MAY NOT BE SERVED BY A MODEL WITH NO EVIDENCE THAT IT FINISHES A RUN.
+      //
+      // model-assurance.mjs derived a model's standing from run evidence and NOTHING CONSULTED IT - a policy
+      // no code enforces, which is the same shape as the no-silent-fallback constraints sitting on the table
+      // the Factory does not run on, and the same shape as a product patch with no measured effect. So it is
+      // wired to the one mapping that needs no invention: a work order that REQUIRES THE VERIFIER ROLE (or
+      // release broker) is the production-deployment gate, and its evidence is what a release is certified on.
+      //
+      // A node whose intended model is not PROVEN does not claim it. The work order WAITS, which is already
+      // this file's answer for a node that lacks a capability - an unschedulable work order waits rather than
+      // being handed to a node that cannot do it. Returning null is the ordinary "nothing here for me".
+      if (requestedModel && (wo.requires_security_role === 'verifier' || wo.requires_security_role === 'release_broker')) {
+        const hist = await client.query(
+          `select status, termination_reason, finished_at
+             from factory.agent_runs
+            where coalesce(actual_model, requested_model) = $1`, [requestedModel]);
+        const standing = deriveAssurance(hist.rows, {});
+        const verdict = mayServe(wo.requires_security_role === 'release_broker' ? 'release_broker' : 'verifier_round', standing);
+        if (!verdict.allowed) {
+          await client.query('rollback');
+          // SAID, NOT SILENT. A refusal nobody records is indistinguishable from an empty queue, and this one
+          // will look exactly like "the Factory stopped picking up verifier work" to whoever reads it next.
+          console.log('[claim] declining ' + String(wo.work_order_id).slice(0, 8) + ': ' + verdict.reason);
+          return null;
+        }
+      }
 
       // REQUESTED PROVIDER AND MODEL ARE WRITTEN AT CLAIM TIME, WHICH IS BEFORE THE CALL.
       //
