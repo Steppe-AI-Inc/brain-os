@@ -47,19 +47,21 @@ export async function registerNode({ nodeId, capabilities = [], securityRole = '
  * currently locked by a live lease. Returns the claimed run, or null when there is nothing to take — null
  * is an ordinary outcome and not an error, because "another node got there first" is the system working.
  */
-export async function claimWork({ nodeId, leaseSeconds = DEFAULT_LEASE_SECONDS, capabilities = null }) {
+export async function claimWork({ nodeId, leaseSeconds = DEFAULT_LEASE_SECONDS, capabilities = null,
+  requestedProvider = null, requestedModel = null, reasoningEffort = null }) {
   if (!nodeId) throw new Error('claimWork requires a nodeId');
   const lease = Number(leaseSeconds) > 0 ? Number(leaseSeconds) : DEFAULT_LEASE_SECONDS;
 
   // One transaction, opened by claimInTransaction below: the select locks the row and the surface
   // insert either succeeds for every surface this work order owns or aborts the claim. There is no
   // moment in between where the row is ours and the surface is not.
-  return claimInTransaction({ nodeId, lease, capabilities });
+  return claimInTransaction({ nodeId, lease, capabilities, requestedProvider, requestedModel, reasoningEffort });
 }
 
 // db.transaction() runs a fixed list of statements, which cannot express "read a row then decide". The
 // claim needs a live client, so it borrows the same connection rules by going through db.withClient().
-async function claimInTransaction({ nodeId, lease, capabilities }) {
+async function claimInTransaction({ nodeId, lease, capabilities,
+  requestedProvider = null, requestedModel = null, reasoningEffort = null }) {
   return db.withClient(async (client) => {
     await client.query('begin');
     try {
@@ -110,12 +112,25 @@ async function claimInTransaction({ nodeId, lease, capabilities }) {
       if (!picked.rows.length) { await client.query('rollback'); return null; }
       const wo = picked.rows[0];
 
+      // REQUESTED PROVIDER AND MODEL ARE WRITTEN AT CLAIM TIME, WHICH IS BEFORE THE CALL.
+      //
+      // This is the half the no-silent-fallback constraints depend on, and without it they are inert: both
+      // read `requested_* is null or actual_* = requested_* or fallback_reason is not null`, so a row with no
+      // requested model accepts ANY actual model. The constraint cannot close that — a substitution is only
+      // definable against something requested — and `qa/factory/no_silent_model_fallback.mjs` row C3 states
+      // exactly that boundary rather than pretending it is covered.
+      //
+      // It is also the field whose absence made the 2026-08-24 forensics reconstructive: a failed turn
+      // recorded no model name anywhere, so "which model was being tried" had to be inferred from
+      // model_usage boundaries and row-creation times. Written before the call, it survives the failure.
       const run = await client.query(
         `insert into factory.agent_runs
-           (work_order_id, node_id, status, lease_expires_at, last_heartbeat_at, started_at, authoring_node_id)
-         values ($1, $2, 'in_progress', now() + ($3 || ' seconds')::interval, now(), now(), $2)
-         returning run_id, work_order_id, node_id, attempt_count, lease_expires_at`,
-        [wo.work_order_id, nodeId, String(lease)]);
+           (work_order_id, node_id, status, lease_expires_at, last_heartbeat_at, started_at, authoring_node_id,
+            requested_provider, requested_model, reasoning_effort)
+         values ($1, $2, 'in_progress', now() + ($3 || ' seconds')::interval, now(), now(), $2, $4, $5, $6)
+         returning run_id, work_order_id, node_id, attempt_count, lease_expires_at,
+                   requested_provider, requested_model`,
+        [wo.work_order_id, nodeId, String(lease), requestedProvider, requestedModel, reasoningEffort]);
       const runId = run.rows[0].run_id;
 
       // The surface lock. Its primary key is the enforcement: a conflicting surface raises here and the
@@ -174,13 +189,59 @@ export async function checkpoint({ runId, workOrderId, location, scenario = null
       where run_id = $1`, [runId, location, scenario]);
 }
 
-/** Finish a run and release its surfaces. */
-export async function completeRun({ runId, status = 'done', summary = null, headCommit = null }) {
+/** Finish a run and release its surfaces.
+ *
+ * A FINISHED RUN MUST SAY HOW IT FINISHED, and the database now refuses one that does not:
+ * `agent_runs_terminal_status_states_its_reason` in 001_factory_control_plane.sql. This function used to set
+ * status='done' and write no termination_reason at all, so the constraint and the only caller of this
+ * function disagreed — the constraint would have raised on the runner's own completion write. Found by
+ * reading the write path after adding the constraint, rather than by a failure later.
+ *
+ * The reason is REQUIRED rather than defaulted, because a default would be this function inventing the
+ * terminal condition it exists to record. That is the 2026-08-24 defect in miniature: eight OpenAI attempts
+ * of HTTP 200 with a body that never terminated, recorded as nothing in particular.
+ * HTTP SUCCESS IS NOT A VALID COMPLETED RUN.
+ */
+export async function completeRun({ runId, status = 'done', summary = null, headCommit = null,
+  terminationReason = null, actualProvider = null, actualModel = null, fallbackReason = null,
+  usage = null }) {
+  if ((status === 'done' || status === 'failed') && !terminationReason) {
+    throw new Error('completeRun: status ' + status + ' claims a terminal outcome, so terminationReason is'
+      + ' required — name the terminal condition that was actually observed (completed, stream_timeout,'
+      + ' stream_never_terminated, auth_error, quota, provider_refused, …). The database enforces this too.');
+  }
+  // A SUBSTITUTION MAY NOT BE RECORDED WITHOUT A STATED REASON — also a constraint rather than a convention.
+  // Refused here as well, so a caller gets a sentence naming both models instead of a bare 23514.
+  if (actualProvider || actualModel) {
+    const { rows } = await db.read(
+      'select requested_provider, requested_model from factory.agent_runs where run_id = $1', [runId]);
+    const r = rows[0] || {};
+    const providerMoved = actualProvider && r.requested_provider && actualProvider !== r.requested_provider;
+    const modelMoved = actualModel && r.requested_model && actualModel !== r.requested_model;
+    if ((providerMoved || modelMoved) && !fallbackReason) {
+      throw new Error('completeRun: served by ' + (actualProvider || r.requested_provider) + '/'
+        + (actualModel || r.requested_model) + ' but requested ' + r.requested_provider + '/'
+        + r.requested_model + '. A substitution needs a fallbackReason — NO SILENT MODEL FALLBACK.');
+    }
+  }
+  const u = usage || {};
   await db.write(
     `update factory.agent_runs
         set status = $2, summary = coalesce($3, summary), head_commit = coalesce($4, head_commit),
+            termination_reason = $5,
+            actual_provider = coalesce($6, actual_provider),
+            actual_model = coalesce($7, actual_model),
+            fallback_reason = coalesce($8, fallback_reason),
+            reasoning_effort = coalesce($9, reasoning_effort),
+            input_tokens = coalesce($10, input_tokens),
+            cached_tokens = coalesce($11, cached_tokens),
+            output_tokens = coalesce($12, output_tokens),
+            estimated_cost_usd = coalesce($13, estimated_cost_usd),
             finished_at = now(), lease_expires_at = null, updated_at = now()
-      where run_id = $1`, [runId, status, summary, headCommit]);
+      where run_id = $1`,
+    [runId, status, summary, headCommit, terminationReason, actualProvider, actualModel, fallbackReason,
+      u.reasoningEffort ?? null, u.inputTokens ?? null, u.cachedTokens ?? null, u.outputTokens ?? null,
+      u.estimatedCostUsd ?? null]);
   await db.write('delete from factory.surface_locks where run_id = $1', [runId]);
   if (status === 'done') {
     await db.write(

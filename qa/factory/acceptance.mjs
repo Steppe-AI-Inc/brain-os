@@ -118,8 +118,82 @@ try {
   check('the owning node can renew its lease', beat === true);
   check('a node that does NOT own the run cannot renew it', wrongNode === false);
 
+  // ---- M. PER-RUN ACCOUNTING, THROUGH THE APPLICATION AND NOT BY DIRECT INSERT ----------------------
+  //
+  // qa/factory/no_silent_model_fallback.mjs proves the CONSTRAINTS refuse a silent substitution, and its
+  // row C3 states the boundary those constraints cannot close: with `requested_*` null, any `actual_*` is
+  // accepted, because a substitution is only definable against something requested. Closing it is
+  // APPLICATION work, and these rows are that work measured rather than asserted.
+  //
+  // The reason this matters concretely: the field whose absence made the 2026-08-24 forensics
+  // reconstructive was `requested_model`. A failed turn recorded no model name anywhere, so "which model
+  // was being tried" had to be inferred from model_usage boundaries and row-creation times. Written at
+  // CLAIM time — before the call — it survives the failure that loses everything else.
+  {
+    const woM = randomUUID();
+    await admin.query("insert into factory.work_orders (work_order_id, title) values ($1, 'accounting')", [woM]);
+    const runM = await claim.claimWork({ nodeId: 'node-alpha', leaseSeconds: 60,
+      requestedProvider: 'anthropic', requestedModel: 'claude-opus-5', reasoningEffort: 'high' });
+    const rowM = await admin.query(
+      'select requested_provider, requested_model, reasoning_effort, termination_reason from factory.agent_runs where run_id = $1',
+      [runM.run_id]);
+    check('M1 claimWork records the REQUESTED provider, model and effort at claim time — before the call',
+      rowM.rows[0].requested_provider === 'anthropic' && rowM.rows[0].requested_model === 'claude-opus-5'
+      && rowM.rows[0].reasoning_effort === 'high', JSON.stringify(rowM.rows[0]));
+
+    // A TERMINAL STATUS MUST STATE ITS REASON, refused in the application with a sentence rather than
+    // left to surface as a bare 23514 from the database.
+    let noReason = null;
+    try { await claim.completeRun({ runId: runM.run_id, status: 'done' }); }
+    catch (e) { noReason = String(e && e.message || e); }
+    check('M2 completeRun REFUSES a done/failed status with no terminationReason — HTTP SUCCESS IS NOT A'
+      + ' VALID COMPLETED RUN', noReason !== null && /terminationReason is required/.test(noReason),
+      String(noReason).slice(0, 160));
+
+    // A SUBSTITUTION NEEDS A STATED REASON, and the application says which two models it is between.
+    let silent = null;
+    try {
+      await claim.completeRun({ runId: runM.run_id, status: 'done', terminationReason: 'completed',
+        actualProvider: 'anthropic', actualModel: 'claude-haiku-4-5' });
+    } catch (e) { silent = String(e && e.message || e); }
+    check('M3 completeRun REFUSES a model substitution with no fallbackReason, and names both models',
+      silent !== null && /NO SILENT MODEL FALLBACK/.test(silent)
+      && /claude-haiku-4-5/.test(silent) && /claude-opus-5/.test(silent), String(silent).slice(0, 200));
+
+    // ...and the stated substitution is recorded in full, with the accounting the founder requires.
+    await claim.completeRun({ runId: runM.run_id, status: 'done', terminationReason: 'completed',
+      actualProvider: 'anthropic', actualModel: 'claude-haiku-4-5',
+      fallbackReason: 'opus capacity exhausted; rotated by the watchdog',
+      usage: { inputTokens: 1200, cachedTokens: 900, outputTokens: 340, estimatedCostUsd: 0.0042 } });
+    const doneM = await admin.query(
+      'select actual_model, fallback_reason, termination_reason, input_tokens, cached_tokens, output_tokens,'
+      + ' estimated_cost_usd from factory.agent_runs where run_id = $1', [runM.run_id]);
+    const m = doneM.rows[0];
+    check('M4 a STATED substitution is recorded with its reason, its terminal condition and its token and'
+      + ' cost accounting',
+      m.actual_model === 'claude-haiku-4-5' && /capacity exhausted/.test(m.fallback_reason)
+      && m.termination_reason === 'completed' && Number(m.input_tokens) === 1200
+      && Number(m.cached_tokens) === 900 && Number(m.output_tokens) === 340
+      && Number(m.estimated_cost_usd) === 0.0042, JSON.stringify(m));
+
+    // THE NEGATIVE CONTROL FOR M3: served by what was requested, so there is nothing to explain.
+    const woN = randomUUID();
+    await admin.query("insert into factory.work_orders (work_order_id, title) values ($1, 'as requested')", [woN]);
+    const runN = await claim.claimWork({ nodeId: 'node-alpha', leaseSeconds: 60,
+      requestedProvider: 'anthropic', requestedModel: 'claude-opus-5' });
+    let asRequested = null;
+    try {
+      await claim.completeRun({ runId: runN.run_id, status: 'done', terminationReason: 'completed',
+        actualProvider: 'anthropic', actualModel: 'claude-opus-5' });
+    } catch (e) { asRequested = String(e && e.message || e); }
+    check('M5 NEGATIVE CONTROL: a run served by the model it requested needs no fallbackReason — M3 is refusing the substitution and not merely refusing to write actual_*', asRequested === null,
+      String(asRequested).slice(0, 160));
+  }
   // ---- J. already-completed evidence is reused ------------------------------------------------------
-  await claim.completeRun({ runId: recovered.run_id, status: 'done', summary: 'finished', headCommit: 'abc123' });
+  // terminationReason is REQUIRED for a terminal status now, and completeRun throws without it: a run that
+  // claims it finished must say HOW. See agent_runs_terminal_status_states_its_reason.
+  await claim.completeRun({ runId: recovered.run_id, status: 'done', summary: 'finished', headCommit: 'abc123',
+    terminationReason: 'completed' });
   const afterDone = await claim.claimWork({ nodeId: 'node-alpha', leaseSeconds: 60 });
   const doneWo = await admin.query('select status, completed_at from factory.work_orders where work_order_id = $1', [woA]);
   check('J  a completed work order is not claimed again',
@@ -204,7 +278,7 @@ try {
     const brokerTry = await claim.claimWork({ nodeId: "n-broker", leaseSeconds: 60 });
     check("SEC3 a RELEASE BROKER can",
       brokerTry && brokerTry.work_order_id === releaseWo, JSON.stringify(brokerTry));
-    await claim.completeRun({ runId: brokerTry.run_id, status: "done" });
+    await claim.completeRun({ runId: brokerTry.run_id, status: "done", terminationReason: "completed" });
 
     // ...and the ordering works downward: a broker may do ordinary work too, or the rule would be a
     // partition rather than a rank.
@@ -214,7 +288,7 @@ try {
     const brokerOrdinary = await claim.claimWork({ nodeId: "n-broker", leaseSeconds: 60 });
     check("SEC4 a release broker can also do ordinary work: the roles RANK, they do not partition",
       brokerOrdinary && brokerOrdinary.work_order_id === ordinary, JSON.stringify(brokerOrdinary));
-    await claim.completeRun({ runId: brokerOrdinary.run_id, status: "done" });
+    await claim.completeRun({ runId: brokerOrdinary.run_id, status: "done", terminationReason: "completed" });
 
     // Capabilities: a node lacking one may not take the work, and the work WAITS rather than being
     // handed to a node that cannot do it.
@@ -234,7 +308,7 @@ try {
     const browserTry = await claim.claimWork({ nodeId: "n-browser", leaseSeconds: 60 });
     check("CAP3 the node that HAS the capability claims it",
       browserTry && browserTry.work_order_id === needsBrowser, JSON.stringify(browserTry));
-    await claim.completeRun({ runId: browserTry.run_id, status: "done" });
+    await claim.completeRun({ runId: browserTry.run_id, status: "done", terminationReason: "completed" });
 
     // THE ROLE IS READ FROM THE CONTROL PLANE, NOT FROM THE CALLER. A node that could assert its own
     // role would make every check above a formality.

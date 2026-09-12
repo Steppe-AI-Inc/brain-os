@@ -163,8 +163,23 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
         checkpoint: (location, scenario, payload) =>
           checkpoint({ runId: run.run_id, workOrderId: run.work_order_id, location, scenario, payload }) });
 
-      await completeRun({ runId: run.run_id, status: result && result.status === 'failed' ? 'failed' : 'done',
-        summary: result && result.summary, headCommit: result && result.headCommit });
+      // THE TERMINAL CONDITION COMES FROM THE WORKER, and where the worker reports none the fallback NAMES
+      // THAT ABSENCE rather than claiming a clean finish. completeRun requires the field; defaulting it to
+      // 'completed' here would move the invention one layer up and lose exactly the distinction the column
+      // exists for. The 2026-08-24 failures were eight HTTP 200s whose bodies never terminated, and a runner
+      // that writes 'completed' because its worker said nothing reproduces that defect in a new place.
+      const finished = result && result.status === 'failed' ? 'failed' : 'done';
+      await completeRun({
+        runId: run.run_id, status: finished,
+        summary: result && result.summary, headCommit: result && result.headCommit,
+        terminationReason: (result && result.terminationReason)
+          || (finished === 'failed' ? 'worker_reported_failure_without_a_terminal_condition'
+            : 'worker_reported_success_without_a_terminal_condition'),
+        actualProvider: result && result.actualProvider,
+        actualModel: result && result.actualModel,
+        fallbackReason: result && result.fallbackReason,
+        usage: result && result.usage,
+      });
       log('completed run ' + String(run.run_id).slice(0, 8));
     } catch (e) {
       // A thrown worker does NOT mark the run failed: it may be a transient provider error, and the lease
