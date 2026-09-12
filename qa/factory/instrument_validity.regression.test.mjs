@@ -62,6 +62,53 @@ try {
     v.results.filter((r) => !r.ok).every((r) => typeof r.name === 'string' && r.name.length > 20),
     JSON.stringify(v.results.filter((r) => !r.ok).map((r) => r.level)));
 
+  // ── J. RAN_TO_COMPLETION_IS_NOT_AN_EXIT_CODE ───────────────────────────────────────────────────────
+  //
+  // Level 4 read `real.code === 0 || expectNonZeroExit`, and measured against the battery it called EVERY
+  // red-by-design suite INSTRUMENT NOT VALID - successor_open_defects, v90_open_defects, v89_open_defects,
+  // model_intent_is_not_authority - because each exits non-zero BY CARRYING A REGISTERED OPEN ROW, which
+  // is the state the campaign depends on them holding. `INSTRUMENT VALID` was unobtainable for exactly the
+  // instruments that matter unless the caller remembered a flag, and that flag fails both ways: forget it
+  // and a healthy instrument is rejected; pass it and a CRASH passes.
+  //
+  // These two fixtures are the distinction, and the second is the one that keeps the first honest. Without
+  // it, "derive completion from the report" could be satisfied by accepting every non-zero exit.
+  const crashesMidway = write('crashes-midway.mjs', [
+    "console.log('OK   [CONTRACT] C1 the first thing passes');",
+    "console.log('OK   [CONTRACT] C2 the second thing passes');",
+    'const x = null;',
+    '// Dies here. The summary line below is never reached, which is what a crash looks like.',
+    'console.log(x.property.that.does.not.exist);',
+    "console.log('2 pass, 0 fail');",
+  ].join(NL));
+  const redByDesign = write('red-by-design.mjs', [
+    "console.log('OK   [CONTRACT] C1 a control');",
+    "console.log('FAIL [DEFECT] D1 a registered open row (3 of 7)');",
+    "console.log('');",
+    "console.log('1 pass, 1 fail');",
+    'process.exit(1);',
+  ].join(NL));
+
+  const crashV = validateInstrument(crashesMidway, { minRows: 1 });
+  const redV = validateInstrument(redByDesign, { minRows: 1 });
+  const lvl4 = (v) => v.results.find((r) => r.level === 4);
+
+  check('J1 a suite that DIES MID-RUN fails level 4 — it printed rows but never reached its summary',
+    lvl4(crashV) && lvl4(crashV).ok === false,
+    JSON.stringify(crashV.results.map((r) => r.level + ':' + (r.ok ? 'ok' : 'FAIL'))));
+  check('J2 a RED-BY-DESIGN suite passes level 4 — it ran to the end, reported, and exited non-zero'
+    + ' because a registered row is red',
+    lvl4(redV) && lvl4(redV).ok === true,
+    JSON.stringify(redV.results.map((r) => r.level + ':' + (r.ok ? 'ok' : 'FAIL'))));
+  check('J3 and the two are told apart WITHOUT the caller declaring anything — neither call passes'
+    + ' expectNonZeroExit, so the exit code is not what decided either answer',
+    lvl4(crashV) && lvl4(redV) && lvl4(crashV).ok === false && lvl4(redV).ok === true,
+    'both exited 1: crash=' + JSON.stringify(lvl4(crashV) && lvl4(crashV).ok)
+    + ' red=' + JSON.stringify(lvl4(redV) && lvl4(redV).ok));
+  check('J4 the level-4 detail on a PASSING row is empty — the first version printed "this is a CRASH"'
+    + ' either way, which is this file\'s own subject wider than its invariant',
+    lvl4(redV) && !/CRASH/.test(String(lvl4(redV).detail || '')),
+    JSON.stringify(lvl4(redV) && lvl4(redV).detail));
   // A healthy instrument must still pass, or the validator is just a rejecter.
   const healthy = write('healthy.mjs', [
     'let n = 0;',

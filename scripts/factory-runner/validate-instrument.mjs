@@ -80,9 +80,36 @@ export function validateInstrument(file, {
   const threw = errorSignature && real.code !== 0;
   add(2, 'MODULE LOAD + SYMBOL RESOLUTION: it evaluates without a missing reference',
     !threw, threw ? real.out.split(NL).slice(0, 4).join(' | ') : '');
-  add(4, 'EXECUTION: it ran to completion and reported',
-    !threw && (real.code === 0 || expectNonZeroExit),
-    'exit ' + real.code + (real.signal ? ' signal ' + real.signal : ''));
+  // RAN TO COMPLETION IS DERIVED FROM THE REPORT, NOT FROM THE EXIT CODE.
+  //
+  // This level read `real.code === 0 || expectNonZeroExit`, and against every RED-BY-DESIGN suite in the
+  // battery it said INSTRUMENT NOT VALID: successor_open_defects, v90_open_defects, v89_open_defects and
+  // model_intent_is_not_authority all exit non-zero BECAUSE THEY CARRY A REGISTERED OPEN ROW, which is the
+  // state the whole campaign depends on them holding. So `INSTRUMENT VALID` was unobtainable for exactly the
+  // instruments that matter, unless the caller remembered a flag — and that flag is a footgun in both
+  // directions: forget it and a healthy instrument is called invalid; pass it and a CRASH greens this level.
+  //
+  // The question is whether the process REACHED ITS END, and that is observable without being told. A suite
+  // that ran to completion printed its report; one that died mid-way printed part of it and no summary.
+  // Level 5 below already derives the instrument's class from its output and measures it, so the same
+  // evidence answers this one: a non-zero exit WITH a complete report is RED, and a non-zero exit WITHOUT
+  // one is a crash. `expectNonZeroExit` is still honoured when a caller declares it; nothing depends on it.
+  //
+  // Same family as the two defects this file's own comments already record. A check whose subject ("it ran
+  // to completion") is wider than its invariant (the exit code) reports the wrong thing about a healthy
+  // instrument, and the cost here was that the validator could not validate an open-defect suite at all.
+  const completionClass = klass && INSTRUMENT_CLASSES[klass] ? klass : deriveInstrumentClass(real.out, rowPattern);
+  const completion = INSTRUMENT_CLASSES[completionClass].measure(real.out, rowPattern);
+  const reachedTheEnd = completion.value !== null && completion.value > 0;
+  const ranToEnd = !threw && (real.code === 0 || expectNonZeroExit || reachedTheEnd);
+  add(4, 'EXECUTION: it ran to completion and reported', ranToEnd,
+    // THE DETAIL IS THE FAILURE'S REASON, not a line printed either way. The first version of this message
+    // said "no complete report was produced, so this is a CRASH" on the PASSING row too, which is the
+    // smallest version of the same mistake the rest of this file is about: text that states something the
+    // measurement did not find.
+    ranToEnd ? '' : 'exit ' + real.code + (real.signal ? ' signal ' + real.signal : '')
+      + ' and no complete report was produced, so this is a CRASH and not a registered red'
+      + (completion.detail ? ' — ' + completion.detail : ''));
 
   // 5. NON-VACUOUS — a suite that asserts nothing exits 0 just as happily as one that asserts everything.
   //
