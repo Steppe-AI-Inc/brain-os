@@ -208,7 +208,29 @@ test('NO_SILENT_PROVIDER_FALLBACK: requested and actual provider/model are separ
     assert.ok(MIGRATION.includes(`add column if not exists ${col} `),
       `${col} must be ADDED by this migration (not merely referenced elsewhere) so a provider/model substitution is always visible, never implied`);
   }
-  assert.match(SUPERVISOR_SRC, /never silently substitutes/);
+  // THIS LINE USED TO BE `assert.match(SUPERVISOR_SRC, /never silently substitutes/)`. It matched a
+  // SENTENCE IN A COMMENT: the row stayed green if someone added a substituting code path and left the
+  // comment in place, which is the one scenario it names. COMMENTS ARE NOT STATE; TEXT MATCH IS NOT
+  // STRUCTURAL PRESENCE.
+  //
+  // What is asserted instead: the CONSTRAINTS, which are the actual enforcement, and the absence of a
+  // write path in this file that sets actual_* at all. The supervisor carries the request forward verbatim
+  // and does not substitute, so the honest structural statement is that it never writes those columns —
+  // and if a future change makes it write them, this row fails and the author has to say why.
+  for (const c of ['agent_runs_no_silent_provider_fallback', 'agent_runs_no_silent_model_fallback']) {
+    assert.ok(MIGRATION.includes('add constraint ' + c),
+      c + ' must be a real CHECK constraint: five columns nothing enforces is a guarantee that "reads as met"');
+  }
+  const setsActual = /set[^;]*actual_(?:provider|model)s*=/is.test(SUPERVISOR_SRC);
+  assert.ok(!setsActual,
+    'this file writes actual_provider/actual_model. That is allowed, but it must then also write'
+    + ' fallback_reason in the same statement — update this assertion deliberately rather than deleting it');
+  // BEHAVIOURAL PROOF, against a real PostgreSQL, lives in qa/factory/no_silent_model_fallback.mjs (12
+  // rows, with a negative control that drops both constraints and watches the silent substitution
+  // succeed). That suite also found the real gap this row could never have seen: factory.agent_runs, the
+  // table the Factory actually runs on, had requested_model and actual_provider but NO actual_model and NO
+  // fallback_reason, so the control plane could not express a substitution at all while the production
+  // migration carried both constraints. The guarantee was on the other table.
 });
 
 // ---- DB-controlled strings are DATA, never commands/paths/instructions -------------

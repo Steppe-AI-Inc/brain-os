@@ -185,4 +185,67 @@ create table if not exists factory.checkpoints (
 
 create index if not exists checkpoints_by_run on factory.checkpoints (run_id, created_at desc);
 
+-- ---------------------------------------------------------------------------------------------------
+-- PER-RUN ACCOUNTING, AND NO SILENT SUBSTITUTION.
+--
+-- The founder's standing requirement for every agent run: requested_provider, requested_model,
+-- actual_provider, actual_model, reasoning_effort, input/cached/output tokens, estimated cost,
+-- termination_reason, checkpoint and candidate SHA. "NO SILENT MODEL FALLBACK. HTTP SUCCESS != VALID
+-- COMPLETED RUN."
+--
+-- factory.agent_runs above carried requested_provider, requested_model and actual_provider - and NOT
+-- actual_model, and not fallback_reason. So the control plane could not EXPRESS a model substitution at
+-- all, let alone refuse a silent one, while the production table's migration 202609030001 has carried
+-- both columns and both constraints since it was written. The guarantee existed on the table the Factory
+-- does not use and was absent from the one it will.
+--
+-- ALTER, NOT A CHANGE TO THE CREATE ABOVE, deliberately: `create table if not exists` is a no-op against
+-- an existing database, so editing the column list would converge a fresh server and silently skip every
+-- server that already ran this file. An idempotent alter converges both.
+alter table factory.agent_runs add column if not exists actual_model     text;
+alter table factory.agent_runs add column if not exists fallback_reason  text;
+-- Effort is part of the request, and a run served at a different effort than asked for is as much a
+-- substitution as a different model; it is recorded so the comparison is possible at all.
+alter table factory.agent_runs add column if not exists reasoning_effort text;
+alter table factory.agent_runs add column if not exists input_tokens     bigint;
+alter table factory.agent_runs add column if not exists cached_tokens    bigint;
+alter table factory.agent_runs add column if not exists output_tokens    bigint;
+-- The cost is an ESTIMATE and the column name says so. A figure derived from a published price list is
+-- not an invoice, and a column called `cost_usd` would invite being read as one.
+alter table factory.agent_runs add column if not exists estimated_cost_usd numeric(12, 6);
+-- THE TERMINAL CONDITION THAT WAS ACTUALLY OBSERVED, or the absence of one. This is the field that makes
+-- "HTTP success is not a completed run" recordable: a stream that returned headers and never terminated
+-- has a termination_reason of stream_never_terminated, not a status of done.
+alter table factory.agent_runs add column if not exists termination_reason text;
+
+-- A SUBSTITUTION MAY NOT BE RECORDED WITHOUT A STATED REASON. The same two constraints the production
+-- migration carries, with the same shape and the same known boundary: they can only compare against a
+-- requested_* that is present, so writing requested_* BEFORE the call is what makes them bite. That is
+-- application work and it is not something a check can do - stated here so the boundary is not mistaken
+-- for coverage.
+alter table factory.agent_runs drop constraint if exists agent_runs_no_silent_provider_fallback;
+alter table factory.agent_runs add constraint agent_runs_no_silent_provider_fallback check (
+  actual_provider is null
+  or requested_provider is null
+  or actual_provider = requested_provider
+  or fallback_reason is not null
+);
+alter table factory.agent_runs drop constraint if exists agent_runs_no_silent_model_fallback;
+alter table factory.agent_runs add constraint agent_runs_no_silent_model_fallback check (
+  actual_model is null
+  or requested_model is null
+  or actual_model = requested_model
+  or fallback_reason is not null
+);
+
+-- A FINISHED RUN MUST SAY HOW IT FINISHED. `done` and `failed` are the two statuses that claim a terminal
+-- outcome, and a terminal outcome with no observed terminal condition is the exact shape of the 2026-08-24
+-- OpenAI defect: HTTP 200, headers returned, body never terminated, eight attempts recorded as nothing in
+-- particular. The queued/in_progress/blocked statuses are deliberately exempt - they make no such claim.
+alter table factory.agent_runs drop constraint if exists agent_runs_terminal_status_states_its_reason;
+alter table factory.agent_runs add constraint agent_runs_terminal_status_states_its_reason check (
+  status not in ('done', 'failed')
+  or termination_reason is not null
+);
+
 commit;
