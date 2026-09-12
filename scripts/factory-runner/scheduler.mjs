@@ -76,6 +76,33 @@ export function isTaskPermanentlyBlocked(task, taskStatusById) {
 }
 
 /**
+ * Sorts every QUEUED task of a Work Order into the three states the founder can act on
+ * differently: READY (dispatch now), WAITING (a dependency is still open - come back next
+ * cycle), PERMANENTLY_BLOCKED (a dependency was rejected - no cycle will ever dispatch
+ * it, so somebody has to be told). isTaskPermanentlyBlocked existed, was unit-tested, and
+ * was called by nothing (docs/software-factory/COMPLETED_STATE.md, known debt #1): the
+ * dispatcher reported 'no_ready_tasks' for both of the last two states, so a Work Order
+ * whose chain had died read the same as one that was merely busy. A detector nothing
+ * consults is the same shape as the tier policy that was wired the day before this.
+ * @param {Array<{id:string, status:string, depends_on:string[], created_at:string}>} allTasks
+ * @returns {{ready:object[], waiting:object[], permanentlyBlocked:Array<{task:object, rejectedDependencies:string[]}>}}
+ */
+export function classifyQueuedTasks(allTasks) {
+  const statusById = new Map(allTasks.map((t) => [t.id, t.status]));
+  const byCreated = (a, b) => new Date(a.created_at) - new Date(b.created_at);
+  const queued = allTasks.filter((t) => t.status === 'queued').sort(byCreated);
+  const ready = [], waiting = [], permanentlyBlocked = [];
+  for (const t of queued) {
+    if (isTaskPermanentlyBlocked(t, statusById)) {
+      const rejectedDependencies = (t.depends_on ?? []).filter((d) => statusById.get(d) === 'rejected');
+      permanentlyBlocked.push({ task: t, rejectedDependencies });
+    } else if (isTaskReady(t, statusById)) ready.push(t);
+    else waiting.push(t);
+  }
+  return { ready, waiting, permanentlyBlocked };
+}
+
+/**
  * Real capability-based routing: score = size of the intersection between the task's
  * required_capabilities and the candidate agent's capabilities. Zero-overlap candidates
  * are excluded entirely (never dispatch to an agent with none of the needed
@@ -112,14 +139,28 @@ export function selectAgentForTask(requiredCapabilities, candidateAgents) {
  * @param {Array<{id:string, status:string, depends_on:string[], created_at:string}>} allTasks - every task in the Work Order, any status
  * @param {number} availableSlots
  */
+/**
+ * Why the dispatcher dispatched nothing this cycle, from the classification alone. Pure
+ * so the regression can prove the four answers are distinct and that a dead chain is
+ * never reported as merely waiting: 'permanently_blocked' is answered only when NOTHING
+ * is still waiting - while some task can still become ready the Work Order is not dead,
+ * and the blocked tasks are reported alongside rather than as the headline.
+ * @param {number} availableSlots
+ * @param {{ready:object[], waiting:object[], permanentlyBlocked:object[]}} classes
+ */
+export function idleReason(availableSlots, classes) {
+  if (availableSlots <= 0) return 'concurrency_cap_reached';
+  if (classes.waiting.length > 0) return 'waiting_on_dependencies';
+  if (classes.permanentlyBlocked.length > 0) return 'permanently_blocked';
+  return 'no_queued_tasks';
+}
+
 export function selectTasksToDispatch(allTasks, availableSlots) {
   if (availableSlots <= 0) return [];
-  const statusById = new Map(allTasks.map((t) => [t.id, t.status]));
-  const ready = allTasks
-    .filter((t) => t.status === 'queued')
-    .filter((t) => isTaskReady(t, statusById))
-    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-  return ready.slice(0, availableSlots);
+  // One classification feeds both the dispatch list and the reason reported when it is
+  // empty - a second filter here could drift from classifyQueuedTasks and report WAITING
+  // for a task the dispatcher would never have picked.
+  return classifyQueuedTasks(allTasks).ready.slice(0, availableSlots);
 }
 
 // ============================================================================
@@ -223,6 +264,31 @@ select public.create_founder_notification(
   return notified;
 }
 
+/**
+ * One founder notification per permanently blocked task, deduped on the task id the same
+ * way notifyStaleAgents dedupes on the run id: the partial unique index on dedupe_key
+ * suppresses every later call while the first is still open. Returns what it saw, with
+ * notified=true only when a row was actually inserted this call.
+ * @param {string} workOrderId
+ * @param {Array<{task:object, rejectedDependencies:string[]}>} blocked
+ */
+export async function notifyPermanentlyBlockedTasks(workOrderId, blocked) {
+  const out = [];
+  for (const { task, rejectedDependencies } of blocked) {
+    const insertResult = await db.write(`
+select public.create_founder_notification(
+  'FACTORY_TASK_PERMANENTLY_BLOCKED', 'error',
+  ${sqlEscape(`Task can never start: ${task.title ?? task.id}`)},
+  ${sqlEscape(`Task ${task.id} depends on rejected task(s) ${rejectedDependencies.join(', ')}. No scheduler cycle will dispatch it; the dependency must be redone or the task re-planned.`)},
+  ${sqlEscape(workOrderId)}::uuid, null,
+  ${sqlEscape('task_permanently_blocked:' + task.id)}, true
+) as notification_id;
+`);
+    out.push({ taskId: task.id, rejectedDependencies, notified: Boolean(insertResult.rows?.[0]?.notification_id) });
+  }
+  return out;
+}
+
 export async function dispatchReadyTasks(workOrderId, maxConcurrent = DEFAULT_MAX_CONCURRENT) {
   // Fetches EVERY task in the Work Order, terminal or not - selectTasksToDispatch needs
   // a complete depends_on status map (a dependency that already reached 'done' must
@@ -241,7 +307,15 @@ select count(*) as n from public.agent_runs where status = 'in_progress'::work_s
   const availableSlots = Math.max(0, maxConcurrent - currentlyRunning);
 
   const toDispatch = selectTasksToDispatch(tasks, availableSlots);
-  if (toDispatch.length === 0) return { dispatched: [], reason: availableSlots === 0 ? 'concurrency_cap_reached' : 'no_ready_tasks' };
+  const classes = classifyQueuedTasks(tasks);
+  // A task whose dependency was REJECTED will never be dispatched by any later cycle, so
+  // it is reported as such and the founder is told once (the dedupe key holds until the
+  // notification is resolved). Until this existed the dispatcher answered no_ready_tasks
+  // for a dead chain and for a busy one alike.
+  const permanentlyBlocked = await notifyPermanentlyBlockedTasks(workOrderId, classes.permanentlyBlocked);
+  if (toDispatch.length === 0) {
+    return { dispatched: [], reason: idleReason(availableSlots, classes), waiting: classes.waiting.map((t) => t.id), permanentlyBlocked };
+  }
 
   const agentsResult = await db.read(`
 select a.id, a.name, a.capabilities,

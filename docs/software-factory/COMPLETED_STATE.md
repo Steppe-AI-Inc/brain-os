@@ -130,7 +130,7 @@ plain push is unsafe and this tooling exists. Two read-only commands you can run
 
 | Item | Note |
 |---|---|
-| Scheduler cannot distinguish "waiting" from "permanently blocked" | Detection is written and tested but never called. Dispatch behaviour is correct today. |
+| Scheduler distinguishes "waiting" from "permanently blocked" — WIRED 2026-09-12 | `isTaskPermanentlyBlocked` was written, unit-tested and called by nothing. `classifyQueuedTasks` now feeds both the dispatch list and the idle reason (`permanently_blocked` / `waiting_on_dependencies` / `no_queued_tasks` / `concurrency_cap_reached`, proven distinct by `scheduler.regression.test.mjs`), and `notifyPermanentlyBlockedTasks` raises one deduped founder notification per dead task. NOT YET EXERCISED LIVE: the notification write targets `create_founder_notification` in the product schema, which the local control-plane database does not provision — the pure classification is proven, the insert is not. |
 | No automatic recovery for a stale agent run | Recovery is manual. Confirmed by repo-wide search. |
 | Phase 6 plugin lifecycle, and phases 7–11 | Not started. Phase 6 needs a gated schema change first. |
 

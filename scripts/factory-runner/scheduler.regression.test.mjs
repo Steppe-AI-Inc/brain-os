@@ -13,6 +13,8 @@ import assert from 'node:assert/strict';
 import {
   isTaskReady,
   isTaskPermanentlyBlocked,
+  classifyQueuedTasks,
+  idleReason,
   selectAgentForTask,
   selectTasksToDispatch,
 } from './scheduler.mjs';
@@ -166,4 +168,57 @@ test('FACTORY_PRODUCT_ARCHITECT_CAN_BE_DISPATCHED_WHEN_CAPABILITY_REQUIRED - a t
   const candidates = ALLOWLIST.map((e) => ({ id: e.name, name: e.name, capabilities: e.capabilities, activeRunCount: 0 }));
   const selected = selectAgentForTask(['architecture'], candidates);
   assert.equal(selected?.id, 'brain-os-product-architect');
+});
+
+// ---- FACTORY_DEAD_CHAIN_IS_NOT_REPORTED_AS_WAITING -------------------------------------
+// isTaskPermanentlyBlocked was unit-tested above and called by nothing (known debt #1 in
+// docs/software-factory/COMPLETED_STATE.md). These rows pin the wiring: the classifier the
+// dispatcher now consults, the reason it reports, and that the dispatch list is derived
+// from the same classification rather than a second filter that could drift.
+const T = (id, deps, status = 'queued', created = '2026-09-12T00:00:00Z') => ({ id, status, depends_on: deps, created_at: created });
+
+test('classifyQueuedTasks: ready / waiting / permanently blocked are three different answers', () => {
+  const tasks = [T('done1', [], 'done'), T('open1', [], 'in_progress'), T('bad1', [], 'rejected'),
+    T('r', ['done1']), T('w', ['open1']), T('b', ['bad1', 'done1']), T('b2', ['bad1', 'open1'])];
+  const c = classifyQueuedTasks(tasks);
+  assert.deepEqual(c.ready.map((x) => x.id), ['r']);
+  assert.deepEqual(c.waiting.map((x) => x.id), ['w']);
+  assert.deepEqual(c.permanentlyBlocked.map((x) => x.task.id), ['b', 'b2'],
+    'a rejected dependency blocks even when another dependency is still open - the chain is dead either way');
+  assert.deepEqual(c.permanentlyBlocked[0].rejectedDependencies, ['bad1']);
+});
+
+test('classifyQueuedTasks: only QUEUED tasks are classified; terminal and running tasks are inputs, not outputs', () => {
+  const c = classifyQueuedTasks([T('a', [], 'done'), T('b', [], 'in_progress'), T('c', ['zz'], 'rejected'), T('d', [], 'archived')]);
+  assert.deepEqual([c.ready, c.waiting, c.permanentlyBlocked], [[], [], []]);
+});
+
+test('selectTasksToDispatch derives from classifyQueuedTasks - a permanently blocked task is never dispatched and never counted as ready', () => {
+  const tasks = [T('bad1', [], 'rejected'), T('b', ['bad1']), T('r', [], 'queued', '2026-09-12T00:00:01Z')];
+  assert.deepEqual(selectTasksToDispatch(tasks, 5).map((x) => x.id), ['r']);
+  assert.deepEqual(selectTasksToDispatch(tasks, 5), classifyQueuedTasks(tasks).ready);
+});
+
+test('idleReason: a dead chain reads as permanently_blocked, a busy one as waiting_on_dependencies - never the same word', () => {
+  const blocked = { ready: [], waiting: [], permanentlyBlocked: [{ task: T('b', ['x']), rejectedDependencies: ['x'] }] };
+  const busy = { ready: [], waiting: [T('w', ['y'])], permanentlyBlocked: [] };
+  const both = { ready: [], waiting: [T('w', ['y'])], permanentlyBlocked: blocked.permanentlyBlocked };
+  const empty = { ready: [], waiting: [], permanentlyBlocked: [] };
+  assert.equal(idleReason(3, blocked), 'permanently_blocked');
+  assert.equal(idleReason(3, busy), 'waiting_on_dependencies');
+  assert.equal(idleReason(3, both), 'waiting_on_dependencies', 'while anything can still become ready the Work Order is not dead');
+  assert.equal(idleReason(3, empty), 'no_queued_tasks');
+  assert.equal(idleReason(0, blocked), 'concurrency_cap_reached', 'no slots means nothing was classified as undispatchable by the cap');
+  const answers = new Set([idleReason(3, blocked), idleReason(3, busy), idleReason(3, empty), idleReason(0, blocked)]);
+  assert.equal(answers.size, 4, 'four situations, four distinct words - the defect was two of them sharing one');
+});
+
+test('ABLATION: with the rejected-dependency check disabled, the dead chain collapses into waiting - the row above depends on the detector', () => {
+  // Reproduces the pre-wiring behaviour by classifying with the detector's answer forced
+  // to false: the blocked task falls into WAITING and idleReason says waiting_on_dependencies.
+  const tasks = [T('bad1', [], 'rejected'), T('b', ['bad1'])];
+  const statusById = new Map(tasks.map((x) => [x.id, x.status]));
+  const withoutDetector = { ready: [], waiting: tasks.filter((x) => x.status === 'queued' && !isTaskReady(x, statusById)), permanentlyBlocked: [] };
+  assert.equal(idleReason(3, withoutDetector), 'waiting_on_dependencies');
+  assert.equal(idleReason(3, classifyQueuedTasks(tasks)), 'permanently_blocked');
 });
