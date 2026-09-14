@@ -1,7 +1,7 @@
 {
   "_doc": "Structured Work-PC -> Home-PC handoff for Factory V1. Authored by the Work-PC independent acceptance authority. Executed-evidence companion to HOMEPC-2026-09-14-FACTORY-V1-BLOCKERS.md (source/CI-only). No credentials, no production SQL, no implementation.",
   "handoff_id": "HOMEPC-2026-09-14-factory-v1-acceptance",
-  "created_at": "2026-09-14T05:09:27Z",
+  "created_at": "2026-09-14T05:24:45Z",
   "created_by": "work-pc-qa (independent Factory V1 acceptance authority)",
   "companion_markdown": "qa/home-pc-handoff/HOMEPC-2026-09-14-FACTORY-V1-BLOCKERS.md",
   "canonical_report": "qa/work-pc/FACTORY_V1_INDEPENDENT_ACCEPTANCE.md",

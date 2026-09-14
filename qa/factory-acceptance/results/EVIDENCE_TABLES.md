@@ -1,6 +1,6 @@
-<!-- BEGIN GENERATED EVIDENCE (qa/factory-acceptance/consolidate.mjs, 2026-09-14T05:09:27Z) -->
+<!-- BEGIN GENERATED EVIDENCE (qa/factory-acceptance/consolidate.mjs, 2026-09-14T05:24:44Z) -->
 
-| Totals | PASS 27 | FAIL 11 | ABSENT 5 | PARTIAL 10 | NO_VERDICT 2 | checks 55 |
+| Totals | PASS 28 | FAIL 10 | ABSENT 5 | PARTIAL 10 | NO_VERDICT 2 | checks 55 |
 |---|---|---|---|---|---|---|
 
 ### Suite `director`
@@ -83,7 +83,7 @@
 | Check | Verdict | Expected | Level | Method | Claim tested | Note |
 |---|---|---|---|---|---|---|
 | MP-00 | **PARTIAL** | PARTIAL | MACHINE_PROPERTY | MACHINE_PROBE | The CLIs the Home-PC authority test probes exist on this machine | gh and vercel CLIs are absent here; routes that probe them return early in the Home-PC test and are recorded, not counted as proof |
-| MP-01 | **FAIL** | PASS | MACHINE_PROPERTY | NODE_TEST_RERUN | This machine holds no ambient production-write credential (7 route assertions) | BLOCKED - FOUNDER: a logged-in Vercel CLI session exists on this Work PC (path recorded by the Home-PC test; file dated 2026-08-31); while it exists `vercel env pull` can regenerate the service-role key. Removing a crede |
+| MP-01 | **PASS** | PASS | MACHINE_PROPERTY | NODE_TEST_RERUN | This machine holds no ambient production-write credential (7 route assertions) | ROUTE_5* probe gh, which is absent here: the test returns early - recorded, not counted as proof |
 | MP-02 | **FAIL** | FAIL | SOURCE_FINDING_ONLY | NODE_TEST_RERUN | factory-runner scripts carry no ambient production DB authority |  |
 | MP-03 | **PARTIAL** | PARTIAL | MACHINE_PROPERTY | MACHINE_PROBE | The Work-PC QA evidence infrastructure is live and its canonical files are only written by the single writer | scheduled task present but no live supervisor process; lease stale; task Last Result recorded. WAITING_FOR_HOME_PC is the recorded state and is not "fixed" during this campaign |
 | MP-04 | **PASS** | PASS | MACHINE_PROPERTY | MACHINE_PROBE | Every check record produced so far carries provenance and no secret-shaped value |  |

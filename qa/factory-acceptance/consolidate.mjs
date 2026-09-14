@@ -33,13 +33,15 @@ const allChecks = SUITES.flatMap((s) => (suites[s].checks || []).map((c) => ({ .
 const BLOCKED_HOME_PC = ['DIR-02', 'DIR-09', 'DIR-10', 'CPS-04', 'CPS-06', 'CPS-07', 'CPS-10', 'RI-01', 'RI-02', 'RI-03', 'RI-04', 'RI-05', 'LR-05', 'PR-01', 'PR-02', 'PR-03', 'PR-06', 'PR-07', 'MP-02', 'DIR-03', 'CPS-03', 'CPS-05', 'PR-04', 'PR-05', 'RI-06', 'CPS-09'];
 const BLOCKED_FOUNDER = ['MP-01'];
 const grouped = { PASS: [], FAIL: [], 'BLOCKED - HOME PC': [], 'BLOCKED - FOUNDER': [], 'BLOCKED - EXTERNAL': [] };
+const byIdEarly = (id) => allChecks.find((c) => c.id === id);
 for (const c of allChecks) {
   const row = { id: c.id, suite: c.suite, verdict: c.verdict, expect: c.expect, claim: c.claim, finding_class: c.provenance?.finding_class || c.provenance?.master?.finding_class || null, no_verdict_reason: c.no_verdict_reason || null };
   if (c.verdict === 'PASS') grouped.PASS.push(row);
   else if (BLOCKED_FOUNDER.includes(c.id)) grouped['BLOCKED - FOUNDER'].push({ ...row, action: c.evidence?.blocked_group || null });
   else if (['FAIL', 'ABSENT', 'PARTIAL', 'NO_VERDICT'].includes(c.verdict)) { grouped.FAIL.push(row); if (BLOCKED_HOME_PC.includes(c.id)) grouped['BLOCKED - HOME PC'].push({ ...row, closure_requires: 'Home-PC implementation, then Work-PC retest from a frozen SHA' }); }
 }
-grouped['BLOCKED - FOUNDER'].push({ id: 'CROSS_NODE_REAL', suite: 'lease-recovery', verdict: 'NO_VERDICT', claim: 'Home-PC node A -> Work-PC node B lease takeover over a shared NON-PRODUCTION PostgreSQL', finding_class: 'CROSS_NODE_REAL', action: 'supply/authorize a shared non-production PostgreSQL endpoint with generic-node credentials for both nodes (protocol prepared in the canonical report section 4)' });
+grouped['BLOCKED - FOUNDER'].push({ id: 'CROSS_NODE_REAL', suite: 'lease-recovery', verdict: 'NO_VERDICT', claim: 'Home-PC node A -> Work-PC node B lease takeover over a shared NON-PRODUCTION PostgreSQL', finding_class: 'CROSS_NODE_REAL', action: 'DEFERRED UNTIL HOME-PC FROZEN FACTORY CANDIDATE (founder decision 2026-09-14): HOME PC fixes FV1-001..005 -> frozen SHA -> Work-PC structural retest -> provision shared non-production PostgreSQL -> NODE A -> NODE B takeover (protocol in canonical report section 4)' });
+if (byIdEarly('MP-01')?.verdict === 'PASS') grouped['BLOCKED - FOUNDER'].push({ id: 'VERCEL_TOKEN_SERVER_SIDE_REVOCATION', suite: 'machine-property', verdict: 'NO_VERDICT', claim: 'The Vercel token whose local auth file was removed from the Work PC (2026-09-14) is revoked server-side', finding_class: 'MACHINE_PROPERTY', action: 'revoke the token in the Vercel dashboard; the Work PC cannot identify it without exposing it. Local route is CLOSED (MP-01: 7/7 routes green).' });
 grouped['BLOCKED - EXTERNAL'].push({ id: 'NONE', note: 'no external capability was missing for the work that could be executed; a DeepSeek key is deliberately NOT requested (PR-07: the adapter does not exist)' });
 
 // ---- KFM #118 (master) / #62 (p1) confirm-refute table ----------------------------------

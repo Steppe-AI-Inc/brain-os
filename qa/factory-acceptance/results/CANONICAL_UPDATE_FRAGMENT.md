@@ -41,13 +41,19 @@ to the two pinned refs; evidence levels are stated per check and never promoted.
 | §7 multi-node | BLOCKED — FOUNDER | unchanged; single-machine two-connection evidence now exists (LR-09) | — |
 | §9 provider readiness | FAIL | **ABSENT on both refs**: provider enum closed to `claude_code_background`/`claude_code_local`; dispatcher refuses any other provider and binds to the `claude` CLI; zero `deepseek`/`tier-0` references in any tracked file on either ref (canary proven); `agent_runs_no_silent_provider_fallback` CHECK is enforced by the DB (a recorded substitution needs `fallback_reason`) but **nothing in the runtime writes** `requested_*`/`actual_*`, so an unrecorded substitution stays invisible; plugin registry admits `execution_provider` components that nothing consumes | PR-01..PR-07 |
 
-### 13.2 New machine finding — BLOCKED — FOUNDER
+### 13.2 Machine finding — local Vercel authority route CLOSED (founder decision 2026-09-14)
 
 Running the Home-PC test `production_write_authority.regression.test.mjs` on this Work PC
-(MP-01) fails one route: **a logged-in Vercel CLI session exists on this machine** (auth file
-under `%APPDATA%\xdg.data\com.vercel.cli\`, dated 2026-08-31). While it exists `vercel env pull`
-can regenerate the service-role key, so the Phase A hardening (Supabase CLI logged out) does not
-close route 2. Removing a credential is a founder decision; nothing was deleted.
+(MP-01, first run) failed one route: a logged-in Vercel CLI session existed on this machine
+(auth file under `%APPDATA%\xdg.data\com.vercel.cli\`, 397 bytes, dated 2026-08-31). While it
+existed `vercel env pull` could regenerate the service-role key, so the Phase A hardening
+(Supabase CLI logged out) did not close route 2. On founder decision the same day: the normal
+`vercel logout` reported "Not currently logged in" (the current CLI does not read that legacy
+store) and left the file behind; the local file was then deleted. Token contents were never
+printed, copied, hashed or committed. MP-01 rerun: **all 7 routes green**
+(`vercel_cli_session_present_on_work_pc: false`). **Remaining BLOCKED — FOUNDER:** server-side
+revocation of that token in the Vercel dashboard (the Work PC cannot identify it without
+exposing it).
 
 ### 13.3 KFM #118 (master) / #62 (p1) reconciled against master `55a1591`
 
@@ -82,16 +88,20 @@ scoping, CPS-07 isolation decision), FV1-003, FV1-004 (+ the two unrunnable Home
 FV1-005, and the `202609030001` applied-state contradiction.
 
 **BLOCKED — FOUNDER** — (1) shared non-production PostgreSQL endpoint + generic-node
-credentials for the real two-node campaign (protocol in §4); (2) decision on the logged-in
-Vercel CLI session on the Work PC (13.2).
+credentials for the real two-node campaign (protocol in §4) — **DEFERRED UNTIL HOME-PC FROZEN
+FACTORY CANDIDATE** by founder decision: HOME PC fixes FV1-001..005 → publishes frozen SHA →
+Work PC retests structural fixes → shared non-production PostgreSQL provisioned → NODE A → NODE B
+takeover campaign; (2) server-side revocation in the Vercel dashboard of the token whose local
+file was removed from the Work PC (13.2).
 
 **BLOCKED — EXTERNAL** — none. A DeepSeek key is deliberately not requested (PR-07).
 
 ### 13.5 State preserved (proof in `RECONCILIATION.json`)
 
 BUG-035 P2 OPEN · BUG-036 P1 OPEN · BUG-037 P2 OPEN — identical to `origin/qa/work-pc`;
-`supervisor_state = WAITING_FOR_HOME_PC` unchanged; `qa/runner/SUPERVISOR_STATE.json`,
-`qa/BUG_QUEUE.json`, `qa/HANDOFF_STATE.json` not modified by this campaign; no tracked file under
+`supervisor_state = WAITING_FOR_HOME_PC` unchanged; `qa/BUG_QUEUE.json` and `qa/HANDOFF_STATE.json`
+not modified; `qa/runner/SUPERVISOR_STATE.json` gained only the informational `factory_v1_acceptance`
+pointer on founder decision (blocked_on, next_action and Phase-B re-entry untouched); no tracked file under
 `scripts/`, `supabase/`, `web/`, `governance/`, `.github/`, `docs/` modified. The operational
 tree was fast-forwarded (no merge commit) onto the two commits pushed to `qa/work-pc` at
 10:19–10:21 that created this document and the blockers handoff; this section updates rather

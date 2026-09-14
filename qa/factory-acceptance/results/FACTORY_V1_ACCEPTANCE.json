@@ -1,6 +1,6 @@
 {
   "_doc": "Work-PC independent Factory V1 acceptance, executed evidence. Every check is provenance-bound to the pinned refs; evidence levels are never promoted. A FAIL is a recorded result, not a hidden one. The Work PC did not modify any implementation.",
-  "generated_at": "2026-09-14T05:09:27Z",
+  "generated_at": "2026-09-14T05:24:44Z",
   "generated_by": "work-pc-qa (independent Factory V1 acceptance authority)",
   "refs_tested": {
     "master": {
@@ -18,7 +18,7 @@
   "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB",
   "production_sql_used": false,
   "production_credentials_loaded": false,
-  "operational_head_before_commit": "8056384b0b38cb6c285d2a33d691a3c6493ab245",
+  "operational_head_before_commit": "f0a4463e2031c975554b97ece72086315dd104bc",
   "substrate": {
     "pglite": {
       "engine": "pglite",
@@ -141,8 +141,8 @@
     "CROSS_NODE_REAL": "BLOCKED - never claimed"
   },
   "totals": {
-    "PASS": 27,
-    "FAIL": 11,
+    "PASS": 28,
+    "FAIL": 10,
     "ABSENT": 5,
     "PARTIAL": 10,
     "NO_VERDICT": 2
@@ -493,6 +493,15 @@
         "expect": "PARTIAL",
         "claim": "A provider/model substitution on restart is recorded with a reason (never silent) AND the runtime populates requested/actual",
         "finding_class": "LOCAL_DB_CONTRACT",
+        "no_verdict_reason": null
+      },
+      {
+        "id": "MP-01",
+        "suite": "machine-property",
+        "verdict": "PASS",
+        "expect": "PASS",
+        "claim": "This machine holds no ambient production-write credential (7 route assertions)",
+        "finding_class": "MACHINE_PROPERTY",
         "no_verdict_reason": null
       },
       {
@@ -1004,22 +1013,20 @@
     ],
     "BLOCKED - FOUNDER": [
       {
-        "id": "MP-01",
-        "suite": "machine-property",
-        "verdict": "FAIL",
-        "expect": "PASS",
-        "claim": "This machine holds no ambient production-write credential (7 route assertions)",
-        "finding_class": "MACHINE_PROPERTY",
-        "no_verdict_reason": null,
-        "action": "BLOCKED - FOUNDER: a logged-in Vercel CLI session exists on this Work PC (path recorded by the Home-PC test; file dated 2026-08-31); while it exists `vercel env pull` can regenerate the service-role key. Removing a credential is a founder decision, not a QA action."
-      },
-      {
         "id": "CROSS_NODE_REAL",
         "suite": "lease-recovery",
         "verdict": "NO_VERDICT",
         "claim": "Home-PC node A -> Work-PC node B lease takeover over a shared NON-PRODUCTION PostgreSQL",
         "finding_class": "CROSS_NODE_REAL",
-        "action": "supply/authorize a shared non-production PostgreSQL endpoint with generic-node credentials for both nodes (protocol prepared in the canonical report section 4)"
+        "action": "DEFERRED UNTIL HOME-PC FROZEN FACTORY CANDIDATE (founder decision 2026-09-14): HOME PC fixes FV1-001..005 -> frozen SHA -> Work-PC structural retest -> provision shared non-production PostgreSQL -> NODE A -> NODE B takeover (protocol in canonical report section 4)"
+      },
+      {
+        "id": "VERCEL_TOKEN_SERVER_SIDE_REVOCATION",
+        "suite": "machine-property",
+        "verdict": "NO_VERDICT",
+        "claim": "The Vercel token whose local auth file was removed from the Work PC (2026-09-14) is revoked server-side",
+        "finding_class": "MACHINE_PROPERTY",
+        "action": "revoke the token in the Vercel dashboard; the Work PC cannot identify it without exposing it. Local route is CLOSED (MP-01: 7/7 routes green)."
       }
     ],
     "BLOCKED - EXTERNAL": [
@@ -4755,7 +4762,7 @@
         },
         {
           "id": "MP-01",
-          "verdict": "FAIL",
+          "verdict": "PASS",
           "expect": "PASS",
           "method": "NODE_TEST_RERUN",
           "evidence_kind": "cross-check",
@@ -4774,7 +4781,7 @@
             "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
           },
           "evidence": {
-            "exit": 1,
+            "exit": 0,
             "per_test": [
               {
                 "ok": true,
@@ -4792,7 +4799,7 @@
                 "skipped": false
               },
               {
-                "ok": false,
+                "ok": true,
                 "name": "ROUTE_2b_vercel_session_is_a_web_deploy_route_not_a_db_route",
                 "skipped": false
               },
@@ -4812,11 +4819,9 @@
                 "skipped": false
               }
             ],
-            "not_ok_diagnostics": {
-              "ROUTE_2b_vercel_session_is_a_web_deploy_route_not_a_db_route": "A logged-in Vercel CLI session exists at: C:\\Users\\DELL\\AppData\\Roaming\\xdg.data\\com.vercel.cli\\auth.json. While it exists, `vercel env pull` regenerates the service-role key checked above, so route 2 cannot be closed by deleting files."
-            },
-            "vercel_cli_session_present_on_work_pc": true,
-            "blocked_group": "BLOCKED - FOUNDER: a logged-in Vercel CLI session exists on this Work PC (path recorded by the Home-PC test; file dated 2026-08-31); while it exists `vercel env pull` can regenerate the service-role key. Removing a credential is a founder decision, not a QA action.",
+            "not_ok_diagnostics": {},
+            "vercel_cli_session_present_on_work_pc": false,
+            "blocked_group": null,
             "note": "ROUTE_5* probe gh, which is absent here: the test returns early - recorded, not counted as proof"
           }
         },
@@ -4900,7 +4905,7 @@
           },
           "evidence": {
             "hostname": "DESKTOP-8P5HVAO",
-            "operational_head": "8056384b0b38cb6c285d2a33d691a3c6493ab245",
+            "operational_head": "f0a4463e2031c975554b97ece72086315dd104bc",
             "scheduled_task": {
               "present": true,
               "status": "Ready",
@@ -4911,7 +4916,7 @@
             "lease": {
               "pid": 18652,
               "renewed_at": "2026-09-10T07:21:06Z",
-              "age_min": 5625,
+              "age_min": 5643,
               "pid_alive": false
             },
             "supervisor_state": "WAITING_FOR_HOME_PC",

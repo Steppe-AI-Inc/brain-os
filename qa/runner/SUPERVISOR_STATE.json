@@ -122,5 +122,14 @@
     "reason": "AUTH_EMAIL_DELIVERY_UNAVAILABLE",
     "root_cause": "UNCONFIRMED",
     "handoff": "qa/home-pc-handoff/HOMEPC-2026-09-10-BUG-036-invitation-delivery.json"
+  },
+  "factory_v1_acceptance": {
+    "_doc": "Informational pointer only. Factory V1 independent acceptance (Work PC verifier role). Does not change supervisor_state, blocked_on, or Phase-B re-entry conditions.",
+    "report": "qa/work-pc/FACTORY_V1_INDEPENDENT_ACCEPTANCE.md",
+    "evidence": "qa/factory-acceptance/results/FACTORY_V1_ACCEPTANCE.json",
+    "home_pc_handoff": "qa/home-pc-handoff/HOMEPC-2026-09-14-factory-v1-acceptance.json",
+    "qa_commit": "f0a4463e2031c975554b97ece72086315dd104bc",
+    "executed_at": "2026-09-14",
+    "cross_node_real": "BLOCKED - FOUNDER / DEFERRED UNTIL HOME-PC FROZEN FACTORY CANDIDATE"
   }
 }

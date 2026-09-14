@@ -1,6 +1,6 @@
 {
   "_doc": "State-preservation proof for the Factory V1 acceptance campaign plus repository observations. Nothing here changes product bug state.",
-  "generated_at": "2026-09-14T05:09:27Z",
+  "generated_at": "2026-09-14T05:24:45Z",
   "bug_state_now": {
     "BUG-035": {
       "status": "OPEN",
@@ -52,7 +52,9 @@
     "content": "qa/home-pc-handoff/HOMEPC-2026-09-14-FACTORY-V1-BLOCKERS.md (source+CI-only findings) and qa/work-pc/FACTORY_V1_INDEPENDENT_ACCEPTANCE.md (source+CI-only report)",
     "action_taken": "fast-forwarded the operational tree (ff-only, no merge commit); this campaign UPDATES the canonical report with executed evidence rather than replacing it"
   },
-  "product_trees_tracked_modifications": [],
+  "product_trees_tracked_modifications": [
+    "M qa/runner/SUPERVISOR_STATE.json"
+  ],
   "product_trees_untracked_files_not_authored_by_this_campaign": [
     ".github/workflows/phase0-ci.yml",
     "docs/PHASE-0-ARCHITECTURE.md",
@@ -91,7 +93,7 @@
     "lease": {
       "pid": 18652,
       "renewed_at": "2026-09-10T07:21:06Z",
-      "age_min": 5625,
+      "age_min": 5643,
       "pid_alive": false
     },
     "supervisor_state": "WAITING_FOR_HOME_PC"
