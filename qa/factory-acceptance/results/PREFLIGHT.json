@@ -1,0 +1,167 @@
+{
+  "schema": "qa.factory-acceptance.preflight/1",
+  "at": "2026-09-14T04:35:54Z",
+  "operational_head": "157174d791c4b80b6605d3b105cf64f023ba3bfe",
+  "node": "v24.19.0",
+  "pins": {
+    "master": {
+      "ref": "origin/master",
+      "sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+      "path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+      "scan": {
+        "ok": true,
+        "violations": []
+      }
+    },
+    "p1": {
+      "ref": "origin/p1/control-plane-phase0",
+      "sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+      "path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+      "scan": {
+        "ok": true,
+        "violations": []
+      }
+    }
+  },
+  "pinned_deps": {
+    "install_dir": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt",
+    "outside_every_worktree": true,
+    "package_json_matches_pinned_blob": true,
+    "package_lock_blob_sha_p1": "ed29aa790e02c31e9e4e9f3a38355d860cb32a67",
+    "package_lock_sha256_installed_raw": "831927519a2bb5a0b34c6921f6dd208b94705dc9048741c5ec8edc6b903f1800",
+    "package_lock_sha256_installed_lf": "831927519a2bb5a0b34c6921f6dd208b94705dc9048741c5ec8edc6b903f1800",
+    "package_lock_sha256_pinned_lf": "831927519a2bb5a0b34c6921f6dd208b94705dc9048741c5ec8edc6b903f1800",
+    "package_lock_matches_pinned": true,
+    "command": "npm ci --ignore-scripts --no-audit --no-fund",
+    "versions": {
+      "pglite": "0.5.8",
+      "pg": "8.23.0",
+      "yaml": "2.9.0"
+    },
+    "node": "v24.19.0",
+    "npm": "11.17.0"
+  },
+  "resolution": {
+    "resolved_from": "file:///C:/Users/DELL/AppData/Local/brain-os-qa/source-wt/node_modules/@electric-sql/pglite/dist/index.js",
+    "resolves_under_deps_dir": true,
+    "resolves_inside_a_worktree": false,
+    "worktrees_still_clean": {
+      "master": true,
+      "p1": true
+    }
+  },
+  "pglite": {
+    "engine": "pglite",
+    "version": "PostgreSQL 18.3 (PGlite 0.5.8) on wasm32-unknown-emscripten, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit",
+    "security_label": "RLS ENFORCEMENT (PGlite emulation) — NOT SECURITY VERIFIED; requires the real-PostgreSQL job",
+    "migration_chain_complete": true,
+    "applied": 81,
+    "failed": [],
+    "tx_continuity": true
+  },
+  "embedded_pg": {
+    "install_dir": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\pgdeps",
+    "package_version": "17.10.0-beta.17",
+    "npm_packages": {
+      "node_modules/@embedded-postgres/darwin-arm64": {
+        "version": "17.10.0-beta.17",
+        "integrity": "sha512-E2dxhSllrcyAJBHuvgTrBTx2BaPlX2vvjXClPKHxfwBezk+nTZ01uAEraKiRJMpzHSCyN8J1dTjKh4q/uTsBLQ==",
+        "resolved": "https://registry.npmjs.org/@embedded-postgres/darwin-arm64/-/darwin-arm64-17.10.0-beta.17.tgz"
+      },
+      "node_modules/@embedded-postgres/darwin-x64": {
+        "version": "17.10.0-beta.17",
+        "integrity": "sha512-gXk65MIyttD/PWo6NDSmu/n4vzPcqZQmxVWjEKuecwlyGmWO984AZ3Ljb7F0bwPvXhqcovH4FGN4ydr0fGeJxg==",
+        "resolved": "https://registry.npmjs.org/@embedded-postgres/darwin-x64/-/darwin-x64-17.10.0-beta.17.tgz"
+      },
+      "node_modules/@embedded-postgres/linux-arm": {
+        "version": "17.10.0-beta.17",
+        "integrity": "sha512-XQrRydqjgPrvvCKF1PrLvMljMbeXXT4GbB70+z7viqUWg3bgq31nGMkupa2TXHLqRnfmEhz1u3gn3xgQIphLZQ==",
+        "resolved": "https://registry.npmjs.org/@embedded-postgres/linux-arm/-/linux-arm-17.10.0-beta.17.tgz"
+      },
+      "node_modules/@embedded-postgres/linux-arm64": {
+        "version": "17.10.0-beta.17",
+        "integrity": "sha512-mC+bQvaBEf0WDD0nPWW3eGUXDUVzoyCzMtgl+Fw6Jy9DkQFK+jcPtzkzqhhrS/fGzn5telNpKInl8xPqDh71Ig==",
+        "resolved": "https://registry.npmjs.org/@embedded-postgres/linux-arm64/-/linux-arm64-17.10.0-beta.17.tgz"
+      },
+      "node_modules/@embedded-postgres/linux-ia32": {
+        "version": "17.10.0-beta.17",
+        "integrity": "sha512-ck2QlYCPmmNRJotXp0cJnnB5Yn/bk89qT3cjVCxUfkS1b/56Odu9ID6zvAYFebvYeHU69UwOEbplikV4saRYWw==",
+        "resolved": "https://registry.npmjs.org/@embedded-postgres/linux-ia32/-/linux-ia32-17.10.0-beta.17.tgz"
+      },
+      "node_modules/@embedded-postgres/linux-ppc64": {
+        "version": "17.10.0-beta.17",
+        "integrity": "sha512-+Mb0E41rvlwBhAV11eZf51rlxSHA8ancPHPFxhyljg+ZJ62QB1YryBf+rIkphpG2bnt4aJwxd1JOUk3PonlrLA==",
+        "resolved": "https://registry.npmjs.org/@embedded-postgres/linux-ppc64/-/linux-ppc64-17.10.0-beta.17.tgz"
+      },
+      "node_modules/@embedded-postgres/linux-x64": {
+        "version": "17.10.0-beta.17",
+        "integrity": "sha512-hU4Sgna19ixDP/l3P/zkHhQ9B0JDV39qA97RNz55QcngeRjFC5/1G36LZjODVJ84kVJHUTQMmly7nzWO8js8kg==",
+        "resolved": "https://registry.npmjs.org/@embedded-postgres/linux-x64/-/linux-x64-17.10.0-beta.17.tgz"
+      },
+      "node_modules/@embedded-postgres/windows-x64": {
+        "version": "17.10.0-beta.17",
+        "integrity": "sha512-q6xIETTkv67i1QlTWz1LAKb3Z+vG2V3qrp+BjLEWhCQ9jE4hbbsQ/J/3wiOPFLJbuwak7CfHC9EUJG7txAbGKw==",
+        "resolved": "https://registry.npmjs.org/@embedded-postgres/windows-x64/-/windows-x64-17.10.0-beta.17.tgz"
+      },
+      "node_modules/embedded-postgres": {
+        "version": "17.10.0-beta.17",
+        "integrity": "sha512-s9ITJA41OTIQmn91RLqQ5X2MVP2BCZ8pb4tQX3MY8VOd8xNCzzlgfHGcXuitDzK800FhbG/3YufFk21KTTvpzA==",
+        "resolved": "https://registry.npmjs.org/embedded-postgres/-/embedded-postgres-17.10.0-beta.17.tgz"
+      }
+    },
+    "binary": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\pgdeps\\node_modules\\@embedded-postgres\\windows-x64\\native\\bin\\postgres.exe",
+    "binary_exists": true,
+    "postgres_version": "postgres (PostgreSQL) 17.10",
+    "binary_sha256": "db14ddb0efc10b72b57dc29dbce5a719e2755dcd0ae54297d0ea4bbfc75f79a0",
+    "data_dir": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\pg\\data",
+    "port": 54329,
+    "listen": "127.0.0.1 only",
+    "windows_service": false,
+    "admin_install": false,
+    "production_credentials_loaded": false,
+    "command": "npm install --ignore-scripts --no-audit --no-fund --save-exact embedded-postgres@17.10.0-beta.17",
+    "started": true,
+    "local_proof": {
+      "host": "127.0.0.1",
+      "port": 54329,
+      "loopback": true,
+      "not_supabase_host": true,
+      "server_version": "PostgreSQL 17.10 on x86_64-windows, compiled by msvc-19.44.35226, 64-bit",
+      "server_addr": "127.0.0.1/32",
+      "server_port": 54329,
+      "data_directory": "C:/Users/DELL/AppData/Local/brain-os-qa/pg/data",
+      "listen_addresses": "localhost"
+    },
+    "url_shape": "postgres://postgres:<password-redacted>@127.0.0.1:54329/dbtest",
+    "state_file": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\pg\\STATE.json",
+    "adapter": {
+      "engine": "real-postgresql",
+      "version": "PostgreSQL 17.10 on x86_64-windows, compiled by msvc-19.44.35226, 64-bit",
+      "security_label": "SECURITY VERIFIED (real PostgreSQL, non-superuser role enforcement, self-checked)",
+      "migration_chain_complete": true,
+      "failed": []
+    },
+    "disposability_sentinel_planted": true,
+    "url_for_suites_env": "DBTEST_PG_URL (set by the suites from lib/deps.mjs REAL_PG_URL)"
+  },
+  "rescan": {
+    "master": {
+      "ok": true,
+      "violations": []
+    },
+    "p1": {
+      "ok": true,
+      "violations": []
+    }
+  },
+  "verdict": "PREFLIGHT_OK",
+  "teardown_pgctl": null,
+  "teardown": {
+    "at": "2026-09-14T05:08:03Z",
+    "stopped": true,
+    "stop_error": null,
+    "data_dir_deleted": true,
+    "data_dir": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\pg\\data",
+    "evidence_untouched": true
+  }
+}

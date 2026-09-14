@@ -1,0 +1,480 @@
+{
+  "suite": "lease-recovery",
+  "generated_at": "2026-09-14T04:57:19Z",
+  "totals": {
+    "PASS": 10,
+    "FAIL": 1,
+    "ABSENT": 0,
+    "PARTIAL": 0,
+    "NO_VERDICT": 0
+  },
+  "harness_errors": [],
+  "checks": [
+    {
+      "id": "LR-00",
+      "suite": "lease-recovery",
+      "observed_at": "2026-09-14T04:57:17Z",
+      "claim": "PGlite engine with the retry migration applied",
+      "expect": "PASS",
+      "method": "PGLITE_EXEC",
+      "evidence_kind": "independent",
+      "verdict": "PASS",
+      "evidence": {
+        "engine": "pglite",
+        "version": "PostgreSQL 18.3 (PGlite 0.5.8) on wasm32-unknown-emscripten, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit",
+        "security_label": "RLS ENFORCEMENT (PGlite emulation) — NOT SECURITY VERIFIED; requires the real-PostgreSQL job",
+        "rpc_present": 1
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "supabase/migrations/202609030001_agent_run_capacity_retry.sql": "0a7f95e2dd550b982202e24e79b6eb6ad495c9d0"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "LR-01",
+      "suite": "lease-recovery",
+      "observed_at": "2026-09-14T04:57:17Z",
+      "claim": "A run blocked for a non-capacity reason (e.g. agent crash) is never claimed for automatic retry",
+      "expect": "PASS",
+      "method": "PGLITE_EXEC",
+      "evidence_kind": "independent",
+      "kfm_ref": "#118/claim-2",
+      "verdict": "PASS",
+      "evidence": {
+        "claim_rows": 0,
+        "where_anchor": [
+          {
+            "line": 153,
+            "text": "and ar.blocked_reason like 'PROVIDER_CAPACITY_BLOCKED%'"
+          }
+        ],
+        "confirms_or_refutes": "REFUTES #118/claim-2 at master: the pinned RPC text filters blocked_reason"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "supabase/migrations/202609030001_agent_run_capacity_retry.sql": "0a7f95e2dd550b982202e24e79b6eb6ad495c9d0"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "LR-02",
+      "suite": "lease-recovery",
+      "observed_at": "2026-09-14T04:57:17Z",
+      "claim": "The retry loop is bounded in SQL: attempt_count >= p_max_attempts is never claimed; a claim increments attempt_count",
+      "expect": "PASS",
+      "method": "PGLITE_EXEC",
+      "evidence_kind": "independent",
+      "kfm_ref": "#118/claim-1",
+      "verdict": "PASS",
+      "evidence": {
+        "at_cap": 0,
+        "below_cap": 1,
+        "row_after": {
+          "attempt_count": 6,
+          "status": "in_progress",
+          "claimed_by": "sup-a"
+        },
+        "where_anchor": [
+          {
+            "line": 158,
+            "text": "and ar.attempt_count < p_max_attempts"
+          }
+        ],
+        "note": "the JS predicate isRetryEligible remains dead code (LR-05); the SQL WHERE is the live gate"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "supabase/migrations/202609030001_agent_run_capacity_retry.sql": "0a7f95e2dd550b982202e24e79b6eb6ad495c9d0"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "LR-03",
+      "suite": "lease-recovery",
+      "observed_at": "2026-09-14T04:57:17Z",
+      "claim": "Lease TTL: a second claimant is refused while a live claim exists and succeeds only after the real 30-minute stale threshold",
+      "expect": "PASS",
+      "method": "PGLITE_EXEC",
+      "evidence_kind": "independent",
+      "verdict": "PASS",
+      "evidence": {
+        "node_a_claim": 1,
+        "node_b_while_fresh": 0,
+        "node_b_at_29min": 0,
+        "node_b_at_31min": 1,
+        "row_after": {
+          "claimed_by": "node-B",
+          "attempt_count": 3,
+          "status": "in_progress"
+        },
+        "lease_param_default": [
+          {
+            "line": 87,
+            "text": "p_stale_claim_after interval default interval '30 minutes'"
+          }
+        ],
+        "supervisor_passes_ttl": [
+          {
+            "line": 287,
+            "text": "claimed = await runSql(`select * from public.claim_blocked_run_for_retry(${sqlEscape(supervisorId)}, ${Number(MAX_ATTEMPTS)});`);"
+          }
+        ]
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "supabase/migrations/202609030001_agent_run_capacity_retry.sql": "0a7f95e2dd550b982202e24e79b6eb6ad495c9d0",
+          "scripts/factory-runner/supervisor.mjs": "661c7d152b2b833e26de2ef2a61175d93e8a4d67"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "LR-04",
+      "suite": "lease-recovery",
+      "observed_at": "2026-09-14T04:57:17Z",
+      "claim": "After a provider re-block the run can be recovered again (claimed_by is reset by the re-block path)",
+      "expect": "PASS",
+      "method": "PGLITE_EXEC",
+      "evidence_kind": "independent",
+      "kfm_ref": "#118/claim-3",
+      "verdict": "PASS",
+      "evidence": {
+        "master_recordCapacityBlock_clears_claim": [],
+        "reclaim_after_clear": 1,
+        "reclaim_without_clear": 0,
+        "reclaim_without_clear_after_ttl": 1,
+        "confirms_or_refutes": "CONFIRMS #118/claim-3"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "supabase/migrations/202609030001_agent_run_capacity_retry.sql": "0a7f95e2dd550b982202e24e79b6eb6ad495c9d0",
+          "scripts/factory-runner/supervisor.mjs": "661c7d152b2b833e26de2ef2a61175d93e8a4d67"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "LR-05",
+      "suite": "lease-recovery",
+      "observed_at": "2026-09-14T04:57:17Z",
+      "claim": "The JS safety predicate is wired into the live path",
+      "expect": "FAIL",
+      "method": "PURE_FN",
+      "evidence_kind": "independent",
+      "kfm_ref": "#118/claim-1",
+      "verdict": "FAIL",
+      "evidence": {
+        "master": {
+          "predicate_on_real_rpc_row": false,
+          "rpc_row_columns": [
+            "id",
+            "attempt_count",
+            "max_attempts",
+            "remaining_scenarios",
+            "last_completed_scenario",
+            "source_sha"
+          ],
+          "non_test_call_sites": [],
+          "dead_code_comment": [
+            {
+              "line": 107,
+              "text": "* NOT THE GATE. run13/R-D5: this encoded the full eligibility rule while having ZERO call"
+            }
+          ]
+        },
+        "p1": {
+          "predicate_on_real_rpc_row": false,
+          "rpc_row_columns": [
+            "id",
+            "attempt_count",
+            "max_attempts",
+            "remaining_scenarios",
+            "last_completed_scenario",
+            "source_sha"
+          ],
+          "non_test_call_sites": [],
+          "dead_code_comment": [
+            {
+              "line": 107,
+              "text": "* NOT THE GATE. run13/R-D5: this encoded the full eligibility rule while having ZERO call"
+            }
+          ]
+        },
+        "confirms_or_refutes": "CONFIRMS #118/claim-1 on both refs"
+      },
+      "provenance": {
+        "master": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/master",
+          "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+          "blob_shas": {
+            "scripts/factory-runner/supervisor.mjs": "661c7d152b2b833e26de2ef2a61175d93e8a4d67",
+            "supabase/migrations/202609030001_agent_run_capacity_retry.sql": "0a7f95e2dd550b982202e24e79b6eb6ad495c9d0"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        },
+        "p1": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/p1/control-plane-phase0",
+          "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+          "blob_shas": {
+            "scripts/factory-runner/supervisor.mjs": "661c7d152b2b833e26de2ef2a61175d93e8a4d67",
+            "supabase/migrations/202609030001_agent_run_capacity_retry.sql": "0a7f95e2dd550b982202e24e79b6eb6ad495c9d0"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        }
+      }
+    },
+    {
+      "id": "LR-06",
+      "suite": "lease-recovery",
+      "observed_at": "2026-09-14T04:57:17Z",
+      "claim": "Finished work is not repeated on resume when the source is unchanged; a changed source never inherits partial certification",
+      "expect": "PASS",
+      "method": "PURE_FN",
+      "evidence_kind": "independent",
+      "verdict": "PASS",
+      "evidence": {
+        "master": {
+          "same_sha": {
+            "reuseCompletedScenarios": true,
+            "startFrom": "scenario_3",
+            "invalidatedCertification": false,
+            "reason": "source sha unchanged (abc1234); resuming after scenario_2"
+          },
+          "changed_sha": {
+            "reuseCompletedScenarios": false,
+            "startFrom": "scenario_1",
+            "invalidatedCertification": true,
+            "reason": "source sha changed (checkpoint abc1234 vs current fffffff) — prior partial certification does not transfer"
+          },
+          "null_sha": {
+            "reuseCompletedScenarios": false,
+            "startFrom": "scenario_1",
+            "invalidatedCertification": true,
+            "reason": "source sha changed (checkpoint none vs current abc1234) — prior partial certification does not transfer"
+          }
+        },
+        "p1": {
+          "same_sha": {
+            "reuseCompletedScenarios": true,
+            "startFrom": "scenario_3",
+            "invalidatedCertification": false,
+            "reason": "source sha unchanged (abc1234); resuming after scenario_2"
+          },
+          "changed_sha": {
+            "reuseCompletedScenarios": false,
+            "startFrom": "scenario_1",
+            "invalidatedCertification": true,
+            "reason": "source sha changed (checkpoint abc1234 vs current fffffff) — prior partial certification does not transfer"
+          },
+          "null_sha": {
+            "reuseCompletedScenarios": false,
+            "startFrom": "scenario_1",
+            "invalidatedCertification": true,
+            "reason": "source sha changed (checkpoint none vs current abc1234) — prior partial certification does not transfer"
+          }
+        }
+      },
+      "provenance": {
+        "master": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/master",
+          "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+          "blob_shas": {
+            "scripts/factory-runner/supervisor.mjs": "661c7d152b2b833e26de2ef2a61175d93e8a4d67"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        },
+        "p1": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/p1/control-plane-phase0",
+          "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+          "blob_shas": {
+            "scripts/factory-runner/supervisor.mjs": "661c7d152b2b833e26de2ef2a61175d93e8a4d67"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        }
+      }
+    },
+    {
+      "id": "LR-07",
+      "suite": "lease-recovery",
+      "observed_at": "2026-09-14T04:57:17Z",
+      "claim": "A dead worker is visible as STALE from heartbeat age alone; an in-progress run with a fresh heartbeat reads RUNNING",
+      "expect": "PASS",
+      "method": "PGLITE_EXEC",
+      "evidence_kind": "independent",
+      "verdict": "PASS",
+      "evidence": {
+        "at_11min": "STALE",
+        "at_9min": "RUNNING",
+        "stored_status_unchanged": "in_progress",
+        "note": "derived view only; no job transitions the row - a stale run is recovered only by the (unscheduled) supervisor or a human"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "supabase/migrations/202608300005_task_dag_and_agent_telemetry.sql": "0730c5293f4c8652ec7c8472efcbc9e15ccd828d"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "LR-08",
+      "suite": "lease-recovery",
+      "observed_at": "2026-09-14T04:57:17Z",
+      "claim": "Supervisor restart / duplicate poll: a second sequential poll finds nothing to claim; spawn failure releases the claim",
+      "expect": "PASS",
+      "method": "PGLITE_EXEC",
+      "evidence_kind": "independent",
+      "verdict": "PASS",
+      "evidence": {
+        "first": 1,
+        "restarted_poll": 0,
+        "release_anchor": [
+          {
+            "line": 344,
+            "text": "last_event = 'resume_spawn_failed_claim_released'"
+          }
+        ],
+        "after_release": 1,
+        "note": "the release write itself is JS in pollOnce (not executed here: it shells to --linked); its SQL effect is replayed from the pinned source text"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "scripts/factory-runner/supervisor.mjs": "661c7d152b2b833e26de2ef2a61175d93e8a4d67",
+          "supabase/migrations/202609030001_agent_run_capacity_retry.sql": "0a7f95e2dd550b982202e24e79b6eb6ad495c9d0"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "LR-09",
+      "suite": "lease-recovery",
+      "observed_at": "2026-09-14T04:57:17Z",
+      "claim": "Two claimants racing for one blocked run never both win (SKIP LOCKED); the loser is not blocked; takeover happens only after the real 30-minute stale threshold",
+      "expect": "PASS",
+      "method": "REAL_PG_RACE",
+      "evidence_kind": "independent",
+      "verdict": "PASS",
+      "evidence": {
+        "server": {
+          "v": "PostgreSQL 17.10 on x86_64-windows, compiled by msvc-19.44.35226, 64-bit",
+          "a": "127.0.0.1/32",
+          "su": "postgres"
+        },
+        "sentinel": 1,
+        "a_claim_in_open_tx": 1,
+        "b_claim_during_a_tx": 0,
+        "b_wait_ms": 7,
+        "b_claim_after_a_commit": 0,
+        "row_after": {
+          "claimed_by": "node-A",
+          "attempt_count": 2,
+          "status": "in_progress"
+        },
+        "b_claim_at_29min": 0,
+        "b_claim_at_31min": 1,
+        "row_final": {
+          "claimed_by": "node-B",
+          "attempt_count": 3,
+          "status": "in_progress"
+        },
+        "evidence_level_note": "REAL_POSTGRES_LOCAL: two connections to one embedded PostgreSQL 17.10 on this machine. NOT CROSS_NODE_REAL - a Home-PC node A / Work-PC node B takeover over shared non-production PostgreSQL remains BLOCKED."
+      },
+      "provenance": {
+        "finding_class": "REAL_POSTGRES_LOCAL",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "supabase/migrations/202609030001_agent_run_capacity_retry.sql": "0a7f95e2dd550b982202e24e79b6eb6ad495c9d0"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "LR-10",
+      "suite": "lease-recovery",
+      "observed_at": "2026-09-14T04:57:17Z",
+      "claim": "The Home PC concurrency harness (TWO_SUPERVISORS_CANNOT_DOUBLE_RESTART_RUN) passes on real PostgreSQL",
+      "expect": "PASS",
+      "method": "NODE_TEST_RERUN",
+      "evidence_kind": "cross-check",
+      "verdict": "PASS",
+      "no_verdict_reason": null,
+      "evidence": {
+        "exit": 0,
+        "checks": [
+          "OK   supervisor-1 claims the eligible run inside an open transaction — [{\"id\":\"dddd0000-0000-0000-0000-00000000000d\"}]",
+          "OK   supervisor-2, racing inside its own transaction, gets ZERO rows and does not block — []",
+          "OK   after supervisor-1 commits, the run is claimed and supervisor-2 still gets nothing — []",
+          "OK   exactly one claimant is recorded — {\"claimed_by\":\"supervisor-1\",\"attempt_count\":2}"
+        ],
+        "stdout_excerpt": "engine: real-postgresql — PostgreSQL 17.10 on x86_64-windows, compiled by msvc-19.44.35226, 64-bit\nOK   supervisor-1 claims the eligible run inside an open transaction — [{\"id\":\"dddd0000-0000-0000-0000-00000000000d\"}]\nOK   supervisor-2, racing inside its own transaction, gets ZERO rows and does not block — []\nOK   after supervisor-1 commits, the run is claimed and supervisor-2 still gets nothing — []\nOK   exactly one claimant is recorded — {\"claimed_by\":\"supervisor-1\",\"attempt_count\":2}\n\nconcurrency: TWO_SUPERVISORS_CANNOT_DOUBLE_RESTART_RUN — VERIFIED under real concurrency (real PostgreSQL, two connections)\n",
+        "stderr_excerpt": "",
+        "note": "the pinned harness drops and recreates the schema on open (disposable, sentinel-gated) and applies the migration chain itself"
+      },
+      "provenance": {
+        "finding_class": "REAL_POSTGRES_LOCAL",
+        "source_ref": "origin/p1/control-plane-phase0",
+        "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+        "blob_shas": {
+          "qa/dbtest/concurrency.mjs": "7a81a38fb8557402aa438a3dab05ec29c3b58f33",
+          "qa/dbtest/db.mjs": "241650bce2526822280192db0b5a302ae8b666bb"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    }
+  ]
+}

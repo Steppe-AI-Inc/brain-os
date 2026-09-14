@@ -1,0 +1,428 @@
+{
+  "suite": "provider-readiness",
+  "generated_at": "2026-09-14T05:01:32Z",
+  "totals": {
+    "PASS": 1,
+    "FAIL": 0,
+    "ABSENT": 4,
+    "PARTIAL": 2,
+    "NO_VERDICT": 0
+  },
+  "harness_errors": [],
+  "checks": [
+    {
+      "id": "PR-01",
+      "suite": "provider-readiness",
+      "observed_at": "2026-09-14T05:01:28Z",
+      "claim": "The provider vocabulary admits a non-Claude provider (e.g. a Tier-0 / DeepSeek executor)",
+      "expect": "ABSENT",
+      "method": "SOURCE_GREP",
+      "evidence_kind": "independent",
+      "verdict": "ABSENT",
+      "evidence": {
+        "master": {
+          "agents_enum": [
+            {
+              "line": 26,
+              "text": "alter table public.agents add column execution_provider text check (execution_provider is null or execution_provider in ("
+            }
+          ],
+          "agents_enum_values": "'claude_code_background','claude_code_local'",
+          "agent_runs_enum_values": "'claude_code_background','claude_code_local'"
+        },
+        "p1": {
+          "agents_enum": [
+            {
+              "line": 26,
+              "text": "alter table public.agents add column execution_provider text check (execution_provider is null or execution_provider in ("
+            }
+          ],
+          "agents_enum_values": "'claude_code_background','claude_code_local'",
+          "agent_runs_enum_values": "'claude_code_background','claude_code_local'"
+        }
+      },
+      "provenance": {
+        "master": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/master",
+          "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+          "blob_shas": {
+            "supabase/migrations/202608290003_factory_agent_registry.sql": "b34ffc0262e25de2cabe55030d5a02e074ab5e02",
+            "supabase/migrations/202608290002_canonical_work_order_model.sql": "e620c1aaa13d89efac89785423752b114de44b5c"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        },
+        "p1": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/p1/control-plane-phase0",
+          "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+          "blob_shas": {
+            "supabase/migrations/202608290003_factory_agent_registry.sql": "b34ffc0262e25de2cabe55030d5a02e074ab5e02",
+            "supabase/migrations/202608290002_canonical_work_order_model.sql": "e620c1aaa13d89efac89785423752b114de44b5c"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        }
+      }
+    },
+    {
+      "id": "PR-02",
+      "suite": "provider-readiness",
+      "observed_at": "2026-09-14T05:01:28Z",
+      "claim": "Provider dispatch is abstracted behind an interface a second provider could implement",
+      "expect": "ABSENT",
+      "method": "SOURCE_GREP",
+      "evidence_kind": "independent",
+      "verdict": "ABSENT",
+      "evidence": {
+        "master": {
+          "refuses_other_providers": [
+            {
+              "line": 404,
+              "text": "if (agent.executionProvider !== 'claude_code_background') {"
+            }
+          ],
+          "claude_cli_calls": 5,
+          "exported_interface": [
+            "parseProviderRunId",
+            "classifyProviderOutput",
+            "transientBackoffSeconds",
+            "verifierDispatchArgv",
+            "startRun",
+            "getRunStatus",
+            "getLogs",
+            "cancelRun",
+            "getArtifacts",
+            "healthCheck",
+            "resolveAgentFromRegistry",
+            "buildSkillInjectionPrompt",
+            "startRunByAgentId"
+          ],
+          "provider_interface_module_exists": false
+        },
+        "p1": {
+          "refuses_other_providers": [
+            {
+              "line": 404,
+              "text": "if (agent.executionProvider !== 'claude_code_background') {"
+            }
+          ],
+          "claude_cli_calls": 5,
+          "exported_interface": [
+            "parseProviderRunId",
+            "classifyProviderOutput",
+            "transientBackoffSeconds",
+            "verifierDispatchArgv",
+            "startRun",
+            "getRunStatus",
+            "getLogs",
+            "cancelRun",
+            "getArtifacts",
+            "healthCheck",
+            "resolveAgentFromRegistry",
+            "buildSkillInjectionPrompt",
+            "startRunByAgentId"
+          ],
+          "provider_interface_module_exists": false
+        }
+      },
+      "provenance": {
+        "master": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/master",
+          "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+          "blob_shas": {
+            "scripts/factory-runner/provider.mjs": "dd36ddf5a58911445e01f3f743295911f65920f3"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        },
+        "p1": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/p1/control-plane-phase0",
+          "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+          "blob_shas": {
+            "scripts/factory-runner/provider.mjs": "dd36ddf5a58911445e01f3f743295911f65920f3"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        }
+      }
+    },
+    {
+      "id": "PR-03",
+      "suite": "provider-readiness",
+      "observed_at": "2026-09-14T05:01:28Z",
+      "claim": "A DeepSeek or Tier-0 provider integration, plan, or configuration exists somewhere in the tracked tree",
+      "expect": "ABSENT",
+      "method": "SOURCE_GREP",
+      "evidence_kind": "independent",
+      "verdict": "ABSENT",
+      "evidence": {
+        "master": {
+          "deepseek_hits": 0,
+          "tier0_hits": 0,
+          "canary_claude_code_background_hits": 46,
+          "model_literal_files_outside_factory": 10
+        },
+        "p1": {
+          "deepseek_hits": 0,
+          "tier0_hits": 0,
+          "canary_claude_code_background_hits": 46,
+          "model_literal_files_outside_factory": 10
+        },
+        "note": "product-side model providers (web/, supabase/functions) exist for the Brain OS product AI, not for Factory execution"
+      },
+      "provenance": {
+        "master": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/master",
+          "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+          "blob_shas": {},
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        },
+        "p1": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/p1/control-plane-phase0",
+          "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+          "blob_shas": {},
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        }
+      }
+    },
+    {
+      "id": "PR-04",
+      "suite": "provider-readiness",
+      "observed_at": "2026-09-14T05:01:29Z",
+      "claim": "A provider/model substitution on restart is recorded with a reason (never silent) AND the runtime populates requested/actual",
+      "expect": "PARTIAL",
+      "method": "PGLITE_EXEC",
+      "evidence_kind": "independent",
+      "kfm_ref": "#118/no-silent-fallback",
+      "verdict": "PASS",
+      "evidence": {
+        "silent_provider_substitution": "23514",
+        "stated_substitution": true,
+        "silent_model_substitution": "23514",
+        "all_null_accepted": true,
+        "runtime_writers_of_these_columns": {
+          "master": [
+            "scripts/factory-runner/supervisor.mjs:310:  // substitutes a different one, it MUST write actual_provider/actual_model +",
+            "scripts/factory-runner/supervisor.mjs:311:  // fallback_reason — this function never silently substitutes."
+          ],
+          "p1": [
+            "scripts/factory-runner/supervisor.mjs:310:  // substitutes a different one, it MUST write actual_provider/actual_model +",
+            "scripts/factory-runner/supervisor.mjs:311:  // fallback_reason — this function never silently substitutes."
+          ]
+        },
+        "interpretation": "the DB refuses a RECORDED silent substitution, but no runtime path records requested/actual at all, so an unrecorded substitution stays invisible (all-null rows are valid)",
+        "security_label": "RLS ENFORCEMENT (PGlite emulation) — NOT SECURITY VERIFIED; requires the real-PostgreSQL job"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "supabase/migrations/202609030001_agent_run_capacity_retry.sql": "0a7f95e2dd550b982202e24e79b6eb6ad495c9d0"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "PR-05",
+      "suite": "provider-readiness",
+      "observed_at": "2026-09-14T05:01:31Z",
+      "claim": "Provider failure classification is provider-neutral",
+      "expect": "PARTIAL",
+      "method": "SOURCE_GREP",
+      "evidence_kind": "independent",
+      "verdict": "PARTIAL",
+      "evidence": {
+        "master": {
+          "capacity_patterns": [
+            "/you'?ve hit your (session|usage) limit/i",
+            "//",
+            "/session limit[^\\n.]{0,60}resets/i",
+            "/usage limit reached/i",
+            "/credit balance is too low/i",
+            "/quota (has been )?exceeded/i"
+          ],
+          "transient_patterns": [
+            "/API Error: 5\\d\\d/i",
+            "/\\b(500|502|503|504|529)\\b[^\\n]{0,40}(error|overloaded|internal|unavailable)/i",
+            "/overloaded_error/i",
+            "/internal server error/i",
+            "/service unavailable/i",
+            "/\\b(ECONNRESET|ETIMEDOUT|fetch failed)\\b/"
+          ],
+          "exported_classes": [
+            "PROVIDER_CAPACITY_BLOCKED",
+            "EXECUTION_MODE_BLOCKED",
+            "PROVIDER_TRANSIENT_ERROR"
+          ]
+        },
+        "p1": {
+          "capacity_patterns": [
+            "/you'?ve hit your (session|usage) limit/i",
+            "//",
+            "/session limit[^\\n.]{0,60}resets/i",
+            "/usage limit reached/i",
+            "/credit balance is too low/i",
+            "/quota (has been )?exceeded/i"
+          ],
+          "transient_patterns": [
+            "/API Error: 5\\d\\d/i",
+            "/\\b(500|502|503|504|529)\\b[^\\n]{0,40}(error|overloaded|internal|unavailable)/i",
+            "/overloaded_error/i",
+            "/internal server error/i",
+            "/service unavailable/i",
+            "/\\b(ECONNRESET|ETIMEDOUT|fetch failed)\\b/"
+          ],
+          "exported_classes": [
+            "PROVIDER_CAPACITY_BLOCKED",
+            "EXECUTION_MODE_BLOCKED",
+            "PROVIDER_TRANSIENT_ERROR"
+          ]
+        },
+        "note": "sound for Claude Code (cross-checked by DIR-11 provider.regression.test); a second provider would need its own pattern set and there is no per-provider hook"
+      },
+      "provenance": {
+        "master": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/master",
+          "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+          "blob_shas": {
+            "scripts/factory-runner/provider.mjs": "dd36ddf5a58911445e01f3f743295911f65920f3"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        },
+        "p1": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/p1/control-plane-phase0",
+          "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+          "blob_shas": {
+            "scripts/factory-runner/provider.mjs": "dd36ddf5a58911445e01f3f743295911f65920f3"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        }
+      }
+    },
+    {
+      "id": "PR-06",
+      "suite": "provider-readiness",
+      "observed_at": "2026-09-14T05:01:31Z",
+      "claim": "An execution_provider plugin can be registered AND is consumed by the dispatcher",
+      "expect": "PARTIAL",
+      "method": "SOURCE_GREP",
+      "evidence_kind": "independent",
+      "verdict": "PARTIAL",
+      "evidence": {
+        "master": {
+          "registry_enum": 1,
+          "consumers_in_runtime": 0
+        },
+        "p1": {
+          "registry_enum": 1,
+          "consumers_in_runtime": 0
+        }
+      },
+      "provenance": {
+        "master": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/master",
+          "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+          "blob_shas": {
+            "supabase/migrations/202608300004_plugin_registry.sql": "296dbedbd1daea6d809d0bec98d4e454a1d73086"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        },
+        "p1": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/p1/control-plane-phase0",
+          "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+          "blob_shas": {
+            "supabase/migrations/202608300004_plugin_registry.sql": "296dbedbd1daea6d809d0bec98d4e454a1d73086"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        }
+      }
+    },
+    {
+      "id": "PR-07",
+      "suite": "provider-readiness",
+      "observed_at": "2026-09-14T05:01:31Z",
+      "claim": "The Factory can accept a Tier-0/DeepSeek executor today without code change",
+      "expect": "ABSENT",
+      "method": "SOURCE_GREP",
+      "evidence_kind": "independent",
+      "verdict": "ABSENT",
+      "evidence": {
+        "master": {
+          "provider_enum_closed": true,
+          "dispatcher_refuses_others": true,
+          "model_selection_surface": 0,
+          "verifier_tools_allowlist": true
+        },
+        "p1": {
+          "provider_enum_closed": true,
+          "dispatcher_refuses_others": true,
+          "model_selection_surface": 0,
+          "verifier_tools_allowlist": true
+        },
+        "missing_for_readiness": [
+          "agents.execution_provider enum value + agent_runs.execution_provider enum value",
+          "a provider adapter behind startRun/getRunStatus/getLogs/cancelRun/getArtifacts/healthCheck",
+          "a per-provider capacity/transient classifier",
+          "runtime population of requested_provider/model + actual_provider/model + fallback_reason at dispatch and restart",
+          "a provider-neutral least-privilege DB path (db.mjs adoption) so a Tier-0 node has no ambient authority",
+          "certification independence so a cheap authoring run is never its own certifier (RI-01..05)"
+        ]
+      },
+      "provenance": {
+        "master": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/master",
+          "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+          "blob_shas": {
+            "scripts/factory-runner/provider.mjs": "dd36ddf5a58911445e01f3f743295911f65920f3",
+            "supabase/migrations/202608290003_factory_agent_registry.sql": "b34ffc0262e25de2cabe55030d5a02e074ab5e02"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        },
+        "p1": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/p1/control-plane-phase0",
+          "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+          "blob_shas": {
+            "scripts/factory-runner/provider.mjs": "dd36ddf5a58911445e01f3f743295911f65920f3",
+            "supabase/migrations/202608290003_factory_agent_registry.sql": "b34ffc0262e25de2cabe55030d5a02e074ab5e02"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        }
+      }
+    }
+  ]
+}

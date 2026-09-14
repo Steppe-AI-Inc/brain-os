@@ -1,0 +1,1195 @@
+{
+  "suite": "control-plane-security",
+  "generated_at": "2026-09-14T04:56:29Z",
+  "totals": {
+    "PASS": 6,
+    "FAIL": 2,
+    "ABSENT": 0,
+    "PARTIAL": 3,
+    "NO_VERDICT": 2
+  },
+  "harness_errors": [],
+  "checks": [
+    {
+      "id": "CPS-01",
+      "suite": "control-plane-security",
+      "observed_at": "2026-09-14T04:56:25Z",
+      "claim": "The factory accessor connects only through an explicit FACTORY_RUNNER_PG_URL",
+      "expect": "PASS",
+      "method": "SOURCE_GREP",
+      "evidence_kind": "independent",
+      "verdict": "PASS",
+      "evidence": {
+        "master": {
+          "env_vars_read": [
+            "FACTORY_RUNNER_PG_URL"
+          ],
+          "blob": "8100ec5e512171a38d2499b8464e5fe6c0c6c210"
+        },
+        "p1": {
+          "env_vars_read": [
+            "FACTORY_RUNNER_PG_URL"
+          ],
+          "blob": "8100ec5e512171a38d2499b8464e5fe6c0c6c210"
+        }
+      },
+      "provenance": {
+        "master": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/master",
+          "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+          "blob_shas": {
+            "scripts/factory-runner/db.mjs": "8100ec5e512171a38d2499b8464e5fe6c0c6c210"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        },
+        "p1": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/p1/control-plane-phase0",
+          "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+          "blob_shas": {
+            "scripts/factory-runner/db.mjs": "8100ec5e512171a38d2499b8464e5fe6c0c6c210"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        }
+      }
+    },
+    {
+      "id": "CPS-02",
+      "suite": "control-plane-security",
+      "observed_at": "2026-09-14T04:56:25Z",
+      "claim": "With FACTORY_RUNNER_PG_URL unset, read()/write()/transaction() refuse before any connection even when ambient credentials are present in the environment",
+      "expect": "PASS",
+      "method": "PURE_FN",
+      "evidence_kind": "independent",
+      "verdict": "PASS",
+      "evidence": {
+        "master": {
+          "read": {
+            "threw": true,
+            "name": "FactoryDbRefusal",
+            "message": "REFUSED — FACTORY_RUNNER_PG_URL is not set. This module deliberately has no fallback: the previous mechanism (`supabase db query --linked`) worked precisely because it silently borrowed whatever produ"
+          },
+          "write": {
+            "threw": true,
+            "name": "FactoryDbRefusal",
+            "message": "REFUSED — FACTORY_RUNNER_PG_URL is not set. This module deliberately has no fallback: the previous mechanism (`supabase db query --linked`) worked precisely because it silently borrowed whatever produ"
+          },
+          "transaction": {
+            "threw": true,
+            "name": "FactoryDbRefusal",
+            "message": "REFUSED — FACTORY_RUNNER_PG_URL is not set. This module deliberately has no fallback: the previous mechanism (`supabase db query --linked`) worked precisely because it silently borrowed whatever produ"
+          },
+          "exported_url_value": ""
+        },
+        "p1": {
+          "read": {
+            "threw": true,
+            "name": "FactoryDbRefusal",
+            "message": "REFUSED — FACTORY_RUNNER_PG_URL is not set. This module deliberately has no fallback: the previous mechanism (`supabase db query --linked`) worked precisely because it silently borrowed whatever produ"
+          },
+          "write": {
+            "threw": true,
+            "name": "FactoryDbRefusal",
+            "message": "REFUSED — FACTORY_RUNNER_PG_URL is not set. This module deliberately has no fallback: the previous mechanism (`supabase db query --linked`) worked precisely because it silently borrowed whatever produ"
+          },
+          "transaction": {
+            "threw": true,
+            "name": "FactoryDbRefusal",
+            "message": "REFUSED — FACTORY_RUNNER_PG_URL is not set. This module deliberately has no fallback: the previous mechanism (`supabase db query --linked`) worked precisely because it silently borrowed whatever produ"
+          },
+          "exported_url_value": ""
+        }
+      },
+      "provenance": {
+        "master": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/master",
+          "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+          "blob_shas": {
+            "scripts/factory-runner/db.mjs": "8100ec5e512171a38d2499b8464e5fe6c0c6c210"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        },
+        "p1": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/p1/control-plane-phase0",
+          "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+          "blob_shas": {
+            "scripts/factory-runner/db.mjs": "8100ec5e512171a38d2499b8464e5fe6c0c6c210"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        }
+      }
+    },
+    {
+      "id": "CPS-03",
+      "suite": "control-plane-security",
+      "observed_at": "2026-09-14T04:56:25Z",
+      "claim": "db.mjs rejects superuser/admin connections and role-escalation statements",
+      "expect": "PARTIAL",
+      "method": "PURE_FN",
+      "evidence_kind": "independent",
+      "verdict": "PARTIAL",
+      "evidence": {
+        "master": {
+          "url_refusals": {
+            "postgres": "REFUSED_SUPERUSER",
+            "supabase_admin": "REFUSED_SUPERUSER",
+            "pooler_postgres_ref": "REFUSED_SUPERUSER",
+            "encoded_postgres": "REFUSED_SUPERUSER",
+            "upper_POSTGRES": "ACCEPTED_ATTEMPTED_CONNECT",
+            "service_role": "ACCEPTED_ATTEMPTED_CONNECT",
+            "custom_superuser": "ACCEPTED_ATTEMPTED_CONNECT",
+            "least_priv": "ACCEPTED_ATTEMPTED_CONNECT"
+          },
+          "statement_classes": {
+            "set_role": "role escalation",
+            "set_session_authorization": null,
+            "set_search_path": null,
+            "grant": "privilege change",
+            "ddl_create": "DDL (CREATE)",
+            "supabase_migrations": "migration history",
+            "pg_terminate": null,
+            "security_definer": "DDL (CREATE)"
+          }
+        },
+        "p1": {
+          "url_refusals": {
+            "postgres": "REFUSED_SUPERUSER",
+            "supabase_admin": "REFUSED_SUPERUSER",
+            "pooler_postgres_ref": "REFUSED_SUPERUSER",
+            "encoded_postgres": "REFUSED_SUPERUSER",
+            "upper_POSTGRES": "ACCEPTED_ATTEMPTED_CONNECT",
+            "service_role": "ACCEPTED_ATTEMPTED_CONNECT",
+            "custom_superuser": "ACCEPTED_ATTEMPTED_CONNECT",
+            "least_priv": "ACCEPTED_ATTEMPTED_CONNECT"
+          },
+          "statement_classes": {
+            "set_role": "role escalation",
+            "set_session_authorization": null,
+            "set_search_path": null,
+            "grant": "privilege change",
+            "ddl_create": "DDL (CREATE)",
+            "supabase_migrations": "migration history",
+            "pg_terminate": null,
+            "security_definer": "DDL (CREATE)"
+          }
+        },
+        "gaps": {
+          "master": [
+            "url:service_role",
+            "url:custom_superuser",
+            "url:upper_POSTGRES",
+            "statement:set_session_authorization",
+            "statement:set_search_path"
+          ],
+          "p1": [
+            "url:service_role",
+            "url:custom_superuser",
+            "url:upper_POSTGRES",
+            "statement:set_session_authorization",
+            "statement:set_search_path"
+          ]
+        },
+        "note": "username-string check only; no server-side role verification (current_user/rolsuper) exists in db.mjs"
+      },
+      "provenance": {
+        "master": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/master",
+          "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+          "blob_shas": {
+            "scripts/factory-runner/db.mjs": "8100ec5e512171a38d2499b8464e5fe6c0c6c210"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        },
+        "p1": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/p1/control-plane-phase0",
+          "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+          "blob_shas": {
+            "scripts/factory-runner/db.mjs": "8100ec5e512171a38d2499b8464e5fe6c0c6c210"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        }
+      }
+    },
+    {
+      "id": "CPS-04",
+      "suite": "control-plane-security",
+      "observed_at": "2026-09-14T04:56:25Z",
+      "claim": "Generic Factory node has zero production-write authority: no runtime script reaches the DB through `supabase db query --linked`",
+      "expect": "FAIL",
+      "method": "SOURCE_GREP",
+      "evidence_kind": "independent",
+      "verdict": "FAIL",
+      "evidence": {
+        "master": {
+          "linked_call_sites": {
+            "scripts/factory-runner/complete-run.mjs": {
+              "count": 1,
+              "blob_sha": "2a65bed203e546c4fb24c09c18538feafa77b0f0",
+              "anchors": [
+                39
+              ]
+            },
+            "scripts/factory-runner/dispatch-task.mjs": {
+              "count": 1,
+              "blob_sha": "0d5f2b211e212c9038b81b6245a7539ad409e34f",
+              "anchors": [
+                31
+              ]
+            },
+            "scripts/factory-runner/plugin-attach.mjs": {
+              "count": 1,
+              "blob_sha": "064cc6927697d49965ac65814383af16c70dad6b",
+              "anchors": [
+                77
+              ]
+            },
+            "scripts/factory-runner/plugin-sync.mjs": {
+              "count": 1,
+              "blob_sha": "0f5ee23433b9970c47b2f08a7837d6ee755ae36c",
+              "anchors": [
+                37
+              ]
+            },
+            "scripts/factory-runner/poll-and-dispatch.mjs": {
+              "count": 1,
+              "blob_sha": "58b905fb17f43a2f1c6fdc39c14e340d6e7ebb04",
+              "anchors": [
+                34
+              ]
+            },
+            "scripts/factory-runner/poll-plugin-operations.mjs": {
+              "count": 1,
+              "blob_sha": "15c5c105247801c7a1a3da4312b861c02301013d",
+              "anchors": [
+                32
+              ]
+            },
+            "scripts/factory-runner/provider.mjs": {
+              "count": 1,
+              "blob_sha": "dd36ddf5a58911445e01f3f743295911f65920f3",
+              "anchors": [
+                296
+              ]
+            },
+            "scripts/factory-runner/register-worker.mjs": {
+              "count": 1,
+              "blob_sha": "83b11051751c8927af487d9ca1c045d10d5bd3a7",
+              "anchors": [
+                33
+              ]
+            },
+            "scripts/factory-runner/scheduler.mjs": {
+              "count": 1,
+              "blob_sha": "c01535bf9a97538a790b5e9b21d19bf37e8dfc44",
+              "anchors": [
+                41
+              ]
+            },
+            "scripts/factory-runner/supervisor.mjs": {
+              "count": 1,
+              "blob_sha": "661c7d152b2b833e26de2ef2a61175d93e8a4d67",
+              "anchors": [
+                62
+              ]
+            },
+            "scripts/factory-runner/sync-agents.mjs": {
+              "count": 1,
+              "blob_sha": "265796d4e071294a6d820220a1a9fc2a46ca3580",
+              "anchors": [
+                77
+              ]
+            }
+          },
+          "db_mjs_call_sites": 0,
+          "home_pc_inventory_crosscheck": {
+            "exit": 1,
+            "not_ok": [
+              "not ok 2 - FACTORY_WORKERS_CARRY_NO_AMBIENT_PRODUCTION_DB_AUTHORITY"
+            ],
+            "production_write_rows": [
+              "PRODUCTION_WRITE  complete-run.mjs",
+              "PRODUCTION_WRITE  dispatch-task.mjs",
+              "PRODUCTION_WRITE  plugin-attach.mjs",
+              "PRODUCTION_WRITE  plugin-sync.mjs",
+              "PRODUCTION_WRITE  poll-and-dispatch.mjs",
+              "PRODUCTION_WRITE  poll-plugin-operations.mjs",
+              "PRODUCTION_WRITE  provider.mjs",
+              "PRODUCTION_WRITE  register-worker.mjs",
+              "PRODUCTION_WRITE  scheduler.mjs",
+              "PRODUCTION_WRITE  supervisor.mjs",
+              "PRODUCTION_WRITE  sync-agents.mjs"
+            ]
+          }
+        },
+        "p1": {
+          "linked_call_sites": {
+            "scripts/factory-runner/complete-run.mjs": {
+              "count": 1,
+              "blob_sha": "2a65bed203e546c4fb24c09c18538feafa77b0f0",
+              "anchors": [
+                39
+              ]
+            },
+            "scripts/factory-runner/dispatch-task.mjs": {
+              "count": 1,
+              "blob_sha": "0d5f2b211e212c9038b81b6245a7539ad409e34f",
+              "anchors": [
+                31
+              ]
+            },
+            "scripts/factory-runner/plugin-attach.mjs": {
+              "count": 1,
+              "blob_sha": "064cc6927697d49965ac65814383af16c70dad6b",
+              "anchors": [
+                77
+              ]
+            },
+            "scripts/factory-runner/plugin-sync.mjs": {
+              "count": 1,
+              "blob_sha": "0f5ee23433b9970c47b2f08a7837d6ee755ae36c",
+              "anchors": [
+                37
+              ]
+            },
+            "scripts/factory-runner/poll-and-dispatch.mjs": {
+              "count": 1,
+              "blob_sha": "58b905fb17f43a2f1c6fdc39c14e340d6e7ebb04",
+              "anchors": [
+                34
+              ]
+            },
+            "scripts/factory-runner/poll-plugin-operations.mjs": {
+              "count": 1,
+              "blob_sha": "15c5c105247801c7a1a3da4312b861c02301013d",
+              "anchors": [
+                32
+              ]
+            },
+            "scripts/factory-runner/provider.mjs": {
+              "count": 1,
+              "blob_sha": "dd36ddf5a58911445e01f3f743295911f65920f3",
+              "anchors": [
+                296
+              ]
+            },
+            "scripts/factory-runner/register-worker.mjs": {
+              "count": 1,
+              "blob_sha": "83b11051751c8927af487d9ca1c045d10d5bd3a7",
+              "anchors": [
+                33
+              ]
+            },
+            "scripts/factory-runner/scheduler.mjs": {
+              "count": 1,
+              "blob_sha": "c01535bf9a97538a790b5e9b21d19bf37e8dfc44",
+              "anchors": [
+                41
+              ]
+            },
+            "scripts/factory-runner/supervisor.mjs": {
+              "count": 1,
+              "blob_sha": "661c7d152b2b833e26de2ef2a61175d93e8a4d67",
+              "anchors": [
+                62
+              ]
+            },
+            "scripts/factory-runner/sync-agents.mjs": {
+              "count": 1,
+              "blob_sha": "265796d4e071294a6d820220a1a9fc2a46ca3580",
+              "anchors": [
+                77
+              ]
+            }
+          },
+          "db_mjs_call_sites": 0,
+          "home_pc_inventory_crosscheck": {
+            "exit": 1,
+            "not_ok": [
+              "not ok 2 - FACTORY_WORKERS_CARRY_NO_AMBIENT_PRODUCTION_DB_AUTHORITY"
+            ],
+            "production_write_rows": [
+              "PRODUCTION_WRITE  complete-run.mjs",
+              "PRODUCTION_WRITE  dispatch-task.mjs",
+              "PRODUCTION_WRITE  plugin-attach.mjs",
+              "PRODUCTION_WRITE  plugin-sync.mjs",
+              "PRODUCTION_WRITE  poll-and-dispatch.mjs",
+              "PRODUCTION_WRITE  poll-plugin-operations.mjs",
+              "PRODUCTION_WRITE  provider.mjs",
+              "PRODUCTION_WRITE  register-worker.mjs",
+              "PRODUCTION_WRITE  scheduler.mjs",
+              "PRODUCTION_WRITE  supervisor.mjs",
+              "PRODUCTION_WRITE  sync-agents.mjs"
+            ]
+          }
+        }
+      },
+      "provenance": {
+        "master": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/master",
+          "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+          "blob_shas": {
+            "scripts/factory-runner/complete-run.mjs": "2a65bed203e546c4fb24c09c18538feafa77b0f0",
+            "scripts/factory-runner/dispatch-task.mjs": "0d5f2b211e212c9038b81b6245a7539ad409e34f",
+            "scripts/factory-runner/plugin-attach.mjs": "064cc6927697d49965ac65814383af16c70dad6b",
+            "scripts/factory-runner/plugin-sync.mjs": "0f5ee23433b9970c47b2f08a7837d6ee755ae36c",
+            "scripts/factory-runner/poll-and-dispatch.mjs": "58b905fb17f43a2f1c6fdc39c14e340d6e7ebb04",
+            "scripts/factory-runner/poll-plugin-operations.mjs": "15c5c105247801c7a1a3da4312b861c02301013d",
+            "scripts/factory-runner/provider.mjs": "dd36ddf5a58911445e01f3f743295911f65920f3",
+            "scripts/factory-runner/register-worker.mjs": "83b11051751c8927af487d9ca1c045d10d5bd3a7",
+            "scripts/factory-runner/scheduler.mjs": "c01535bf9a97538a790b5e9b21d19bf37e8dfc44",
+            "scripts/factory-runner/supervisor.mjs": "661c7d152b2b833e26de2ef2a61175d93e8a4d67",
+            "scripts/factory-runner/sync-agents.mjs": "265796d4e071294a6d820220a1a9fc2a46ca3580"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        },
+        "p1": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/p1/control-plane-phase0",
+          "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+          "blob_shas": {
+            "scripts/factory-runner/complete-run.mjs": "2a65bed203e546c4fb24c09c18538feafa77b0f0",
+            "scripts/factory-runner/dispatch-task.mjs": "0d5f2b211e212c9038b81b6245a7539ad409e34f",
+            "scripts/factory-runner/plugin-attach.mjs": "064cc6927697d49965ac65814383af16c70dad6b",
+            "scripts/factory-runner/plugin-sync.mjs": "0f5ee23433b9970c47b2f08a7837d6ee755ae36c",
+            "scripts/factory-runner/poll-and-dispatch.mjs": "58b905fb17f43a2f1c6fdc39c14e340d6e7ebb04",
+            "scripts/factory-runner/poll-plugin-operations.mjs": "15c5c105247801c7a1a3da4312b861c02301013d",
+            "scripts/factory-runner/provider.mjs": "dd36ddf5a58911445e01f3f743295911f65920f3",
+            "scripts/factory-runner/register-worker.mjs": "83b11051751c8927af487d9ca1c045d10d5bd3a7",
+            "scripts/factory-runner/scheduler.mjs": "c01535bf9a97538a790b5e9b21d19bf37e8dfc44",
+            "scripts/factory-runner/supervisor.mjs": "661c7d152b2b833e26de2ef2a61175d93e8a4d67",
+            "scripts/factory-runner/sync-agents.mjs": "265796d4e071294a6d820220a1a9fc2a46ca3580"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        }
+      }
+    },
+    {
+      "id": "CPS-00",
+      "suite": "control-plane-security",
+      "observed_at": "2026-09-14T04:56:28Z",
+      "claim": "PGlite engine ready with full chain; persona enforcement self-checked",
+      "expect": "PASS",
+      "method": "PGLITE_EXEC",
+      "evidence_kind": "independent",
+      "verdict": "PASS",
+      "evidence": {
+        "engine": "pglite",
+        "version": "PostgreSQL 18.3 (PGlite 0.5.8) on wasm32-unknown-emscripten, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit",
+        "self_check": {
+          "session_user": "qa_authenticator",
+          "current_user": "authenticated",
+          "forbidden_op_sqlstate": "42501"
+        },
+        "security_label": "RLS ENFORCEMENT (PGlite emulation) — NOT SECURITY VERIFIED; requires the real-PostgreSQL job"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/p1/control-plane-phase0",
+        "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+        "blob_shas": {
+          "qa/dbtest/db.mjs": "241650bce2526822280192db0b5a302ae8b666bb"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "CPS-05",
+      "suite": "control-plane-security",
+      "observed_at": "2026-09-14T04:56:29Z",
+      "claim": "claim_blocked_run_for_retry authority derives from role/capability rather than transport identity; least-privilege callers are denied for the right reason",
+      "expect": "PARTIAL",
+      "method": "PGLITE_EXEC",
+      "evidence_kind": "independent",
+      "verdict": "PARTIAL",
+      "evidence": {
+        "as_postgres_superuser": {
+          "ok": true,
+          "rows": [
+            {
+              "id": "dddd0000-0000-4000-8000-00000000000d"
+            }
+          ]
+        },
+        "as_employee_authenticated": {
+          "ok": false,
+          "sqlstate": "42501",
+          "message": "permission denied for function claim_blocked_run_for_retry"
+        },
+        "as_manager_authenticated": {
+          "ok": false,
+          "sqlstate": "42501",
+          "message": "permission denied for function claim_blocked_run_for_retry"
+        },
+        "as_founder_authenticated": {
+          "ok": false,
+          "sqlstate": "42501",
+          "message": "permission denied for function claim_blocked_run_for_retry"
+        },
+        "as_anon": {
+          "ok": false,
+          "sqlstate": "42501",
+          "message": "permission denied for function claim_blocked_run_for_retry"
+        },
+        "as_unnamed_superuser": {
+          "ok": false,
+          "sqlstate": "P0001",
+          "message": "Only the founder, an admin, or the server-side supervisor identity can claim a blocked Agent Run for retry"
+        },
+        "as_supabase_admin": {
+          "ok": true,
+          "rows": [
+            {
+              "id": "dddd0000-0000-4000-8000-00000000000d"
+            }
+          ]
+        },
+        "routine_privileges": [
+          {
+            "grantee": "postgres",
+            "privilege_type": "EXECUTE"
+          }
+        ],
+        "gate_anchor": [
+          {
+            "line": 131,
+            "text": "or session_user in ('postgres', 'supabase_admin')) then"
+          },
+          {
+            "line": 219,
+            "text": "if public.is_founder_or_admin() or session_user in ('postgres', 'supabase_admin') then"
+          }
+        ],
+        "unnamed_superuser_hits_raise": true,
+        "interpretation": "EXECUTE is revoked from every API role, so even the founder JWT cannot claim; only the postgres/supabase_admin transport identities can. Authority derives from the connection identity NAME (machine trust), not from a work-order/role claim. Least-privilege denial is for the right reason (42501).",
+        "security_label": "RLS ENFORCEMENT (PGlite emulation) — NOT SECURITY VERIFIED; requires the real-PostgreSQL job"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "supabase/migrations/202609030001_agent_run_capacity_retry.sql": "0a7f95e2dd550b982202e24e79b6eb6ad495c9d0"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "CPS-06",
+      "suite": "control-plane-security",
+      "observed_at": "2026-09-14T04:56:29Z",
+      "claim": "A company manager cannot rewrite the Agent Run fields the supervisor consumes",
+      "expect": "PARTIAL",
+      "method": "PGLITE_EXEC",
+      "evidence_kind": "independent",
+      "kfm_ref": "#118/claim-5",
+      "verdict": "PARTIAL",
+      "evidence": {
+        "per_column": {
+          "worktree": "DENIED_42501",
+          "checkpoint_location": "DENIED_42501",
+          "source_sha": "DENIED_42501",
+          "branch": "DENIED_42501",
+          "retry_after": "DENIED_42501",
+          "claimed_by": "DENIED_42501",
+          "claimed_at": "DENIED_42501",
+          "attempt_count": "DENIED_42501",
+          "blocked_reason": "DENIED_42501",
+          "status": "SUCCEEDED",
+          "remaining_scenarios": "DENIED_42501",
+          "last_completed_scenario": "DENIED_42501",
+          "agent_id": "DENIED_42501",
+          "canonical_work_order_id": "DENIED_42501",
+          "execution_provider": "SUCCEEDED",
+          "provider_run_id": "SUCCEEDED",
+          "agent_definition_path": "SUCCEEDED",
+          "agent_definition_hash": "SUCCEEDED",
+          "summary": "SUCCEEDED",
+          "head_commit": "SUCCEEDED",
+          "verification_status": "SUCCEEDED"
+        },
+        "guarded": [
+          "worktree",
+          "checkpoint_location",
+          "source_sha",
+          "branch",
+          "retry_after",
+          "claimed_by",
+          "claimed_at",
+          "attempt_count",
+          "blocked_reason",
+          "remaining_scenarios",
+          "last_completed_scenario",
+          "agent_id",
+          "canonical_work_order_id"
+        ],
+        "succeeded": [
+          "status",
+          "execution_provider",
+          "provider_run_id",
+          "agent_definition_path",
+          "agent_definition_hash",
+          "summary",
+          "head_commit",
+          "verification_status"
+        ],
+        "rls_hidden": [],
+        "consumed_but_unguarded": [
+          "status",
+          "execution_provider",
+          "provider_run_id",
+          "agent_definition_path",
+          "agent_definition_hash",
+          "summary",
+          "head_commit",
+          "verification_status"
+        ],
+        "manager_can_forge_certification_columns": true,
+        "control_as_superuser": true,
+        "security_label": "RLS ENFORCEMENT (PGlite emulation) — NOT SECURITY VERIFIED; requires the real-PostgreSQL job",
+        "note": "PGlite emulation with session_user = qa_authenticator so guard_agent_run_retry_columns is exercised on its real inputs"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "supabase/migrations/202609030001_agent_run_capacity_retry.sql": "0a7f95e2dd550b982202e24e79b6eb6ad495c9d0",
+          "supabase/migrations/202608290002_canonical_work_order_model.sql": "e620c1aaa13d89efac89785423752b114de44b5c"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "CPS-07",
+      "suite": "control-plane-security",
+      "observed_at": "2026-09-14T04:56:29Z",
+      "claim": "The control-plane schema does not reference Brain OS business tables; business IDs are opaque references by value",
+      "expect": "FAIL",
+      "method": "PGLITE_EXEC",
+      "evidence_kind": "independent",
+      "verdict": "FAIL",
+      "evidence": {
+        "fks_to_business_tables": [
+          {
+            "table_name": "agent_runs",
+            "column_name": "company_id",
+            "ref_table": "companies",
+            "delete_rule": "SET NULL",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "agent_runs",
+            "column_name": "created_by_profile_id",
+            "ref_table": "profiles",
+            "delete_rule": "NO ACTION",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "agent_runs",
+            "column_name": "task_id",
+            "ref_table": "tasks",
+            "delete_rule": "SET NULL",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "canonical_work_orders",
+            "column_name": "company_id",
+            "ref_table": "companies",
+            "delete_rule": "CASCADE",
+            "is_nullable": "NO"
+          },
+          {
+            "table_name": "canonical_work_orders",
+            "column_name": "created_by_profile_id",
+            "ref_table": "profiles",
+            "delete_rule": "NO ACTION",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "canonical_work_orders",
+            "column_name": "goal_id",
+            "ref_table": "goals",
+            "delete_rule": "SET NULL",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "canonical_work_orders",
+            "column_name": "owner_person_id",
+            "ref_table": "people",
+            "delete_rule": "NO ACTION",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "canonical_work_orders",
+            "column_name": "requested_by_profile_id",
+            "ref_table": "profiles",
+            "delete_rule": "NO ACTION",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "tasks",
+            "column_name": "company_id",
+            "ref_table": "companies",
+            "delete_rule": "SET NULL",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "tasks",
+            "column_name": "created_by_profile_id",
+            "ref_table": "profiles",
+            "delete_rule": "NO ACTION",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "tasks",
+            "column_name": "owner_person_id",
+            "ref_table": "people",
+            "delete_rule": "NO ACTION",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "tasks",
+            "column_name": "parent_task_id",
+            "ref_table": "tasks",
+            "delete_rule": "SET NULL",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "tasks",
+            "column_name": "project_id",
+            "ref_table": "projects",
+            "delete_rule": "SET NULL",
+            "is_nullable": "YES"
+          }
+        ],
+        "all_fks": [
+          {
+            "table_name": "agent_runs",
+            "column_name": "agent_id",
+            "ref_table": "agents",
+            "delete_rule": "NO ACTION",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "agent_runs",
+            "column_name": "canonical_work_order_id",
+            "ref_table": "canonical_work_orders",
+            "delete_rule": "SET NULL",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "agent_runs",
+            "column_name": "company_id",
+            "ref_table": "companies",
+            "delete_rule": "SET NULL",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "agent_runs",
+            "column_name": "created_by_profile_id",
+            "ref_table": "profiles",
+            "delete_rule": "NO ACTION",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "agent_runs",
+            "column_name": "task_id",
+            "ref_table": "tasks",
+            "delete_rule": "SET NULL",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "canonical_work_orders",
+            "column_name": "company_id",
+            "ref_table": "companies",
+            "delete_rule": "CASCADE",
+            "is_nullable": "NO"
+          },
+          {
+            "table_name": "canonical_work_orders",
+            "column_name": "created_by_profile_id",
+            "ref_table": "profiles",
+            "delete_rule": "NO ACTION",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "canonical_work_orders",
+            "column_name": "goal_id",
+            "ref_table": "goals",
+            "delete_rule": "SET NULL",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "canonical_work_orders",
+            "column_name": "owner_agent_id",
+            "ref_table": "agents",
+            "delete_rule": "NO ACTION",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "canonical_work_orders",
+            "column_name": "owner_person_id",
+            "ref_table": "people",
+            "delete_rule": "NO ACTION",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "canonical_work_orders",
+            "column_name": "requested_by_profile_id",
+            "ref_table": "profiles",
+            "delete_rule": "NO ACTION",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "tasks",
+            "column_name": "canonical_work_order_id",
+            "ref_table": "canonical_work_orders",
+            "delete_rule": "SET NULL",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "tasks",
+            "column_name": "company_id",
+            "ref_table": "companies",
+            "delete_rule": "SET NULL",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "tasks",
+            "column_name": "created_by_profile_id",
+            "ref_table": "profiles",
+            "delete_rule": "NO ACTION",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "tasks",
+            "column_name": "owner_agent_id",
+            "ref_table": "agents",
+            "delete_rule": "NO ACTION",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "tasks",
+            "column_name": "owner_person_id",
+            "ref_table": "people",
+            "delete_rule": "NO ACTION",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "tasks",
+            "column_name": "parent_task_id",
+            "ref_table": "tasks",
+            "delete_rule": "SET NULL",
+            "is_nullable": "YES"
+          },
+          {
+            "table_name": "tasks",
+            "column_name": "project_id",
+            "ref_table": "projects",
+            "delete_rule": "SET NULL",
+            "is_nullable": "YES"
+          }
+        ],
+        "rls_policies_joining_business_tables": [
+          "agent_runs.agent_runs_select_scope",
+          "agent_runs.agent_runs_update_scope",
+          "canonical_work_orders.canonical_work_orders_select_scope",
+          "canonical_work_orders.canonical_work_orders_update_scope",
+          "canonical_work_orders.canonical_work_orders_delete_scope"
+        ],
+        "note": "canonical_work_orders.company_id is NOT NULL with ON DELETE CASCADE to companies"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "supabase/migrations/202608290002_canonical_work_order_model.sql": "e620c1aaa13d89efac89785423752b114de44b5c",
+          "supabase/migrations/202608310007_factory_workers.sql": "7116678e4846732057f7276a259013dd9886f331"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "CPS-08",
+      "suite": "control-plane-security",
+      "observed_at": "2026-09-14T04:56:29Z",
+      "claim": "A caller with real access to company A cannot associate company B objects by supplying their ids",
+      "expect": "PASS",
+      "method": "PGLITE_EXEC",
+      "evidence_kind": "independent",
+      "verdict": "PASS",
+      "evidence": {
+        "rpc_signature": "p_title text, p_objective text, p_company_id uuid, p_goal_id uuid, p_work_type text, p_priority text, p_acceptance_criteria jsonb",
+        "rpc_call_args": [
+          "p_title => 'cross-company probe'",
+          "p_objective => 'probe'",
+          "p_company_id => 'ed8ae510-ddbc-4be6-9d9e-d1f725b1381d'::uuid",
+          "p_goal_id => 'bbbbbbbb-0000-4000-8000-0000000000b1'::uuid",
+          "p_work_type => 'software_development'",
+          "p_priority => 'medium'",
+          "p_acceptance_criteria => '[]'::jsonb"
+        ],
+        "rpc_attempt": {
+          "ok": false,
+          "sqlstate": "23514",
+          "message": "create_factory_work_order: goal bbbbbbbb-0000-4000-8000-0000000000b1 does not belong to company ed8ae510-ddbc-4be6-9d9e-d1f725b1381d (cross-company goal reference rejected)"
+        },
+        "direct_insert_as_superuser": {
+          "ok": false,
+          "sqlstate": "23514",
+          "message": "canonical_work_orders: goal_id bbbbbbbb-0000-4000-8000-0000000000b1 does not belong to company_id ed8ae510-ddbc-4be6-9d9e-d1f725b1381d (cross-company goal reference rejected)"
+        },
+        "trigger_present": [
+          "canonical_work_orders_enforce_goal_company"
+        ],
+        "security_label": "RLS ENFORCEMENT (PGlite emulation) — NOT SECURITY VERIFIED; requires the real-PostgreSQL job"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "supabase/migrations/202608290005_create_factory_work_order_rpc.sql": "ed0ff4b24828b9a6b665cb7d962990289f288b36",
+          "supabase/migrations/202608290006_factory_work_order_cross_company_fix.sql": "3d6540feb7e46a014d74522fce22b39b91dda8a4"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "CPS-09",
+      "suite": "control-plane-security",
+      "observed_at": "2026-09-14T04:56:29Z",
+      "claim": "No factory RPC is granted to anon; founder canonical path works",
+      "expect": "PASS",
+      "method": "PGLITE_SUITE_RERUN",
+      "evidence_kind": "cross-check",
+      "kfm_ref": null,
+      "verdict": "NO_VERDICT",
+      "no_verdict_reason": "ENGINE_FIXTURE_INCOMPATIBLE: the suite seeds auth.users(instance_id), a column the pinned qa/dbtest bootstrap does not model",
+      "evidence": {
+        "verdict_object": null,
+        "failed_keys": [],
+        "error": {
+          "sqlstate": "42703",
+          "message": "column \"instance_id\" of relation \"users\" does not exist"
+        },
+        "persona_fidelity": "SET_ROLE_ONLY (session_user stays postgres inside the suite)",
+        "security_label": "RLS ENFORCEMENT (PGlite emulation) — NOT SECURITY VERIFIED; requires the real-PostgreSQL job",
+        "note": "Home-PC suite uses set local role only, so session_user stays postgres inside it; its manager-forgery keys are NOT authoritative on this engine (see CPS-06 for the persona-session version)"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "qa/scenarios-runner/factory_rpc_privilege_sweep.sql": "d0ca3ffdf43898f5d408ebdd9fc87cf032f1ff04"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "CPS-10",
+      "suite": "control-plane-security",
+      "observed_at": "2026-09-14T04:56:29Z",
+      "claim": "FIRST EXECUTION EVER of the Home-PC claim-security suite (D1-D5)",
+      "expect": "PARTIAL",
+      "method": "PGLITE_SUITE_RERUN",
+      "evidence_kind": "cross-check",
+      "kfm_ref": "#118",
+      "verdict": "NO_VERDICT",
+      "no_verdict_reason": "SUITE_PRECONDITION_DEFECT: the suite compares pg_get_function_identity_arguments (which includes parameter names) with an unnamed signature string, so it aborts against the very migration it tests - on any PostgreSQL",
+      "evidence": {
+        "verdict_object": null,
+        "failed_keys": [],
+        "error": {
+          "sqlstate": "P0001",
+          "message": "claim_blocked_run_for_retry has signature (p_claimed_by text, p_max_attempts integer, p_stale_claim_after interval), expected (text, integer, interval). Either the migration is not applied, or a stale overload exists."
+        },
+        "persona_fidelity": "SET_ROLE_ONLY (session_user stays postgres inside the suite)",
+        "security_label": "RLS ENFORCEMENT (PGlite emulation) — NOT SECURITY VERIFIED; requires the real-PostgreSQL job",
+        "note": "Home-PC suite uses set local role only, so session_user stays postgres inside it; its manager-forgery keys are NOT authoritative on this engine (see CPS-06 for the persona-session version)"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "qa/scenarios-runner/agent_run_capacity_retry_claim_security.sql": "f61937455b8ce7099d912fcf87a41389696084f9"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "CPS-11",
+      "suite": "control-plane-security",
+      "observed_at": "2026-09-14T04:56:29Z",
+      "claim": "complete_agent_run is founder/admin-only",
+      "expect": "PASS",
+      "method": "PGLITE_EXEC",
+      "evidence_kind": "independent",
+      "verdict": "PASS",
+      "evidence": {
+        "manager": "{\"reason\":\"denied\",\"changed\":false,\"operation\":\"agent_run.complete\",\"agentRunId\":\"dddd0000-0000-4000-8000-00000000000d\",\"authorized\":false,\"taskUpdated\":false}",
+        "founder": "{\"reason\":\"completed\",\"changed\":true,\"newStatus\":\"done\",\"operation\":\"agent_run.complete\",\"agentRunId\":\"dddd0000-0000-4000-8000-00000000000d\",\"authorized\":true,\"taskUpdated\":false,\"previousStatus\":\"blocked\"}",
+        "security_label": "RLS ENFORCEMENT (PGlite emulation) — NOT SECURITY VERIFIED; requires the real-PostgreSQL job"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "supabase/migrations/202608290010_agent_run_completion.sql": "81bad5fa79c3354d59b3fc3b5c9e9c9018e33d53"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "CPS-12",
+      "suite": "control-plane-security",
+      "observed_at": "2026-09-14T04:56:29Z",
+      "claim": "No factory RPC grants EXECUTE to anon (independent replacement for the engine-incompatible Home-PC sweep)",
+      "expect": "PASS",
+      "method": "PGLITE_EXEC",
+      "evidence_kind": "independent",
+      "verdict": "PASS",
+      "evidence": {
+        "functions": [
+          {
+            "proname": "claim_blocked_run_for_retry",
+            "args": "p_claimed_by text, p_max_attempts integer, p_stale_claim_after interval",
+            "anon_exec": false,
+            "authenticated_exec": false,
+            "security_definer": true
+          },
+          {
+            "proname": "complete_agent_run",
+            "args": "p_agent_run_id uuid, p_status work_status, p_head_commit text, p_verification_status text, p_summary text",
+            "anon_exec": false,
+            "authenticated_exec": true,
+            "security_definer": true
+          },
+          {
+            "proname": "complete_work_order",
+            "args": "p_work_order_id uuid, p_summary text",
+            "anon_exec": false,
+            "authenticated_exec": true,
+            "security_definer": true
+          },
+          {
+            "proname": "create_factory_task",
+            "args": "p_work_order_id uuid, p_title text, p_description text, p_owner_agent_id uuid, p_acceptance_criteria jsonb",
+            "anon_exec": false,
+            "authenticated_exec": true,
+            "security_definer": false
+          },
+          {
+            "proname": "create_factory_work_order",
+            "args": "p_title text, p_objective text, p_company_id uuid, p_goal_id uuid, p_work_type text, p_priority text, p_acceptance_criteria jsonb",
+            "anon_exec": false,
+            "authenticated_exec": true,
+            "security_definer": false
+          },
+          {
+            "proname": "create_pending_work_order",
+            "args": "p_command text, p_context_pack jsonb, p_channel_id uuid",
+            "anon_exec": false,
+            "authenticated_exec": true,
+            "security_definer": false
+          },
+          {
+            "proname": "mark_work_order_failed",
+            "args": "p_work_order_id uuid, p_error text",
+            "anon_exec": false,
+            "authenticated_exec": true,
+            "security_definer": false
+          }
+        ],
+        "trigger_functions_default_public_execute_not_directly_callable": [
+          {
+            "proname": "enforce_canonical_work_order_goal_company",
+            "anon_exec": true
+          },
+          {
+            "proname": "enforce_task_work_order_company",
+            "anon_exec": true
+          },
+          {
+            "proname": "enforce_work_order_completion_via_rpc",
+            "anon_exec": true
+          },
+          {
+            "proname": "force_canonical_work_order_creator",
+            "anon_exec": true
+          },
+          {
+            "proname": "guard_agent_run_retry_columns",
+            "anon_exec": false
+          },
+          {
+            "proname": "notify_agent_run_transition",
+            "anon_exec": true
+          },
+          {
+            "proname": "notify_work_order_transition",
+            "anon_exec": true
+          }
+        ],
+        "anon_executable": [],
+        "claim_rpc_authenticated_executable": [],
+        "canary_anon_can_execute_is_founder_or_admin": true,
+        "security_label": "RLS ENFORCEMENT (PGlite emulation) — NOT SECURITY VERIFIED; requires the real-PostgreSQL job"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "supabase/migrations/202609030001_agent_run_capacity_retry.sql": "0a7f95e2dd550b982202e24e79b6eb6ad495c9d0",
+          "supabase/migrations/202608290005_create_factory_work_order_rpc.sql": "ed0ff4b24828b9a6b665cb7d962990289f288b36"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    }
+  ]
+}

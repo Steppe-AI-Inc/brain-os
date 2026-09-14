@@ -1,0 +1,99 @@
+{
+  "_doc": "State-preservation proof for the Factory V1 acceptance campaign plus repository observations. Nothing here changes product bug state.",
+  "generated_at": "2026-09-14T05:09:27Z",
+  "bug_state_now": {
+    "BUG-035": {
+      "status": "OPEN",
+      "severity": "P2",
+      "title": "No governed product path grants role_in_company - membership role appears permanently 'emp"
+    },
+    "BUG-036": {
+      "status": "OPEN",
+      "severity": "P1",
+      "title": "PRODUCTION INVITATION / AUTH EMAIL DELIVERY FAILS TO COMPLETE E2E"
+    },
+    "BUG-037": {
+      "status": "OPEN",
+      "severity": "P2",
+      "title": "INVITE_ACTION_HAS_NO_TERMINAL_DELIVERY_STATE - the Invite action ended with neither termin"
+    }
+  },
+  "bug_state_committed_on_origin_qa_work_pc": {
+    "BUG-035": {
+      "status": "OPEN",
+      "severity": "P2"
+    },
+    "BUG-036": {
+      "status": "OPEN",
+      "severity": "P1"
+    },
+    "BUG-037": {
+      "status": "OPEN",
+      "severity": "P2"
+    }
+  },
+  "bug_state_preserved": true,
+  "supervisor_state": "WAITING_FOR_HOME_PC",
+  "supervisor_blocked_on": {
+    "bug": "BUG-036",
+    "reason": "AUTH_EMAIL_DELIVERY_UNAVAILABLE",
+    "root_cause": "UNCONFIRMED",
+    "handoff": "qa/home-pc-handoff/HOMEPC-2026-09-10-BUG-036-invitation-delivery.json"
+  },
+  "supervisor_state_file_modified_by_campaign": false,
+  "origin_qa_work_pc_moved_during_campaign": {
+    "from": "157174d791c4b80b6605d3b105cf64f023ba3bfe",
+    "to": "8056384b0b38cb6c285d2a33d691a3c6493ab245",
+    "commits": [
+      "4749730 qa(work-pc): hand off Factory V1 independent acceptance blockers",
+      "8056384 qa(work-pc): record Factory V1 independent acceptance"
+    ],
+    "author_identity": "same git identity as this seat (founder account), pushed 2026-09-14 10:19-10:21 +0800 from another working copy",
+    "content": "qa/home-pc-handoff/HOMEPC-2026-09-14-FACTORY-V1-BLOCKERS.md (source+CI-only findings) and qa/work-pc/FACTORY_V1_INDEPENDENT_ACCEPTANCE.md (source+CI-only report)",
+    "action_taken": "fast-forwarded the operational tree (ff-only, no merge commit); this campaign UPDATES the canonical report with executed evidence rather than replacing it"
+  },
+  "product_trees_tracked_modifications": [],
+  "product_trees_untracked_files_not_authored_by_this_campaign": [
+    ".github/workflows/phase0-ci.yml",
+    "docs/PHASE-0-ARCHITECTURE.md",
+    "docs/PHASE-0-TEST-RESULTS.md",
+    "docs/SCHEMA-DRIFT-REPORT.md",
+    "supabase/config.toml",
+    "supabase/drafts/202608270001_sem_brain_v1_execution.sql",
+    "supabase/functions/sem-ai-command/contract.test.ts",
+    "supabase/tests/database/rls_founder_employee.test.sql",
+    "web/playwright.config.ts",
+    "web/scripts/generate-database-types.mjs",
+    "web/tests/e2e/auth-and-critical-pages.spec.ts",
+    "web/tests/integration/supabase-connectivity.test.ts",
+    "web/tests/support/supabase-auth-stub.mjs",
+    "web/tests/unit/application-smoke.test.ts",
+    "web/tests/unit/business-rules.test.ts",
+    "web/vitest.config.ts",
+    "web/vitest.integration.config.ts"
+  ],
+  "untracked_note": "untracked files under .github/docs/supabase/web date from 2026-08-24/25 (Phase-0 review artefacts of a codex/sem-brain-v1 session on this Drive-synced folder); left untouched; not staged",
+  "migration_202609030001_applied_state_contradiction": [
+    "qa/KNOWN_FAILURE_MODES.md #118 (master) / #62 (p1): NOT PUSHED - DO NOT PUSH AS WRITTEN",
+    "qa/verification/DB_BATCH_STATE_FINDING.md:15: 202609030001 (D) authorized / applied",
+    "qa/scenarios-runner/README.md:84: claim-security suite NOT YET EXECUTED",
+    "Work PC verdict: PRODUCTION STATE NOT VERIFIED (no production SQL from this seat)"
+  ],
+  "home_pc_claim_recorded_unverified": "HOME_PC_CLAIM, WORK_PC_UNVERIFIED: the BUG-036 fix report on origin/wo/invitation-delivery names DEPLOYED_WEB_SHA 55a1591 / dpl_JBQSWhr6uRcjJ7jNxxQj2VRjwrKJ",
+  "work_pc_scheduled_task_observation": {
+    "scheduled_task": {
+      "present": true,
+      "status": "Ready",
+      "last_run": "9/14/2026 1:01:01 PM",
+      "last_result": "1",
+      "next_run": "9/14/2026 1:31:00 PM"
+    },
+    "lease": {
+      "pid": 18652,
+      "renewed_at": "2026-09-10T07:21:06Z",
+      "age_min": 5625,
+      "pid_alive": false
+    },
+    "supervisor_state": "WAITING_FOR_HOME_PC"
+  }
+}

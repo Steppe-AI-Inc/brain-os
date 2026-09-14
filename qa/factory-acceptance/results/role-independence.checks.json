@@ -1,0 +1,480 @@
+{
+  "suite": "role-independence",
+  "generated_at": "2026-09-14T04:56:00Z",
+  "totals": {
+    "PASS": 1,
+    "FAIL": 4,
+    "ABSENT": 1,
+    "PARTIAL": 1,
+    "NO_VERDICT": 0
+  },
+  "harness_errors": [],
+  "checks": [
+    {
+      "id": "RI-00",
+      "suite": "role-independence",
+      "observed_at": "2026-09-14T04:56:00Z",
+      "claim": "Oracle accepts the sufficient example and rejects each single-condition violation (detector can fire)",
+      "expect": "PASS",
+      "method": "PURE_FN",
+      "evidence_kind": "independent",
+      "verdict": "PASS",
+      "evidence": {
+        "sufficient_example": {
+          "sufficient": true,
+          "satisfied": [
+            "C1_DISTINCT_RUNS",
+            "C2_DISTINCT_AGENTS",
+            "C3_SAME_WORK_ORDER",
+            "C4_VERIFIER_CAPABILITY",
+            "C5_VERIFIER_IDENTITY_CURRENT",
+            "C6_EXACT_PROVENANCE_BINDING",
+            "C7_PROVENANCE_MATERIALIZED",
+            "C8_STARTS_AFTER_AUTHORING_RESULT",
+            "C9_DISTINCT_CONTEXT",
+            "C10_HOSTNAME_ZERO_AUTHORITY"
+          ],
+          "unsatisfied": [],
+          "notes": [
+            "same hostname observed: contributes nothing; decided by C1-C9 alone"
+          ]
+        },
+        "different_hostname_same_agent": {
+          "sufficient": false,
+          "satisfied": [
+            "C1_DISTINCT_RUNS",
+            "C3_SAME_WORK_ORDER",
+            "C4_VERIFIER_CAPABILITY",
+            "C5_VERIFIER_IDENTITY_CURRENT",
+            "C6_EXACT_PROVENANCE_BINDING",
+            "C7_PROVENANCE_MATERIALIZED",
+            "C8_STARTS_AFTER_AUTHORING_RESULT",
+            "C9_DISTINCT_CONTEXT",
+            "C10_HOSTNAME_ZERO_AUTHORITY"
+          ],
+          "unsatisfied": [
+            "C2_DISTINCT_AGENTS"
+          ],
+          "notes": [
+            "different hostnames observed: informational only; not counted as independence"
+          ]
+        },
+        "conditions": [
+          "C1_DISTINCT_RUNS",
+          "C2_DISTINCT_AGENTS",
+          "C3_SAME_WORK_ORDER",
+          "C4_VERIFIER_CAPABILITY",
+          "C5_VERIFIER_IDENTITY_CURRENT",
+          "C6_EXACT_PROVENANCE_BINDING",
+          "C7_PROVENANCE_MATERIALIZED",
+          "C8_STARTS_AFTER_AUTHORING_RESULT",
+          "C9_DISTINCT_CONTEXT",
+          "C10_HOSTNAME_ZERO_AUTHORITY"
+        ],
+        "engine": "pglite"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/p1/control-plane-phase0",
+        "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+        "blob_shas": {
+          "qa/dbtest/db.mjs": "241650bce2526822280192db0b5a302ae8b666bb"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "RI-01",
+      "suite": "role-independence",
+      "observed_at": "2026-09-14T04:56:00Z",
+      "claim": "The durable model distinguishes and proves the run that authored head_commit from the run that certified it",
+      "expect": "FAIL",
+      "method": "PGLITE_EXEC",
+      "evidence_kind": "independent",
+      "verdict": "FAIL",
+      "evidence": {
+        "certifying_columns_found": [],
+        "column_detector_canary": 1,
+        "complete_agent_run_args": "p_agent_run_id uuid, p_status work_status, p_head_commit text, p_verification_status text, p_summary text",
+        "caller_supplied_verification_status": true,
+        "self_certification_rpc_result": {
+          "reason": "completed",
+          "changed": true,
+          "newStatus": "done",
+          "operation": "agent_run.complete",
+          "agentRunId": "eeee0000-0000-4000-8000-0000000000e1",
+          "authorized": true,
+          "taskUpdated": false,
+          "previousStatus": "in_progress"
+        },
+        "row_after": {
+          "status": "done",
+          "head_commit": "c0ffee00c0ffee00c0ffee00c0ffee00c0ffee00",
+          "verification_status": "live_verified"
+        },
+        "oracle_on_what_the_model_can_prove": {
+          "sufficient": false,
+          "satisfied": [
+            "C3_SAME_WORK_ORDER",
+            "C5_VERIFIER_IDENTITY_CURRENT",
+            "C10_HOSTNAME_ZERO_AUTHORITY"
+          ],
+          "unsatisfied": [
+            "C1_DISTINCT_RUNS",
+            "C2_DISTINCT_AGENTS",
+            "C4_VERIFIER_CAPABILITY",
+            "C6_EXACT_PROVENANCE_BINDING",
+            "C7_PROVENANCE_MATERIALIZED",
+            "C8_STARTS_AFTER_AUTHORING_RESULT",
+            "C9_DISTINCT_CONTEXT"
+          ],
+          "notes": [
+            "same hostname observed: contributes nothing; decided by C1-C9 alone"
+          ]
+        },
+        "statement": "THE CURRENT MODEL DOES NOT STRUCTURALLY DISTINGUISH OR PROVE AUTHORING RUN VERSUS CERTIFYING RUN: verification_status lives on the Agent Run row; complete_agent_run accepts a caller-supplied status; no certifying-run relation exists.",
+        "security_label": "RLS ENFORCEMENT (PGlite emulation) — NOT SECURITY VERIFIED; requires the real-PostgreSQL job"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "supabase/migrations/202608290010_agent_run_completion.sql": "81bad5fa79c3354d59b3fc3b5c9e9c9018e33d53",
+          "supabase/migrations/202608290002_canonical_work_order_model.sql": "e620c1aaa13d89efac89785423752b114de44b5c"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "RI-02",
+      "suite": "role-independence",
+      "observed_at": "2026-09-14T04:56:00Z",
+      "claim": "Work-Order completion requires a certifying run distinct from the authoring run, bound to the certified commit",
+      "expect": "FAIL",
+      "method": "PGLITE_EXEC",
+      "evidence_kind": "independent",
+      "verdict": "FAIL",
+      "no_verdict_reason": null,
+      "evidence": {
+        "complete_work_order_result": {
+          "reason": "completed",
+          "changed": true,
+          "summary": null,
+          "newStatus": "done",
+          "operation": "work_order.complete",
+          "taskCount": 1,
+          "authorized": true,
+          "completedAt": "2026-09-14T12:56:00.418+08:00",
+          "workOrderId": "aaaaaaaa-0000-4000-8000-00000000aa01",
+          "agentRunCount": 1,
+          "previousStatus": "queued",
+          "verifiedByAgentRunId": "eeee0000-0000-4000-8000-0000000000e1",
+          "verifiedCommitRunCount": 1
+        },
+        "work_order_status": "done",
+        "verified_commit_rows": {
+          "agents": 1,
+          "runs": 1
+        },
+        "same_row_binding_anchor": [
+          {
+            "line": 214,
+            "text": "or (verification_status is distinct from 'live_verified' and verification_status is distinct from 'e2e_verified'))"
+          }
+        ],
+        "statement": "complete_work_order binds commit to verification on the SAME agent_runs row and counts one self-certified row as sufficient; it cannot express or require a distinct certifying run.",
+        "security_label": "RLS ENFORCEMENT (PGlite emulation) — NOT SECURITY VERIFIED; requires the real-PostgreSQL job"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "supabase/migrations/202608300002_complete_work_order.sql": "d86e599e94940c8e67d59ff69914c25c32d74c93"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "RI-03",
+      "suite": "role-independence",
+      "observed_at": "2026-09-14T04:56:00Z",
+      "claim": "Factory authority derives from WORK ORDER + AGENT RUN + ROLE/CAPABILITY + PROVENANCE, never from the machine",
+      "expect": "FAIL",
+      "method": "SOURCE_GREP",
+      "evidence_kind": "independent",
+      "verdict": "FAIL",
+      "evidence": {
+        "master": {
+          "session_user_gates": [
+            {
+              "line": 131,
+              "text": "or session_user in ('postgres', 'supabase_admin')) then"
+            },
+            {
+              "line": 219,
+              "text": "if public.is_founder_or_admin() or session_user in ('postgres', 'supabase_admin') then"
+            }
+          ],
+          "hardcoded_repo_root": [
+            {
+              "line": 37,
+              "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+            }
+          ],
+          "safeWorktree_foreign_path": "C:\\Users\\Dell\\dev\\brain-os",
+          "safeWorktree_allowlist_anchor": [
+            {
+              "line": 37,
+              "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+            },
+            {
+              "line": 192,
+              "text": "export function safeWorktree(worktree, allowedRoots = [REPO_ROOT, 'C:\\\\Users\\\\Dell\\\\dev']) {"
+            }
+          ],
+          "workers_hostname_key": [
+            {
+              "line": 12,
+              "text": "hostname text not null unique,"
+            }
+          ],
+          "machine_identity_columns": 0
+        },
+        "p1": {
+          "session_user_gates": [
+            {
+              "line": 131,
+              "text": "or session_user in ('postgres', 'supabase_admin')) then"
+            },
+            {
+              "line": 219,
+              "text": "if public.is_founder_or_admin() or session_user in ('postgres', 'supabase_admin') then"
+            }
+          ],
+          "hardcoded_repo_root": [
+            {
+              "line": 37,
+              "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+            }
+          ],
+          "safeWorktree_foreign_path": "C:\\Users\\Dell\\dev\\brain-os",
+          "safeWorktree_allowlist_anchor": [
+            {
+              "line": 37,
+              "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+            },
+            {
+              "line": 192,
+              "text": "export function safeWorktree(worktree, allowedRoots = [REPO_ROOT, 'C:\\\\Users\\\\Dell\\\\dev']) {"
+            }
+          ],
+          "workers_hostname_key": [
+            {
+              "line": 12,
+              "text": "hostname text not null unique,"
+            }
+          ],
+          "machine_identity_columns": 0
+        },
+        "statement": "claim/guard authority is granted by transport identity NAME (session_user); the runtime binds to one machine path; the worker registry is keyed by hostname. No run/role/provenance-derived authority exists for these operations."
+      },
+      "provenance": {
+        "master": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/master",
+          "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+          "blob_shas": {
+            "supabase/migrations/202609030001_agent_run_capacity_retry.sql": "0a7f95e2dd550b982202e24e79b6eb6ad495c9d0",
+            "scripts/factory-runner/supervisor.mjs": "661c7d152b2b833e26de2ef2a61175d93e8a4d67",
+            "supabase/migrations/202608310007_factory_workers.sql": "7116678e4846732057f7276a259013dd9886f331"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        },
+        "p1": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/p1/control-plane-phase0",
+          "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+          "blob_shas": {
+            "supabase/migrations/202609030001_agent_run_capacity_retry.sql": "0a7f95e2dd550b982202e24e79b6eb6ad495c9d0",
+            "scripts/factory-runner/supervisor.mjs": "661c7d152b2b833e26de2ef2a61175d93e8a4d67",
+            "supabase/migrations/202608310007_factory_workers.sql": "7116678e4846732057f7276a259013dd9886f331"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        }
+      }
+    },
+    {
+      "id": "RI-04",
+      "suite": "role-independence",
+      "observed_at": "2026-09-14T04:56:00Z",
+      "claim": "A certification must carry exact candidate provenance; verification_status without a commit is refused",
+      "expect": "FAIL",
+      "method": "PGLITE_EXEC",
+      "evidence_kind": "independent",
+      "verdict": "FAIL",
+      "evidence": {
+        "run_level_result": {
+          "reason": "completed",
+          "changed": true,
+          "newStatus": "done",
+          "operation": "agent_run.complete",
+          "agentRunId": "eeee0000-0000-4000-8000-0000000000e1",
+          "authorized": true,
+          "taskUpdated": false,
+          "previousStatus": "in_progress"
+        },
+        "row_after": {
+          "status": "done",
+          "head_commit": null,
+          "verification_status": "live_verified"
+        },
+        "wo_level_control": {
+          "reason": "already_completed",
+          "changed": false,
+          "operation": "work_order.complete",
+          "authorized": true,
+          "completedAt": "2026-09-14T12:56:00.418+08:00",
+          "workOrderId": "aaaaaaaa-0000-4000-8000-00000000aa01",
+          "currentStatus": "done"
+        },
+        "note": "run-level certification with no commit is stored; only the Work-Order gate later notices the missing commit (verification_required_not_found / no verified commit).",
+        "security_label": "RLS ENFORCEMENT (PGlite emulation) — NOT SECURITY VERIFIED; requires the real-PostgreSQL job"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "supabase/migrations/202608290010_agent_run_completion.sql": "81bad5fa79c3354d59b3fc3b5c9e9c9018e33d53",
+          "supabase/migrations/202608300002_complete_work_order.sql": "d86e599e94940c8e67d59ff69914c25c32d74c93"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "RI-05",
+      "suite": "role-independence",
+      "observed_at": "2026-09-14T04:56:00Z",
+      "claim": "An agent holding the authoring run for Work Order X cannot be dispatched as verifier for X",
+      "expect": "ABSENT",
+      "method": "PURE_FN",
+      "evidence_kind": "independent",
+      "verdict": "ABSENT",
+      "evidence": {
+        "master": {
+          "picked_author_as_verifier": true,
+          "param_count": 2,
+          "matrix_verify_capability": 0
+        },
+        "p1": {
+          "picked_author_as_verifier": true,
+          "param_count": 2,
+          "matrix_verify_capability": 0
+        }
+      },
+      "provenance": {
+        "master": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/master",
+          "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+          "blob_shas": {
+            "scripts/factory-runner/scheduler.mjs": "c01535bf9a97538a790b5e9b21d19bf37e8dfc44",
+            "governance/capabilities/CAPABILITY_MATRIX.yaml": "91e22197b6571a9f16ad96bcf5adba0d0cf37675"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        },
+        "p1": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/p1/control-plane-phase0",
+          "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+          "blob_shas": {
+            "scripts/factory-runner/scheduler.mjs": "c01535bf9a97538a790b5e9b21d19bf37e8dfc44",
+            "governance/capabilities/CAPABILITY_MATRIX.yaml": "4313f3042bd4ab7004f6073aa01c882ab82adcf0"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        }
+      }
+    },
+    {
+      "id": "RI-06",
+      "suite": "role-independence",
+      "observed_at": "2026-09-14T04:56:00Z",
+      "claim": "A requester-is-not-decider rule exists somewhere in the durable model (proof the platform can express separation of duties)",
+      "expect": "PARTIAL",
+      "method": "SOURCE_GREP",
+      "evidence_kind": "independent",
+      "verdict": "PARTIAL",
+      "evidence": {
+        "master": {
+          "decide_approval_rule": [
+            {
+              "line": 159,
+              "text": "or (v_approval.approver_profile_id = v_actor_profile_id and v_approval.requested_by_profile_id is distinct from v_actor_profile_id)"
+            },
+            {
+              "line": 160,
+              "text": "or (v_approval.domain in ('salary_hr', 'finance') and public.is_hr_finance() and v_approval.requested_by_profile_id is distinct from v_actor_profile_id)"
+            }
+          ],
+          "founder_exempt": true
+        },
+        "p1": {
+          "decide_approval_rule": [
+            {
+              "line": 159,
+              "text": "or (v_approval.approver_profile_id = v_actor_profile_id and v_approval.requested_by_profile_id is distinct from v_actor_profile_id)"
+            },
+            {
+              "line": 160,
+              "text": "or (v_approval.domain in ('salary_hr', 'finance') and public.is_hr_finance() and v_approval.requested_by_profile_id is distinct from v_actor_profile_id)"
+            }
+          ],
+          "founder_exempt": true
+        },
+        "note": "exists for salary_hr/finance approvals only; nothing equivalent exists for agent runs"
+      },
+      "provenance": {
+        "master": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/master",
+          "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+          "blob_shas": {
+            "supabase/migrations/202608280003_payload_immutability_salary_segregation_audit.sql": "fc1e0e550e882087e1a674732ad6f44e56f3e202"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        },
+        "p1": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/p1/control-plane-phase0",
+          "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+          "blob_shas": {
+            "supabase/migrations/202608280003_payload_immutability_salary_segregation_audit.sql": "fc1e0e550e882087e1a674732ad6f44e56f3e202"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        }
+      }
+    }
+  ]
+}

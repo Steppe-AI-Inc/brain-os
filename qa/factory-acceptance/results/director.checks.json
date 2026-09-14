@@ -1,0 +1,1094 @@
+{
+  "suite": "director",
+  "generated_at": "2026-09-14T05:06:47Z",
+  "totals": {
+    "PASS": 8,
+    "FAIL": 2,
+    "ABSENT": 0,
+    "PARTIAL": 2,
+    "NO_VERDICT": 0
+  },
+  "harness_errors": [],
+  "checks": [
+    {
+      "id": "DIR-01",
+      "suite": "director",
+      "observed_at": "2026-09-14T05:06:41Z",
+      "claim": "Importing scripts/factory-runner/{scheduler,supervisor,provider}.mjs runs no child process (safe to unit-test); invoking pollOnce() does reach the ambient CLI (sentinel negative)",
+      "expect": "PASS",
+      "method": "PURE_FN",
+      "evidence_kind": "independent",
+      "verdict": "PASS",
+      "evidence": {
+        "master": {
+          "import_ok": true,
+          "import_sentinel_hits": 0,
+          "import_stderr": "",
+          "pollOnce_sentinel_hit": true,
+          "pollOnce_stdout": "NO_CALL\n"
+        },
+        "p1": {
+          "import_ok": true,
+          "import_sentinel_hits": 0,
+          "import_stderr": "",
+          "pollOnce_sentinel_hit": true,
+          "pollOnce_stdout": "NO_CALL\n"
+        }
+      },
+      "provenance": {
+        "master": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/master",
+          "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+          "blob_shas": {
+            "scripts/factory-runner/complete-run.mjs": "2a65bed203e546c4fb24c09c18538feafa77b0f0",
+            "scripts/factory-runner/dispatch-task.mjs": "0d5f2b211e212c9038b81b6245a7539ad409e34f",
+            "scripts/factory-runner/plugin-attach.mjs": "064cc6927697d49965ac65814383af16c70dad6b",
+            "scripts/factory-runner/plugin-sync.mjs": "0f5ee23433b9970c47b2f08a7837d6ee755ae36c",
+            "scripts/factory-runner/poll-and-dispatch.mjs": "58b905fb17f43a2f1c6fdc39c14e340d6e7ebb04",
+            "scripts/factory-runner/poll-plugin-operations.mjs": "15c5c105247801c7a1a3da4312b861c02301013d",
+            "scripts/factory-runner/provider.mjs": "dd36ddf5a58911445e01f3f743295911f65920f3",
+            "scripts/factory-runner/register-worker.mjs": "83b11051751c8927af487d9ca1c045d10d5bd3a7",
+            "scripts/factory-runner/scheduler.mjs": "c01535bf9a97538a790b5e9b21d19bf37e8dfc44",
+            "scripts/factory-runner/supervisor.mjs": "661c7d152b2b833e26de2ef2a61175d93e8a4d67",
+            "scripts/factory-runner/sync-agents.mjs": "265796d4e071294a6d820220a1a9fc2a46ca3580"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        },
+        "p1": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/p1/control-plane-phase0",
+          "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+          "blob_shas": {
+            "scripts/factory-runner/complete-run.mjs": "2a65bed203e546c4fb24c09c18538feafa77b0f0",
+            "scripts/factory-runner/dispatch-task.mjs": "0d5f2b211e212c9038b81b6245a7539ad409e34f",
+            "scripts/factory-runner/plugin-attach.mjs": "064cc6927697d49965ac65814383af16c70dad6b",
+            "scripts/factory-runner/plugin-sync.mjs": "0f5ee23433b9970c47b2f08a7837d6ee755ae36c",
+            "scripts/factory-runner/poll-and-dispatch.mjs": "58b905fb17f43a2f1c6fdc39c14e340d6e7ebb04",
+            "scripts/factory-runner/poll-plugin-operations.mjs": "15c5c105247801c7a1a3da4312b861c02301013d",
+            "scripts/factory-runner/provider.mjs": "dd36ddf5a58911445e01f3f743295911f65920f3",
+            "scripts/factory-runner/register-worker.mjs": "83b11051751c8927af487d9ca1c045d10d5bd3a7",
+            "scripts/factory-runner/scheduler.mjs": "c01535bf9a97538a790b5e9b21d19bf37e8dfc44",
+            "scripts/factory-runner/supervisor.mjs": "661c7d152b2b833e26de2ef2a61175d93e8a4d67",
+            "scripts/factory-runner/sync-agents.mjs": "265796d4e071294a6d820220a1a9fc2a46ca3580"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        }
+      }
+    },
+    {
+      "id": "DIR-02",
+      "suite": "director",
+      "observed_at": "2026-09-14T05:06:41Z",
+      "claim": "FOUNDER_POKE_NOT_REQUIRED for the Factory: a continuously running Director/dispatcher exists (scheduled task, loop, cron, service)",
+      "expect": "ABSENT",
+      "method": "SOURCE_GREP",
+      "evidence_kind": "independent",
+      "verdict": "PARTIAL",
+      "evidence": {
+        "master": {
+          "loop_or_timer_in_factory_runner": [
+            "55a159172a9bbc9b69cde4d2f832418573a4b0b9:scripts/factory-runner/poll-and-dispatch.mjs:14:// exists\"). A real always-on scheduled invocation (cron/systemd timer/etc.) is future"
+          ],
+          "repo_wide_scheduler_for_factory": [],
+          "self_described_manual": [
+            {
+              "line": 11,
+              "text": "// This is a manually-invoked poll (run once, dispatches whatever is currently queued),"
+            },
+            {
+              "line": 12,
+              "text": "// not a continuously-running daemon - matching the honest architectural note already in"
+            },
+            {
+              "line": 16,
+              "text": "// Manually-invoked poll (matches poll-and-dispatch.mjs's own convention) - not a"
+            }
+          ],
+          "supervisor_single_shot_entry": [
+            {
+              "line": 360,
+              "text": "pollOnce(supervisorId, sha).then((r) => console.log(JSON.stringify(r, null, 2)));"
+            }
+          ],
+          "poke_literal_hits": 0
+        },
+        "p1": {
+          "loop_or_timer_in_factory_runner": [
+            "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf:scripts/factory-runner/poll-and-dispatch.mjs:14:// exists\"). A real always-on scheduled invocation (cron/systemd timer/etc.) is future"
+          ],
+          "repo_wide_scheduler_for_factory": [],
+          "self_described_manual": [
+            {
+              "line": 11,
+              "text": "// This is a manually-invoked poll (run once, dispatches whatever is currently queued),"
+            },
+            {
+              "line": 12,
+              "text": "// not a continuously-running daemon - matching the honest architectural note already in"
+            },
+            {
+              "line": 16,
+              "text": "// Manually-invoked poll (matches poll-and-dispatch.mjs's own convention) - not a"
+            }
+          ],
+          "supervisor_single_shot_entry": [
+            {
+              "line": 360,
+              "text": "pollOnce(supervisorId, sha).then((r) => console.log(JSON.stringify(r, null, 2)));"
+            }
+          ],
+          "poke_literal_hits": 0
+        }
+      },
+      "provenance": {
+        "master": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/master",
+          "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+          "blob_shas": {
+            "scripts/factory-runner/poll-and-dispatch.mjs": "58b905fb17f43a2f1c6fdc39c14e340d6e7ebb04",
+            "scripts/factory-runner/scheduler.mjs": "c01535bf9a97538a790b5e9b21d19bf37e8dfc44",
+            "scripts/factory-runner/supervisor.mjs": "661c7d152b2b833e26de2ef2a61175d93e8a4d67"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        },
+        "p1": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/p1/control-plane-phase0",
+          "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+          "blob_shas": {
+            "scripts/factory-runner/poll-and-dispatch.mjs": "58b905fb17f43a2f1c6fdc39c14e340d6e7ebb04",
+            "scripts/factory-runner/scheduler.mjs": "c01535bf9a97538a790b5e9b21d19bf37e8dfc44",
+            "scripts/factory-runner/supervisor.mjs": "661c7d152b2b833e26de2ef2a61175d93e8a4d67"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        }
+      }
+    },
+    {
+      "id": "DIR-03",
+      "suite": "director",
+      "observed_at": "2026-09-14T05:06:42Z",
+      "claim": "The Factory runtime is computer-agnostic (no machine-specific path or identity in the runtime)",
+      "expect": "FAIL",
+      "method": "SOURCE_GREP",
+      "evidence_kind": "independent",
+      "verdict": "FAIL",
+      "evidence": {
+        "per_ref": {
+          "master": {
+            "scripts/factory-runner/complete-run.mjs": {
+              "blob_sha": "2a65bed203e546c4fb24c09c18538feafa77b0f0",
+              "anchors": [
+                {
+                  "line": 31,
+                  "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+                }
+              ]
+            },
+            "scripts/factory-runner/dispatch-task.mjs": {
+              "blob_sha": "0d5f2b211e212c9038b81b6245a7539ad409e34f",
+              "anchors": [
+                {
+                  "line": 23,
+                  "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+                }
+              ]
+            },
+            "scripts/factory-runner/plugin-attach.mjs": {
+              "blob_sha": "064cc6927697d49965ac65814383af16c70dad6b",
+              "anchors": [
+                {
+                  "line": 46,
+                  "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+                }
+              ]
+            },
+            "scripts/factory-runner/plugin-sync.mjs": {
+              "blob_sha": "0f5ee23433b9970c47b2f08a7837d6ee755ae36c",
+              "anchors": [
+                {
+                  "line": 24,
+                  "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+                }
+              ]
+            },
+            "scripts/factory-runner/poll-and-dispatch.mjs": {
+              "blob_sha": "58b905fb17f43a2f1c6fdc39c14e340d6e7ebb04",
+              "anchors": [
+                {
+                  "line": 25,
+                  "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+                }
+              ]
+            },
+            "scripts/factory-runner/poll-plugin-operations.mjs": {
+              "blob_sha": "15c5c105247801c7a1a3da4312b861c02301013d",
+              "anchors": [
+                {
+                  "line": 20,
+                  "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+                }
+              ]
+            },
+            "scripts/factory-runner/provider.mjs": {
+              "blob_sha": "dd36ddf5a58911445e01f3f743295911f65920f3",
+              "anchors": [
+                {
+                  "line": 24,
+                  "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+                }
+              ]
+            },
+            "scripts/factory-runner/register-worker.mjs": {
+              "blob_sha": "83b11051751c8927af487d9ca1c045d10d5bd3a7",
+              "anchors": [
+                {
+                  "line": 22,
+                  "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+                }
+              ]
+            },
+            "scripts/factory-runner/scheduler.mjs": {
+              "blob_sha": "c01535bf9a97538a790b5e9b21d19bf37e8dfc44",
+              "anchors": [
+                {
+                  "line": 29,
+                  "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+                }
+              ]
+            },
+            "scripts/factory-runner/supervisor.mjs": {
+              "blob_sha": "661c7d152b2b833e26de2ef2a61175d93e8a4d67",
+              "anchors": [
+                {
+                  "line": 37,
+                  "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+                },
+                {
+                  "line": 192,
+                  "text": "export function safeWorktree(worktree, allowedRoots = [REPO_ROOT, 'C:\\\\Users\\\\Dell\\\\dev']) {"
+                }
+              ]
+            },
+            "scripts/factory-runner/sync-agents.mjs": {
+              "blob_sha": "265796d4e071294a6d820220a1a9fc2a46ca3580",
+              "anchors": [
+                {
+                  "line": 29,
+                  "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+                }
+              ]
+            }
+          },
+          "p1": {
+            "scripts/factory-runner/complete-run.mjs": {
+              "blob_sha": "2a65bed203e546c4fb24c09c18538feafa77b0f0",
+              "anchors": [
+                {
+                  "line": 31,
+                  "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+                }
+              ]
+            },
+            "scripts/factory-runner/dispatch-task.mjs": {
+              "blob_sha": "0d5f2b211e212c9038b81b6245a7539ad409e34f",
+              "anchors": [
+                {
+                  "line": 23,
+                  "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+                }
+              ]
+            },
+            "scripts/factory-runner/plugin-attach.mjs": {
+              "blob_sha": "064cc6927697d49965ac65814383af16c70dad6b",
+              "anchors": [
+                {
+                  "line": 46,
+                  "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+                }
+              ]
+            },
+            "scripts/factory-runner/plugin-sync.mjs": {
+              "blob_sha": "0f5ee23433b9970c47b2f08a7837d6ee755ae36c",
+              "anchors": [
+                {
+                  "line": 24,
+                  "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+                }
+              ]
+            },
+            "scripts/factory-runner/poll-and-dispatch.mjs": {
+              "blob_sha": "58b905fb17f43a2f1c6fdc39c14e340d6e7ebb04",
+              "anchors": [
+                {
+                  "line": 25,
+                  "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+                }
+              ]
+            },
+            "scripts/factory-runner/poll-plugin-operations.mjs": {
+              "blob_sha": "15c5c105247801c7a1a3da4312b861c02301013d",
+              "anchors": [
+                {
+                  "line": 20,
+                  "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+                }
+              ]
+            },
+            "scripts/factory-runner/provider.mjs": {
+              "blob_sha": "dd36ddf5a58911445e01f3f743295911f65920f3",
+              "anchors": [
+                {
+                  "line": 24,
+                  "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+                }
+              ]
+            },
+            "scripts/factory-runner/register-worker.mjs": {
+              "blob_sha": "83b11051751c8927af487d9ca1c045d10d5bd3a7",
+              "anchors": [
+                {
+                  "line": 22,
+                  "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+                }
+              ]
+            },
+            "scripts/factory-runner/scheduler.mjs": {
+              "blob_sha": "c01535bf9a97538a790b5e9b21d19bf37e8dfc44",
+              "anchors": [
+                {
+                  "line": 29,
+                  "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+                }
+              ]
+            },
+            "scripts/factory-runner/supervisor.mjs": {
+              "blob_sha": "661c7d152b2b833e26de2ef2a61175d93e8a4d67",
+              "anchors": [
+                {
+                  "line": 37,
+                  "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+                },
+                {
+                  "line": 192,
+                  "text": "export function safeWorktree(worktree, allowedRoots = [REPO_ROOT, 'C:\\\\Users\\\\Dell\\\\dev']) {"
+                }
+              ]
+            },
+            "scripts/factory-runner/sync-agents.mjs": {
+              "blob_sha": "265796d4e071294a6d820220a1a9fc2a46ca3580",
+              "anchors": [
+                {
+                  "line": 29,
+                  "text": "const REPO_ROOT = 'C:\\\\Users\\\\Dell\\\\dev\\\\brain-os';"
+                }
+              ]
+            }
+          }
+        },
+        "home_pc_path": "C:\\Users\\Dell\\dev\\brain-os",
+        "path_exists_on_this_machine": false,
+        "same_blob_on_both_refs": {
+          "scripts/factory-runner/complete-run.mjs": {
+            "master": "2a65bed203e546c4fb24c09c18538feafa77b0f0",
+            "p1": "2a65bed203e546c4fb24c09c18538feafa77b0f0",
+            "identical": true
+          },
+          "scripts/factory-runner/dispatch-task.mjs": {
+            "master": "0d5f2b211e212c9038b81b6245a7539ad409e34f",
+            "p1": "0d5f2b211e212c9038b81b6245a7539ad409e34f",
+            "identical": true
+          },
+          "scripts/factory-runner/plugin-attach.mjs": {
+            "master": "064cc6927697d49965ac65814383af16c70dad6b",
+            "p1": "064cc6927697d49965ac65814383af16c70dad6b",
+            "identical": true
+          },
+          "scripts/factory-runner/plugin-sync.mjs": {
+            "master": "0f5ee23433b9970c47b2f08a7837d6ee755ae36c",
+            "p1": "0f5ee23433b9970c47b2f08a7837d6ee755ae36c",
+            "identical": true
+          },
+          "scripts/factory-runner/poll-and-dispatch.mjs": {
+            "master": "58b905fb17f43a2f1c6fdc39c14e340d6e7ebb04",
+            "p1": "58b905fb17f43a2f1c6fdc39c14e340d6e7ebb04",
+            "identical": true
+          },
+          "scripts/factory-runner/poll-plugin-operations.mjs": {
+            "master": "15c5c105247801c7a1a3da4312b861c02301013d",
+            "p1": "15c5c105247801c7a1a3da4312b861c02301013d",
+            "identical": true
+          },
+          "scripts/factory-runner/provider.mjs": {
+            "master": "dd36ddf5a58911445e01f3f743295911f65920f3",
+            "p1": "dd36ddf5a58911445e01f3f743295911f65920f3",
+            "identical": true
+          },
+          "scripts/factory-runner/register-worker.mjs": {
+            "master": "83b11051751c8927af487d9ca1c045d10d5bd3a7",
+            "p1": "83b11051751c8927af487d9ca1c045d10d5bd3a7",
+            "identical": true
+          },
+          "scripts/factory-runner/scheduler.mjs": {
+            "master": "c01535bf9a97538a790b5e9b21d19bf37e8dfc44",
+            "p1": "c01535bf9a97538a790b5e9b21d19bf37e8dfc44",
+            "identical": true
+          },
+          "scripts/factory-runner/supervisor.mjs": {
+            "master": "661c7d152b2b833e26de2ef2a61175d93e8a4d67",
+            "p1": "661c7d152b2b833e26de2ef2a61175d93e8a4d67",
+            "identical": true
+          },
+          "scripts/factory-runner/sync-agents.mjs": {
+            "master": "265796d4e071294a6d820220a1a9fc2a46ca3580",
+            "p1": "265796d4e071294a6d820220a1a9fc2a46ca3580",
+            "identical": true
+          }
+        }
+      },
+      "provenance": {
+        "master": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/master",
+          "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+          "blob_shas": {
+            "scripts/factory-runner/complete-run.mjs": "2a65bed203e546c4fb24c09c18538feafa77b0f0",
+            "scripts/factory-runner/dispatch-task.mjs": "0d5f2b211e212c9038b81b6245a7539ad409e34f",
+            "scripts/factory-runner/plugin-attach.mjs": "064cc6927697d49965ac65814383af16c70dad6b",
+            "scripts/factory-runner/plugin-sync.mjs": "0f5ee23433b9970c47b2f08a7837d6ee755ae36c",
+            "scripts/factory-runner/poll-and-dispatch.mjs": "58b905fb17f43a2f1c6fdc39c14e340d6e7ebb04",
+            "scripts/factory-runner/poll-plugin-operations.mjs": "15c5c105247801c7a1a3da4312b861c02301013d",
+            "scripts/factory-runner/provider.mjs": "dd36ddf5a58911445e01f3f743295911f65920f3",
+            "scripts/factory-runner/register-worker.mjs": "83b11051751c8927af487d9ca1c045d10d5bd3a7",
+            "scripts/factory-runner/scheduler.mjs": "c01535bf9a97538a790b5e9b21d19bf37e8dfc44",
+            "scripts/factory-runner/supervisor.mjs": "661c7d152b2b833e26de2ef2a61175d93e8a4d67",
+            "scripts/factory-runner/sync-agents.mjs": "265796d4e071294a6d820220a1a9fc2a46ca3580"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        },
+        "p1": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/p1/control-plane-phase0",
+          "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+          "blob_shas": {
+            "scripts/factory-runner/complete-run.mjs": "2a65bed203e546c4fb24c09c18538feafa77b0f0",
+            "scripts/factory-runner/dispatch-task.mjs": "0d5f2b211e212c9038b81b6245a7539ad409e34f",
+            "scripts/factory-runner/plugin-attach.mjs": "064cc6927697d49965ac65814383af16c70dad6b",
+            "scripts/factory-runner/plugin-sync.mjs": "0f5ee23433b9970c47b2f08a7837d6ee755ae36c",
+            "scripts/factory-runner/poll-and-dispatch.mjs": "58b905fb17f43a2f1c6fdc39c14e340d6e7ebb04",
+            "scripts/factory-runner/poll-plugin-operations.mjs": "15c5c105247801c7a1a3da4312b861c02301013d",
+            "scripts/factory-runner/provider.mjs": "dd36ddf5a58911445e01f3f743295911f65920f3",
+            "scripts/factory-runner/register-worker.mjs": "83b11051751c8927af487d9ca1c045d10d5bd3a7",
+            "scripts/factory-runner/scheduler.mjs": "c01535bf9a97538a790b5e9b21d19bf37e8dfc44",
+            "scripts/factory-runner/supervisor.mjs": "661c7d152b2b833e26de2ef2a61175d93e8a4d67",
+            "scripts/factory-runner/sync-agents.mjs": "265796d4e071294a6d820220a1a9fc2a46ca3580"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        }
+      }
+    },
+    {
+      "id": "DIR-00",
+      "suite": "director",
+      "observed_at": "2026-09-14T05:06:46Z",
+      "claim": "PGlite engine with the full pinned migration chain and seeded synthetic identities",
+      "expect": "PASS",
+      "method": "PGLITE_EXEC",
+      "evidence_kind": "independent",
+      "verdict": "PASS",
+      "no_verdict_reason": null,
+      "evidence": {
+        "engine": "pglite",
+        "version": "PostgreSQL 18.3 (PGlite 0.5.8) on wasm32-unknown-emscripten, compiled by emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 3.1.74 (1092ec30a3fb1d46b1782ff1b4db5094d3d06ae5), 32-bit",
+        "applied": 81,
+        "failed": [],
+        "security_label": "RLS ENFORCEMENT (PGlite emulation) — NOT SECURITY VERIFIED; requires the real-PostgreSQL job"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/p1/control-plane-phase0",
+        "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+        "blob_shas": {
+          "qa/dbtest/db.mjs": "241650bce2526822280192db0b5a302ae8b666bb",
+          "qa/dbtest/bootstrap.sql": "e181a8ca22fafed30fcf60b77b9eaf78d22345c6"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "DIR-04",
+      "suite": "director",
+      "observed_at": "2026-09-14T05:06:46Z",
+      "claim": "create_factory_work_order refuses cross-company goal association (2026-08-29 incident regression)",
+      "expect": "PASS",
+      "method": "PGLITE_SUITE_RERUN",
+      "evidence_kind": "cross-check",
+      "verdict": "PASS",
+      "no_verdict_reason": null,
+      "evidence": {
+        "verdict_object": {
+          "FACTORY_WORK_ORDER_FOUNDER_SAME_COMPANY_OK": "true",
+          "FACTORY_WORK_ORDER_REJECTS_CROSS_COMPANY_GOAL": "true",
+          "FACTORY_WORK_ORDER_CROSS_COMPANY_NO_ROW_CREATED": "true",
+          "FACTORY_WORK_ORDER_REJECTS_NONEXISTENT_GOAL": "true",
+          "FACTORY_WORK_ORDER_REJECTS_UNAUTHORIZED_CALLER": "true",
+          "FACTORY_WORK_ORDER_MANAGER_NO_GOAL_OK": "true",
+          "FACTORY_WORK_ORDER_FOUNDER_CROSS_COMPANY_VALID_GOAL_OK": "true",
+          "FACTORY_WORK_ORDER_TABLE_TRIGGER_BLOCKS_DIRECT_INSERT": "true",
+          "all_pass": true
+        },
+        "failed_keys": [],
+        "error": null,
+        "persona_fidelity": "SET_ROLE_ONLY (session_user stays postgres inside the suite)",
+        "security_label": "RLS ENFORCEMENT (PGlite emulation) — NOT SECURITY VERIFIED; requires the real-PostgreSQL job"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "qa/scenarios-runner/create_factory_work_order_adversarial.sql": "701d7dd9d31a939a185515e0b5304fd2c805e173"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "DIR-05",
+      "suite": "director",
+      "observed_at": "2026-09-14T05:06:46Z",
+      "claim": "create_factory_task derives company server-side and refuses mismatches",
+      "expect": "PASS",
+      "method": "PGLITE_SUITE_RERUN",
+      "evidence_kind": "cross-check",
+      "verdict": "PASS",
+      "no_verdict_reason": null,
+      "evidence": {
+        "verdict_object": {
+          "CREATE_FACTORY_TASK_FOUNDER_OK": "true",
+          "CREATE_FACTORY_TASK_COMPANY_DERIVED_CORRECTLY": "true",
+          "CREATE_FACTORY_TASK_REJECTS_NONEXISTENT_WORK_ORDER": "true",
+          "CREATE_FACTORY_TASK_TRIGGER_BLOCKS_DIRECT_MISMATCH": "true",
+          "all_pass": true
+        },
+        "failed_keys": [],
+        "error": null,
+        "persona_fidelity": "SET_ROLE_ONLY (session_user stays postgres inside the suite)",
+        "security_label": "RLS ENFORCEMENT (PGlite emulation) — NOT SECURITY VERIFIED; requires the real-PostgreSQL job"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "qa/scenarios-runner/create_factory_task_adversarial.sql": "70e26f465c280f241febd952e4ab69181b2a1561"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "DIR-06",
+      "suite": "director",
+      "observed_at": "2026-09-14T05:06:46Z",
+      "claim": "complete_work_order is idempotent, requires verified commits, refuses running/failed/unverified state",
+      "expect": "PASS",
+      "method": "PGLITE_SUITE_RERUN",
+      "evidence_kind": "cross-check",
+      "verdict": "PASS",
+      "no_verdict_reason": null,
+      "evidence": {
+        "verdict_object": {
+          "scenario": "COMPLETE-WORK-ORDER-LIFECYCLE",
+          "classification": "FIXED — final factory-state gap (see migration 202608300002_complete_work_order.sql)",
+          "complete_wo1": {
+            "reason": "completed",
+            "changed": true,
+            "summary": "QA happy path completion",
+            "newStatus": "done",
+            "operation": "work_order.complete",
+            "taskCount": 2,
+            "authorized": true,
+            "completedAt": "2026-09-14T13:06:46.452+08:00",
+            "workOrderId": "cccc2002-0000-0000-0000-000000000001",
+            "agentRunCount": 2,
+            "previousStatus": "in_progress",
+            "verifiedByAgentRunId": "cccc2004-0000-0000-0000-000000000001",
+            "verifiedCommitRunCount": 1
+          },
+          "wo1_completed_at": "2026-09-14 13:06:46.452+08",
+          "wo1_status": "done",
+          "complete_wo1_again": {
+            "reason": "already_completed",
+            "changed": false,
+            "operation": "work_order.complete",
+            "authorized": true,
+            "completedAt": "2026-09-14T13:06:46.452+08:00",
+            "workOrderId": "cccc2002-0000-0000-0000-000000000001",
+            "currentStatus": "done"
+          },
+          "complete_wo2": {
+            "reason": "incomplete_task",
+            "changed": false,
+            "operation": "work_order.complete",
+            "authorized": true,
+            "workOrderId": "cccc2002-0000-0000-0000-000000000002",
+            "currentStatus": "in_progress",
+            "incompleteTaskId": "cccc2003-0000-0000-0000-000000000003",
+            "incompleteTaskCount": 1,
+            "incompleteTaskTitle": "CWO Task 2a",
+            "incompleteTaskStatus": "in_progress"
+          },
+          "complete_wo3": {
+            "reason": "incomplete_or_failed_run",
+            "changed": false,
+            "operation": "work_order.complete",
+            "authorized": true,
+            "workOrderId": "cccc2002-0000-0000-0000-000000000003",
+            "currentStatus": "in_progress",
+            "incompleteRunId": "cccc2004-0000-0000-0000-000000000003",
+            "incompleteRunCount": 1,
+            "incompleteRunStatus": "rejected"
+          },
+          "complete_wo4": {
+            "reason": "verification_required_not_found",
+            "changed": false,
+            "operation": "work_order.complete",
+            "authorized": true,
+            "workOrderId": "cccc2002-0000-0000-0000-000000000004",
+            "currentStatus": "in_progress"
+          },
+          "complete_wo5": {
+            "reason": "verification_required_not_found",
+            "changed": false,
+            "operation": "work_order.complete",
+            "authorized": true,
+            "workOrderId": "cccc2002-0000-0000-0000-000000000005",
+            "currentStatus": "in_progress"
+          },
+          "terminal_regression_blocked": true,
+          "wo1_status_after_regression_attempt": "done",
+          "cross_company_task_blocked": true,
+          "direct_done_blocked": true,
+          "wo6_status_after_direct_attempt": "in_progress",
+          "complete_wo7": {
+            "reason": "verification_required_not_found",
+            "changed": false,
+            "operation": "work_order.complete",
+            "authorized": true,
+            "workOrderId": "cccc2002-0000-0000-0000-000000000007",
+            "currentStatus": "in_progress"
+          },
+          "direct_insert_done_blocked": true,
+          "complete_wo8": {
+            "reason": "verification_required_not_found",
+            "changed": false,
+            "operation": "work_order.complete",
+            "authorized": true,
+            "workOrderId": "cccc2002-0000-0000-0000-000000000008",
+            "currentStatus": "in_progress"
+          },
+          "complete_wo9": {
+            "reason": "no_tasks_to_complete",
+            "changed": false,
+            "operation": "work_order.complete",
+            "authorized": true,
+            "workOrderId": "cccc2002-0000-0000-0000-000000000009",
+            "currentStatus": "in_progress"
+          },
+          "complete_wo10": {
+            "reason": "no_agent_runs_recorded",
+            "changed": false,
+            "operation": "work_order.complete",
+            "authorized": true,
+            "workOrderId": "cccc2002-0000-0000-0000-000000000010",
+            "currentStatus": "in_progress"
+          },
+          "all_pass": true
+        },
+        "failed_keys": [],
+        "error": null,
+        "persona_fidelity": "SET_ROLE_ONLY (session_user stays postgres inside the suite)",
+        "security_label": "RLS ENFORCEMENT (PGlite emulation) — NOT SECURITY VERIFIED; requires the real-PostgreSQL job"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "qa/scenarios-runner/complete_work_order_lifecycle.sql": "26645ae5c4349cf42640b93e20c6e9d3c7db9835"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "DIR-07",
+      "suite": "director",
+      "observed_at": "2026-09-14T05:06:46Z",
+      "claim": "complete_agent_run is founder/admin-only, idempotent, propagates to the task",
+      "expect": "PASS",
+      "method": "PGLITE_SUITE_RERUN",
+      "evidence_kind": "cross-check",
+      "verdict": "PASS",
+      "no_verdict_reason": null,
+      "evidence": {
+        "verdict_object": {
+          "scenario": "COMPLETE-AGENT-RUN-LIFECYCLE",
+          "classification": "FIXED (Phase 8 verification gap — see migration 202608290010)",
+          "founder_complete": {
+            "reason": "completed",
+            "changed": true,
+            "newStatus": "done",
+            "operation": "agent_run.complete",
+            "agentRunId": "cccc1003-0000-0000-0000-000000000001",
+            "authorized": true,
+            "taskUpdated": true,
+            "previousStatus": "in_progress"
+          },
+          "task_status_after_complete": "done",
+          "run_row_after_complete": {
+            "status": "done",
+            "head_commit": "a1b2c3d4",
+            "finished_at_set": true,
+            "verification_status": "live_verified"
+          },
+          "founder_complete_idempotent": {
+            "reason": "already_recorded",
+            "changed": false,
+            "newStatus": "done",
+            "operation": "agent_run.complete",
+            "agentRunId": "cccc1003-0000-0000-0000-000000000001",
+            "authorized": true,
+            "taskUpdated": false,
+            "previousStatus": "done"
+          },
+          "task_status_still_done": "done",
+          "manager_denied": {
+            "reason": "denied",
+            "changed": false,
+            "operation": "agent_run.complete",
+            "agentRunId": "cccc1003-0000-0000-0000-000000000002",
+            "authorized": false,
+            "taskUpdated": false
+          },
+          "run2_untouched": true,
+          "task2_untouched": true,
+          "no_task_complete": {
+            "reason": "completed",
+            "changed": true,
+            "newStatus": "rejected",
+            "operation": "agent_run.complete",
+            "agentRunId": "cccc1003-0000-0000-0000-000000000003",
+            "authorized": true,
+            "taskUpdated": false,
+            "previousStatus": "in_progress"
+          },
+          "bad_verification_status_blocked": true,
+          "not_found": {
+            "reason": "not_found",
+            "changed": false,
+            "operation": "agent_run.complete",
+            "agentRunId": "00000000-0000-0000-0000-000000000000",
+            "authorized": false,
+            "taskUpdated": false
+          },
+          "all_pass": true
+        },
+        "failed_keys": [],
+        "error": null,
+        "persona_fidelity": "SET_ROLE_ONLY (session_user stays postgres inside the suite)",
+        "security_label": "RLS ENFORCEMENT (PGlite emulation) — NOT SECURITY VERIFIED; requires the real-PostgreSQL job"
+      },
+      "provenance": {
+        "finding_class": "LOCAL_DB_CONTRACT",
+        "source_ref": "origin/master",
+        "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+        "blob_shas": {
+          "qa/scenarios-runner/complete_agent_run_lifecycle.sql": "1621a06692fdd4b3fa81f293624143b2e9fbde05"
+        },
+        "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+        "deployed_web_sha": "UNKNOWN",
+        "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+      }
+    },
+    {
+      "id": "DIR-08",
+      "suite": "director",
+      "observed_at": "2026-09-14T05:06:46Z",
+      "claim": "A blocked task does not halt unrelated ready tasks; a rejected dependency permanently blocks dependents; agent selection is capability-only",
+      "expect": "PASS",
+      "method": "PURE_FN",
+      "evidence_kind": "independent",
+      "verdict": "PASS",
+      "evidence": {
+        "master": {
+          "ready": [
+            "t2",
+            "t4"
+          ],
+          "blocked": [
+            "t3"
+          ],
+          "dispatch": [
+            "t2",
+            "t4"
+          ],
+          "pick_id": "A",
+          "selectAgentForTask_param_count": 2
+        },
+        "p1": {
+          "ready": [
+            "t2",
+            "t4"
+          ],
+          "blocked": [
+            "t3"
+          ],
+          "dispatch": [
+            "t2",
+            "t4"
+          ],
+          "pick_id": "A",
+          "selectAgentForTask_param_count": 2
+        },
+        "note": "task-level only; WO-level \"progress around BLOCKED - DB PUSH\" exists as prose in brain-os-factory-director.md and is not enforced by code"
+      },
+      "provenance": {
+        "master": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/master",
+          "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+          "blob_shas": {
+            "scripts/factory-runner/scheduler.mjs": "c01535bf9a97538a790b5e9b21d19bf37e8dfc44"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        },
+        "p1": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/p1/control-plane-phase0",
+          "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+          "blob_shas": {
+            "scripts/factory-runner/scheduler.mjs": "c01535bf9a97538a790b5e9b21d19bf37e8dfc44"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        }
+      }
+    },
+    {
+      "id": "DIR-09",
+      "suite": "director",
+      "observed_at": "2026-09-14T05:06:46Z",
+      "claim": "Duplicate run prevention for Work-Order dispatch is structural (a second active run for the same canonical_work_order_id is impossible)",
+      "expect": "FAIL",
+      "method": "PGLITE_EXEC",
+      "evidence_kind": "independent",
+      "verdict": "FAIL",
+      "evidence": {
+        "first_insert": true,
+        "second_active_run_same_work_order": true,
+        "active_runs_for_work_order": 2,
+        "unique_indexes_on_agent_runs": [
+          "agent_runs_pkey"
+        ],
+        "triggers_on_agent_runs": [
+          "agent_run_notify_transition",
+          "agent_runs_guard_retry_columns"
+        ],
+        "poll_dedupe_anchor": {
+          "master": [
+            {
+              "line": 52,
+              "text": "and not exists (select 1 from public.agent_runs ar where ar.canonical_work_order_id = wo.id);"
+            }
+          ],
+          "p1": [
+            {
+              "line": 52,
+              "text": "and not exists (select 1 from public.agent_runs ar where ar.canonical_work_order_id = wo.id);"
+            }
+          ]
+        },
+        "note": "poll-and-dispatch.mjs dedupes with a non-atomic NOT EXISTS then INSERT (TOCTOU); the schema has no partial unique index on (canonical_work_order_id) where status in progress and no trigger refusing a second active run"
+      },
+      "provenance": {
+        "master": {
+          "finding_class": "LOCAL_DB_CONTRACT",
+          "source_ref": "origin/master",
+          "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+          "blob_shas": {
+            "supabase/migrations/202608290002_canonical_work_order_model.sql": "e620c1aaa13d89efac89785423752b114de44b5c",
+            "scripts/factory-runner/poll-and-dispatch.mjs": "58b905fb17f43a2f1c6fdc39c14e340d6e7ebb04"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        },
+        "p1": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/p1/control-plane-phase0",
+          "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+          "blob_shas": {
+            "scripts/factory-runner/poll-and-dispatch.mjs": "58b905fb17f43a2f1c6fdc39c14e340d6e7ebb04"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        }
+      }
+    },
+    {
+      "id": "DIR-10",
+      "suite": "director",
+      "observed_at": "2026-09-14T05:06:46Z",
+      "claim": "The Factory runtime detaches from its launching session (survives an interactive Claude session ending)",
+      "expect": "PARTIAL",
+      "method": "SHELL_REVIEW",
+      "evidence_kind": "independent",
+      "verdict": "PARTIAL",
+      "evidence": {
+        "master": {
+          "scripts/factory-runner/dispatch-isolated-verifier.sh": {
+            "nohup_detach": 1,
+            "artifact_terminal_detection": 0,
+            "sha_pin_abort": 3
+          },
+          "scripts/factory-runner/verifier-watchdog.sh": {
+            "nohup_detach": 0,
+            "artifact_terminal_detection": 0,
+            "sha_pin_abort": 4
+          },
+          "scripts/factory-runner/watch-verifier-artifacts.sh": {
+            "nohup_detach": 0,
+            "artifact_terminal_detection": 3,
+            "sha_pin_abort": 2
+          },
+          "supervisor_launcher": 0
+        },
+        "p1": {
+          "scripts/factory-runner/dispatch-isolated-verifier.sh": "ABSENT",
+          "scripts/factory-runner/verifier-watchdog.sh": "ABSENT",
+          "scripts/factory-runner/watch-verifier-artifacts.sh": "ABSENT",
+          "supervisor_launcher": 0
+        },
+        "note": "only the isolated-verifier shell path detaches (nohup); supervisor.mjs pollOnce has no launcher; artifact-based completion detection exists only in watch-verifier-artifacts.sh"
+      },
+      "provenance": {
+        "master": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/master",
+          "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+          "blob_shas": {
+            "scripts/factory-runner/dispatch-isolated-verifier.sh": "cf08bde2869043b3cc2c3c0b44ab7b50a9ae8f91",
+            "scripts/factory-runner/verifier-watchdog.sh": "cd1a530396be447ad81ba9beffbefb96c47b499b",
+            "scripts/factory-runner/watch-verifier-artifacts.sh": "40e5de0c3e755ba6863723d91c557e33a04eae06",
+            "scripts/factory-runner/supervisor.mjs": "661c7d152b2b833e26de2ef2a61175d93e8a4d67"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        },
+        "p1": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/p1/control-plane-phase0",
+          "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+          "blob_shas": {
+            "scripts/factory-runner/supervisor.mjs": "661c7d152b2b833e26de2ef2a61175d93e8a4d67"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        }
+      }
+    },
+    {
+      "id": "DIR-11",
+      "suite": "director",
+      "observed_at": "2026-09-14T05:06:46Z",
+      "claim": "planResume / computeRetryAfter / safeWorktree / dispatch selection invariants hold as the Home PC pinned them",
+      "expect": "PASS",
+      "method": "NODE_TEST_RERUN",
+      "evidence_kind": "cross-check",
+      "verdict": "PASS",
+      "evidence": {
+        "master": {
+          "files": [
+            "scripts/factory-runner/supervisor.regression.test.mjs",
+            "scripts/factory-runner/scheduler.regression.test.mjs",
+            "scripts/factory-runner/provider.regression.test.mjs",
+            "scripts/factory-runner/supervisor.injection.test.mjs"
+          ],
+          "ok": 68,
+          "not_ok": [],
+          "exit": 0,
+          "stderr_excerpt": ""
+        },
+        "p1": {
+          "files": [
+            "scripts/factory-runner/supervisor.regression.test.mjs",
+            "scripts/factory-runner/scheduler.regression.test.mjs",
+            "scripts/factory-runner/provider.regression.test.mjs",
+            "scripts/factory-runner/supervisor.injection.test.mjs"
+          ],
+          "ok": 68,
+          "not_ok": [],
+          "exit": 0,
+          "stderr_excerpt": ""
+        }
+      },
+      "provenance": {
+        "master": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/master",
+          "source_sha": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+          "blob_shas": {
+            "scripts/factory-runner/supervisor.regression.test.mjs": "6aa7e2752883ccaa1ed31a0c3a5c8c68d7b222d3",
+            "scripts/factory-runner/scheduler.regression.test.mjs": "361ad15ef888024fea0ab2d70c4238b571c5bc09",
+            "scripts/factory-runner/provider.regression.test.mjs": "18c99c4512cf31338200615fc2df7c97157b6689",
+            "scripts/factory-runner/supervisor.injection.test.mjs": "7413e6c78fc19d6d6a31e02784f58485668328cd"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\55a1591",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        },
+        "p1": {
+          "finding_class": "SOURCE_FINDING_ONLY",
+          "source_ref": "origin/p1/control-plane-phase0",
+          "source_sha": "dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf",
+          "blob_shas": {
+            "scripts/factory-runner/supervisor.regression.test.mjs": "6aa7e2752883ccaa1ed31a0c3a5c8c68d7b222d3",
+            "scripts/factory-runner/scheduler.regression.test.mjs": "361ad15ef888024fea0ab2d70c4238b571c5bc09",
+            "scripts/factory-runner/provider.regression.test.mjs": "18c99c4512cf31338200615fc2df7c97157b6689",
+            "scripts/factory-runner/supervisor.injection.test.mjs": "7413e6c78fc19d6d6a31e02784f58485668328cd"
+          },
+          "worktree_path": "C:\\Users\\DELL\\AppData\\Local\\brain-os-qa\\source-wt\\dcc0d9c",
+          "deployed_web_sha": "UNKNOWN",
+          "production_binding": "CANNOT_BIND_TO_DEPLOYED_WEB"
+        }
+      }
+    }
+  ]
+}

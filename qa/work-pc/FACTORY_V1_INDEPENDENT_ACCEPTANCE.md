@@ -6,6 +6,7 @@
 **Acceptance state:** **NOT ACCEPTED — multiple Factory V1 exit criteria fail in durable committed infrastructure**  
 **Implementation boundary:** verification/evidence only; no product/Factory implementation fixes from this seat.
 
+**Executed-evidence update:** section 13 (2026-09-14, harness `qa/factory-acceptance/`, 55 provenance-bound checks on `origin/master@55a1591…` and `origin/p1/control-plane-phase0@dcc0d9c…`)  
 ## 0. Scope and provenance
 
 | Item | Value |
@@ -431,3 +432,216 @@ Remaining work requires at least one of:
 The Work PC therefore remains **independent** and does not fix these failures.
 
 BUG-036/BUG-037 production state remains **WAITING_FOR_HOME_PC**.
+
+<!-- BEGIN WORK-PC EXECUTED EVIDENCE -->
+---
+
+## 13. Executed-evidence update (2026-09-14, second Work-PC campaign)
+
+The sections above were derived from source inspection and GitHub Actions artifacts. This
+section adds **executed** evidence produced on the Work PC by the harness under
+`qa/factory-acceptance/` (`README.md` there is the run book). Every check is provenance-bound
+to the two pinned refs; evidence levels are stated per check and never promoted.
+
+| Item | Value |
+|---|---|
+| Refs tested | `origin/master@55a159172a9bbc9b69cde4d2f832418573a4b0b9` and `origin/p1/control-plane-phase0@dcc0d9c554e8ddbba27b9aabfdc6be94a81c2baf` (runtime findings hold on **both**; recorded once per ref) |
+| Engines | PGlite (PostgreSQL 18.3 WASM, pinned `qa/dbtest/db.mjs`, 81/81 migrations, RLS emulation: NOT SECURITY VERIFIED) · embedded PostgreSQL 17.10 on 127.0.0.1:54329 (two connections, one machine; stopped and deleted after collection, `results/PREFLIGHT.json#teardown`) |
+| Deployed web SHA | UNKNOWN — `CANNOT_BIND_TO_DEPLOYED_WEB` |
+| Production SQL / credentials | none used, none loaded |
+| Consolidated evidence | `qa/factory-acceptance/results/FACTORY_V1_ACCEPTANCE.json`, `RECONCILIATION.json`, `EVIDENCE_TABLES.md` |
+| Home-PC handoff (executed evidence) | `qa/home-pc-handoff/HOMEPC-2026-09-14-factory-v1-acceptance.json` (companion to `HOMEPC-2026-09-14-FACTORY-V1-BLOCKERS.md`) |
+
+### 13.1 What the executed evidence changes in sections 2–9
+
+| Section / subcriterion | Earlier verdict | Executed verdict | Evidence |
+|---|---|---|---|
+| §2 restart reconstructs state | BLOCKED — HOME PC | **PASS at contract level** (`planResume` + claim RPC); still no Director to invoke it | LR-06, LR-08, DIR-11 (LOCAL_DB_CONTRACT / SOURCE) |
+| §2 finished work not repeated | BLOCKED — HOME PC | **PASS at contract level**: equal `source_sha` resumes from `remaining_scenarios[0]`; changed SHA restarts and invalidates partial certification; `complete_work_order`/`complete_agent_run` idempotent | LR-06, DIR-06, DIR-07 |
+| §2 duplicate run prevented | PARTIAL PASS (claim primitive) | **run-level PASS on real PostgreSQL** (SKIP LOCKED race, 30-minute lease respected at 29/31 min by fixture time); **Work-Order-level FAIL**: two `in_progress` runs for one `canonical_work_order_id` insert freely with distinct `provider_run_id`s; `poll-and-dispatch.mjs` dedupes with a non-atomic `NOT EXISTS` then `INSERT` | LR-03, LR-09, LR-10, **DIR-09** |
+| §2 blocked WO does not halt unrelated work | BLOCKED — HOME PC | **PASS at task level** (`isTaskReady`/`isTaskPermanentlyBlocked`/`selectTasksToDispatch` over a DAG with a rejected dependency); WO-level rule exists only as Director prose | DIR-08 |
+| §2 provider/process failure preserves checkpoint | PARTIAL PASS | **PASS at contract level**: capacity-only claim filter, attempt cap in SQL, `claimed_by` reset on re-block, spawn-failure release path present | LR-01, LR-02, LR-04, LR-08 |
+| §2 persistent Director | FAIL | **ABSENT on both refs** (no launcher/loop/scheduled task; entry points self-describe as manual one-shot); only `dispatch-isolated-verifier.sh` detaches (master only; the three verifier shell scripts do not exist on p1); runtime hard-binds `REPO_ROOT='C:\Users\Dell\dev\brain-os'` on both refs | DIR-02, DIR-10, DIR-03 |
+| §3 db.mjs primitives | PASS | **PASS** (only `FACTORY_RUNNER_PG_URL` is read; absent URL refuses with ambient `SUPABASE_ACCESS_TOKEN`/`SUPABASE_DB_URL`/`DATABASE_URL`/`PG*` set); **PARTIAL** on superuser rejection: `service_role`, an unnamed superuser, mixed-case `POSTGRES`, `SET SESSION AUTHORIZATION` and `set search_path` all pass the username/regex checks | CPS-01, CPS-02, CPS-03 |
+| §3 generic node zero write authority | FAIL | **FAIL on both refs**: 10 `--linked` call sites per ref, `db.mjs` has 0 call sites; Home-PC inventory test red from the pinned p1 tree | CPS-04, MP-02 |
+| §3 superuser/admin rejected overall | FAIL | **PARTIAL (machine trust)**: `claim_blocked_run_for_retry` is reachable only by the `postgres`/`supabase_admin` transport identity; every API role including the founder JWT gets 42501 (EXECUTE revoked); an unnamed superuser hits the RAISE | CPS-05 |
+| §3 possession of an ID cannot bypass auth | FAIL (architectural) | **PASS at the RPC/trigger level**: cross-company goal id refused by `create_factory_work_order` and by direct INSERT; **FAIL** architecturally: FKs from `canonical_work_orders`/`agent_runs`/`tasks` into `companies`/`goals`/`people`/`profiles` (CASCADE) | CPS-08, CPS-07 |
+| §3 new: manager forgery of consumed columns | not covered | **PARTIAL / defect**: 13 supervisor-input columns are trigger-guarded (42501 for a manager persona), but `status`, `head_commit`, `verification_status`, `summary`, `execution_provider`, `provider_run_id`, `agent_definition_path`, `agent_definition_hash` are writable by a company manager under `agent_runs_update_scope` — a manager can forge a certification row (PGlite RLS emulation; confirm on real PostgreSQL) | CPS-06 |
+| §3 privilege sweep | not run | **PASS (independent)**: no factory RPC executable by `anon`; claim RPC by no API role. The Home-PC sweep suite cannot run on this engine (`auth.users.instance_id`) | CPS-12, CPS-09 |
+| §3 Home-PC claim-security suite (D1–D5) | never executed | **NO_VERDICT — SUITE_PRECONDITION_DEFECT**: first execution ever; it aborts on any PostgreSQL because it compares `pg_get_function_identity_arguments` (which carries parameter names) with an unnamed signature string | CPS-10 |
+| §4 double-claim primitive | PASS (CI) | **PASS reproduced locally on real PostgreSQL** (Work-PC race + pinned `qa/dbtest/concurrency.mjs`) — REAL_POSTGRES_LOCAL, not CROSS_NODE_REAL | LR-09, LR-10 |
+| §5 AUTHORING RUN ≠ CERTIFYING RUN | FAIL | **FAIL, now executed**: the authoring row completes itself with `live_verified` and `head_commit` (`changed:true`); `complete_work_order` then completes the Work Order on that single self-certified row; a `live_verified` status with `head_commit` null is stored at run level; the scheduler picks the authoring agent as verifier (capability-only selection); no `certif*`/`verified_by`/`verifier` column exists (column-detector canary proven). The oracle in `lib/independence.mjs` (C1..C10) reports 7 of 10 conditions unsatisfiable by what the model can prove. The only separation-of-duties rule in the schema is `decide_approval` (requester ≠ decider) | RI-01, RI-02, RI-04, RI-05, RI-06, RI-00 |
+| §5 authority derived from host | FAIL (conceptual) | **FAIL on both refs (executed grep)**: `session_user` name gates, hardcoded `REPO_ROOT`, `workers.hostname UNIQUE`; no run/role/provenance-derived authority for claim/guard operations | RI-03 |
+| §6 evidence integrity | — | **PASS**: 50 records, all provenance-bound, 0 secret-shaped lines (pinned `qa/lib/secret_evidence.mjs`) | MP-04 |
+| §6 Work-PC QA liveness | — | **PARTIAL**: scheduled task `BrainOS-WorkPC-QA-Supervisor` present (Ready, Last Result 1 every 30 min); lease PID dead, lease stale since 2026-09-10; `supervisor_state = WAITING_FOR_HOME_PC` as recorded. Not repaired during this campaign | MP-03 |
+| §7 multi-node | BLOCKED — FOUNDER | unchanged; single-machine two-connection evidence now exists (LR-09) | — |
+| §9 provider readiness | FAIL | **ABSENT on both refs**: provider enum closed to `claude_code_background`/`claude_code_local`; dispatcher refuses any other provider and binds to the `claude` CLI; zero `deepseek`/`tier-0` references in any tracked file on either ref (canary proven); `agent_runs_no_silent_provider_fallback` CHECK is enforced by the DB (a recorded substitution needs `fallback_reason`) but **nothing in the runtime writes** `requested_*`/`actual_*`, so an unrecorded substitution stays invisible; plugin registry admits `execution_provider` components that nothing consumes | PR-01..PR-07 |
+
+### 13.2 New machine finding — BLOCKED — FOUNDER
+
+Running the Home-PC test `production_write_authority.regression.test.mjs` on this Work PC
+(MP-01) fails one route: **a logged-in Vercel CLI session exists on this machine** (auth file
+under `%APPDATA%\xdg.data\com.vercel.cli\`, dated 2026-08-31). While it exists `vercel env pull`
+can regenerate the service-role key, so the Phase A hardening (Supabase CLI logged out) does not
+close route 2. Removing a credential is a founder decision; nothing was deleted.
+
+### 13.3 KFM #118 (master) / #62 (p1) reconciled against master `55a1591`
+
+Three of the five headline defects in the Home-PC review are **refuted at master** (the pinned
+RPC filters `blocked_reason` and `attempt_count`; `recordCapacityBlock` clears `claimed_by`;
+a spawn-failure release path exists). Two are **confirmed** (`isRetryEligible` is dead code on
+both refs; the runtime borrows the ambient CLI credential and the claim RPC trusts the
+transport identity). The manager-forgery claim is **partially refuted** (guard trigger) and
+**confirmed for the unguarded certification columns**. The review's own claim-security suite
+could not run anywhere (13.1, CPS-10). Whether `202609030001` is applied in production stays
+**PRODUCTION STATE NOT VERIFIED**: three Home-PC documents contradict each other
+(`RECONCILIATION.json#migration_202609030001_applied_state_contradiction`).
+
+### 13.4 Consolidated grouped summary (executed evidence, 55 checks)
+
+Totals: PASS 27 · FAIL 11 · ABSENT 5 · PARTIAL 10 · NO_VERDICT 2 (by level: SOURCE 22,
+LOCAL_DB_CONTRACT 27, REAL_POSTGRES_LOCAL 2, MACHINE_PROPERTY 4).
+
+**PASS** — DIR-00/01/04/05/06/07/08/11 · CPS-00/01/02/08/11/12 · LR-00/01/02/03/04/06/07/08/09/10 ·
+RI-00 · PR-04 · MP-04.
+
+**FAIL** (recorded defects / absences; every one is a Home-PC implementation item) —
+DIR-02 ABSENT, DIR-03 FAIL, DIR-09 FAIL, DIR-10 PARTIAL · CPS-03 PARTIAL, CPS-04 FAIL, CPS-05
+PARTIAL, CPS-06 PARTIAL, CPS-07 FAIL, CPS-09 NO_VERDICT (engine fixture), CPS-10 NO_VERDICT
+(suite precondition defect) · LR-05 FAIL · RI-01/02/03/04 FAIL, RI-05 ABSENT, RI-06 PARTIAL ·
+PR-01/02/03/07 ABSENT, PR-05/06 PARTIAL · MP-00 PARTIAL (tool availability), MP-02 FAIL
+(expected red inventory), MP-03 PARTIAL.
+
+**BLOCKED — HOME PC** — closure of every FAIL above requires Home-PC implementation at a frozen
+SHA, then Work-PC retest: FV1-001 (+ DIR-09 idempotent dispatch), FV1-002 (+ CPS-06 write-path
+scoping, CPS-07 isolation decision), FV1-003, FV1-004 (+ the two unrunnable Home-PC suites),
+FV1-005, and the `202609030001` applied-state contradiction.
+
+**BLOCKED — FOUNDER** — (1) shared non-production PostgreSQL endpoint + generic-node
+credentials for the real two-node campaign (protocol in §4); (2) decision on the logged-in
+Vercel CLI session on the Work PC (13.2).
+
+**BLOCKED — EXTERNAL** — none. A DeepSeek key is deliberately not requested (PR-07).
+
+### 13.5 State preserved (proof in `RECONCILIATION.json`)
+
+BUG-035 P2 OPEN · BUG-036 P1 OPEN · BUG-037 P2 OPEN — identical to `origin/qa/work-pc`;
+`supervisor_state = WAITING_FOR_HOME_PC` unchanged; `qa/runner/SUPERVISOR_STATE.json`,
+`qa/BUG_QUEUE.json`, `qa/HANDOFF_STATE.json` not modified by this campaign; no tracked file under
+`scripts/`, `supabase/`, `web/`, `governance/`, `.github/`, `docs/` modified. The operational
+tree was fast-forwarded (no merge commit) onto the two commits pushed to `qa/work-pc` at
+10:19–10:21 that created this document and the blockers handoff; this section updates rather
+than replaces them.
+
+
+### 13.6 Per-check evidence tables (generated)
+
+<!-- BEGIN GENERATED EVIDENCE (qa/factory-acceptance/consolidate.mjs, 2026-09-14T05:09:27Z) -->
+
+| Totals | PASS 27 | FAIL 11 | ABSENT 5 | PARTIAL 10 | NO_VERDICT 2 | checks 55 |
+|---|---|---|---|---|---|---|
+
+### Suite `director`
+
+| Check | Verdict | Expected | Level | Method | Claim tested | Note |
+|---|---|---|---|---|---|---|
+| DIR-01 | **PASS** | PASS | SOURCE_FINDING_ONLY | PURE_FN | Importing scripts/factory-runner/{scheduler,supervisor,provider}.mjs runs no child process (safe to unit-test); invoking pollOnce() does rea |  |
+| DIR-02 | **PARTIAL** | ABSENT | SOURCE_FINDING_ONLY | SOURCE_GREP | FOUNDER_POKE_NOT_REQUIRED for the Factory: a continuously running Director/dispatcher exists (scheduled task, loop, cron, service) |  |
+| DIR-03 | **FAIL** | FAIL | SOURCE_FINDING_ONLY | SOURCE_GREP | The Factory runtime is computer-agnostic (no machine-specific path or identity in the runtime) |  |
+| DIR-00 | **PASS** | PASS | LOCAL_DB_CONTRACT | PGLITE_EXEC | PGlite engine with the full pinned migration chain and seeded synthetic identities |  |
+| DIR-04 | **PASS** | PASS | LOCAL_DB_CONTRACT | PGLITE_SUITE_RERUN | create_factory_work_order refuses cross-company goal association (2026-08-29 incident regression) |  |
+| DIR-05 | **PASS** | PASS | LOCAL_DB_CONTRACT | PGLITE_SUITE_RERUN | create_factory_task derives company server-side and refuses mismatches |  |
+| DIR-06 | **PASS** | PASS | LOCAL_DB_CONTRACT | PGLITE_SUITE_RERUN | complete_work_order is idempotent, requires verified commits, refuses running/failed/unverified state |  |
+| DIR-07 | **PASS** | PASS | LOCAL_DB_CONTRACT | PGLITE_SUITE_RERUN | complete_agent_run is founder/admin-only, idempotent, propagates to the task |  |
+| DIR-08 | **PASS** | PASS | SOURCE_FINDING_ONLY | PURE_FN | A blocked task does not halt unrelated ready tasks; a rejected dependency permanently blocks dependents; agent selection is capability-only | task-level only; WO-level "progress around BLOCKED - DB PUSH" exists as prose in brain-os-factory-director.md and is not enforced by code |
+| DIR-09 | **FAIL** | FAIL | LOCAL_DB_CONTRACT | PGLITE_EXEC | Duplicate run prevention for Work-Order dispatch is structural (a second active run for the same canonical_work_order_id is impossible) | poll-and-dispatch.mjs dedupes with a non-atomic NOT EXISTS then INSERT (TOCTOU); the schema has no partial unique index on (canonical_work_order_id) where status in progress and no trigger refusing a second active run |
+| DIR-10 | **PARTIAL** | PARTIAL | SOURCE_FINDING_ONLY | SHELL_REVIEW | The Factory runtime detaches from its launching session (survives an interactive Claude session ending) | only the isolated-verifier shell path detaches (nohup); supervisor.mjs pollOnce has no launcher; artifact-based completion detection exists only in watch-verifier-artifacts.sh |
+| DIR-11 | **PASS** | PASS | SOURCE_FINDING_ONLY | NODE_TEST_RERUN | planResume / computeRetryAfter / safeWorktree / dispatch selection invariants hold as the Home PC pinned them |  |
+
+### Suite `control-plane-security`
+
+| Check | Verdict | Expected | Level | Method | Claim tested | Note |
+|---|---|---|---|---|---|---|
+| CPS-01 | **PASS** | PASS | SOURCE_FINDING_ONLY | SOURCE_GREP | The factory accessor connects only through an explicit FACTORY_RUNNER_PG_URL |  |
+| CPS-02 | **PASS** | PASS | SOURCE_FINDING_ONLY | PURE_FN | With FACTORY_RUNNER_PG_URL unset, read()/write()/transaction() refuse before any connection even when ambient credentials are present in the |  |
+| CPS-03 | **PARTIAL** | PARTIAL | SOURCE_FINDING_ONLY | PURE_FN | db.mjs rejects superuser/admin connections and role-escalation statements | username-string check only; no server-side role verification (current_user/rolsuper) exists in db.mjs |
+| CPS-04 | **FAIL** | FAIL | SOURCE_FINDING_ONLY | SOURCE_GREP | Generic Factory node has zero production-write authority: no runtime script reaches the DB through `supabase db query --linked` |  |
+| CPS-00 | **PASS** | PASS | LOCAL_DB_CONTRACT | PGLITE_EXEC | PGlite engine ready with full chain; persona enforcement self-checked |  |
+| CPS-05 | **PARTIAL** | PARTIAL | LOCAL_DB_CONTRACT | PGLITE_EXEC | claim_blocked_run_for_retry authority derives from role/capability rather than transport identity; least-privilege callers are denied for th | EXECUTE is revoked from every API role, so even the founder JWT cannot claim; only the postgres/supabase_admin transport identities can. Authority derives from the connection identity NAME (machine trust), not from a wor |
+| CPS-06 | **PARTIAL** | PARTIAL | LOCAL_DB_CONTRACT | PGLITE_EXEC | A company manager cannot rewrite the Agent Run fields the supervisor consumes | PGlite emulation with session_user = qa_authenticator so guard_agent_run_retry_columns is exercised on its real inputs |
+| CPS-07 | **FAIL** | FAIL | LOCAL_DB_CONTRACT | PGLITE_EXEC | The control-plane schema does not reference Brain OS business tables; business IDs are opaque references by value | canonical_work_orders.company_id is NOT NULL with ON DELETE CASCADE to companies |
+| CPS-08 | **PASS** | PASS | LOCAL_DB_CONTRACT | PGLITE_EXEC | A caller with real access to company A cannot associate company B objects by supplying their ids |  |
+| CPS-09 | **NO_VERDICT** | PASS | LOCAL_DB_CONTRACT | PGLITE_SUITE_RERUN | No factory RPC is granted to anon; founder canonical path works | ENGINE_FIXTURE_INCOMPATIBLE: the suite seeds auth.users(instance_id), a column the pinned qa/dbtest bootstrap does not model |
+| CPS-10 | **NO_VERDICT** | PARTIAL | LOCAL_DB_CONTRACT | PGLITE_SUITE_RERUN | FIRST EXECUTION EVER of the Home-PC claim-security suite (D1-D5) | SUITE_PRECONDITION_DEFECT: the suite compares pg_get_function_identity_arguments (which includes parameter names) with an unnamed signature string, so it aborts against the very migration it tests - on any PostgreSQL |
+| CPS-11 | **PASS** | PASS | LOCAL_DB_CONTRACT | PGLITE_EXEC | complete_agent_run is founder/admin-only |  |
+| CPS-12 | **PASS** | PASS | LOCAL_DB_CONTRACT | PGLITE_EXEC | No factory RPC grants EXECUTE to anon (independent replacement for the engine-incompatible Home-PC sweep) |  |
+
+### Suite `lease-recovery`
+
+| Check | Verdict | Expected | Level | Method | Claim tested | Note |
+|---|---|---|---|---|---|---|
+| LR-00 | **PASS** | PASS | LOCAL_DB_CONTRACT | PGLITE_EXEC | PGlite engine with the retry migration applied |  |
+| LR-01 | **PASS** | PASS | LOCAL_DB_CONTRACT | PGLITE_EXEC | A run blocked for a non-capacity reason (e.g. agent crash) is never claimed for automatic retry | REFUTES #118/claim-2 at master: the pinned RPC text filters blocked_reason |
+| LR-02 | **PASS** | PASS | LOCAL_DB_CONTRACT | PGLITE_EXEC | The retry loop is bounded in SQL: attempt_count >= p_max_attempts is never claimed; a claim increments attempt_count | the JS predicate isRetryEligible remains dead code (LR-05); the SQL WHERE is the live gate |
+| LR-03 | **PASS** | PASS | LOCAL_DB_CONTRACT | PGLITE_EXEC | Lease TTL: a second claimant is refused while a live claim exists and succeeds only after the real 30-minute stale threshold |  |
+| LR-04 | **PASS** | PASS | LOCAL_DB_CONTRACT | PGLITE_EXEC | After a provider re-block the run can be recovered again (claimed_by is reset by the re-block path) | CONFIRMS #118/claim-3 |
+| LR-05 | **FAIL** | FAIL | SOURCE_FINDING_ONLY | PURE_FN | The JS safety predicate is wired into the live path | CONFIRMS #118/claim-1 on both refs |
+| LR-06 | **PASS** | PASS | SOURCE_FINDING_ONLY | PURE_FN | Finished work is not repeated on resume when the source is unchanged; a changed source never inherits partial certification |  |
+| LR-07 | **PASS** | PASS | LOCAL_DB_CONTRACT | PGLITE_EXEC | A dead worker is visible as STALE from heartbeat age alone; an in-progress run with a fresh heartbeat reads RUNNING | derived view only; no job transitions the row - a stale run is recovered only by the (unscheduled) supervisor or a human |
+| LR-08 | **PASS** | PASS | LOCAL_DB_CONTRACT | PGLITE_EXEC | Supervisor restart / duplicate poll: a second sequential poll finds nothing to claim; spawn failure releases the claim | the release write itself is JS in pollOnce (not executed here: it shells to --linked); its SQL effect is replayed from the pinned source text |
+| LR-09 | **PASS** | PASS | REAL_POSTGRES_LOCAL | REAL_PG_RACE | Two claimants racing for one blocked run never both win (SKIP LOCKED); the loser is not blocked; takeover happens only after the real 30-min |  |
+| LR-10 | **PASS** | PASS | REAL_POSTGRES_LOCAL | NODE_TEST_RERUN | The Home PC concurrency harness (TWO_SUPERVISORS_CANNOT_DOUBLE_RESTART_RUN) passes on real PostgreSQL | the pinned harness drops and recreates the schema on open (disposable, sentinel-gated) and applies the migration chain itself |
+
+### Suite `role-independence`
+
+| Check | Verdict | Expected | Level | Method | Claim tested | Note |
+|---|---|---|---|---|---|---|
+| RI-00 | **PASS** | PASS | LOCAL_DB_CONTRACT | PURE_FN | Oracle accepts the sufficient example and rejects each single-condition violation (detector can fire) |  |
+| RI-01 | **FAIL** | FAIL | LOCAL_DB_CONTRACT | PGLITE_EXEC | The durable model distinguishes and proves the run that authored head_commit from the run that certified it | THE CURRENT MODEL DOES NOT STRUCTURALLY DISTINGUISH OR PROVE AUTHORING RUN VERSUS CERTIFYING RUN: verification_status lives on the Agent Run row; complete_agent_run accepts a caller-supplied status; no certifying-run rel |
+| RI-02 | **FAIL** | FAIL | LOCAL_DB_CONTRACT | PGLITE_EXEC | Work-Order completion requires a certifying run distinct from the authoring run, bound to the certified commit | complete_work_order binds commit to verification on the SAME agent_runs row and counts one self-certified row as sufficient; it cannot express or require a distinct certifying run. |
+| RI-03 | **FAIL** | FAIL | SOURCE_FINDING_ONLY | SOURCE_GREP | Factory authority derives from WORK ORDER + AGENT RUN + ROLE/CAPABILITY + PROVENANCE, never from the machine | claim/guard authority is granted by transport identity NAME (session_user); the runtime binds to one machine path; the worker registry is keyed by hostname. No run/role/provenance-derived authority exists for these opera |
+| RI-04 | **FAIL** | FAIL | LOCAL_DB_CONTRACT | PGLITE_EXEC | A certification must carry exact candidate provenance; verification_status without a commit is refused | run-level certification with no commit is stored; only the Work-Order gate later notices the missing commit (verification_required_not_found / no verified commit). |
+| RI-05 | **ABSENT** | ABSENT | SOURCE_FINDING_ONLY | PURE_FN | An agent holding the authoring run for Work Order X cannot be dispatched as verifier for X |  |
+| RI-06 | **PARTIAL** | PARTIAL | SOURCE_FINDING_ONLY | SOURCE_GREP | A requester-is-not-decider rule exists somewhere in the durable model (proof the platform can express separation of duties) | exists for salary_hr/finance approvals only; nothing equivalent exists for agent runs |
+
+### Suite `provider-readiness`
+
+| Check | Verdict | Expected | Level | Method | Claim tested | Note |
+|---|---|---|---|---|---|---|
+| PR-01 | **ABSENT** | ABSENT | SOURCE_FINDING_ONLY | SOURCE_GREP | The provider vocabulary admits a non-Claude provider (e.g. a Tier-0 / DeepSeek executor) |  |
+| PR-02 | **ABSENT** | ABSENT | SOURCE_FINDING_ONLY | SOURCE_GREP | Provider dispatch is abstracted behind an interface a second provider could implement |  |
+| PR-03 | **ABSENT** | ABSENT | SOURCE_FINDING_ONLY | SOURCE_GREP | A DeepSeek or Tier-0 provider integration, plan, or configuration exists somewhere in the tracked tree | product-side model providers (web/, supabase/functions) exist for the Brain OS product AI, not for Factory execution |
+| PR-04 | **PASS** | PARTIAL | LOCAL_DB_CONTRACT | PGLITE_EXEC | A provider/model substitution on restart is recorded with a reason (never silent) AND the runtime populates requested/actual | the DB refuses a RECORDED silent substitution, but no runtime path records requested/actual at all, so an unrecorded substitution stays invisible (all-null rows are valid) |
+| PR-05 | **PARTIAL** | PARTIAL | SOURCE_FINDING_ONLY | SOURCE_GREP | Provider failure classification is provider-neutral | sound for Claude Code (cross-checked by DIR-11 provider.regression.test); a second provider would need its own pattern set and there is no per-provider hook |
+| PR-06 | **PARTIAL** | PARTIAL | SOURCE_FINDING_ONLY | SOURCE_GREP | An execution_provider plugin can be registered AND is consumed by the dispatcher |  |
+| PR-07 | **ABSENT** | ABSENT | SOURCE_FINDING_ONLY | SOURCE_GREP | The Factory can accept a Tier-0/DeepSeek executor today without code change |  |
+
+### Suite `machine-property`
+
+| Check | Verdict | Expected | Level | Method | Claim tested | Note |
+|---|---|---|---|---|---|---|
+| MP-00 | **PARTIAL** | PARTIAL | MACHINE_PROPERTY | MACHINE_PROBE | The CLIs the Home-PC authority test probes exist on this machine | gh and vercel CLIs are absent here; routes that probe them return early in the Home-PC test and are recorded, not counted as proof |
+| MP-01 | **FAIL** | PASS | MACHINE_PROPERTY | NODE_TEST_RERUN | This machine holds no ambient production-write credential (7 route assertions) | BLOCKED - FOUNDER: a logged-in Vercel CLI session exists on this Work PC (path recorded by the Home-PC test; file dated 2026-08-31); while it exists `vercel env pull` can regenerate the service-role key. Removing a crede |
+| MP-02 | **FAIL** | FAIL | SOURCE_FINDING_ONLY | NODE_TEST_RERUN | factory-runner scripts carry no ambient production DB authority |  |
+| MP-03 | **PARTIAL** | PARTIAL | MACHINE_PROPERTY | MACHINE_PROBE | The Work-PC QA evidence infrastructure is live and its canonical files are only written by the single writer | scheduled task present but no live supervisor process; lease stale; task Last Result recorded. WAITING_FOR_HOME_PC is the recorded state and is not "fixed" during this campaign |
+| MP-04 | **PASS** | PASS | MACHINE_PROPERTY | MACHINE_PROBE | Every check record produced so far carries provenance and no secret-shaped value |  |
+
+### KFM #118 (master) / #62 (p1) - confirm / refute
+
+| Claim in the Home-PC review | Checks | Work-PC result |
+|---|---|---|
+| isRetryEligible has zero live call sites and cannot accept the RPC row shape | LR-05 | CONFIRMED on both refs |
+| the claim RPC never checks blocked_reason (unclassified failures auto-restart) | LR-01 | REFUTED at master 55a1591: the pinned RPC filters blocked_reason like PROVIDER_CAPACITY_BLOCKED% |
+| the retry loop is unbounded in SQL (attempt_count never checked) | LR-02 | REFUTED at master 55a1591: attempt_count < p_max_attempts is in the WHERE clause and the cap is observed |
+| claimed_by is cleared by nothing; a run is recoverable exactly once | LR-04 | REFUTED at master 55a1591: recordCapacityBlock clears claimed_by/claimed_at; the stuck-until-TTL shape reproduces only when the reset is omitted |
+| claim-then-spawn-failure strands the run | LR-08 | REFUTED at master 55a1591: resume_spawn_failed_claim_released path exists in supervisor.mjs (source contract; SQL effect replayed) |
+| the supervisor reaches Postgres via supabase db query --linked (superuser, no JWT) - feature dead on arrival for founder gate | CPS-04, CPS-05 | CONFIRMED on both refs: ten runtime scripts use --linked; the claim RPC is reachable only by the postgres/supabase_admin transport identity (EXECUTE revoked from every API role, founder JWT included) |
+| a company manager can rewrite the supervisor inputs (worktree, checkpoint_location, source_sha, branch, retry_after, attempt_count, claimed_by) | CPS-06 | PARTIALLY REFUTED at master 55a1591: those columns are now trigger-guarded (42501 for a manager persona); CONFIRMED for the unguarded set the completion path consumes: ["status","execution_provider","provider_run_id","agent_definition_path","agent_definition_hash","summary","head_commit","verification_status"] |
+| NO_SILENT_PROVIDER_FALLBACK is schema-only (no constraint, no writer) | PR-04 | PARTIALLY REFUTED: a CHECK constraint now refuses a recorded silent substitution; CONFIRMED that no runtime path writes requested_*/actual_* (all-null rows are valid and invisible) |
+| agent_run_capacity_retry_claim_security.sql was ADDED, NOT YET EXECUTED | CPS-10 | FIRST EXECUTION by the Work PC: the suite aborts at its own precondition on any PostgreSQL (compares pg_get_function_identity_arguments, which carries parameter names, with an unnamed signature string) - SUITE_PRECONDITION_DEFECT; D1-D5 are covered independently by CPS-05/CPS-06/LR-01/LR-02/LR-03 |
+| 202609030001 NOT PUSHED / DO NOT PUSH AS WRITTEN | - | NOT RESOLVABLE FROM THIS SEAT: qa/KNOWN_FAILURE_MODES.md #118 (master) says NOT PUSHED; qa/verification/DB_BATCH_STATE_FINDING.md:15 says applied; qa/scenarios-runner/README.md:84 says NOT YET EXECUTED. Production migration state is PRODUCTION STATE NOT VERIFIED (no production SQL from the Work PC). |
+| bounded backoff never escalates (scheduler hardcodes attemptCount: 1) | - | NOT TESTED in this campaign |
+
+<!-- END GENERATED EVIDENCE -->
+
+<!-- END WORK-PC EXECUTED EVIDENCE -->
