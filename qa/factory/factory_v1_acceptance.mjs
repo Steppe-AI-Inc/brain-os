@@ -4,6 +4,7 @@
 //
 //   node qa/factory/factory_v1_acceptance.mjs                 one machine: every local suite; the multi-machine rows read the plane
 //   node qa/factory/factory_v1_acceptance.mjs --local-only    skip the plane-reading rows
+//   node qa/factory/factory_v1_acceptance.mjs --plane-only    only the plane-reading rows (a quick read of what the machines recorded)
 //
 // The multi-machine rows need FACTORY_RUNNER_PG_URL pointing at the shared plane (the founder's database) and read what
 // two_machine_failover.mjs, shared_pg_worker.mjs and plane-health.mjs recorded there from BOTH machines: distinct
@@ -19,6 +20,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..', '..');
 const LOCAL_ONLY = process.argv.includes('--local-only');
+const PLANE_ONLY = process.argv.includes('--plane-only'); // only the rows read from the shared plane (the local suites are skipped, not passed)
 const record = { measured_at: new Date().toISOString(), host: hostname(), rows: [] };
 let holds = 0;
 const row = (milestone, label, ok, detail, gated) => { record.rows.push({ milestone, label, ok, detail: String(detail || '').slice(0, 300), founder_gated: Boolean(gated) }); if (!ok) holds++; console.log((ok ? 'OK   ' : (gated ? 'GATE ' : 'FAIL ')) + '[' + milestone + '] ' + label + (ok || !detail ? '' : '\n       ' + String(detail).slice(0, 300))); };
@@ -29,6 +31,7 @@ console.log('Factory V1 acceptance on ' + hostname() + ' — ' + record.measured
 console.log('');
 // ---- local, disposable ----------------------------------------------------------------------------------------------
 const noUrl = { FACTORY_RUNNER_PG_URL: '' };
+if (!PLANE_ONLY) {
 let r = run(join(ROOT, 'qa/factory/acceptance.mjs'), [], noUrl);
 row('1', 'control-plane acceptance on a disposable real PostgreSQL: ' + summary(r.out, /factory acceptance: \d+ passed, \d+ failed/), r.rc === 0);
 r = run(join(ROOT, 'qa/factory/health_check.mjs'), [], noUrl);
@@ -45,6 +48,7 @@ r = run(join(ROOT, 'qa/factory/http_provider_acceptance.mjs'), [], { ...noUrl, D
 row('6', 'the HTTP provider path against a stub: ' + summary(r.out, /http_provider_acceptance: \d+ passed, \d+ failed/), r.rc === 0);
 r = run(join(ROOT, 'scripts/factory-runner/monitor-gc.mjs'), ['list']);
 row('5', 'monitor garbage collection: ' + (r.out.trim().split(/\r?\n/).pop() || ''), r.rc === 0);
+} else console.log('--plane-only: the local suites are skipped (not counted as passed)');
 
 // ---- the plane: what the two machines recorded ----------------------------------------------------------------------
 if (LOCAL_ONLY || !process.env.FACTORY_RUNNER_PG_URL) {
@@ -60,9 +64,9 @@ if (LOCAL_ONLY || !process.env.FACTORY_RUNNER_PG_URL) {
     row('2', 'real two-machine failover recorded on the plane: ' + [...both].join(', '), pairs.length >= 1, pairs.length ? '' : 'run two_machine_failover.mjs hold on one PC and takeover on the other (§E)', pairs.length < 1);
     row('2', 'failover in BOTH directions', both.size >= 2, both.size >= 2 ? '' : 'run §E the other way round too', both.size < 2);
     const three = (await db.read("select count(distinct split_part(n.platform, ' ', 2))::int m from factory.agent_runs r join factory.nodes n on n.node_id = r.node_id where r.status = 'done' and r.finished_at > now() - interval '7 days'")).rows[0].m;
-    row('3', 'completed runs from ' + three + ' distinct machine(s) in 7 days (three-node scheduling needs 3)', three >= 3, three < 3 ? 'run shared_pg_worker.mjs on each machine against conflicting surfaces (§G)' : '', three < 3);
+    row('3', 'completed runs from ' + three + ' distinct machine(s) in 7 days (three-node scheduling needs 3)', three >= 3, three < 3 ? 'run two_machine_scheduling.mjs: seed, then wave on each machine, then verify (§G)' : '', three < 3);
     const ver = (await db.read("select count(*)::int n from factory.agent_runs a join factory.nodes na on na.node_id = a.authoring_node_id join factory.nodes nv on nv.node_id = a.verification_node_id where a.verification_run_id is not null and split_part(na.platform, ' ', 2) <> split_part(nv.platform, ' ', 2)")).rows[0].n;
-    row('4', 'verifications recorded by a DIFFERENT machine than the author: ' + ver, ver >= 1, ver < 1 ? 'Work PC (verifier) records a verification of a Home-PC run (§G)' : '', ver < 1);
+    row('4', 'verifications recorded by a DIFFERENT machine than the author: ' + ver, ver >= 1, ver < 1 ? 'the verifier wave of two_machine_scheduling.mjs on the Work PC records it (§G)' : '', ver < 1);
   } catch (e) { row('1-4', 'reading the shared plane', false, String(e.message).slice(0, 200)); }
 }
 
