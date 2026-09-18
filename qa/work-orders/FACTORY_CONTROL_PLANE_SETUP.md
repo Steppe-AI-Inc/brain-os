@@ -1,6 +1,6 @@
 # FACTORY CONTROL PLANE — SETUP
 
-**Status:** local acceptance complete (48/48 against a disposable real PostgreSQL; health 10/10) and the SHARED plane proved on ONE machine (`qa/factory/shared_control_plane_acceptance.mjs`, 7/7 across separate runner processes over TCP on a persistent embedded PostgreSQL 18). **One founder action outstanding: a database a SECOND computer can reach** (a hosted non-production PostgreSQL, or this machine's port opened to the LAN) — the only part of milestone 1 this machine cannot do alone.
+**Status:** local acceptance complete (48/48 against a disposable real PostgreSQL; health 10/10) and the SHARED plane proved on ONE machine (`qa/factory/shared_control_plane_acceptance.mjs`, 9/9 across separate runner processes over TCP on a persistent embedded PostgreSQL 18, including failover across a plane restart and three processes on conflicting surfaces). **One founder action outstanding: a database a SECOND computer can reach** (a hosted non-production PostgreSQL, or this machine's port opened to the LAN) — the only part of milestone 1 this machine cannot do alone.
 **Branch** `factory/computer-agnostic-control-plane` · **Nothing here has been deployed or applied anywhere.**
 
 ---
@@ -243,12 +243,22 @@ credentials, and no network access to anything but npm.
 node qa/factory/shared_local_pg.mjs start        # persistent embedded PostgreSQL 18 under .factory/control-plane/, loopback port 54329,
                                                  # provisioned by provision-control-plane.mjs (its refusals run first) + 002; serves until stopped
 node qa/factory/shared_local_pg.mjs status       # nodes / work orders / runs / checkpoints / locks it holds
-node qa/factory/shared_control_plane_acceptance.mjs   # 7/7: CP-0 a real server in its own process; CP-1 a separate runner
+node qa/factory/shared_control_plane_acceptance.mjs   # 9/9: CP-0 a real server in its own process; CP-1 a separate runner
    # process reaches it (node.mjs health); CP-2 the runner refuses the superuser URL; CP-3 two processes race for one
    # work order; CP-4 the winner's run, checkpoint and both registrations persist after both exit; CP-5 a worker that
    # dies mid-run (exit 3) is recovered after its lease expires by another process that sees its checkpoint; CP-6 rows
-   # persist across invocations.
+   # persist across invocations; CP-7 (milestone 2) the PLANE is stopped and restarted between a worker's death and the
+   # takeover - the restarted plane holds the dead run's checkpoint, serves the SAME credential, and a fresh process
+   # resumes the work order; CP-8 (milestone 3) three runner processes, two work orders on one surface - the conflicting
+   # pair never runs overlapped, the free work order is claimed, every work order is done after a second wave.
 ```
+
+Two restart defects CP-7 found in `shared_local_pg.mjs` itself, both fixed: (1) a restart re-ran the founder's provisioning,
+which ROTATES the runner role's password, so every process holding the URL from `runner.env` was locked out of the restarted
+plane - on reopen only the idempotent schema files are re-applied and the credential is kept; (2) on Windows the embedded
+wrapper's `stop()` can return while the postmaster's `io_worker` children are still alive, and the next postmaster refuses to
+start over their shared memory ("pre-existing shared memory block is still in use") - `stop` now waits for them and
+terminates orphans, and `start` terminates any postgres worker whose parent process is gone before starting.
 
 CP-5 found a defect the disposable suite could not see: the claim's lease-expiry step returned the abandoned RUN to
 `queued` and left the WORK ORDER at `claimed`, so a dead worker's work order was never claimable again by anyone (acceptance

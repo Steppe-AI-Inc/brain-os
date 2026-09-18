@@ -29,7 +29,7 @@
 // processes to source; the superuser URL is written to admin.url beside it for provisioning only. Both files are
 // machine-local and git-ignored; neither is a production credential.
 import EmbeddedPostgres from 'embedded-postgres';
-import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync, appendFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -81,8 +81,33 @@ async function provision(adminUrl) {
   return out.split('\n').filter((l) => /checks passed|schema applied|role factory_runner|privileges granted|REFUSING/.test(l));
 }
 
+// ORPHANED POSTGRES WORKERS BLOCK THE NEXT START. On Windows the embedded wrapper's stop() can return while the
+// postmaster's io_worker children are still alive; they hold the shared memory block, and the next postmaster refuses to
+// start over it ("pre-existing shared memory block is still in use", found by shared_control_plane_acceptance CP-7).
+// A postgres.exe whose parent process no longer exists is such an orphan and is terminated; one with a live parent is
+// somebody's running server and is left alone.
+function postgresProcesses() {
+  const r = spawnSync('wmic', ['process', 'where', "name='postgres.exe'", 'get', 'ProcessId,ParentProcessId'], { encoding: 'utf8' });
+  const out = [];
+  for (const line of String(r.stdout || '').split(/\r?\n/)) { const m = /^\s*(\d+)\s+(\d+)\s*$/.exec(line); if (m) out.push({ parent: Number(m[1]), pid: Number(m[2]) }); }
+  return out;
+}
+function processAlive(pid) { return spawnSync('tasklist', ['/FI', 'PID eq ' + pid], { encoding: 'utf8' }).stdout.includes(String(pid)); }
+function killOrphanPostgres() {
+  let killed = 0;
+  for (const p of postgresProcesses()) if (!processAlive(p.parent)) { spawnSync('taskkill', ['/F', '/PID', String(p.pid)], { encoding: 'utf8' }); killed++; }
+  return killed;
+}
+async function waitForPostgresToExit(ms) {
+  const until = Date.now() + ms;
+  while (Date.now() < until) { if (postgresProcesses().length === 0) return true; await new Promise((r) => setTimeout(r, 500)); }
+  return postgresProcesses().length === 0;
+}
+
 async function start() {
   mkdirSync(DIR, { recursive: true });
+  const orphans = killOrphanPostgres();
+  if (orphans) console.log('terminated ' + orphans + ' orphaned postgres worker process(es) left by an earlier server');
   const port = readPort();
   writeFileSync(PORT_FILE, String(port) + '\n');
   const already = existsSync(RUNNER_ENV_FILE) ? await serverReachable(readRunnerUrl()) : { ok: false };
@@ -91,22 +116,62 @@ async function start() {
   const existing = readAdminUrl();
   if (existing) superPassword = decodeURIComponent(new URL(existing).password);
   else superPassword = 'super_' + randomBytes(12).toString('base64url');
-  const pg = new EmbeddedPostgres({ databaseDir: DATA, user: 'postgres', password: superPassword, port, persistent: true, onLog: () => {}, onError: (m) => process.stderr.write(String(m)) });
+  // The server's own log is kept beside the data (server.log) so that a start that fails - the embedded wrapper rejects
+  // with `undefined` when postgres exits before it is ready - can be read rather than guessed at.
+  const logFile = join(DIR, 'server.log');
+  const logLine = (m) => { try { appendFileSync(logFile, String(m)); } catch { /* best effort */ } };
+  const pg = new EmbeddedPostgres({ databaseDir: DATA, user: 'postgres', password: superPassword, port, persistent: true, onLog: logLine, onError: (m) => { logLine(m); process.stderr.write(String(m)); } });
   const fresh = !existsSync(join(DATA, 'PG_VERSION'));
   if (fresh) { console.log('initialising a new cluster under ' + DATA.replace(ROOT, '.')); await pg.initialise(); }
-  await pg.start();
+  // A STALE LOCK FROM A KILLED SERVER. postgres refuses to start over a postmaster.pid whose process is gone only after
+  // its own checks; on Windows a server killed with its parent can leave the file and the port half-closed. If no
+  // process holds the recorded pid, the lock is stale and is removed before starting.
+  const lock = join(DATA, 'postmaster.pid');
+  if (existsSync(lock)) {
+    const pid = Number(String(readFileSync(lock, 'utf8')).split(/\r?\n/)[0]);
+    const alive = pid > 0 && spawnSync('tasklist', ['/FI', 'PID eq ' + pid], { encoding: 'utf8' }).stdout.includes(String(pid));
+    if (!alive) { console.log('removing a stale postmaster.pid (pid ' + pid + ' is not running)'); rmSync(lock); }
+    else { console.log('postmaster.pid names a live process ' + pid + '; refusing to start a second server over it'); process.exit(1); }
+  }
+  try { await pg.start(); }
+  catch (e) {
+    console.log('the server did not start: ' + (e && e.message ? e.message : String(e)));
+    if (existsSync(logFile)) console.log(readFileSync(logFile, 'utf8').split(/\r?\n/).filter(Boolean).slice(-8).join('\n'));
+    process.exit(1);
+  }
   if (existsSync(STOP_FILE)) rmSync(STOP_FILE);
   if (fresh) await pg.createDatabase('factory_control_plane');
   else { try { await pg.createDatabase('factory_control_plane'); } catch { /* exists */ } }
   const adminUrl = 'postgresql://postgres:' + encodeURIComponent(superPassword) + '@127.0.0.1:' + port + '/factory_control_plane';
   writeFileSync(ADMIN_URL_FILE, adminUrl + '\n');
-  const lines = await provision(adminUrl);
-  for (const l of lines) console.log('  ' + l.trim());
+  if (fresh || !existsSync(RUNNER_ENV_FILE)) {
+    const lines = await provision(adminUrl);
+    for (const l of lines) console.log('  ' + l.trim());
+  } else {
+    // A RESTART KEEPS THE CREDENTIAL (found by shared_control_plane_acceptance CP-7). provision-control-plane.mjs rotates
+    // the runner role's password every time it runs - right for the founder's one-shot bootstrap, wrong for a plane that
+    // is stopped and started under running clients: every process holding the URL from runner.env was locked out of the
+    // restarted server. On reopen only the idempotent schema files are re-applied and the grants re-asserted.
+    const { default: pg } = await import('pg');
+    const admin = new pg.Client({ connectionString: adminUrl }); await admin.connect();
+    for (const f of ['001_factory_control_plane.sql', '002_director_state_machine.sql']) await admin.query(readFileSync(join(ROOT, 'supabase/control-plane', f), 'utf8'));
+    await admin.query('grant usage on schema factory to factory_runner');
+    await admin.query('grant select, insert, update, delete on all tables in schema factory to factory_runner');
+    await admin.end();
+    console.log('  schema re-applied (idempotent); the runner credential in runner.env is unchanged');
+  }
   writeFileSync(PID_FILE, String(process.pid) + '\n');
   const reach = await serverReachable(readRunnerUrl());
   console.log((fresh ? 'created' : 'reopened') + ' the shared control plane: 127.0.0.1:' + port + ' (' + reach.version + '), runner URL in ' + RUNNER_ENV_FILE.replace(ROOT, '.'));
   console.log('serving; `node qa/factory/shared_local_pg.mjs stop` or Ctrl-C stops the server and keeps the data');
-  const shutdown = async () => { try { await pg.stop(); } catch { /* down */ } try { rmSync(PID_FILE); } catch { /* gone */ } process.exit(0); };
+  const shutdown = async () => {
+    try { await pg.stop(); } catch { /* down */ }
+    // stop() may return before the postmaster's children are gone; the next start needs them gone.
+    const clean = await waitForPostgresToExit(10000);
+    if (!clean) { const n = killOrphanPostgres(); console.log('server stopped; terminated ' + n + ' lingering worker process(es)'); } else console.log('server stopped; data kept');
+    try { rmSync(PID_FILE); } catch { /* gone */ }
+    process.exit(0);
+  };
   process.on('SIGINT', shutdown); process.on('SIGTERM', shutdown);
   setInterval(() => { if (existsSync(STOP_FILE)) { try { rmSync(STOP_FILE); } catch { /* gone */ } shutdown(); } }, 2000);
 }

@@ -91,7 +91,65 @@ if (ADMIN_URL) {
   check('CP-6 the shared plane keeps rows across suite invocations (acceptance runs recorded so far: ' + all[0].n + ')', all[0].n >= 1);
 }
 
-await sql.end();
+// CP-7 (milestone 2): the PLANE ITSELF goes down between a worker's death and the takeover. The serving process is asked to
+// stop (data kept), a new serving process is started detached, and a fresh runner process must claim the dead worker's
+// work order and see its checkpoint - failover across a control-plane restart, not just across client death.
+{
+  const wo = await newWo('CP-7 die, restart the plane, resume');
+  const tag = randomUUID().slice(0, 8);
+  const dead = await runAsync([WORKER, 'node-dead7-' + tag, 'die', '2']);
+  const died = dead.code === 3 && new RegExp('CLAIMED \\S+ ' + wo).test(dead.out);
+  await sql.end();
+  spawnSync(process.execPath, [join(ROOT, 'qa/factory/shared_local_pg.mjs'), 'stop'], { cwd: ROOT, encoding: 'utf8' });
+  let down = false;
+  for (let i = 0; i < 30 && !down; i++) { await sleep(1000); const c = new pgLib.Client({ connectionString: RUNNER_URL, connectionTimeoutMillis: 1500 }); try { await c.connect(); await c.end(); } catch { down = true; } }
+  const server = spawn(process.execPath, [join(ROOT, 'qa/factory/shared_local_pg.mjs'), 'start'], { cwd: ROOT, detached: true, stdio: 'ignore' });
+  server.unref();
+  let up = false;
+  for (let i = 0; i < 60 && !up; i++) { await sleep(1000); const c = new pgLib.Client({ connectionString: RUNNER_URL, connectionTimeoutMillis: 1500 }); try { await c.connect(); await c.query('select 1 from factory.work_orders limit 1'); await c.end(); up = true; } catch { /* still starting */ } }
+  // the URL is re-read from runner.env after the restart on purpose: if a restart ever rotated the credential, the row
+  // must say so through `up` and `resumed`, and the later worker must be handed whatever the plane now serves.
+  const urlAfter = /FACTORY_RUNNER_PG_URL=(.+)/.exec(readFileSync(envFile, 'utf8'))[1].trim();
+  const sameCredential = urlAfter === RUNNER_URL;
+  const sql2 = new pgLib.Client({ connectionString: urlAfter, connectionTimeoutMillis: 5000 });
+  let reconnected = true; try { await sql2.connect(); } catch (e) { reconnected = false; }
+  const later = up ? await runAsync([WORKER, 'node-late7-' + tag, 'resume', '30'], { FACTORY_RUNNER_PG_URL: urlAfter }) : { code: 1, out: 'plane never came back up' };
+  const resumed = new RegExp('CLAIMED \\S+ ' + wo).test(later.out);
+  const prior = /PRIOR_CHECKPOINTS (\d+)/.exec(later.out);
+  const survived = reconnected ? (await sql2.query('select count(*)::int n from factory.checkpoints where work_order_id = $1', [wo])).rows[0].n : -1;
+  check('CP-7 the plane is stopped and restarted between a worker\'s death and the takeover: the restarted plane still holds the dead run\'s checkpoint, serves the SAME runner credential, and a fresh process claims and resumes the work order (died ' + died + ', plane down ' + down + ', up ' + up + ', same credential ' + sameCredential + ', resumed ' + resumed + ', checkpoints on the restarted plane ' + survived + ')', died && down && up && sameCredential && resumed && prior && Number(prior[1]) >= 1 && survived >= 2, (dead.out + '\n' + later.out).slice(0, 400));
+  if (reconnected) await sql2.end();
+  if (!reconnected) { console.log('the plane did not come back after CP-7; CP-8 is not run'); console.log(''); console.log('shared_control_plane_acceptance: ' + pass + ' passed, ' + (failures.length + 1) + ' failed (CP-8 not run)'); process.exit(1); }
+}
+
+// CP-8 (milestone 3): THREE runner processes race for three work orders, two of which own the SAME surface. At most one of
+// the conflicting pair may be held at a time; the third process must still get the non-conflicting one; and the second of the
+// pair becomes claimable only once the first has completed and released its surface lock.
+{
+  const sql3 = new pgLib.Client({ connectionString: RUNNER_URL }); await sql3.connect();
+  const surface = 'qa/factory/shared_' + randomUUID().slice(0, 8) + '.txt';
+  const mk = async (title, surf) => { const id = randomUUID(); await sql3.query(`insert into factory.work_orders (work_order_id, title, owned_surface, priority, status) values ($1, $2, $3::text[], 'medium', 'queued')`, [id, title, [surf]]); return id; };
+  const w1 = await mk('CP-8 conflicting one', surface), w2 = await mk('CP-8 conflicting two', surface), w3 = await mk('CP-8 free', surface + '.other');
+  const tag = randomUUID().slice(0, 8);
+  // each worker holds its claim for a while so the race is observable: die mode exits fast, so use complete with a longer lease and
+  // observe the locks while the three run concurrently is racy; instead measure the CLAIM SET of the first wave, then the second wave.
+  const wave1 = await Promise.all([runAsync([WORKER, 'node-x-' + tag, 'complete']), runAsync([WORKER, 'node-y-' + tag, 'complete']), runAsync([WORKER, 'node-z-' + tag, 'complete'])]);
+  const claimedIn = (outs) => outs.map((o) => (/CLAIMED \S+ (\S+)/.exec(o.out) || [])[1]).filter(Boolean);
+  const first = claimedIn(wave1);
+  const bothConflicting = first.includes(w1) && first.includes(w2);
+  const runs = (await sql3.query('select work_order_id, started_at, finished_at from factory.agent_runs where work_order_id = any($1::uuid[]) order by started_at', [[w1, w2, w3]])).rows;
+  // if both conflicting work orders were claimed in the first wave, they must not have OVERLAPPED in time: the second started after the first completed
+  let overlapped = false;
+  const r1 = runs.find((r) => r.work_order_id === w1), r2 = runs.find((r) => r.work_order_id === w2);
+  if (r1 && r2) { const a = r1, b = r2; const aS = +new Date(a.started_at), aE = +new Date(a.finished_at || 0), bS = +new Date(b.started_at), bE = +new Date(b.finished_at || 0); overlapped = aS < bE && bS < aE; }
+  const freeClaimed = first.includes(w3) || runs.some((r) => r.work_order_id === w3);
+  // second wave picks up whatever the surface lock deferred
+  const wave2 = await Promise.all([runAsync([WORKER, 'node-x2-' + tag, 'complete']), runAsync([WORKER, 'node-y2-' + tag, 'complete'])]);
+  const allDone = (await sql3.query("select count(*)::int n from factory.work_orders where work_order_id = any($1::uuid[]) and status = 'done'", [[w1, w2, w3]])).rows[0].n;
+  check('CP-8 three runner processes, two work orders on one surface: the conflicting pair never ran overlapped (' + (overlapped ? 'OVERLAPPED' : 'serialized') + '), the free work order was claimed (' + freeClaimed + '), and every work order is done after a second wave (' + allDone + ' of 3)', !overlapped && freeClaimed && allDone === 3, JSON.stringify({ first, bothConflicting, wave2: claimedIn(wave2), runs: runs.map((r) => [r.work_order_id.slice(0, 8), r.started_at, r.finished_at]) }).slice(0, 600));
+  await sql3.end();
+}
+
 console.log('');
 console.log('shared_control_plane_acceptance: ' + pass + ' passed, ' + failures.length + ' failed');
 console.log('NOT PROVED HERE, BY CONSTRUCTION: two MACHINES sharing this plane. The server listens on loopback only; a hosted');
