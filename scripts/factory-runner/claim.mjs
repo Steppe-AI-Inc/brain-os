@@ -70,11 +70,23 @@ async function claimInTransaction({ nodeId, lease, capabilities,
       // available rather than as taken. This is the recovery path and it is deliberately part of the same
       // transaction as the claim: a reader that expires leases in a separate step can expire one and then
       // lose the race to claim it, which looks like a lost work order.
-      await client.query(
+      // THE WORK ORDER GOES BACK TOO (Factory V1 milestone 2, found by qa/factory/shared_control_plane_acceptance.mjs
+      // CP-5 with two real processes). The first version reset the abandoned RUN to queued and left the WORK ORDER at
+      // 'claimed', and the claim below reads work orders in 'queued' only - so a dead worker's work order was never
+      // claimable again by anyone, and acceptance E/G passed only because it reset the work order by hand. The two
+      // writes are one statement so that no reader can see a queued run whose work order still says claimed.
+      const expired = await client.query(
         `update factory.agent_runs
             set status = 'queued', node_id = null, lease_expires_at = null,
                 attempt_count = attempt_count + 1, updated_at = now()
-          where status = 'in_progress' and lease_expires_at is not null and lease_expires_at < now()`);
+          where status = 'in_progress' and lease_expires_at is not null and lease_expires_at < now()
+          returning work_order_id`);
+      if (expired.rows.length) {
+        await client.query(
+          `update factory.work_orders set status = 'queued', updated_at = now()
+            where status = 'claimed' and work_order_id = any($1::uuid[])`,
+          [expired.rows.map((r) => r.work_order_id)]);
+      }
       await client.query('delete from factory.surface_locks where lease_expires_at < now()');
 
       // WHAT THIS NODE IS, read from the control plane rather than taken from the caller. A node that

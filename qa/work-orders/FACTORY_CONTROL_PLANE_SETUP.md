@@ -1,6 +1,6 @@
 # FACTORY CONTROL PLANE — SETUP
 
-**Status:** local acceptance complete (31/31 against a real PostgreSQL). **One founder action outstanding.**
+**Status:** local acceptance complete (48/48 against a disposable real PostgreSQL; health 10/10) and the SHARED plane proved on ONE machine (`qa/factory/shared_control_plane_acceptance.mjs`, 7/7 across separate runner processes over TCP on a persistent embedded PostgreSQL 18). **One founder action outstanding: a database a SECOND computer can reach** (a hosted non-production PostgreSQL, or this machine's port opened to the LAN) — the only part of milestone 1 this machine cannot do alone.
 **Branch** `factory/computer-agnostic-control-plane` · **Nothing here has been deployed or applied anywhere.**
 
 ---
@@ -214,14 +214,19 @@ Stated so it is not discovered later:
 - **`security_role` is recorded and not yet enforced.** A node marked `generic` is not yet prevented from
   claiming work that requires `release_broker`, because nothing yet issues such work.
 - **The Edge campaign still runs on its own dispatch path** (`dispatch-isolated-verifier.sh` +
-  `verifier-watchdog.sh`), deliberately untouched while verifier #84 is in flight.
+  `verifier-watchdog.sh`), deliberately untouched while an Edge verifier is in flight (#105 is the final planned
+  round by the founder's ruling of 2026-09-17).
+- **Two MACHINES sharing one plane is not proved.** `qa/factory/shared_local_pg.mjs` serves a persistent, provisioned,
+  non-production PostgreSQL on loopback and any number of runner PROCESSES on this machine share it (claiming, surface
+  locks, lease expiry, checkpoint resume across process death — `shared_control_plane_acceptance.mjs`); a second computer
+  needs a database it can reach, which is the founder's boundary (§ THE ONE THING NEEDED FROM THE FOUNDER).
 
 ---
 
 ## 11. EVIDENCE
 
-`qa/factory/acceptance.mjs` — **31 passed, 0 failed**, against a real PostgreSQL started for the run and
-discarded afterwards. The harness proves it is a real server before anything else runs, by having two
+`qa/factory/acceptance.mjs` — **48 passed, 0 failed** (was 31 when this file was first written; rows were added by later
+work orders), against a real PostgreSQL started for the run and discarded afterwards. The harness proves it is a real server before anything else runs, by having two
 concurrent clients take different rows under `for update skip locked`: every claim in the suite is about
 locking and transaction visibility, and an in-process fake would pass all of them while proving nothing.
 
@@ -231,3 +236,23 @@ node qa/factory/acceptance.mjs
 
 Requires `pg` and `embedded-postgres` (dev dependencies, installed with `--no-save`). No configuration, no
 credentials, and no network access to anything but npm.
+
+### The shared plane on one machine (Factory V1 milestone 1, 2026-09-18)
+
+```
+node qa/factory/shared_local_pg.mjs start        # persistent embedded PostgreSQL 18 under .factory/control-plane/, loopback port 54329,
+                                                 # provisioned by provision-control-plane.mjs (its refusals run first) + 002; serves until stopped
+node qa/factory/shared_local_pg.mjs status       # nodes / work orders / runs / checkpoints / locks it holds
+node qa/factory/shared_control_plane_acceptance.mjs   # 7/7: CP-0 a real server in its own process; CP-1 a separate runner
+   # process reaches it (node.mjs health); CP-2 the runner refuses the superuser URL; CP-3 two processes race for one
+   # work order; CP-4 the winner's run, checkpoint and both registrations persist after both exit; CP-5 a worker that
+   # dies mid-run (exit 3) is recovered after its lease expires by another process that sees its checkpoint; CP-6 rows
+   # persist across invocations.
+```
+
+CP-5 found a defect the disposable suite could not see: the claim's lease-expiry step returned the abandoned RUN to
+`queued` and left the WORK ORDER at `claimed`, so a dead worker's work order was never claimable again by anyone (acceptance
+row E/G passed only because it reset the work order by hand). `claim.mjs` now returns the work order to `queued` in the same
+transaction, keyed on the expired runs. That is the checkpoint-resume half of milestone 2, proved across real processes.
+
+The runner URL for other processes is written to `.factory/control-plane/runner.env` (git-ignored) and printed nowhere.
