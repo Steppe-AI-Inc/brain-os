@@ -29,7 +29,11 @@ What it does, in order, and stops at the first refusal:
 1. refuses the production project by name; verifies the connection's identity carries exactly `npvhuoozkbexddnvkqsj`;
 2. downloads the Supabase Root 2021 CA once to `~/.brain-factory/` and refuses it unless its sha256 matches the pinned value;
    connects with **verify-full** (chain and hostname; never `rejectUnauthorized=false`) and checks the session is encrypted on
-   the server (`pg_stat_ssl`) — on a certificate mismatch it prints the certificate the server presented and stops;
+   the server (`pg_stat_ssl`) — on a certificate mismatch it prints the certificate the server presented and stops.
+   *Verified 2026-09-18 without a credential:* the Session Pooler endpoints (`*.pooler.supabase.com`) chain through the
+   Supabase Intermediate 2021 CA to the pinned root, and the exact verify-full handshake the provisioner performs is
+   AUTHORIZED over TLS 1.3; the direct host `db.<ref>.supabase.co` does not resolve from this machine (IPv6-only), so the
+   pooler is the path;
 3. allows the platform schemas and the platform's empty migration history for this ref only; still refuses any business
    table or an applied migration history;
 4. applies `001`–`003`; creates or re-shapes `factory_runner` (LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION
