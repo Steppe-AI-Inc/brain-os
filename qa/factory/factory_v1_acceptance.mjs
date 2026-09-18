@@ -1,0 +1,84 @@
+#!/usr/bin/env node
+// FINAL FACTORY V1 ACCEPTANCE — one command that runs every Factory V1 proof this machine can run, reads the ones that
+// need other machines from the plane, and says PASS / HOLD with the founder-gated remainder named.
+//
+//   node qa/factory/factory_v1_acceptance.mjs                 one machine: every local suite; the multi-machine rows read the plane
+//   node qa/factory/factory_v1_acceptance.mjs --local-only    skip the plane-reading rows
+//
+// The multi-machine rows need FACTORY_RUNNER_PG_URL pointing at the shared plane (the founder's database) and read what
+// two_machine_failover.mjs, shared_pg_worker.mjs and plane-health.mjs recorded there from BOTH machines: distinct
+// hostnames, not distinct node ids. Nothing here fakes a second machine.
+//
+// PASS advances automatically (the founder's rule); anything short of it is HOLD with the exact missing item printed.
+import { spawnSync } from 'node:child_process';
+import { existsSync, writeFileSync, mkdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { hostname } from 'node:os';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const ROOT = join(HERE, '..', '..');
+const LOCAL_ONLY = process.argv.includes('--local-only');
+const record = { measured_at: new Date().toISOString(), host: hostname(), rows: [] };
+let holds = 0;
+const row = (milestone, label, ok, detail, gated) => { record.rows.push({ milestone, label, ok, detail: String(detail || '').slice(0, 300), founder_gated: Boolean(gated) }); if (!ok) holds++; console.log((ok ? 'OK   ' : (gated ? 'GATE ' : 'FAIL ')) + '[' + milestone + '] ' + label + (ok || !detail ? '' : '\n       ' + String(detail).slice(0, 300))); };
+const run = (file, args = [], env = {}) => { const r = spawnSync(process.execPath, [file, ...args], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, ...env }, maxBuffer: 1 << 26 }); return { rc: r.status, out: (r.stdout || '') + (r.stderr || '') }; };
+const summary = (out, re) => { const m = re.exec(out); return m ? m[0] : '(no summary)'; };
+
+console.log('Factory V1 acceptance on ' + hostname() + ' — ' + record.measured_at);
+console.log('');
+// ---- local, disposable ----------------------------------------------------------------------------------------------
+const noUrl = { FACTORY_RUNNER_PG_URL: '' };
+let r = run(join(ROOT, 'qa/factory/acceptance.mjs'), [], noUrl);
+row('1', 'control-plane acceptance on a disposable real PostgreSQL: ' + summary(r.out, /factory acceptance: \d+ passed, \d+ failed/), r.rc === 0);
+r = run(join(ROOT, 'qa/factory/health_check.mjs'), [], noUrl);
+row('1', 'health check harness: ' + summary(r.out, /health_check: \d+ passed, \d+ failed/), r.rc === 0);
+r = run(join(ROOT, 'qa/factory/founder_poke_not_required.mjs'), [], noUrl);
+row('1', 'founder poke not required: ' + summary(r.out, /founder_poke_not_required: \d+ passed, \d+ failed/), r.rc === 0);
+r = spawnSync(process.execPath, ['--test', join(ROOT, 'scripts/factory-runner/db.regression.test.mjs')], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, ...noUrl } });
+row('1', 'accessor regressions (fail closed on a missing or unsafe URL): ' + summary((r.stdout || '') + (r.stderr || ''), /pass \d+[\s\S]*?fail \d+/).replace(/\s+/g, ' '), r.status === 0);
+r = run(join(ROOT, 'qa/factory/shared_control_plane_acceptance.mjs'), [], noUrl);
+row('1-6', 'shared plane across real processes on one machine: ' + summary(r.out, /shared_control_plane_acceptance: \d+ passed, \d+ failed/), r.rc === 0);
+r = run(join(ROOT, 'qa/factory/tls_plane_acceptance.mjs'), [], noUrl);
+row('1', 'the network path over TLS on this machine\'s LAN address: ' + summary(r.out, /tls_plane_acceptance: \d+ passed, \d+ failed/), r.rc === 0);
+r = run(join(ROOT, 'qa/factory/http_provider_acceptance.mjs'), [], { ...noUrl, DEEPSEEK_API_KEY: '' });
+row('6', 'the HTTP provider path against a stub: ' + summary(r.out, /http_provider_acceptance: \d+ passed, \d+ failed/), r.rc === 0);
+r = run(join(ROOT, 'scripts/factory-runner/monitor-gc.mjs'), ['list']);
+row('5', 'monitor garbage collection: ' + (r.out.trim().split(/\r?\n/).pop() || ''), r.rc === 0);
+
+// ---- the plane: what the two machines recorded ----------------------------------------------------------------------
+if (LOCAL_ONLY || !process.env.FACTORY_RUNNER_PG_URL) {
+  row('1-4', 'two MACHINES on one shared plane (failover both ways, three-node scheduling, verifier independence)', false, 'FACTORY_RUNNER_PG_URL to the shared plane is not set on this node - the founder\'s database (TWO_MACHINE_CONTROL_PLANE.md §0)', true);
+} else {
+  try {
+    const db = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/db.mjs')).href);
+    const hosts = (await db.read("select distinct split_part(platform, ' ', 2) h from factory.nodes where platform like '% %' and last_heartbeat_at > now() - interval '7 days'")).rows.map((x) => x.h).filter(Boolean);
+    row('1', 'machines registered on the shared plane in 7 days: ' + hosts.join(', '), hosts.length >= 2, hosts.length < 2 ? 'only ' + hosts.join(', ') + ' - bootstrap the other PC (§C/§D)' : '', hosts.length < 2);
+    const fo = (await db.read("select c1.payload->>'hostname' h1, c2.payload->>'hostname' h2 from factory.checkpoints c1 join factory.checkpoints c2 on c1.work_order_id = c2.work_order_id where c1.scenario = 'phase-1-hold' and c2.scenario = 'phase-2-takeover'")).rows;
+    const pairs = fo.filter((p) => p.h1 && p.h2 && p.h1 !== p.h2);
+    const both = new Set(pairs.map((p) => p.h1 + '>' + p.h2));
+    row('2', 'real two-machine failover recorded on the plane: ' + [...both].join(', '), pairs.length >= 1, pairs.length ? '' : 'run two_machine_failover.mjs hold on one PC and takeover on the other (§E)', pairs.length < 1);
+    row('2', 'failover in BOTH directions', both.size >= 2, both.size >= 2 ? '' : 'run §E the other way round too', both.size < 2);
+    const three = (await db.read("select count(distinct split_part(n.platform, ' ', 2))::int m from factory.agent_runs r join factory.nodes n on n.node_id = r.node_id where r.status = 'done' and r.finished_at > now() - interval '7 days'")).rows[0].m;
+    row('3', 'completed runs from ' + three + ' distinct machine(s) in 7 days (three-node scheduling needs 3)', three >= 3, three < 3 ? 'run shared_pg_worker.mjs on each machine against conflicting surfaces (§G)' : '', three < 3);
+    const ver = (await db.read("select count(*)::int n from factory.agent_runs a join factory.nodes na on na.node_id = a.authoring_node_id join factory.nodes nv on nv.node_id = a.verification_node_id where a.verification_run_id is not null and split_part(na.platform, ' ', 2) <> split_part(nv.platform, ' ', 2)")).rows[0].n;
+    row('4', 'verifications recorded by a DIFFERENT machine than the author: ' + ver, ver >= 1, ver < 1 ? 'Work PC (verifier) records a verification of a Home-PC run (§G)' : '', ver < 1);
+  } catch (e) { row('1-4', 'reading the shared plane', false, String(e.message).slice(0, 200)); }
+}
+
+// ---- the remainder that is the founder's, stated ----------------------------------------------------------------------
+row('6', 'DeepSeek credential on the serving node', Boolean(process.env.DEEPSEEK_API_KEY), 'DEEPSEEK_API_KEY not set in this process (never stored on the plane)', true);
+row('7', 'BUG-036 provider-side cause (read-only Auth inspection)', false, 'founder runs qa/verification/bug036_auth_inspection.mjs with SUPABASE_ACCESS_TOKEN on wo/invitation-delivery', true);
+row('7', 'migration 202609110001 authorized (moved into supabase/migrations)', false, 'gate_202609110001.mjs is satisfied; the move is the authorization', true);
+row('7', 'invitation web deploy', false, 'gate_invitation_deploy.mjs names the commit; the deploy is the founder\'s', true);
+row('7', 'Work-PC independent E2E retest', false, 'qa/verification/WORK_PC_E2E_RETEST.md, after the deploy', true);
+
+const gated = record.rows.filter((x) => !x.ok && x.founder_gated).length;
+const failed = record.rows.filter((x) => !x.ok && !x.founder_gated).length;
+record.verdict = failed ? 'FAIL' : (gated ? 'HOLD — founder-gated items remain' : 'PASS');
+mkdirSync(join(ROOT, '.factory'), { recursive: true });
+writeFileSync(join(ROOT, '.factory', 'factory_v1_acceptance.json'), JSON.stringify(record, null, 2));
+console.log('');
+console.log('FACTORY V1: ' + record.verdict + '  (' + record.rows.filter((x) => x.ok).length + ' ok, ' + failed + ' failed, ' + gated + ' founder-gated)');
+console.log('record: .factory/factory_v1_acceptance.json (git-ignored)');
+process.exit(failed ? 1 : (gated ? 3 : 0));
