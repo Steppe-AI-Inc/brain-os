@@ -127,6 +127,11 @@ instrument works, the milestone is not proved), **1 FAIL** (a row failed: it say
 
 Rehearsed on one machine with `rehearse` (two node ids, real child processes): it must end in exit 3.
 
+**Milestones 3 and 4 on real machines** use `qa/factory/two_machine_scheduling.mjs` the same way: `seed` on either PC, `wave <stamp>` on
+each PC within a minute of each other (each wave claims what its node MAY — role and surface lock decide — holds it while heartbeating, then
+completes it; the verifier node also records a verification of the other machine's run), then `verify <stamp>` with the same exit codes.
+Its rehearsal on one machine (a generic and a verifier node id, real processes) ends in exit 3 with every row green.
+
 ---
 
 ## F. ROLLBACK / CLEANUP
@@ -147,8 +152,8 @@ Rehearsed on one machine with `rehearse` (two node ids, real child processes): i
 | step | what runs | founder involvement |
 |---|---|---|
 | real 2-node takeover | §E, both directions | none |
-| real 3-node / conflict-aware scheduling | `qa/factory/shared_pg_worker.mjs <nodeId> complete` on both PCs (and the laptop) against two work orders sharing a surface — the same worker CP-8 used, `FACTORY_RUNNER_PG_URL` from the environment | none |
-| role/run-based verifier independence | Work PC (`verifier`) records a verification of a Home-PC run via `shared_pg_worker.mjs … verify <runId>`; a self-verification and a same-node verification must be REJECTED (CP-9..11 on real nodes) | none |
+| real 3-node / conflict-aware scheduling | `qa/factory/two_machine_scheduling.mjs seed` on either PC, then `wave <stamp>` on EACH PC within a minute, then `verify <stamp>`: two work orders on one surface never overlap in time, the free one completes, four runs from two hostnames (exit 0 TWO MACHINES / 3 SAME MACHINE / 1 FAIL; rehearsed on one machine) | none |
+| role/run-based verifier independence | the same `two_machine_scheduling.mjs` run: the verifier-role work order is claimable only by the Work PC (`FACTORY_NODE_ROLE=verifier`), which records a verification of a Home-PC run; `verify` requires the verifier node and hostname to differ from the author's and that no generic node ever held the verifier work order | none |
 | cheap QA / DeepSeek | `DEEPSEEK_API_KEY` in the environment of the node that will serve it; the HTTP provider path exists (`provider-http.mjs`, `http_provider_acceptance.mjs` 9/9 on a stub) | the key |
 | BUG-036 read-only diagnosis | **prepared**: `qa/verification/bug036_auth_inspection.mjs` on `wo/invitation-delivery` (GET only, redacted record, selftest 7/7; `BUG036_READONLY_INSPECTION.md`) — one command with `SUPABASE_ACCESS_TOKEN` in the process environment | the token, once |
 | 202609110001 production gate | **SATISFIED**: `qa/verification/gate_202609110001.mjs` 6/6 (draft still a draft, certified digests, 26/26 on PGlite and on a disposable real PostgreSQL, rollback J1–J5); record `GATE_202609110001.json`; the gate prints the founder step and performs none of it | moving the file into `supabase/migrations/` |
