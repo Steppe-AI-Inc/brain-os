@@ -12,9 +12,11 @@
 # and stops at the first failing link so the fix is named rather than guessed.
 set -u
 ROLE=generic
+ENV_FILE=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --role) ROLE="$2"; shift 2 ;;
+    --env-file) ENV_FILE="$2"; shift 2 ;;
     -h|--help) sed -n 2,13p "$0"; exit 0 ;;
     *) echo "unknown argument: $1"; exit 2 ;;
   esac
@@ -29,6 +31,16 @@ echo "factory node bootstrap  role=$ROLE  checkout=$ROOT"
 echo
 
 # 1. the URL - its absence is the designed refusal, reported as a setup step
+# --env-file <path>: the file provision-control-plane.mjs --write-env produced (one line, FACTORY_RUNNER_PG_URL=...).
+# Read here, exported for the checks below, never echoed. FACTORY_RUNNER_ENV_FILE does the same from the environment.
+ENV_FILE="${ENV_FILE:-${FACTORY_RUNNER_ENV_FILE:-}}"
+if [ -n "$ENV_FILE" ]; then
+  if [ ! -f "$ENV_FILE" ]; then echo "  FAIL env file not found: $ENV_FILE"; exit 2; fi
+  URL_LINE="$(grep -a -m1 '^FACTORY_RUNNER_PG_URL=' "$ENV_FILE" | tr -d '\r')"
+  if [ -z "$URL_LINE" ]; then echo "  FAIL $ENV_FILE has no FACTORY_RUNNER_PG_URL= line"; exit 2; fi
+  export FACTORY_RUNNER_PG_URL="${URL_LINE#FACTORY_RUNNER_PG_URL=}"
+  echo "  ok   FACTORY_RUNNER_PG_URL read from $ENV_FILE (not printed)"
+fi
 if [ -z "${FACTORY_RUNNER_PG_URL:-}" ]; then
   echo "  FAIL FACTORY_RUNNER_PG_URL is not set in this shell."
   echo "       Windows, persistent for this user:  setx FACTORY_RUNNER_PG_URL \"<url printed by provision-control-plane.mjs>\""

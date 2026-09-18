@@ -12,40 +12,44 @@ adds is the network: TLS, a least-privilege role judged on the server, two clock
 
 ## 0. THE ONE FOUNDER ACTION
 
-> **Provide one dedicated NON-PRODUCTION PostgreSQL that both PCs can reach over TLS; provision it once; set the printed
-> URL on both PCs.**
+> **FOUNDER DECISION 2026-09-18: the control plane is the dedicated Supabase project `npvhuoozkbexddnvkqsj`, created
+> exclusively for the Factory and holding no Brain OS data.** The default provisioner rule (a Supabase project is refused on
+> its platform schemas) is unchanged; `--allow-dedicated-supabase npvhuoozkbexddnvkqsj` is the one explicit exception, for
+> that ref only, proved by `qa/factory/dedicated_supabase_provisioning.mjs` (10/10 on a disposable TLS server dressed as a
+> Supabase project).
 
-1. **Create an empty PostgreSQL 14+ database that is not the Brain OS project.** Either shape is acceptable:
-   - **a small managed instance** (any provider; a *new* Supabase project used for nothing else also qualifies) — TLS is on
-     by default and the port is reachable only with the password. *Recommended: nothing to operate.*
-   - **a private network** (Tailscale / WireGuard / VPN) to a PostgreSQL that listens **only** on the private interface with
-     `ssl = on` and `hostssl`-only rules in `pg_hba.conf`. Never a public, unrestricted port 5432.
-2. **Provision it once**, from either PC, with the admin credential (DDL rights; used once; stored nowhere):
-   ```
-   node scripts/factory-runner/provision-control-plane.mjs --admin "postgresql://<admin>:<password>@<host>:<port>/<db>?sslmode=require"
-   ```
-   It refuses a production-shaped target; applies `001`, `002`, `003`; creates `factory_runner` (login, no create, no grant,
-   no bypass-RLS); and prints **one** `FACTORY_RUNNER_PG_URL`. **Its TLS parameters must match the certificate the server
-   presents** — the driver in this repository (pg 8.23) verifies the chain for every mode, measured by
-   `qa/factory/tls_plane_acceptance.mjs`:
+**The one command**, in PowerShell, from `C:\Users\Dell\dev\brain-os-factory-cp`, with the project's **Session Pooler** URL
+(Dashboard → Connect → Session pooler; user `postgres.npvhuoozkbexddnvkqsj`, port 5432):
 
-   | the database is reached as | put on the URL |
-   |---|---|
-   | a DNS name with a publicly trusted certificate (most managed instances) | `?sslmode=verify-full` |
-   | a DNS name whose provider uses its own CA (Supabase does) | `?sslmode=verify-full&sslrootcert=<path to the provider's CA file on the node>` |
-   | an IP address on a private network with a self-signed certificate | `?sslmode=verify-ca&sslrootcert=<path to the server certificate on the node>&uselibpqcompat=true` (verify-full cannot check an IP host with this driver) |
+```
+$env:FACTORY_CONTROL_PLANE_ADMIN_URL="<session pooler url>"; node scripts/factory-runner/provision-control-plane.mjs --allow-dedicated-supabase npvhuoozkbexddnvkqsj --write-env "$env:USERPROFILE\.brain-factory\runner.env"
+```
 
-   The CA / certificate file lives on each node outside the checkout; the URL points at it; neither is committed.
-3. **On the Home PC** (PowerShell, then open a *new* shell):
-   ```
-   setx FACTORY_RUNNER_PG_URL "<the printed URL>"
-   bash scripts/factory-runner/bootstrap-node.sh --role generic
-   ```
-   **On the Work PC**, the same with `--role verifier`.
-4. **Reply with:** "shared plane is up" and the two node ids the bootstraps printed. Never the URL.
+What it does, in order, and stops at the first refusal:
+1. refuses the production project by name; verifies the connection's identity carries exactly `npvhuoozkbexddnvkqsj`;
+2. downloads the Supabase Root 2021 CA once to `~/.brain-factory/` and refuses it unless its sha256 matches the pinned value;
+   connects with **verify-full** (chain and hostname; never `rejectUnauthorized=false`) and checks the session is encrypted on
+   the server (`pg_stat_ssl`) — on a certificate mismatch it prints the certificate the server presented and stops;
+3. allows the platform schemas and the platform's empty migration history for this ref only; still refuses any business
+   table or an applied migration history;
+4. applies `001`–`003`; creates or re-shapes `factory_runner` (LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION
+   NOBYPASSRLS NOINHERIT); grants CONNECT, USAGE on `factory`, DML on its tables; **revokes** CREATE on the database, everything
+   on `public` and on every platform schema, and membership in every platform role; records `factory.plane_identity`;
+5. **proves the boundary as the runner on a fresh TLS connection** (cannot read auth/storage/realtime/history, cannot create
+   a schema or a table anywhere, cannot become service_role/postgres, can read and write `factory`) — a failed proof writes
+   nothing;
+6. writes `FACTORY_RUNNER_PG_URL=postgresql://factory_runner.npvhuoozkbexddnvkqsj:…@<pooler>:5432/postgres?sslmode=verify-full&sslrootcert=<CA path>`
+   to the env file and prints host, database and role — never the URL.
 
-**Exact information the founder must supply: the admin URL for step 2 (host, port, database, admin credential).** Nothing
-else is needed from the founder; every later step in §G runs from the nodes.
+Then, on the Home PC:
+```
+bash scripts/factory-runner/bootstrap-node.sh --role generic --env-file "$env:USERPROFILE\.brain-factory\runner.env"
+```
+On the Work PC: copy `runner.env` and the CA file (`~/.brain-factory/supabase-root-2021-ca.crt`) to the same paths there, or
+re-run the one command there with its own `--write-env`, then `bootstrap-node.sh --role verifier --env-file …`.
+**Reply with:** "shared plane is up" and the two node ids the bootstraps print. Never the URL.
+
+Rotation is the same command again (the password rotates, the identity is kept). `--force` is refused alongside the flag.
 
 ---
 

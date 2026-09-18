@@ -44,6 +44,8 @@ r = run(join(ROOT, 'qa/factory/shared_control_plane_acceptance.mjs'), [], noUrl)
 row('1-6', 'shared plane across real processes on one machine: ' + summary(r.out, /shared_control_plane_acceptance: \d+ passed, \d+ failed/), r.rc === 0);
 r = run(join(ROOT, 'qa/factory/tls_plane_acceptance.mjs'), [], noUrl);
 row('1', 'the network path over TLS on this machine\'s LAN address: ' + summary(r.out, /tls_plane_acceptance: \d+ passed, \d+ failed/), r.rc === 0);
+r = run(join(ROOT, 'qa/factory/dedicated_supabase_provisioning.mjs'), [], noUrl);
+row('1', 'the dedicated-Supabase provisioning mode (refusals, identity, verify-full, hardened runner): ' + summary(r.out, /dedicated_supabase_provisioning: \d+ passed, \d+ failed/), r.rc === 0);
 r = run(join(ROOT, 'qa/factory/http_provider_acceptance.mjs'), [], { ...noUrl, DEEPSEEK_API_KEY: '' });
 row('6', 'the HTTP provider path against a stub: ' + summary(r.out, /http_provider_acceptance: \d+ passed, \d+ failed/), r.rc === 0);
 r = run(join(ROOT, 'scripts/factory-runner/monitor-gc.mjs'), ['list']);
