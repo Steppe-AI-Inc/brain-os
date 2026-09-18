@@ -261,6 +261,69 @@ if (ADMIN_URL) {
   await sql7.end();
 }
 
+// CP-15 (milestone 6, the assurance gate on a real node path): a process that intends DeepSeek with no DEEPSEEK_API_KEY in its
+// environment is DECLINED a verifier work order with the reason BLOCKED_BY_CREDENTIAL, and the work order waits; the same
+// process may take generic work, and its run records the requested model.
+{
+  const sql8 = new pgLib.Client({ connectionString: RUNNER_URL }); await sql8.connect();
+  const mk = async (title, role) => { const id = randomUUID(); await sql8.query(`insert into factory.work_orders (work_order_id, title, owned_surface, priority, status, requires_security_role) values ($1, $2, $3::text[], 'high', 'queued', $4)`, [id, title, ['qa/factory/shared_' + id.slice(0, 8) + '.txt'], role]); return id; };
+  // this suite's own leftovers (queued CP-* work orders from earlier rows or invocations) would be picked first by priority
+  // and age; they are removed so the rows below measure the gate, not the backlog
+  await sql8.query("delete from factory.work_orders where status = 'queued' and title like 'CP-%'");
+  const woV = await mk('CP-15 verifier round for deepseek', 'verifier');
+  const tag = randomUUID().slice(0, 8);
+  const env = { WORKER_ROLE: 'verifier', WORKER_PROVIDER: 'deepseek', WORKER_MODEL: 'deepseek-chat', DEEPSEEK_API_KEY: '' };
+  const ds = await runAsync([WORKER, 'node-deepseek-' + tag, 'complete'], env);
+  const declined = /\[claim\] declining .*BLOCKED_BY_CREDENTIAL/.test(ds.out) && !new RegExp('CLAIMED \\S+ ' + woV).test(ds.out);
+  const waits = (await sql8.query("select status from factory.work_orders where work_order_id = $1", [woV])).rows[0].status === 'queued';
+  const woG = await mk('CP-15 generic work for deepseek', 'generic');
+  const dsG = await runAsync([WORKER, 'node-deepseek-' + tag, 'complete'], env);
+  const gotGeneric = new RegExp('CLAIMED (\\S+) ' + woG).exec(dsG.out);
+  const recorded = gotGeneric ? (await sql8.query('select requested_provider, requested_model, actual_model from factory.agent_runs where run_id = $1', [gotGeneric[1]])).rows[0] : null;
+  check('CP-15 a process intending deepseek-chat with no DEEPSEEK_API_KEY is declined a verifier work order as BLOCKED_BY_CREDENTIAL (' + declined + ') and the work order waits (' + waits + '); it may take generic work and the run records requested ' + (recorded && recorded.requested_provider + '/' + recorded.requested_model) + ' (' + Boolean(recorded && recorded.requested_model === 'deepseek-chat') + ')', declined && waits && recorded && recorded.requested_model === 'deepseek-chat', (ds.out + '\n' + dsG.out).slice(0, 400));
+  await sql8.query("delete from factory.work_orders where work_order_id = $1 and status = 'queued'", [woV]);
+  await sql8.end();
+}
+
+// CP-16 (milestone 6, no silent fallback across processes): a process that requested one model and reports another at
+// completion without a fallback reason is refused by the runner's own completeRun; with the same model it completes.
+{
+  const sql9 = new pgLib.Client({ connectionString: RUNNER_URL }); await sql9.connect();
+  const mkG = async (title) => { const id = randomUUID(); await sql9.query(`insert into factory.work_orders (work_order_id, title, owned_surface, priority, status) values ($1, $2, $3::text[], 'high', 'queued')`, [id, title, ['qa/factory/shared_' + id.slice(0, 8) + '.txt']]); return id; };
+  await mkG('CP-16 substitution'); const tag = randomUUID().slice(0, 8);
+  const swapped = await runAsync([WORKER, 'node-swap-' + tag, 'complete'], { WORKER_PROVIDER: 'stub', WORKER_MODEL: 'stub-model-a', WORKER_ACTUAL_MODEL: 'stub-model-b' });
+  const refused = swapped.code === 4 && /SUBSTITUTION_REFUSED .*NO SILENT MODEL FALLBACK/.test(swapped.out);
+  await mkG('CP-16 same model');
+  const same = await runAsync([WORKER, 'node-same-' + tag, 'complete'], { WORKER_PROVIDER: 'stub', WORKER_MODEL: 'stub-model-a' });
+  const completed = same.code === 0 && /COMPLETED/.test(same.out);
+  check('CP-16 no silent model fallback across processes: a run that requested stub-model-a and reports stub-model-b without a reason is refused (' + refused + '); the same model completes (' + completed + ')', refused && completed, (swapped.out + '\n' + same.out).slice(0, 300));
+  await sql9.end();
+}
+
+// CP-17 (milestone 6, evidence admits): a model with no run evidence is declined verifier work (UNVERIFIED); after two completed
+// runs within 14 days on generic work - real processes, real completions - the same model is PROVEN and a verifier work order is
+// claimed by a process intending it.
+{
+  const sql10 = new pgLib.Client({ connectionString: RUNNER_URL }); await sql10.connect();
+  const tag = randomUUID().slice(0, 8), model = 'stub-proven-' + tag;
+  const mk = async (title, role) => { const id = randomUUID(); await sql10.query(`insert into factory.work_orders (work_order_id, title, owned_surface, priority, status, requires_security_role) values ($1, $2, $3::text[], 'high', 'queued', $4)`, [id, title, ['qa/factory/shared_' + id.slice(0, 8) + '.txt'], role]); return id; };
+  const env = { WORKER_ROLE: 'verifier', WORKER_PROVIDER: 'stub', WORKER_MODEL: model, WORKER_TERMINATION: 'completed' };
+  await sql10.query("delete from factory.work_orders where status = 'queued' and title like 'CP-%'");
+  const woV1 = await mk('CP-17 verifier round, no evidence yet', 'verifier');
+  const before = await runAsync([WORKER, 'node-unproven-' + tag, 'complete'], env);
+  const declinedUnverified = /\[claim\] declining .*UNVERIFIED/.test(before.out) && !new RegExp('CLAIMED \\S+ ' + woV1).test(before.out);
+  await sql10.query("delete from factory.work_orders where work_order_id = $1 and status = 'queued'", [woV1]);
+  await mk('CP-17 evidence one', 'generic'); await mk('CP-17 evidence two', 'generic');
+  const e1 = await runAsync([WORKER, 'node-evidence1-' + tag, 'complete'], env);
+  const e2 = await runAsync([WORKER, 'node-evidence2-' + tag, 'complete'], env);
+  const twoCompleted = /COMPLETED/.test(e1.out) && /COMPLETED/.test(e2.out);
+  const woV2 = await mk('CP-17 verifier round, evidence present', 'verifier');
+  const after = await runAsync([WORKER, 'node-proven-' + tag, 'complete'], env);
+  const admitted = new RegExp('CLAIMED \\S+ ' + woV2).test(after.out);
+  check('CP-17 evidence admits across processes: with no runs the model is declined verifier work as UNVERIFIED (' + declinedUnverified + '); after two completed runs on generic work (' + twoCompleted + ') a process intending it claims a verifier work order (' + admitted + ')', declinedUnverified && twoCompleted && admitted, (before.out + '\n' + after.out).slice(0, 400));
+  await sql10.end();
+}
+
 console.log('');
 console.log('shared_control_plane_acceptance: ' + pass + ' passed, ' + failures.length + ' failed');
 console.log('NOT PROVED HERE, BY CONSTRUCTION: two MACHINES sharing this plane. The server listens on loopback only; a hosted');

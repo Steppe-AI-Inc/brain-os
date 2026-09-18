@@ -1,6 +1,6 @@
 # FACTORY CONTROL PLANE — SETUP
 
-**Status:** local acceptance complete (48/48 against a disposable real PostgreSQL; health 10/10) and the SHARED plane proved on ONE machine (`qa/factory/shared_control_plane_acceptance.mjs`, 15/15 across separate runner processes over TCP on a persistent embedded PostgreSQL 18, including failover across a plane restart, three processes on conflicting surfaces, role-based independent verification, monitor garbage collection, admission control and heavy-job limits). **One founder action outstanding: a database a SECOND computer can reach** (a hosted non-production PostgreSQL, or this machine's port opened to the LAN) — the only part of milestone 1 this machine cannot do alone.
+**Status:** local acceptance complete (48/48 against a disposable real PostgreSQL; health 10/10) and the SHARED plane proved on ONE machine (`qa/factory/shared_control_plane_acceptance.mjs`, 18/18 across separate runner processes over TCP on a persistent embedded PostgreSQL 18, including failover across a plane restart, three processes on conflicting surfaces, role-based independent verification, monitor garbage collection, admission control, heavy-job limits, and the model-assurance gate on the real node path). **One founder action outstanding: a database a SECOND computer can reach** (a hosted non-production PostgreSQL, or this machine's port opened to the LAN) — the only part of milestone 1 this machine cannot do alone.
 **Branch** `factory/computer-agnostic-control-plane` · **Nothing here has been deployed or applied anywhere.**
 
 ---
@@ -243,7 +243,7 @@ credentials, and no network access to anything but npm.
 node qa/factory/shared_local_pg.mjs start        # persistent embedded PostgreSQL 18 under .factory/control-plane/, loopback port 54329,
                                                  # provisioned by provision-control-plane.mjs (its refusals run first) + 002; serves until stopped
 node qa/factory/shared_local_pg.mjs status       # nodes / work orders / runs / checkpoints / locks it holds
-node qa/factory/shared_control_plane_acceptance.mjs   # 15/15: CP-0 a real server in its own process; CP-1 a separate runner
+node qa/factory/shared_control_plane_acceptance.mjs   # 18/18: CP-0 a real server in its own process; CP-1 a separate runner
    # process reaches it (node.mjs health); CP-2 the runner refuses the superuser URL; CP-3 two processes race for one
    # work order; CP-4 the winner's run, checkpoint and both registrations persist after both exit; CP-5 a worker that
    # dies mid-run (exit 3) is recovered after its lease expires by another process that sees its checkpoint; CP-6 rows
@@ -259,8 +259,22 @@ node qa/factory/shared_control_plane_acceptance.mjs   # 15/15: CP-0 a real serve
    # stopped moving are found and reaped, a monitor on a moving file is spared (43 of 47 on the Home PC on 2026-09-18, alive
    # since rounds #71-#105); CP-13 admission control - a process below the memory floor refuses to claim and says why, the
    # work order stays queued, a process within limits claims it; CP-14 heavy-job limits - one heavy run per node (max_heavy)
-   # and FACTORY_HEAVY_PER_PLANE on the plane, enforced inside the claim's transaction, light work never limited.
+   # and FACTORY_HEAVY_PER_PLANE on the plane, enforced inside the claim's transaction, light work never limited;
+   # CP-15 (milestone 6) a process intending deepseek-chat with no DEEPSEEK_API_KEY is declined verifier work as
+   # BLOCKED_BY_CREDENTIAL, the work order waits, and it may still take generic work with the requested model recorded;
+   # CP-16 a run that requested one model and reports another without a reason is refused by completeRun; CP-17 a model
+   # with no evidence is declined verifier work as UNVERIFIED and admitted after two completed runs within 14 days.
 ```
+
+Milestone 6's measurable half. `node.mjs` now passes the node's intended provider and model (FACTORY_MODEL_PROVIDER /
+FACTORY_MODEL, stated in its log) to `claimWork`; before this the real node path claimed with no requested model, so the
+assurance gate never fired and the no-silent-fallback constraints compared against null. `claim.mjs` tells `deriveAssurance`
+whether this process holds the provider's credential (CREDENTIAL_ENV: deepseek → DEEPSEEK_API_KEY, openai → OPENAI_API_KEY;
+Anthropic is reached through the `claude` CLI's own login and is judged by evidence), and a declined work order no longer
+starves the node: the pick is a loop that excludes the declined one and tries the next eligible (CP-15 found that a verifier
+work order at the head of the queue hid every generic work order behind it). What remains founder-gated: the DeepSeek
+credential itself (an Edge Function secret, plus the unmerged provider migration on `codex/sem-brain-v1`), and an HTTP
+provider call path - `provider.mjs` shells the `claude` CLI only - without which no cheap-QA round can actually run on DeepSeek.
 
 Milestone 5 adds `scripts/factory-runner/monitor-gc.mjs` (list / reap, quiet-window rule on the followed file's mtime, never on
 its contents), `scripts/factory-runner/admission.mjs` (FACTORY_MIN_FREE_MB, FACTORY_MAX_CPU_PCT, FACTORY_ADMISSION=off - read by

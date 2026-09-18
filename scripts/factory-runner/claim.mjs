@@ -26,6 +26,16 @@ import { admission } from './admission.mjs';
 
 export const DEFAULT_LEASE_SECONDS = 120;
 
+// Which environment variable carries a provider's credential. Keys are never stored on the plane (AI_PROVIDER_RELIABILITY);
+// the claim only asks whether this process HAS one, and says BLOCKED_BY_CREDENTIAL when it does not.
+// Anthropic is NOT here: the Factory reaches it through the `claude` CLI (provider.mjs), whose login is its own and is
+// not an environment variable, so its reachability is decided by run evidence like any provider without a listed key.
+export const CREDENTIAL_ENV = { deepseek: 'DEEPSEEK_API_KEY', openai: 'OPENAI_API_KEY' };
+export const credentialPresentFor = (provider) => {
+  const v = provider ? CREDENTIAL_ENV[String(provider).toLowerCase()] : null;
+  return v ? Boolean(process.env[v]) : true;
+};
+
 /**
  * Record that a run VERIFIED another run (Factory V1 milestone 4: role/run-based independent verifier acceptance).
  *
@@ -137,7 +147,16 @@ async function claimInTransaction({ nodeId, lease, capabilities,
       // fewer than FACTORY_HEAVY_PER_PLANE (default 2). Counted inside the claim's transaction, so two claims cannot
       // both squeeze under the limit. Light and normal work is never counted and never limited by this.
       const heavyPerPlane = Number(process.env.FACTORY_HEAVY_PER_PLANE) > 0 ? Number(process.env.FACTORY_HEAVY_PER_PLANE) : 2;
-      const params = [myRank, JSON.stringify(myCaps), nodeId, heavyPerPlane];
+      // A DECLINED WORK ORDER DOES NOT STARVE THE NODE (Factory V1 milestone 6, found by shared_control_plane_acceptance
+      // CP-15). The first version picked one row, declined it at the assurance gate and returned null - so a verifier
+      // work order at the head of the queue that this node's model may not serve hid every generic work order behind
+      // it, and a node with an unproven model could claim nothing at all. The pick is a loop: a declined work order is
+      // excluded and the next eligible one is tried, inside the same transaction; the declined one still waits for a
+      // node that can serve it.
+      const declined = [];
+      let wo = null;
+      for (let attempt = 0; attempt < 8; attempt++) {
+      const params = [myRank, JSON.stringify(myCaps), nodeId, heavyPerPlane, declined];
 
       const picked = await client.query(
         // requires_security_role IS SELECTED, because the assurance gate below reads it. The first version of
@@ -147,6 +166,7 @@ async function claimInTransaction({ nodeId, lease, capabilities,
         `select wo.work_order_id, wo.owned_surface, wo.requires_security_role
            from factory.work_orders wo
           where wo.status = 'queued'
+            and not (wo.work_order_id = any($5::uuid[]))
             -- this node must BE enough: its role must rank at or above what the work order requires
             and (case wo.requires_security_role when 'release_broker' then 2 when 'verifier' then 1 else 0 end) <= $1
             -- ...and must HAVE every capability the work order names
@@ -173,7 +193,7 @@ async function claimInTransaction({ nodeId, lease, capabilities,
           limit 1`, params);
 
       if (!picked.rows.length) { await client.query('rollback'); return null; }
-      const wo = picked.rows[0];
+      wo = picked.rows[0];
 
       // THE RELEASE GATE MAY NOT BE SERVED BY A MODEL WITH NO EVIDENCE THAT IT FINISHES A RUN.
       //
@@ -191,16 +211,24 @@ async function claimInTransaction({ nodeId, lease, capabilities,
           `select status, termination_reason, finished_at
              from factory.agent_runs
             where coalesce(actual_model, requested_model) = $1`, [requestedModel]);
-        const standing = deriveAssurance(hist.rows, {});
+        // THE CREDENTIAL IS PART OF THE STANDING (Factory V1 milestone 6). A provider whose key is not in this
+        // process's environment cannot be served by this node whatever its history says; deriveAssurance already
+        // ranks that as BLOCKED_BY_CREDENTIAL, and the claim now tells it. Known providers map to their key's
+        // variable; an unknown provider is assumed reachable so that its run EVIDENCE decides, as before.
+        const standing = deriveAssurance(hist.rows, { credentialPresent: credentialPresentFor(requestedProvider) });
         const verdict = mayServe(wo.requires_security_role === 'release_broker' ? 'release_broker' : 'verifier_round', standing);
         if (!verdict.allowed) {
-          await client.query('rollback');
           // SAID, NOT SILENT. A refusal nobody records is indistinguishable from an empty queue, and this one
           // will look exactly like "the Factory stopped picking up verifier work" to whoever reads it next.
           console.log('[claim] declining ' + String(wo.work_order_id).slice(0, 8) + ': ' + verdict.reason);
-          return null;
+          declined.push(wo.work_order_id);
+          wo = null;
+          continue;
         }
       }
+      break;
+      }
+      if (!wo) { await client.query('rollback'); return null; }
 
       // REQUESTED PROVIDER AND MODEL ARE WRITTEN AT CLAIM TIME, WHICH IS BEFORE THE CALL.
       //

@@ -28,7 +28,10 @@ const claim = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/clai
 const db = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/db.mjs')).href);
 
 await claim.registerNode({ nodeId, capabilities: ['shared-plane-acceptance'], securityRole: role, platform: process.platform + ':' + process.pid });
-const run = await claim.claimWork({ nodeId, leaseSeconds: Number(lease || 30), ...(claimCaps ? { capabilities: claimCaps } : {}) });
+//   env  WORKER_PROVIDER / WORKER_MODEL   the provider and model this process intends to run (requested_* at claim time)
+//   env  WORKER_ACTUAL_MODEL              the model it reports having used at completion (a substitution without a reason must be refused)
+const requestedProvider = process.env.WORKER_PROVIDER || null, requestedModel = process.env.WORKER_MODEL || null;
+const run = await claim.claimWork({ nodeId, leaseSeconds: Number(lease || 30), ...(claimCaps ? { capabilities: claimCaps } : {}), ...(requestedModel ? { requestedProvider, requestedModel } : {}) });
 if (!run) {
   const g = claim.claimWork.lastAdmission;
   console.log(g && g.admit === false ? 'ADMISSION_REFUSED ' + g.reason : 'NOTHING');
@@ -52,6 +55,12 @@ if (mode === 'verify' || mode === 'selfverify') {
   const v = await claim.recordVerification({ authoringRunId: target, verificationRunId: run.run_id });
   console.log(v.accepted ? 'VERIFIED ' + target + ' by ' + v.row.verification_node_id : 'REJECTED ' + v.reason);
 }
-await claim.completeRun({ runId: run.run_id, status: 'done', summary: mode + ' by ' + nodeId + ' pid ' + process.pid, terminationReason: 'shared_plane_acceptance_worker_completed' });
+const actualModel = process.env.WORKER_ACTUAL_MODEL || requestedModel || null;
+try {
+  await claim.completeRun({ runId: run.run_id, status: 'done', summary: mode + ' by ' + nodeId + ' pid ' + process.pid, terminationReason: process.env.WORKER_TERMINATION || 'shared_plane_acceptance_worker_completed', ...(actualModel ? { actualProvider: requestedProvider, actualModel } : {}) });
+} catch (e) {
+  if (/NO SILENT MODEL FALLBACK/.test(String(e && e.message))) { console.log('SUBSTITUTION_REFUSED ' + String(e.message).slice(0, 160)); process.exit(4); }
+  throw e;
+}
 console.log('COMPLETED ' + run.run_id);
 process.exit(0);

@@ -141,9 +141,17 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
   const log = (m) => console.log('[' + id.slice(0, 13) + '] ' + m);
   log('registered; capabilities ' + JSON.stringify(caps) + '; head ' + String(repo.head).slice(0, 8));
 
+  // THE NODE SAYS WHICH PROVIDER AND MODEL IT INTENDS TO RUN, AT CLAIM TIME (Factory V1 milestone 6). Without this the
+  // claim's assurance gate never fires on a real node and the no-silent-fallback constraints compare against null - a
+  // verifier round could be handed to a model with no run evidence, and any actual model would pass as "requested".
+  // Read from the environment, stated in the log, never guessed: FACTORY_MODEL_PROVIDER / FACTORY_MODEL.
+  const requestedProvider = process.env.FACTORY_MODEL_PROVIDER || null;
+  const requestedModel = process.env.FACTORY_MODEL || null;
+  log(requestedModel ? 'intends ' + (requestedProvider || '?') + ' / ' + requestedModel + ' (FACTORY_MODEL); the claim gates verifier work on its run evidence'
+    : 'no FACTORY_MODEL set: claims carry no requested model, so the assurance gate and the no-silent-fallback constraints do not apply to this node');
   let claimed = 0;
   for (let i = 0; i < maxIterations; i++) {
-    const run = await claimWork({ nodeId: id, leaseSeconds });
+    const run = await claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel });
     if (!run) {
       if (once) { log('nothing eligible'); break; }
       await new Promise((r) => setTimeout(r, idleMs));
