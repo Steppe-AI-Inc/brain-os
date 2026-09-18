@@ -1,6 +1,6 @@
 # FACTORY CONTROL PLANE — SETUP
 
-**Status:** local acceptance complete (48/48 against a disposable real PostgreSQL; health 10/10) and the SHARED plane proved on ONE machine (`qa/factory/shared_control_plane_acceptance.mjs`, 12/12 across separate runner processes over TCP on a persistent embedded PostgreSQL 18, including failover across a plane restart, three processes on conflicting surfaces, and role-based, independent verification). **One founder action outstanding: a database a SECOND computer can reach** (a hosted non-production PostgreSQL, or this machine's port opened to the LAN) — the only part of milestone 1 this machine cannot do alone.
+**Status:** local acceptance complete (48/48 against a disposable real PostgreSQL; health 10/10) and the SHARED plane proved on ONE machine (`qa/factory/shared_control_plane_acceptance.mjs`, 15/15 across separate runner processes over TCP on a persistent embedded PostgreSQL 18, including failover across a plane restart, three processes on conflicting surfaces, role-based independent verification, monitor garbage collection, admission control and heavy-job limits). **One founder action outstanding: a database a SECOND computer can reach** (a hosted non-production PostgreSQL, or this machine's port opened to the LAN) — the only part of milestone 1 this machine cannot do alone.
 **Branch** `factory/computer-agnostic-control-plane` · **Nothing here has been deployed or applied anywhere.**
 
 ---
@@ -243,7 +243,7 @@ credentials, and no network access to anything but npm.
 node qa/factory/shared_local_pg.mjs start        # persistent embedded PostgreSQL 18 under .factory/control-plane/, loopback port 54329,
                                                  # provisioned by provision-control-plane.mjs (its refusals run first) + 002; serves until stopped
 node qa/factory/shared_local_pg.mjs status       # nodes / work orders / runs / checkpoints / locks it holds
-node qa/factory/shared_control_plane_acceptance.mjs   # 12/12: CP-0 a real server in its own process; CP-1 a separate runner
+node qa/factory/shared_control_plane_acceptance.mjs   # 15/15: CP-0 a real server in its own process; CP-1 a separate runner
    # process reaches it (node.mjs health); CP-2 the runner refuses the superuser URL; CP-3 two processes race for one
    # work order; CP-4 the winner's run, checkpoint and both registrations persist after both exit; CP-5 a worker that
    # dies mid-run (exit 3) is recovered after its lease expires by another process that sees its checkpoint; CP-6 rows
@@ -255,8 +255,18 @@ node qa/factory/shared_control_plane_acceptance.mjs   # 12/12: CP-0 a real serve
    # release_broker work is refused by both; CP-10 a process asserting release_broker capability in its claim while
    # registered generic is refused (the plane's node record decides); CP-11 a different process and node verifies an
    # authored run through the runner's own recordVerification, a run cannot verify itself, and a new process on the
-   # AUTHORING node cannot verify it either.
+   # AUTHORING node cannot verify it either; CP-12 (milestone 5) monitor garbage collection - monitors following files that
+   # stopped moving are found and reaped, a monitor on a moving file is spared (43 of 47 on the Home PC on 2026-09-18, alive
+   # since rounds #71-#105); CP-13 admission control - a process below the memory floor refuses to claim and says why, the
+   # work order stays queued, a process within limits claims it; CP-14 heavy-job limits - one heavy run per node (max_heavy)
+   # and FACTORY_HEAVY_PER_PLANE on the plane, enforced inside the claim's transaction, light work never limited.
 ```
+
+Milestone 5 adds `scripts/factory-runner/monitor-gc.mjs` (list / reap, quiet-window rule on the followed file's mtime, never on
+its contents), `scripts/factory-runner/admission.mjs` (FACTORY_MIN_FREE_MB, FACTORY_MAX_CPU_PCT, FACTORY_ADMISSION=off - read by
+`claimWork`, which records the refusal on `claimWork.lastAdmission` so a caller reports it rather than reading it as "nothing to
+take"), and `supabase/control-plane/003_resource_governance.sql` (`work_orders.weight`, `nodes.max_heavy`; applied by
+`shared_local_pg.mjs` and by every disposable harness). The founder's one-shot `provision-control-plane.mjs` still applies 001 only.
 
 CP-11 found a third control-plane defect: the claim recorded the authoring NODE but never the authoring RUN, so
 `verification_is_independent` (verification_run_id <> authoring_run_id) was vacuous and a run could record a verification of

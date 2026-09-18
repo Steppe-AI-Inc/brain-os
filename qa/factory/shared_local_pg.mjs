@@ -74,7 +74,7 @@ async function provision(adminUrl) {
   const { default: pg } = await import('pg');
   const admin = new pg.Client({ connectionString: adminUrl });
   await admin.connect();
-  await admin.query(readFileSync(join(ROOT, 'supabase/control-plane/002_director_state_machine.sql'), 'utf8'));
+  for (const f of ['002_director_state_machine.sql', '003_resource_governance.sql']) await admin.query(readFileSync(join(ROOT, 'supabase/control-plane', f), 'utf8'));
   await admin.query('grant select, insert, update, delete on all tables in schema factory to factory_runner');
   await admin.end();
   writeFileSync(RUNNER_ENV_FILE, 'FACTORY_RUNNER_PG_URL=' + m[1] + '\n');
@@ -154,7 +154,7 @@ async function start() {
     // restarted server. On reopen only the idempotent schema files are re-applied and the grants re-asserted.
     const { default: pg } = await import('pg');
     const admin = new pg.Client({ connectionString: adminUrl }); await admin.connect();
-    for (const f of ['001_factory_control_plane.sql', '002_director_state_machine.sql']) await admin.query(readFileSync(join(ROOT, 'supabase/control-plane', f), 'utf8'));
+    for (const f of ['001_factory_control_plane.sql', '002_director_state_machine.sql', '003_resource_governance.sql']) await admin.query(readFileSync(join(ROOT, 'supabase/control-plane', f), 'utf8'));
     await admin.query('grant usage on schema factory to factory_runner');
     await admin.query('grant select, insert, update, delete on all tables in schema factory to factory_runner');
     await admin.end();

@@ -198,6 +198,69 @@ if (ADMIN_URL) {
   await sql5.end();
 }
 
+// CP-12 (milestone 5, monitor garbage collection): monitors following files that stopped moving are found and reaped; a monitor
+// following a file that IS moving is left alone. A fresh `tail -f` on a file this suite writes to is the live control.
+{
+  const { writeFileSync, appendFileSync } = await import('node:fs');
+  const liveFile = join(DIR, 'cp12-live.log'); writeFileSync(liveFile, 'start\n');
+  const tailBin = spawnSync('where', ['tail'], { encoding: 'utf8' }).stdout.split(/\r?\n/).find((l) => /tail\.exe$/i.test(l));
+  const live = tailBin ? spawn(tailBin, ['-n', '0', '-f', liveFile], { stdio: 'ignore' }) : null;
+  const gcArgs = [join(ROOT, 'scripts/factory-runner/monitor-gc.mjs')];
+  const before = JSON.parse(spawnSync(process.execPath, [...gcArgs, 'list', '--json', '--quiet-minutes', '30'], { cwd: ROOT, encoding: 'utf8' }).stdout.trim().split('\n').pop());
+  appendFileSync(liveFile, 'tick\n');
+  const reaped = JSON.parse(spawnSync(process.execPath, [...gcArgs, 'reap', '--json', '--quiet-minutes', '30'], { cwd: ROOT, encoding: 'utf8' }).stdout.trim().split('\n').pop());
+  const after = JSON.parse(spawnSync(process.execPath, [...gcArgs, 'list', '--json', '--quiet-minutes', '30'], { cwd: ROOT, encoding: 'utf8' }).stdout.trim().split('\n').pop());
+  const liveSurvived = live ? live.exitCode === null && spawnSync('tasklist', ['/FI', 'PID eq ' + live.pid], { encoding: 'utf8' }).stdout.includes(String(live.pid)) : false;
+  check('CP-12 monitor garbage collection: ' + before.garbage + ' garbage monitor(s) of ' + before.monitors + ' found, ' + reaped.killed.length + ' process(es) terminated, ' + after.garbage + ' garbage left; the live monitor on a moving file survived (' + liveSurvived + ')', after.garbage === 0 && reaped.killed.length >= before.garbage && liveSurvived, JSON.stringify({ before, reaped: reaped.killed.length, after }).slice(0, 300));
+  if (live) { try { live.kill(); } catch { /* gone */ } }
+}
+
+// CP-13 (milestone 5, admission control): a process on a machine below the memory floor claims nothing and says why; the same
+// process with the floor at its default claims. Measured by setting the floor above any real machine for one process.
+{
+  const sql6 = new pgLib.Client({ connectionString: RUNNER_URL }); await sql6.connect();
+  const wo = randomUUID();
+  await sql6.query(`insert into factory.work_orders (work_order_id, title, owned_surface, priority, status) values ($1, 'CP-13 admission', $2::text[], 'high', 'queued')`, [wo, ['qa/factory/shared_' + wo.slice(0, 8) + '.txt']]);
+  const tag = randomUUID().slice(0, 8);
+  const starved = await runAsync([WORKER, 'node-starved-' + tag, 'complete'], { FACTORY_MIN_FREE_MB: '99999999' });
+  const refused = /ADMISSION_REFUSED free memory .* is below FACTORY_MIN_FREE_MB 99999999/.test(starved.out);
+  const stillQueued = (await sql6.query("select status from factory.work_orders where work_order_id = $1", [wo])).rows[0].status === 'queued';
+  const fed = await runAsync([WORKER, 'node-fed-' + tag, 'complete']);
+  const claimed = new RegExp('CLAIMED \\S+ ' + wo).test(fed.out);
+  check('CP-13 admission control across processes: a process below the memory floor refuses to claim and says why (' + refused + '), the work order stays queued (' + stillQueued + '), and a process within limits claims it (' + claimed + ')', refused && stillQueued && claimed, (starved.out + '\n' + fed.out).slice(0, 300));
+  await sql6.end();
+}
+
+// CP-14 (milestone 5, heavy-job concurrency limits): three HEAVY work orders; one node may hold one heavy run (max_heavy 1) and the
+// plane two (FACTORY_HEAVY_PER_PLANE=2). Two processes on the SAME node id: the second gets nothing while the first holds. A third
+// process on another node gets the second heavy work order; a fourth on a third node gets nothing while the plane is at its limit;
+// once the first holder completes, it gets the third. Light work is never limited.
+{
+  const sql7 = new pgLib.Client({ connectionString: RUNNER_URL }); await sql7.connect();
+  const mkW = async (title, weight) => { const id = randomUUID(); await sql7.query(`insert into factory.work_orders (work_order_id, title, owned_surface, priority, status, weight) values ($1, $2, $3::text[], 'high', 'queued', $4)`, [id, title, ['qa/factory/shared_' + id.slice(0, 8) + '.txt'], weight]); return id; };
+  const h1 = await mkW('CP-14 heavy one', 'heavy'), h2 = await mkW('CP-14 heavy two', 'heavy'), h3 = await mkW('CP-14 heavy three', 'heavy'), light = await mkW('CP-14 light', 'light');
+  const tag = randomUUID().slice(0, 8), env = { FACTORY_HEAVY_PER_PLANE: '2' };
+  const holderA = runAsync([WORKER, 'node-heavyA-' + tag, 'hold', '30', '9'], env);   // holds a heavy run ~9 s
+  await sleep(2500);
+  const sameNode = await runAsync([WORKER, 'node-heavyA-' + tag, 'complete'], env);
+  const sameNodeGot = (/CLAIMED \S+ (\S+)/.exec(sameNode.out) || [])[1];
+  const holderB = runAsync([WORKER, 'node-heavyB-' + tag, 'hold', '30', '6'], env);   // a second node takes the second heavy
+  await sleep(2500);
+  const third = await runAsync([WORKER, 'node-heavyC-' + tag, 'complete'], env);
+  const thirdGot = (/CLAIMED \S+ (\S+)/.exec(third.out) || [])[1];
+  const [a, b] = await Promise.all([holderA, holderB]);
+  const aGot = (/CLAIMED \S+ (\S+)/.exec(a.out) || [])[1], bGot = (/CLAIMED \S+ (\S+)/.exec(b.out) || [])[1];
+  const afterwards = await runAsync([WORKER, 'node-heavyC-' + tag, 'complete'], env);
+  const afterGot = (/CLAIMED \S+ (\S+)/.exec(afterwards.out) || [])[1];
+  const heavies = [h1, h2, h3];
+  const ok = heavies.includes(aGot) && heavies.includes(bGot) && aGot !== bGot
+    && (sameNodeGot === undefined || sameNodeGot === light)                                       // the same node gets the LIGHT one (never limited) or nothing, never a heavy
+    && (thirdGot === undefined || thirdGot === light)                                             // plane at 2 heavy: no heavy for a third node
+    && heavies.includes(afterGot) && afterGot !== aGot && afterGot !== bGot;                     // after a holder completes, the third heavy is claimable
+  check('CP-14 heavy limits across processes: node A holds a heavy run and a second process on node A gets no heavy (' + (sameNodeGot === light ? 'got the light one' : sameNodeGot ? 'GOT HEAVY ' + sameNodeGot.slice(0, 8) : 'nothing') + '); node B holds the second heavy; node C gets no heavy while the plane holds two (' + (thirdGot ? (heavies.includes(thirdGot) ? 'GOT HEAVY' : 'got the light one') : 'nothing') + '); after a holder completes node C gets the third heavy (' + heavies.includes(afterGot) + ')', ok, JSON.stringify({ aGot, bGot, sameNodeGot, thirdGot, afterGot, h1, h2, h3, light }).slice(0, 500));
+  await sql7.end();
+}
+
 console.log('');
 console.log('shared_control_plane_acceptance: ' + pass + ' passed, ' + failures.length + ' failed');
 console.log('NOT PROVED HERE, BY CONSTRUCTION: two MACHINES sharing this plane. The server listens on loopback only; a hosted');

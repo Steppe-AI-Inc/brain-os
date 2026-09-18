@@ -44,6 +44,7 @@ try {
 
   // ---- apply it, grant, and expect a clean bill -------------------------------------------------------
   await admin.query(readFileSync(join(ROOT, 'supabase/control-plane/001_factory_control_plane.sql'), 'utf8'));
+  await admin.query(readFileSync(join(ROOT, 'supabase/control-plane/003_resource_governance.sql'), 'utf8'));
   await admin.query('grant usage on schema factory to ' + pg.runnerRole);
   await admin.query('grant select, insert, update, delete on all tables in schema factory to ' + pg.runnerRole);
 

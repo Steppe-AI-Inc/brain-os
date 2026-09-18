@@ -29,8 +29,18 @@ const db = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/db.mjs'
 
 await claim.registerNode({ nodeId, capabilities: ['shared-plane-acceptance'], securityRole: role, platform: process.platform + ':' + process.pid });
 const run = await claim.claimWork({ nodeId, leaseSeconds: Number(lease || 30), ...(claimCaps ? { capabilities: claimCaps } : {}) });
-if (!run) { console.log('NOTHING'); process.exit(0); }
+if (!run) {
+  const g = claim.claimWork.lastAdmission;
+  console.log(g && g.admit === false ? 'ADMISSION_REFUSED ' + g.reason : 'NOTHING');
+  process.exit(0);
+}
 console.log('CLAIMED ' + run.run_id + ' ' + run.work_order_id);
+//     mode = hold <seconds>     claim once, heartbeat while holding the claim for <seconds>, then complete (a long job)
+if (mode === 'hold') {
+  const seconds = Number(arg || 5);
+  const until = Date.now() + seconds * 1000;
+  while (Date.now() < until) { await claim.heartbeat({ runId: run.run_id, nodeId, leaseSeconds: Number(lease || 30) }); await new Promise((r) => setTimeout(r, 1000)); }
+}
 if (mode === 'resume') {
   const prior = await db.read('select count(*)::int n from factory.checkpoints where work_order_id = $1 and run_id <> $2', [run.work_order_id, run.run_id]);
   console.log('PRIOR_CHECKPOINTS ' + prior.rows[0].n);

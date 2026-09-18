@@ -83,7 +83,7 @@ try {
   const { default: pgLib } = await import("pg");
   const admin = new pgLib.Client({ connectionString: pg.superUrl });
   await admin.connect();
-  for (const f of ['001_factory_control_plane.sql', '002_director_state_machine.sql']) {
+  for (const f of ['001_factory_control_plane.sql', '002_director_state_machine.sql', '003_resource_governance.sql']) {
     await admin.query(readFileSync(join(ROOT, 'supabase/control-plane', f), 'utf8'));
   }
   await admin.query('grant usage on schema factory to ' + pg.runnerRole);

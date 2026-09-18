@@ -22,6 +22,7 @@
 // notice the death; the absence of a heartbeat IS the notice.
 import * as db from './db.mjs';
 import { deriveAssurance, mayServe } from './model-assurance.mjs';
+import { admission } from './admission.mjs';
 
 export const DEFAULT_LEASE_SECONDS = 120;
 
@@ -79,6 +80,12 @@ export async function claimWork({ nodeId, leaseSeconds = DEFAULT_LEASE_SECONDS, 
   requestedProvider = null, requestedModel = null, reasoningEffort = null }) {
   if (!nodeId) throw new Error('claimWork requires a nodeId');
   const lease = Number(leaseSeconds) > 0 ? Number(leaseSeconds) : DEFAULT_LEASE_SECONDS;
+  // ADMISSION CONTROL (Factory V1 milestone 5): a machine that is out of memory or saturated does not claim. The
+  // refusal is recorded on the function for the caller to report, because a null here otherwise reads as "nothing to
+  // take", which is a different fact.
+  const gate = await admission();
+  claimWork.lastAdmission = gate;
+  if (!gate.admit) return null;
 
   // One transaction, opened by claimInTransaction below: the select locks the row and the surface
   // insert either succeeds for every surface this work order owns or aborts the claim. There is no
@@ -125,7 +132,12 @@ async function claimInTransaction({ nodeId, lease, capabilities,
       // cannot do release work. The order is the point.
       const RANK = { generic: 0, verifier: 1, release_broker: 2 };
       const myRank = RANK[myRole] === undefined ? 0 : RANK[myRole];
-      const params = [myRank, JSON.stringify(myCaps)];
+      // HEAVY-JOB CONCURRENCY LIMITS (Factory V1 milestone 5; 003_resource_governance.sql). A heavy work order is
+      // claimable only while this node holds fewer heavy runs in progress than its max_heavy, and the plane as a whole
+      // fewer than FACTORY_HEAVY_PER_PLANE (default 2). Counted inside the claim's transaction, so two claims cannot
+      // both squeeze under the limit. Light and normal work is never counted and never limited by this.
+      const heavyPerPlane = Number(process.env.FACTORY_HEAVY_PER_PLANE) > 0 ? Number(process.env.FACTORY_HEAVY_PER_PLANE) : 2;
+      const params = [myRank, JSON.stringify(myCaps), nodeId, heavyPerPlane];
 
       const picked = await client.query(
         // requires_security_role IS SELECTED, because the assurance gate below reads it. The first version of
@@ -148,6 +160,13 @@ async function claimInTransaction({ nodeId, lease, capabilities,
             and not exists (
               select 1 from factory.surface_locks sl
                where sl.surface = any(wo.owned_surface) and sl.lease_expires_at > now())
+            -- a heavy work order only while this node and the plane are under their heavy limits
+            and (wo.weight <> 'heavy' or (
+                  (select count(*) from factory.agent_runs r join factory.work_orders w on w.work_order_id = r.work_order_id
+                    where r.status = 'in_progress' and r.node_id = $3 and w.weight = 'heavy')
+                  < coalesce((select n.max_heavy from factory.nodes n where n.node_id = $3), 1)
+              and (select count(*) from factory.agent_runs r join factory.work_orders w on w.work_order_id = r.work_order_id
+                    where r.status = 'in_progress' and w.weight = 'heavy') < $4))
           order by case wo.priority when 'high' then 0 when 'medium' then 1 else 2 end,
                    wo.created_at
           for update of wo skip locked
