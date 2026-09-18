@@ -289,6 +289,14 @@ work order at the head of the queue hid every generic work order behind it). Wha
 credential itself (an Edge Function secret, plus the unmerged provider migration on `codex/sem-brain-v1`), and an HTTP
 provider call path - `provider.mjs` shells the `claude` CLI only - without which no cheap-QA round can actually run on DeepSeek.
 
+**The HTTP provider call path now exists** (`scripts/factory-runner/provider-http.mjs`, proved by `qa/factory/http_provider_acceptance.mjs`
+9/9 against a stub OpenAI-compatible server and a disposable plane): the credential is read from the environment at call time and
+goes nowhere else (no request is made without it: BLOCKED_BY_CREDENTIAL); HTTP success is not a completed run (a stream that
+never terminates, a body that stopped for length, a malformed body are named terminal conditions, never `completed`); the
+model that answered is reported as the provider named it, so a substitution is refused by the plane without a fallbackReason;
+401/429/5xx/network are classified, never thrown; the key appears in no control-plane row afterwards; and the assurance gate
+admits deepseek-chat to verifier work only after two completed HTTP runs. What remains for milestone 6 is the key itself.
+
 Milestone 7's measurable half (BUG-036 / BUG-037 / required security acceptance). `qa/factory/dbtest_on_disposable_pg.mjs
 <product repo> [<log dir>]` starts the factory's disposable PostgreSQL 18.4, creates a `dbtest` database of its own (UTF8 from
 template0 - a Windows initdb defaults to WIN1252, in which the drafts' box-drawing comment characters do not exist), and runs

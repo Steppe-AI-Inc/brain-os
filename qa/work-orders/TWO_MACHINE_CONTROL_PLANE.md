@@ -149,7 +149,7 @@ Rehearsed on one machine with `rehearse` (two node ids, real child processes): i
 | real 2-node takeover | §E, both directions | none |
 | real 3-node / conflict-aware scheduling | `qa/factory/shared_pg_worker.mjs <nodeId> complete` on both PCs (and the laptop) against two work orders sharing a surface — the same worker CP-8 used, `FACTORY_RUNNER_PG_URL` from the environment | none |
 | role/run-based verifier independence | Work PC (`verifier`) records a verification of a Home-PC run via `shared_pg_worker.mjs … verify <runId>`; a self-verification and a same-node verification must be REJECTED (CP-9..11 on real nodes) | none |
-| cheap QA / DeepSeek | `DEEPSEEK_API_KEY` on the node that will serve it, plus the HTTP provider path (not yet built; `provider.mjs` shells the `claude` CLI only) | the key |
+| cheap QA / DeepSeek | `DEEPSEEK_API_KEY` in the environment of the node that will serve it; the HTTP provider path exists (`provider-http.mjs`, `http_provider_acceptance.mjs` 9/9 on a stub) | the key |
 | BUG-036 read-only diagnosis | Supabase Auth email provider settings and the failed-invite Auth log | read-only dashboard or management token |
 | 202609110001 production gate | the draft's acceptance is 26/26 on a real PostgreSQL; the gate is moving the file into `supabase/migrations/` | authorization |
 | invitation web deploy gate | `wo/invitation-delivery` at `391445d4`; typecheck clean bar the known environmental diagnostic | authorization |
