@@ -27,11 +27,24 @@ const check = (label, ok, detail) => { if (ok) { pass++; console.log('OK   ' + l
 const run = (args, env = {}) => spawnSync(process.execPath, args, { cwd: ROOT, encoding: 'utf8', env: { ...process.env, FACTORY_RUNNER_PG_URL: RUNNER_URL, ...env }, timeout: 120000 });
 const runAsync = (args, env = {}) => new Promise((res) => { const c = spawn(process.execPath, args, { cwd: ROOT, env: { ...process.env, FACTORY_RUNNER_PG_URL: RUNNER_URL, ...env } }); let out = ''; c.stdout.on('data', (d) => out += d); c.stderr.on('data', (d) => out += d); c.on('close', (code) => res({ code, out })); });
 const WORKER = join(ROOT, 'qa/factory/shared_pg_worker.mjs');
+// ADMISSION CONTROL IS OFF FOR THIS SUITE'S WORKERS, EXCEPT THE ROW THAT TESTS IT. The workers boot several at once, and a
+// worker sampling CPU while its siblings start sees 90-99% busy and refuses to claim (2026-09-18 run: CP-5 and CP-11 failed
+// with ADMISSION_REFUSED CPU busy 99%). That is the governance working, not the claim failing - so the rows about claiming
+// run with admission off, stated in the refusal record, and CP-13 turns it back on to prove the refusal itself.
+process.env.FACTORY_ADMISSION = 'off';
 const { default: pgLib } = await import('pg');
 const sql = new pgLib.Client({ connectionString: RUNNER_URL }); await sql.connect();
 const q = async (s, p = []) => (await sql.query(s, p)).rows;
 const newWo = async (title) => { const id = randomUUID(); await sql.query(`insert into factory.work_orders (work_order_id, title, owned_surface, priority, status) values ($1, $2, $3::text[], 'medium', 'queued')`, [id, title, ['qa/factory/shared_' + id.slice(0, 8) + '.txt']]); return id; };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// A SHARED PLANE PERSISTS ACROSS INVOCATIONS, and an invocation killed mid-way leaves queued CP-* work orders behind that the
+// next run's workers claim FIRST (2026-09-18: CP-3's two racing workers each took a leftover and the row read "claimed 0").
+// The sweep is this suite's own titles only, and only queued rows: nothing another user of the plane queued is touched.
+{
+  const stale = await q("select work_order_id from factory.work_orders where status = 'queued' and (title like 'CP-%' or title like 'TM-%')");
+  for (const r of stale) { await sql.query('delete from factory.checkpoints where work_order_id = $1', [r.work_order_id]); await sql.query('delete from factory.agent_runs where work_order_id = $1', [r.work_order_id]); await sql.query('delete from factory.work_orders where work_order_id = $1', [r.work_order_id]); }
+  if (stale.length) console.log('swept ' + stale.length + ' leftover queued work order(s) left by an earlier invocation');
+}
 
 // The server is a separate process from every client: its backend pid is not ours, and it answers on a TCP port.
 const srv = await q('select pg_backend_pid() bpid, inet_server_port() port, host(inet_server_addr()) addr, version() v');
@@ -222,7 +235,7 @@ if (ADMIN_URL) {
   const wo = randomUUID();
   await sql6.query(`insert into factory.work_orders (work_order_id, title, owned_surface, priority, status) values ($1, 'CP-13 admission', $2::text[], 'high', 'queued')`, [wo, ['qa/factory/shared_' + wo.slice(0, 8) + '.txt']]);
   const tag = randomUUID().slice(0, 8);
-  const starved = await runAsync([WORKER, 'node-starved-' + tag, 'complete'], { FACTORY_MIN_FREE_MB: '99999999' });
+  const starved = await runAsync([WORKER, 'node-starved-' + tag, 'complete'], { FACTORY_MIN_FREE_MB: '99999999', FACTORY_ADMISSION: 'on' });
   const refused = /ADMISSION_REFUSED free memory .* is below FACTORY_MIN_FREE_MB 99999999/.test(starved.out);
   const stillQueued = (await sql6.query("select status from factory.work_orders where work_order_id = $1", [wo])).rows[0].status === 'queued';
   const fed = await runAsync([WORKER, 'node-fed-' + tag, 'complete']);

@@ -30,6 +30,7 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import { hostname } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as db from './db.mjs';
@@ -42,6 +43,16 @@ const NODE_ID_FILE = join(STATE_DIR, 'node-id');
 
 const git = (args, cwd = REPO_ROOT) =>
   execFileSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 1 << 26 }).trim();
+
+/** The security role this node registers with: FACTORY_NODE_ROLE, validated, default generic. Not a machine
+ *  name - a Work PC is the verifier because its operator SAID so at bootstrap, and the plane's record enforces it. */
+export function nodeRole() {
+  const r = (process.env.FACTORY_NODE_ROLE || 'generic').trim();
+  if (!['generic', 'verifier', 'release_broker'].includes(r)) {
+    throw new Error('FACTORY_NODE_ROLE must be generic | verifier | release_broker (got ' + JSON.stringify(r) + ')');
+  }
+  return r;
+}
 
 /** 2. A stable node id, generated once. Not the hostname — see the header. */
 export function nodeId() {
@@ -137,8 +148,12 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
   const caps = capabilities();
   const repo = reconcileRepository({ fetch: false });
 
-  await registerNode({ nodeId: id, capabilities: caps, platform: process.platform, agentVersion: process.version });
+  // THE ROLE IS STATED BY THE ENVIRONMENT AND ENFORCED FROM THE PLANE'S NODE RECORD. Before this, every start
+  // re-registered the node as `generic`, so a Work PC bootstrapped as the verifier was silently demoted the first
+  // time it started - and the claim would then have refused it verifier work while looking healthy.
+  await registerNode({ nodeId: id, capabilities: caps, securityRole: nodeRole(), platform: process.platform + ' ' + hostname(), agentVersion: process.version });
   const log = (m) => console.log('[' + id.slice(0, 13) + '] ' + m);
+  log('security role ' + nodeRole() + ' (FACTORY_NODE_ROLE); host ' + hostname());
   log('registered; capabilities ' + JSON.stringify(caps) + '; head ' + String(repo.head).slice(0, 8));
 
   // THE NODE SAYS WHICH PROVIDER AND MODEL IT INTENDS TO RUN, AT CLAIM TIME (Factory V1 milestone 6). Without this the
@@ -252,7 +267,7 @@ export async function health() {
   // same made a healthy local node report NOT HEALTHY, and — worse — made a missing TLS on a REMOTE host
   // look like the same routine noise.
   const loopback = /^(127\.|\[?::1\]?$|localhost$)/.test(host);
-  const tlsOn = sslmode === "require" || sslmode === "verify-full";
+  const tlsOn = sslmode === "require" || sslmode === "verify-ca" || sslmode === "verify-full";
   if (loopback) {
     lines.push((tlsOn ? "  ok   " : "  note ") + "TLS " + (tlsOn ? "is requested" : "not requested, and not needed")
       + " — this is a loopback connection, which does not cross a network");
@@ -301,10 +316,10 @@ export async function health() {
   } catch (e) { say(false, "cannot read the queue", String(e && e.message || e).slice(0, 120)); }
 
   try {
-    await registerNode({ nodeId: nodeId(), capabilities: capabilities(), platform: process.platform,
-      agentVersion: process.version });
+    await registerNode({ nodeId: nodeId(), capabilities: capabilities(), securityRole: nodeRole(),
+      platform: process.platform + ' ' + hostname(), agentVersion: process.version });
     const n = await db.read("select count(*)::int n from factory.nodes");
-    say(true, "registered itself (" + n.rows[0].n + " node(s) known to this control plane)");
+    say(true, "registered itself as " + nodeRole() + " (" + n.rows[0].n + " node(s) known to this control plane)");
   } catch (e) { say(false, "cannot register", String(e && e.message || e).slice(0, 120)); }
 
   // ---- the repository this node would work in -------------------------------------------------------

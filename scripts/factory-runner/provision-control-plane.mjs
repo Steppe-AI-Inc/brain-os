@@ -15,14 +15,19 @@
 // does. The checks are deliberately cheap and deliberately paranoid: a false refusal costs a flag, and a
 // false acceptance costs a schema created inside the production database by the tool whose entire purpose
 // is to keep the Factory out of it.
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..', '..');
-const SCHEMA = join(ROOT, 'supabase', 'control-plane', '001_factory_control_plane.sql');
+// EVERY control-plane file, in order. The first version applied 001 alone, so a plane the founder provisioned
+// would have lacked the director state machine (002) and resource governance (003) that the shared-plane
+// acceptance and the node path rely on. All three are idempotent, so re-running converges an existing plane.
+const SCHEMA_DIR = join(ROOT, 'supabase', 'control-plane');
+const SCHEMA_FILES = readdirSync(SCHEMA_DIR).filter((f) => /^\d{3}_.*\.sql$/.test(f)).sort();
+const SCHEMA = join(SCHEMA_DIR, SCHEMA_FILES[0] || '001_factory_control_plane.sql');
 const ROLE = 'factory_runner';
 
 const arg = (name) => {
@@ -108,26 +113,31 @@ async function main() {
     }
 
     const password = randomBytes(18).toString('base64url');
-    const sql = readFileSync(SCHEMA, 'utf8');
 
     if (has('--print-only')) {
       console.log('--print-only: nothing was changed. It would have:');
-      console.log('  1. applied ' + SCHEMA.replace(ROOT, '.'));
-      console.log('  2. created role ' + ROLE + ' with a generated password');
+      console.log('  1. applied, in order: ' + SCHEMA_FILES.join(', '));
+      console.log('  2. created role ' + ROLE + ' with a generated password: LOGIN, NOSUPERUSER, NOCREATEDB, NOCREATEROLE,'
+        + ' NOREPLICATION, NOBYPASSRLS, NOINHERIT');
       console.log('  3. granted connect/usage/DML on schema factory, and nothing else');
+      console.log('  4. printed a FACTORY_RUNNER_PG_URL that carries sslmode=require for any host that is not loopback');
       process.exit(0);
     }
 
-    await client.query(sql);
-    console.log('schema applied: factory.nodes, work_orders, work_order_dependencies, agent_runs, surface_locks, checkpoints');
+    for (const f of SCHEMA_FILES) await client.query(readFileSync(join(SCHEMA_DIR, f), 'utf8'));
+    const tables = await client.query("select table_name from information_schema.tables where table_schema = 'factory' order by 1");
+    console.log('schema applied (' + SCHEMA_FILES.join(', ') + '): ' + tables.rows.map((r) => r.table_name).join(', '));
 
+    // The role's attributes are STATED, not left to defaults, and re-asserted on an existing role so a plane that was
+    // provisioned by hand converges to the same shape: a login role that cannot create, cannot grant, cannot bypass RLS.
+    const ATTRS = 'login nosuperuser nocreatedb nocreaterole noreplication nobypassrls noinherit';
     const exists = await client.query('select 1 from pg_roles where rolname = $1', [ROLE]);
     if (exists.rows.length) {
-      await client.query(`alter role ${ROLE} with login password '${password}'`);
-      console.log('role ' + ROLE + ' already existed; its password was rotated');
+      await client.query(`alter role ${ROLE} with ${ATTRS} password '${password}'`);
+      console.log('role ' + ROLE + ' already existed; its password was rotated and its attributes re-asserted (' + ATTRS + ')');
     } else {
-      await client.query(`create role ${ROLE} login password '${password}'`);
-      console.log('role ' + ROLE + ' created');
+      await client.query(`create role ${ROLE} with ${ATTRS} password '${password}'`);
+      console.log('role ' + ROLE + ' created (' + ATTRS + ')');
     }
 
     const dbName = (await client.query('select current_database() db')).rows[0].db;
@@ -140,13 +150,27 @@ async function main() {
     const u = new URL(adminUrl);
     u.username = ROLE;
     u.password = password;
+    // TLS IS PART OF THE URL THE NODES GET. db.mjs refuses a non-loopback URL without it, so a URL printed here
+    // without it would be a URL no node can use. `require` is the floor; verify-full is better when the server's
+    // certificate chain is known to the nodes, and the founder may upgrade the parameter by hand.
+    const remote = !/^(127\.\d+\.\d+\.\d+|\[?::1\]?|localhost)$/i.test(u.hostname);
+    const mode = (u.searchParams.get('sslmode') || '').toLowerCase();
+    if (remote && !['require', 'verify-ca', 'verify-full'].includes(mode)) u.searchParams.set('sslmode', 'require');
     console.log('');
     console.log('Set this on every node (Home PC, Work PC, Mobile Laptop):');
     console.log('');
     console.log('  FACTORY_RUNNER_PG_URL=' + u.toString());
     console.log('');
     console.log('It is printed once and stored nowhere. Rotating it later is this same command again.');
-    console.log('Then, on each node:  node scripts/factory-runner/node.mjs start');
+    if (remote) {
+      console.log('');
+      console.log('TLS: the driver verifies the certificate chain in every mode. If the server\'s certificate is not publicly');
+      console.log('trusted (a provider CA, or your own), add  &sslrootcert=<path to the CA file on each node>  - and use');
+      console.log('sslmode=verify-full for a DNS host, or  sslmode=verify-ca&uselibpqcompat=true  for an IP host.');
+      console.log('Exact forms: qa/work-orders/TWO_MACHINE_CONTROL_PLANE.md §0 step 2.');
+    }
+    console.log('Then, on each node:  bash scripts/factory-runner/bootstrap-node.sh --role generic   (Work PC: --role verifier)');
+    console.log('and the two-machine acceptance: qa/work-orders/TWO_MACHINE_CONTROL_PLANE.md');
   } finally {
     await client.end();
   }

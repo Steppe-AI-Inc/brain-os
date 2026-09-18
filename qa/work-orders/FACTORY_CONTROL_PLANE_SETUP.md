@@ -7,6 +7,19 @@
 
 ## THE ONE THING NEEDED FROM THE FOUNDER
 
+> **2026-09-18 — the two-machine pack is prepared: `qa/work-orders/TWO_MACHINE_CONTROL_PLANE.md`** (§0 the one founder action;
+> §A exact connection requirements; §B health checks incl. `plane-health.mjs`; §C/§D the one bootstrap `bootstrap-node.sh --role`;
+> §E `two_machine_failover.mjs`; §F rollback/cleanup; §G the order of what runs once the database exists). The accessor now
+> FAILS CLOSED on an unsafe URL (superuser, the production project anywhere in the URL, a network crossed without TLS) before
+> a socket opens; the provisioner applies 001-003 and states the role's attributes; `FACTORY_NODE_ROLE` fixes a silent
+> demotion of a verifier node on every start.
+>
+> The network path is proved on this machine: `qa/factory/tls_plane_acceptance.mjs` (7/7) serves a disposable PostgreSQL 18 on
+> this machine's own LAN address with `ssl=on` and `hostssl`-only rules, and drives `node.mjs health`, `plane-health.mjs` and a
+> die/resume pair of worker processes over TLS there; the server rejects plaintext, the accessor refuses it earlier, a wrong root
+> certificate is refused, and the superuser is refused even over TLS. Measured driver facts (pg 8.23): `require` is an alias of
+> verify-full, and verify-full cannot check an IP host - the exact URL forms are in the pack's §0 step 2.
+
 > **Provide a dedicated NON-PRODUCTION PostgreSQL database and set `FACTORY_RUNNER_PG_URL` on each node.**
 
 That is the whole request. **No production credential is wanted, then or ever** — and if one is supplied by

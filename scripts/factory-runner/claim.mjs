@@ -86,8 +86,11 @@ export async function registerNode({ nodeId, capabilities = [], securityRole = '
  * currently locked by a live lease. Returns the claimed run, or null when there is nothing to take — null
  * is an ordinary outcome and not an error, because "another node got there first" is the system working.
  */
+// `onlyWorkOrderId` narrows the pick to ONE work order (a node resuming a specific piece of work, or an acceptance that
+// must not touch anything else on a shared plane). Every other rule - role, capabilities, dependencies, surface locks,
+// heavy limits, admission, assurance - still applies to it; the filter can only make the claim take less.
 export async function claimWork({ nodeId, leaseSeconds = DEFAULT_LEASE_SECONDS, capabilities = null,
-  requestedProvider = null, requestedModel = null, reasoningEffort = null }) {
+  requestedProvider = null, requestedModel = null, reasoningEffort = null, onlyWorkOrderId = null }) {
   if (!nodeId) throw new Error('claimWork requires a nodeId');
   const lease = Number(leaseSeconds) > 0 ? Number(leaseSeconds) : DEFAULT_LEASE_SECONDS;
   // ADMISSION CONTROL (Factory V1 milestone 5): a machine that is out of memory or saturated does not claim. The
@@ -100,13 +103,13 @@ export async function claimWork({ nodeId, leaseSeconds = DEFAULT_LEASE_SECONDS, 
   // One transaction, opened by claimInTransaction below: the select locks the row and the surface
   // insert either succeeds for every surface this work order owns or aborts the claim. There is no
   // moment in between where the row is ours and the surface is not.
-  return claimInTransaction({ nodeId, lease, capabilities, requestedProvider, requestedModel, reasoningEffort });
+  return claimInTransaction({ nodeId, lease, capabilities, requestedProvider, requestedModel, reasoningEffort, onlyWorkOrderId });
 }
 
 // db.transaction() runs a fixed list of statements, which cannot express "read a row then decide". The
 // claim needs a live client, so it borrows the same connection rules by going through db.withClient().
 async function claimInTransaction({ nodeId, lease, capabilities,
-  requestedProvider = null, requestedModel = null, reasoningEffort = null }) {
+  requestedProvider = null, requestedModel = null, reasoningEffort = null, onlyWorkOrderId = null }) {
   return db.withClient(async (client) => {
     await client.query('begin');
     try {
@@ -156,7 +159,7 @@ async function claimInTransaction({ nodeId, lease, capabilities,
       const declined = [];
       let wo = null;
       for (let attempt = 0; attempt < 8; attempt++) {
-      const params = [myRank, JSON.stringify(myCaps), nodeId, heavyPerPlane, declined];
+      const params = [myRank, JSON.stringify(myCaps), nodeId, heavyPerPlane, declined, onlyWorkOrderId];
 
       const picked = await client.query(
         // requires_security_role IS SELECTED, because the assurance gate below reads it. The first version of
@@ -167,6 +170,7 @@ async function claimInTransaction({ nodeId, lease, capabilities,
            from factory.work_orders wo
           where wo.status = 'queued'
             and not (wo.work_order_id = any($5::uuid[]))
+            and ($6::uuid is null or wo.work_order_id = $6::uuid)
             -- this node must BE enough: its role must rank at or above what the work order requires
             and (case wo.requires_security_role when 'release_broker' then 2 when 'verifier' then 1 else 0 end) <= $1
             -- ...and must HAVE every capability the work order names

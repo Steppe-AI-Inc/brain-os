@@ -39,6 +39,48 @@ test('NO_FALLBACK_TO_AMBIENT_AUTHORITY — without FACTORY_RUNNER_PG_URL every c
   await assert.rejects(() => write('insert into public.x values (1)'), FactoryDbRefusal);
 });
 
+// TWO MACHINES, ONE PLANE (Factory V1, the two-machine boundary): the URL is judged before a socket opens.
+test('FAIL_CLOSED_ON_AN_UNSAFE_URL — pure assessment, no connection', async () => {
+  const { assessUrl } = await import('./db.mjs');
+  const ok = (u) => assert.equal(assessUrl(u), null, u);
+  const no = (u, re) => assert.match(String(assessUrl(u)), re, u);
+  no('', /not set/);
+  no('not a url', /not a URL/);
+  no('https://factory_runner:pw@db.example.net:5432/cp?sslmode=require', /not a postgresql/);
+  // the superuser under each of its names, TLS or not
+  no('postgresql://postgres:pw@db.example.net:5432/cp?sslmode=require', /superuser/);
+  no('postgresql://postgres.abcdefghijklmnop:pw@aws-0-x.pooler.example.net:6543/cp?sslmode=require', /superuser/);
+  no('postgresql://supabase_admin:pw@127.0.0.1:5432/cp', /superuser/);
+  // the production project, however it is reached and even over TLS
+  no('postgresql://factory_runner:pw@db.pvphxgrtdfrudejjhzjk.supabase.co:5432/postgres?sslmode=verify-full', /PRODUCTION project/);
+  no('postgresql://factory_runner:pw@aws-0-ap.pooler.example.net:6543/postgres?sslmode=require&options=project%3Dpvphxgrtdfrudejjhzjk', /PRODUCTION project|over a network/);
+  // a network crossed in the clear
+  no('postgresql://factory_runner:pw@db.example.net:5432/cp', /over a network with sslmode=\(none\)/);
+  no('postgresql://factory_runner:pw@db.example.net:5432/cp?sslmode=disable', /sslmode=disable/);
+  no('postgresql://factory_runner:pw@db.example.net:5432/cp?sslmode=prefer', /sslmode=prefer/);
+  no('postgresql://factory_runner:pw@192.168.1.20:54329/cp', /over a network/);
+  no('postgresql://factory_runner:pw@100.64.0.9:54329/cp', /over a network/); // a private overlay address still crosses a network
+  // what is allowed: TLS across a network, or loopback in the clear
+  ok('postgresql://factory_runner:pw@db.example.net:5432/cp?sslmode=require');
+  ok('postgresql://factory_runner:pw@db.example.net:5432/cp?sslmode=verify-full');
+  ok('postgresql://factory_runner:pw@100.64.0.9:54329/cp?sslmode=require');
+  ok('postgresql://factory_runner:pw@127.0.0.1:54329/factory_control_plane');
+  ok('postgresql://factory_runner:pw@localhost:54329/factory_control_plane');
+  ok('postgresql://factory_runner:pw@[::1]:54329/factory_control_plane');
+  // an operator-declared forbidden mark is honoured too
+  process.env.FACTORY_FORBIDDEN_HOST_MARKS = 'staging-prod-copy';
+  try { no('postgresql://factory_runner:pw@staging-prod-copy.example.net:5432/cp?sslmode=require', /PRODUCTION project/); }
+  finally { delete process.env.FACTORY_FORBIDDEN_HOST_MARKS; }
+});
+
+test('an unsafe URL is refused by read() before any driver is loaded', async () => {
+  process.env.FACTORY_RUNNER_PG_URL = 'postgresql://factory_runner:pw@db.example.net:5432/cp';
+  try {
+    const { read: r3 } = await import('./db.mjs?plain=' + Date.now());
+    await assert.rejects(() => r3('select 1'), (e) => e.name === 'FactoryDbRefusal' && /over a network/.test(e.message));
+  } finally { delete process.env.FACTORY_RUNNER_PG_URL; }
+});
+
 test('a superuser connection string is refused as not least-privilege', async () => {
   process.env.FACTORY_RUNNER_PG_URL = 'postgres://postgres:pw@localhost:5432/postgres';
   try {
