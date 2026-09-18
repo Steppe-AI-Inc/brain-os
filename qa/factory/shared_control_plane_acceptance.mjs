@@ -150,6 +150,54 @@ if (ADMIN_URL) {
   await sql3.end();
 }
 
+// CP-9 (milestone 4): the ROLE is enforced across processes from the plane's own node record. A generic process cannot claim a
+// verifier-required work order; a verifier process can; a release_broker-required one is refused by both.
+{
+  const sql4 = new pgLib.Client({ connectionString: RUNNER_URL }); await sql4.connect();
+  const mkRole = async (title, role) => { const id = randomUUID(); await sql4.query(`insert into factory.work_orders (work_order_id, title, owned_surface, priority, status, requires_security_role) values ($1, $2, $3::text[], 'high', 'queued', $4)`, [id, title, ['qa/factory/shared_' + id.slice(0, 8) + '.txt'], role]); return id; };
+  const woV = await mkRole('CP-9 needs a verifier', 'verifier');
+  const woR = await mkRole('CP-9 needs a release broker', 'release_broker');
+  const tag = randomUUID().slice(0, 8);
+  const g = await runAsync([WORKER, 'node-generic-' + tag, 'complete'], { WORKER_ROLE: 'generic' });
+  const gGot = (/CLAIMED \S+ (\S+)/.exec(g.out) || [])[1];
+  const v = await runAsync([WORKER, 'node-verifier-' + tag, 'complete'], { WORKER_ROLE: 'verifier' });
+  const vGot = (/CLAIMED \S+ (\S+)/.exec(v.out) || [])[1];
+  const stillQueued = (await sql4.query("select work_order_id from factory.work_orders where work_order_id = any($1::uuid[]) and status = 'queued'", [[woV, woR]])).rows.map((r) => r.work_order_id);
+  check('CP-9 roles across processes: a generic process did not get the verifier work order (' + (gGot !== woV && gGot !== woR) + '), a verifier process got it (' + (vGot === woV) + '), and the release_broker work order is still queued for both (' + stillQueued.includes(woR) + ')', gGot !== woV && gGot !== woR && vGot === woV && stillQueued.includes(woR), (g.out + '\n' + v.out).slice(0, 400));
+  // CP-10: a process that CLAIMS to have release_broker capability but is registered generic is still refused (the plane's record decides).
+  const liar = await runAsync([WORKER, 'node-liar-' + tag, 'complete'], { WORKER_ROLE: 'generic', WORKER_CLAIM_CAPS: 'release_broker,git,node' });
+  const liarGot = (/CLAIMED \S+ (\S+)/.exec(liar.out) || [])[1];
+  check('CP-10 a process that asserts release_broker capability in its claim while registered generic does not get the release_broker work order (got ' + (liarGot ? liarGot.slice(0, 8) : 'nothing') + ')', liarGot !== woR, liar.out.slice(0, 300));
+  await sql4.query("delete from factory.work_orders where work_order_id = $1 and status = 'queued'", [woR]);
+  await sql4.end();
+}
+
+// CP-11 (milestone 4): a verification is INDEPENDENT or it is refused - across processes, through the runner's own path.
+{
+  const sql5 = new pgLib.Client({ connectionString: RUNNER_URL }); await sql5.connect();
+  const tag = randomUUID().slice(0, 8);
+  // the top-level client was closed for CP-7's restart; this block uses its own
+  const woA = randomUUID();
+  await sql5.query(`insert into factory.work_orders (work_order_id, title, owned_surface, priority, status) values ($1, 'CP-11 authored work', $2::text[], 'high', 'queued')`, [woA, ['qa/factory/shared_' + woA.slice(0, 8) + '.txt']]);
+  const author = await runAsync([WORKER, 'node-author-' + tag, 'complete']);
+  const authoredRun = (/CLAIMED (\S+) (\S+)/.exec(author.out) || [])[1];
+  // a verifier's own work order, so the verifying process has a run of its own on the plane
+  const mkV = async () => { const id = randomUUID(); await sql5.query(`insert into factory.work_orders (work_order_id, title, owned_surface, priority, status, requires_security_role) values ($1, 'CP-11 verification round', $2::text[], 'high', 'queued', 'verifier')`, [id, ['qa/factory/shared_' + id.slice(0, 8) + '.txt']]); return id; };
+  await mkV();
+  const other = await runAsync([WORKER, 'node-verifier2-' + tag, 'verify', '30', authoredRun], { WORKER_ROLE: 'verifier' });
+  const accepted = /VERIFIED /.test(other.out);
+  await mkV();
+  const self = await runAsync([WORKER, 'node-selfv-' + tag, 'selfverify', '30'], { WORKER_ROLE: 'verifier' });
+  const selfRejected = /REJECTED verification_is_independent/.test(self.out);
+  // the same NODE as the author, in a new process, must also be refused
+  await mkV();
+  const sameNode = await runAsync([WORKER, 'node-author-' + tag, 'verify', '30', authoredRun], { WORKER_ROLE: 'verifier' });
+  const sameNodeRejected = /REJECTED verification_node_is_independent/.test(sameNode.out);
+  const row = (await sql5.query('select authoring_node_id, verification_node_id, verification_run_id from factory.agent_runs where run_id = $1', [authoredRun])).rows[0];
+  check('CP-11 independence across processes: a different process and node verifies the authored run (' + accepted + '), a run cannot verify itself (' + selfRejected + '), and a new process on the AUTHORING node cannot verify it either (' + sameNodeRejected + '); the plane records verifier ' + (row && row.verification_node_id) + ' for author ' + (row && row.authoring_node_id), accepted && selfRejected && sameNodeRejected && row && row.verification_node_id && row.verification_node_id !== row.authoring_node_id, (other.out + '\n' + self.out + '\n' + sameNode.out).slice(0, 500));
+  await sql5.end();
+}
+
 console.log('');
 console.log('shared_control_plane_acceptance: ' + pass + ' passed, ' + failures.length + ' failed');
 console.log('NOT PROVED HERE, BY CONSTRUCTION: two MACHINES sharing this plane. The server listens on loopback only; a hosted');

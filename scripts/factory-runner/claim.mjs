@@ -25,6 +25,33 @@ import { deriveAssurance, mayServe } from './model-assurance.mjs';
 
 export const DEFAULT_LEASE_SECONDS = 120;
 
+/**
+ * Record that a run VERIFIED another run (Factory V1 milestone 4: role/run-based independent verifier acceptance).
+ *
+ * The schema already refuses a verification by the authoring run (`verification_is_independent`) or by the authoring
+ * node (`verification_node_is_independent`); until now only tests wrote those columns, by hand, with an admin client.
+ * This is the runner's own path: it writes only the two verification columns of the AUTHORED run and returns the
+ * database's answer - an accepted independent verification, or the constraint's refusal, which the caller must report
+ * rather than swallow. The verifying node's id is read from the verifying RUN's row on the plane, never from the caller.
+ */
+export async function recordVerification({ authoringRunId, verificationRunId }) {
+  const v = await db.read('select node_id from factory.agent_runs where run_id = $1', [verificationRunId]);
+  if (!v.rows.length) return { accepted: false, reason: 'verification run not found' };
+  try {
+    const r = await db.write(
+      `update factory.agent_runs
+          set verification_run_id = $2, verification_node_id = $3, updated_at = now()
+        where run_id = $1
+        returning run_id, authoring_node_id, verification_node_id`,
+      [authoringRunId, verificationRunId, v.rows[0].node_id]);
+    return r.rowCount === 1 ? { accepted: true, row: r.rows[0] } : { accepted: false, reason: 'authoring run not found' };
+  } catch (e) {
+    const m = String(e && e.message || e);
+    if (/verification_is_independent|verification_node_is_independent/.test(m)) return { accepted: false, reason: m.match(/verification_(?:node_)?is_independent/)[0] };
+    throw e;
+  }
+}
+
 /** Register (or refresh) this node. Capabilities are what the director schedules on. */
 export async function registerNode({ nodeId, capabilities = [], securityRole = 'generic', platform = '', agentVersion = '' }) {
   if (!nodeId) throw new Error('registerNode requires a nodeId');
@@ -176,6 +203,12 @@ async function claimInTransaction({ nodeId, lease, capabilities,
                    requested_provider, requested_model`,
         [wo.work_order_id, nodeId, String(lease), requestedProvider, requestedModel, reasoningEffort]);
       const runId = run.rows[0].run_id;
+      // A RUN IS ITS OWN AUTHOR (Factory V1 milestone 4, found by shared_control_plane_acceptance CP-11). The schema's
+      // `verification_is_independent` compares verification_run_id with authoring_run_id, and the claim wrote the
+      // authoring NODE but never the authoring RUN - so authoring_run_id stayed null, the constraint was vacuous on
+      // run ids, and a run could record a verification of itself. The node-level constraint held; this closes the
+      // run-level one by recording, in the same transaction, that the run authors the work it claimed.
+      await client.query('update factory.agent_runs set authoring_run_id = run_id where run_id = $1', [runId]);
 
       // The surface lock. Its primary key is the enforcement: a conflicting surface raises here and the
       // whole claim rolls back, so a second node cannot end up believing it owns the same files.

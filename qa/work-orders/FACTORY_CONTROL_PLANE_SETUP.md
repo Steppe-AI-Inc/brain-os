@@ -1,6 +1,6 @@
 # FACTORY CONTROL PLANE — SETUP
 
-**Status:** local acceptance complete (48/48 against a disposable real PostgreSQL; health 10/10) and the SHARED plane proved on ONE machine (`qa/factory/shared_control_plane_acceptance.mjs`, 9/9 across separate runner processes over TCP on a persistent embedded PostgreSQL 18, including failover across a plane restart and three processes on conflicting surfaces). **One founder action outstanding: a database a SECOND computer can reach** (a hosted non-production PostgreSQL, or this machine's port opened to the LAN) — the only part of milestone 1 this machine cannot do alone.
+**Status:** local acceptance complete (48/48 against a disposable real PostgreSQL; health 10/10) and the SHARED plane proved on ONE machine (`qa/factory/shared_control_plane_acceptance.mjs`, 12/12 across separate runner processes over TCP on a persistent embedded PostgreSQL 18, including failover across a plane restart, three processes on conflicting surfaces, and role-based, independent verification). **One founder action outstanding: a database a SECOND computer can reach** (a hosted non-production PostgreSQL, or this machine's port opened to the LAN) — the only part of milestone 1 this machine cannot do alone.
 **Branch** `factory/computer-agnostic-control-plane` · **Nothing here has been deployed or applied anywhere.**
 
 ---
@@ -211,8 +211,8 @@ Stated so it is not discovered later:
   provenance, resource availability — is modelled in the schema and only partly implemented in the claim.
   Dependencies and surfaces are enforced; capability and security-role matching are present but unexercised
   beyond a single filter.
-- **`security_role` is recorded and not yet enforced.** A node marked `generic` is not yet prevented from
-  claiming work that requires `release_broker`, because nothing yet issues such work.
+- **`security_role` is enforced from the plane's node record** (acceptance SEC rows in-process; CP-9 / CP-10 across
+  processes): a generic process cannot claim verifier or release_broker work, whatever its claim asserts.
 - **The Edge campaign still runs on its own dispatch path** (`dispatch-isolated-verifier.sh` +
   `verifier-watchdog.sh`), deliberately untouched while an Edge verifier is in flight (#105 is the final planned
   round by the founder's ruling of 2026-09-17).
@@ -243,15 +243,26 @@ credentials, and no network access to anything but npm.
 node qa/factory/shared_local_pg.mjs start        # persistent embedded PostgreSQL 18 under .factory/control-plane/, loopback port 54329,
                                                  # provisioned by provision-control-plane.mjs (its refusals run first) + 002; serves until stopped
 node qa/factory/shared_local_pg.mjs status       # nodes / work orders / runs / checkpoints / locks it holds
-node qa/factory/shared_control_plane_acceptance.mjs   # 9/9: CP-0 a real server in its own process; CP-1 a separate runner
+node qa/factory/shared_control_plane_acceptance.mjs   # 12/12: CP-0 a real server in its own process; CP-1 a separate runner
    # process reaches it (node.mjs health); CP-2 the runner refuses the superuser URL; CP-3 two processes race for one
    # work order; CP-4 the winner's run, checkpoint and both registrations persist after both exit; CP-5 a worker that
    # dies mid-run (exit 3) is recovered after its lease expires by another process that sees its checkpoint; CP-6 rows
    # persist across invocations; CP-7 (milestone 2) the PLANE is stopped and restarted between a worker's death and the
    # takeover - the restarted plane holds the dead run's checkpoint, serves the SAME credential, and a fresh process
    # resumes the work order; CP-8 (milestone 3) three runner processes, two work orders on one surface - the conflicting
-   # pair never runs overlapped, the free work order is claimed, every work order is done after a second wave.
+   # pair never runs overlapped, the free work order is claimed, every work order is done after a second wave;
+   # CP-9 (milestone 4) roles across processes - a generic process cannot claim verifier work, a verifier process can,
+   # release_broker work is refused by both; CP-10 a process asserting release_broker capability in its claim while
+   # registered generic is refused (the plane's node record decides); CP-11 a different process and node verifies an
+   # authored run through the runner's own recordVerification, a run cannot verify itself, and a new process on the
+   # AUTHORING node cannot verify it either.
 ```
+
+CP-11 found a third control-plane defect: the claim recorded the authoring NODE but never the authoring RUN, so
+`verification_is_independent` (verification_run_id <> authoring_run_id) was vacuous and a run could record a verification of
+itself; the claim now sets `authoring_run_id = run_id` in the same transaction, and `claim.mjs` gained `recordVerification`
+- the runner's own path for a verifier run to record its verdict on an authored run, returning the database's acceptance
+or the constraint's refusal.
 
 Two restart defects CP-7 found in `shared_local_pg.mjs` itself, both fixed: (1) a restart re-ran the founder's provisioning,
 which ROTATES the runner role's password, so every process holding the URL from `runner.env` was locked out of the restarted
