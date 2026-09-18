@@ -276,6 +276,16 @@ work order at the head of the queue hid every generic work order behind it). Wha
 credential itself (an Edge Function secret, plus the unmerged provider migration on `codex/sem-brain-v1`), and an HTTP
 provider call path - `provider.mjs` shells the `claude` CLI only - without which no cheap-QA round can actually run on DeepSeek.
 
+Milestone 7's measurable half (BUG-036 / BUG-037 / required security acceptance). `qa/factory/dbtest_on_disposable_pg.mjs
+<product repo> [<log dir>]` starts the factory's disposable PostgreSQL 18.4, creates a `dbtest` database of its own (UTF8 from
+template0 - a Windows initdb defaults to WIN1252, in which the drafts' box-drawing comment characters do not exist), and runs
+the product repo's `qa/dbtest` harnesses against it with `DBTEST_PG_URL`. On `wo/invitation-delivery` at `391445d4`: 82/82
+migrations, acceptance 36/36, personas 57/57 with all four targets SECURITY VERIFIED (the only engine `db.mjs` lets say so),
+draft 202609110001 acceptance 26/26 rollback included, and the two-supervisor claim race VERIFIED under real concurrency. The
+remainder is founder-gated: Auth inspection for BUG-036's cause, authorization of the draft migration, the production web
+deploy, and the Work PC's retest. Record: control repo `qa/verification/factory_v1/MILESTONE7_2026-09-18.md`; candidate-repo
+ledger 212.
+
 Milestone 5 adds `scripts/factory-runner/monitor-gc.mjs` (list / reap, quiet-window rule on the followed file's mtime, never on
 its contents), `scripts/factory-runner/admission.mjs` (FACTORY_MIN_FREE_MB, FACTORY_MAX_CPU_PCT, FACTORY_ADMISSION=off - read by
 `claimWork`, which records the refusal on `claimWork.lastAdmission` so a caller reports it rather than reading it as "nothing to
