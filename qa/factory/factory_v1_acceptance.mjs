@@ -24,7 +24,13 @@ const PLANE_ONLY = process.argv.includes('--plane-only'); // only the rows read 
 const record = { measured_at: new Date().toISOString(), host: hostname(), rows: [] };
 let holds = 0;
 const row = (milestone, label, ok, detail, gated) => { record.rows.push({ milestone, label, ok, detail: String(detail || '').slice(0, 300), founder_gated: Boolean(gated) }); if (!ok) holds++; console.log((ok ? 'OK   ' : (gated ? 'GATE ' : 'FAIL ')) + '[' + milestone + '] ' + label + (ok || !detail ? '' : '\n       ' + String(detail).slice(0, 300))); };
-const run = (file, args = [], env = {}) => { const r = spawnSync(process.execPath, [file, ...args], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, ...env }, maxBuffer: 1 << 26 }); return { rc: r.status, out: (r.stdout || '') + (r.stderr || '') }; };
+// Every suite has 20 minutes; a suite that hangs after its verdict (tls_plane_acceptance, 2026-09-23) is killed and its row
+// says TIMEOUT rather than blocking the whole report.
+const run = (file, args = [], env = {}) => {
+  const r = spawnSync(process.execPath, [file, ...args], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, ...env }, maxBuffer: 1 << 26, timeout: 20 * 60 * 1000, killSignal: 'SIGKILL' });
+  const timedOut = r.error && /ETIMEDOUT/.test(String(r.error.code));
+  return { rc: timedOut ? 124 : r.status, out: (r.stdout || '') + (r.stderr || '') + (timedOut ? '\nTIMEOUT after 20 min' : '') };
+};
 const summary = (out, re) => { const m = re.exec(out); return m ? m[0] : '(no summary)'; };
 
 console.log('Factory V1 acceptance on ' + hostname() + ' — ' + record.measured_at);

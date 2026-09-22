@@ -146,3 +146,6 @@ try {
 console.log('');
 console.log('tls_plane_acceptance: ' + pass + ' passed, ' + failures.length + ' failed  (plane served on ' + LAN + ':' + port + ' with ssl=on, hostssl-only; disposable, removed)');
 if (failures.length) { console.log('FAILURES:'); for (const f of failures) console.log(' - ' + f); process.exit(1); }
+// EXIT EXPLICITLY: the embedded server library can leave a handle open after stop(), and a suite that has printed its
+// verdict but never exits hangs whatever runs it (the composer waited on this one for twenty minutes on 2026-09-23).
+process.exit(0);
