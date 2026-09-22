@@ -10,7 +10,7 @@ adds is the network: TLS, a least-privilege role judged on the server, two clock
 
 ---
 
-## 0. THE ONE FOUNDER ACTION
+## 0. THE ONE FOUNDER ACTION — DONE 2026-09-18 (plane LIVE; Home node ALIVE under the scheduled task since 2026-09-22)
 
 > **FOUNDER DECISION 2026-09-18: the control plane is the dedicated Supabase project `npvhuoozkbexddnvkqsj`, created
 > exclusively for the Factory and holding no Brain OS data.** The default provisioner rule (a Supabase project is refused on
@@ -152,6 +152,33 @@ Its rehearsal on one machine (a generic and a verifier node id, real processes) 
 | rotate the credential | run `provision-control-plane.mjs --admin …` again (the role's password rotates, attributes re-asserted, schema re-converged); set the new URL on both PCs | founder (admin URL) |
 | drop the control plane | `drop schema factory cascade; drop role factory_runner;` — orchestration state only; the queue is rebuilt from git (`reconstruct.mjs`) | founder (admin URL) |
 | retire the database | delete the instance / close the private network route | founder |
+
+---
+
+## H. REBOOT / RECOVERY PERSISTENCE (added 2026-09-22)
+
+A node must rejoin the plane after a reboot or a crash with nobody at the keyboard. `scripts/factory-runner/node-supervisor.mjs`
+reads `~/.brain-factory/runner.env` at runtime (the URL reaches the worker through its environment, never an argument, and every
+log line is scrubbed of it), runs `node.mjs start`, restarts it with bounded backoff, ends an orphaned worker before starting a
+new one (one worker per node identity), and refuses a second instance per checkout. `install-autostart.ps1` registers the
+Windows Scheduled Task **BrainOS Factory Node** that launches it; an idle node stamps its record every minute, so
+`node.mjs status` can say ALIVE / STALE from any shell.
+
+| command | does |
+|---|---|
+| `powershell -ExecutionPolicy Bypass -File scripts\factory-runner\install-autostart.ps1 -Role generic -Start` | install (idempotent: a re-install stops the running supervisor first) and start now; Work PC: `-Role verifier` |
+| `… install-autostart.ps1 -Status` | task state, supervisor state file, node liveness on the plane |
+| `… install-autostart.ps1 -Stop` / `-Start` | stop cleanly (worker ends, no orphan) / start |
+| `… install-autostart.ps1 -Verify` | exit 0 only if the task exists, is enabled and starts this checkout's supervisor |
+| `… install-autostart.ps1 -Uninstall` | stop and remove the task |
+| `node scripts\factory-runner\node.mjs status` | ALIVE (heartbeat age) / STALE / NOT REGISTERED / UNREACHABLE, read-only |
+
+**Boot trigger:** Windows lets only an administrator register an AtStartup trigger (measured: "Access is denied" for a standard
+user). As installed the task is triggered **at logon**, which is the reboot path the moment the user logs on; one elevated run of
+the same install command adds the boot trigger (`-Verify` then lists both). Proof: `qa/factory/reboot_recovery_acceptance.mjs`
+9/9 (identity persisted and registered, idle heartbeat, worker crash restarted with the same id, queue claimed by the supervised
+worker, supervisor crash → exactly one worker and work completed exactly once, second supervisor refused, clean stop, no credential
+in any log, the live task verified) — and on the live plane the Home node was killed and came back under the supervisor.
 
 ---
 

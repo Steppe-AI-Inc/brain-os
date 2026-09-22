@@ -113,6 +113,14 @@ async function claimInTransaction({ nodeId, lease, capabilities,
   return db.withClient(async (client) => {
     await client.query('begin');
     try {
+      // CLAIMS ARE SERIALIZED PLANE-WIDE. The row lock (`for update skip locked`) and the surface-lock primary key make
+      // the per-work-order and per-surface rules race-safe by construction; the heavy LIMITS are counts, and a count read
+      // inside two concurrent transactions is the same number in both. Measured on the live plane 2026-09-22
+      // (shared_plane_live_acceptance L8): two processes reaching for two heavy work orders under FACTORY_HEAVY_PER_PLANE=1
+      // both saw zero heavy runs in progress and both claimed. A transaction-scoped advisory lock makes every claim
+      // wait for the previous claim's commit, so the count it reads is the truth. Claims are seconds apart at Factory
+      // scale; the serialization costs nothing measurable and removes a whole class of "counted, not locked" races.
+      await client.query("select pg_advisory_xact_lock(hashtext('factory.claim'))");
       // Expire any lease that has run out BEFORE looking for work, so a dead node's claim is visible as
       // available rather than as taken. This is the recovery path and it is deliberately part of the same
       // transaction as the claim: a reader that expires leases in a separate step can expire one and then
