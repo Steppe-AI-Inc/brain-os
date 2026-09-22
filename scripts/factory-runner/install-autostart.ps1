@@ -64,11 +64,15 @@ if ($Verify) {
   "action    $($action.Execute) $($action.Arguments)"
   "workdir   $($action.WorkingDirectory)"
   "last run  $($info.LastRunTime)  result 0x$('{0:X}' -f $info.LastTaskResult)"
+  if (Test-Path $EnvFile) { $acl = (Get-Acl $EnvFile).Access | ForEach-Object { "$($_.IdentityReference):$($_.FileSystemRights)" }; "env ACL   $($acl -join '; ')" }
   if ($okAction -and $enabled) { "OK   the task exists, is enabled, and starts this checkout's supervisor"; exit 0 }
   "FAIL " + $(if (-not $enabled) { 'the task is disabled' } else { 'the task action is not this checkout''s supervisor' }); exit 1
 }
 
 if (-not (Test-Path $EnvFile)) { "FAIL env file not found: $EnvFile (provision-control-plane.mjs --write-env writes it)"; exit 2 }
+# THE CREDENTIAL FILE IS READABLE BY THIS USER ONLY. Node's 0o600 is ignored on Windows, so the ACL is set here: inheritance
+# removed, one explicit grant. -Verify reports the ACL so a widened one is visible.
+try { & icacls $EnvFile /inheritance:r /grant:r "$($env:USERNAME):(R,W)" | Out-Null; "env file ACL: inheritance removed, $env:USERNAME read/write only" } catch { "note: could not tighten the env file ACL: $($_.Exception.Message)" }
 $args = "`"$Supervisor`" --env-file `"$EnvFile`" --role $Role"
 $action = New-ScheduledTaskAction -Execute $NodeExe -Argument $args -WorkingDirectory $Root
 $triggers = @((New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME), (New-ScheduledTaskTrigger -AtStartup))

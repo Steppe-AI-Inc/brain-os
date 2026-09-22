@@ -155,6 +155,26 @@ Its rehearsal on one machine (a generic and a verifier node id, real processes) 
 
 ---
 
+## I. THE REAL-MACHINE ACCEPTANCE, DRIVEN FROM ONE PC (added 2026-09-22)
+
+Once both PCs run their supervised worker (§H), nobody types on the Work PC. The workers execute `factory_acceptance` work
+orders (`scripts/factory-runner/handlers/factory-acceptance.mjs`: hold, die-and-hand-over, verify), and
+`qa/factory/two_machine_real.mjs run` on the Home PC seeds the whole sequence and reads what the workers recorded:
+
+| step | what the workers do | verified on the plane |
+|---|---|---|
+| S1 failover home→work | the home worker claims, checkpoints, hands the work order to the work node, lets its lease lapse in 10 s and exits (the supervisor restarts it); the work worker takes over from the checkpoint | phase-1 by the home node, phase-2 by the work node, the done run on the work node |
+| S2 failover work→home | the same the other way | idem |
+| S3 scheduling | three work orders held 25 s each, two on one surface | the pair never overlapped; the free one completed |
+| S4 verifier independence | a verifier-role work order makes the work worker record a verification of a run the home node completed | verifier node ≠ authoring node on the run row |
+
+Exit 0 TWO MACHINES (the two nodes are on different hostnames), 3 SAME MACHINE, 1 FAIL. Rehearsed 2026-09-22 on this machine
+with the real Home worker and a second supervised verifier node against the live plane: every row green, verdict SAME
+MACHINE (stamp 20260922T154710-369d). `two_machine_real.mjs nodes` lists the ALIVE nodes; `cleanup` removes its rows.
+The composer's real-failover rows read the same phase-1 / phase-2 checkpoints by hostname.
+
+---
+
 ## H. REBOOT / RECOVERY PERSISTENCE (added 2026-09-22)
 
 A node must rejoin the plane after a reboot or a crash with nobody at the keyboard. `scripts/factory-runner/node-supervisor.mjs`
@@ -186,7 +206,7 @@ in any log, the live task verified) — and on the live plane the Home node was 
 
 | step | what runs | founder involvement |
 |---|---|---|
-| real 2-node takeover | §E, both directions — **waits on the Work-PC bootstrap (gate A)**; the Home node is ALIVE on the live plane under §H | none |
+| real 2-node takeover | `two_machine_real.mjs run` from the Home PC (§I), both directions, no commands on the Work PC — **waits on the Work-PC bootstrap (gate A)** | none |
 | real 3-node / conflict-aware scheduling | `qa/factory/two_machine_scheduling.mjs seed` on either PC, then `wave <stamp>` on EACH PC within a minute, then `verify <stamp>`: two work orders on one surface never overlap in time, the free one completes, four runs from two hostnames (exit 0 TWO MACHINES / 3 SAME MACHINE / 1 FAIL; rehearsed on one machine) | none |
 | role/run-based verifier independence | the same `two_machine_scheduling.mjs` run: the verifier-role work order is claimable only by the Work PC (`FACTORY_NODE_ROLE=verifier`), which records a verification of a Home-PC run; `verify` requires the verifier node and hostname to differ from the author's and that no generic node ever held the verifier work order | none |
 | cheap QA / DeepSeek | `DEEPSEEK_API_KEY` in the environment of the node that will serve it; the HTTP provider path exists (`provider-http.mjs`, `http_provider_acceptance.mjs` 9/9 on a stub) | the key |
