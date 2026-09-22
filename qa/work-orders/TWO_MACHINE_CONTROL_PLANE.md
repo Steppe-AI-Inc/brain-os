@@ -186,7 +186,7 @@ in any log, the live task verified) — and on the live plane the Home node was 
 
 | step | what runs | founder involvement |
 |---|---|---|
-| real 2-node takeover | §E, both directions | none |
+| real 2-node takeover | §E, both directions — **waits on the Work-PC bootstrap (gate A)**; the Home node is ALIVE on the live plane under §H | none |
 | real 3-node / conflict-aware scheduling | `qa/factory/two_machine_scheduling.mjs seed` on either PC, then `wave <stamp>` on EACH PC within a minute, then `verify <stamp>`: two work orders on one surface never overlap in time, the free one completes, four runs from two hostnames (exit 0 TWO MACHINES / 3 SAME MACHINE / 1 FAIL; rehearsed on one machine) | none |
 | role/run-based verifier independence | the same `two_machine_scheduling.mjs` run: the verifier-role work order is claimable only by the Work PC (`FACTORY_NODE_ROLE=verifier`), which records a verification of a Home-PC run; `verify` requires the verifier node and hostname to differ from the author's and that no generic node ever held the verifier work order | none |
 | cheap QA / DeepSeek | `DEEPSEEK_API_KEY` in the environment of the node that will serve it; the HTTP provider path exists (`provider-http.mjs`, `http_provider_acceptance.mjs` 9/9 on a stub) | the key |
