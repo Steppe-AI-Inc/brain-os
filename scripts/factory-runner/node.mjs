@@ -38,7 +38,9 @@ import { registerNode, claimWork, heartbeat, checkpoint, completeRun, DEFAULT_LE
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, '..', '..');
-const STATE_DIR = join(REPO_ROOT, '.factory');
+// FACTORY_STATE_DIR lets a second node (a rehearsal, an acceptance) live beside this checkout's real node without sharing
+// its id, status or pid files. Unset, it is the checkout's own .factory/.
+const STATE_DIR = process.env.FACTORY_STATE_DIR ? resolve(process.env.FACTORY_STATE_DIR) : join(REPO_ROOT, '.factory');
 const NODE_ID_FILE = join(STATE_DIR, 'node-id');
 
 const git = (args, cwd = REPO_ROOT) =>
@@ -52,6 +54,38 @@ export function nodeRole() {
     throw new Error('FACTORY_NODE_ROLE must be generic | verifier | release_broker (got ' + JSON.stringify(r) + ')');
   }
   return r;
+}
+
+/** How often an idle node stamps its own record, and how old a stamp may be before `status` calls the node STALE. */
+export const NODE_BEAT_MS = Math.max(1000, Number(process.env.FACTORY_NODE_BEAT_MS) || 60_000);
+export const NODE_STALE_MS = Math.max(2000, Number(process.env.FACTORY_NODE_STALE_MS) || 3 * 60_000);
+
+/** Stamp this node's record on the plane. DML only; the row must already exist (registerNode). */
+export async function nodeBeat(id) {
+  await db.write('update factory.nodes set last_heartbeat_at = now() where node_id = $1', [id]);
+}
+
+/**
+ * READ-ONLY liveness, for a supervisor, an operator, or a fresh shell after a reboot: is the node this checkout owns
+ * alive on the plane? Reads the row registerNode/nodeBeat wrote; registers nothing; prints no URL.
+ * @returns {Promise<{state:'ALIVE'|'STALE'|'NOT REGISTERED'|'UNREACHABLE', ageMs:number|null, role:string|null, host:string|null, tls:boolean|null, plane:string}>}
+ */
+export async function nodeStatus() {
+  const id = nodeId();
+  let plane = '?';
+  try { plane = new URL(process.env.FACTORY_RUNNER_PG_URL || '').hostname; } catch { /* judged by db.mjs */ }
+  try {
+    const r = await db.read(
+      "select security_role, platform, last_heartbeat_at, extract(epoch from (now() - last_heartbeat_at)) * 1000 as age_ms from factory.nodes where node_id = $1", [id]);
+    let tls = null;
+    try { tls = (await db.withClient((c) => c.query('select ssl from pg_stat_ssl where pid = pg_backend_pid()'))).rows[0].ssl === true; } catch { tls = null; }
+    if (!r.rows.length) return { state: 'NOT REGISTERED', ageMs: null, role: null, host: null, tls, plane, nodeId: id };
+    const row = r.rows[0];
+    const ageMs = Number(row.age_ms);
+    return { state: ageMs < NODE_STALE_MS ? 'ALIVE' : 'STALE', ageMs, role: row.security_role, host: String(row.platform || '').split(' ')[1] || null, tls, plane, nodeId: id, lastHeartbeatAt: row.last_heartbeat_at };
+  } catch (e) {
+    return { state: 'UNREACHABLE', ageMs: null, role: null, host: null, tls: null, plane, nodeId: id, error: String(e && e.message || e).slice(0, 160) };
+  }
 }
 
 /** 2. A stable node id, generated once. Not the hostname — see the header. */
@@ -165,10 +199,18 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
   log(requestedModel ? 'intends ' + (requestedProvider || '?') + ' / ' + requestedModel + ' (FACTORY_MODEL); the claim gates verifier work on its run evidence'
     : 'no FACTORY_MODEL set: claims carry no requested model, so the assurance gate and the no-silent-fallback constraints do not apply to this node');
   let claimed = 0;
+  // AN IDLE NODE IS VISIBLY ALIVE. Before this, the node record was touched only at registration, so a node that ran for
+  // days with nothing to claim looked dead on the plane (2026-09-22: last heartbeat four days old while nothing was wrong
+  // but the absence of a worker after a reboot - two facts one timestamp could not tell apart). Every NODE_BEAT_MS the
+  // idle loop stamps last_heartbeat_at; `node.mjs status` reads it back.
+  let lastBeat = Date.now();
   for (let i = 0; i < maxIterations; i++) {
     const run = await claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel });
     if (!run) {
       if (once) { log('nothing eligible'); break; }
+      if (Date.now() - lastBeat >= NODE_BEAT_MS) {
+        try { await nodeBeat(id); lastBeat = Date.now(); } catch (e) { log('node heartbeat failed: ' + String(e && e.message || e).slice(0, 100)); }
+      }
       await new Promise((r) => setTimeout(r, idleMs));
       continue;
     }
@@ -408,6 +450,14 @@ if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
   if (cmd === 'id') { console.log(nodeId()); }
   else if (cmd === 'health') { const r = await health(); process.exit(r.ok ? 0 : 1); }
   else if (cmd === 'capabilities') { console.log(JSON.stringify(capabilities(), null, 2)); }
+  else if (cmd === 'status') {
+    const s = await nodeStatus();
+    const age = s.ageMs == null ? '' : ' (heartbeat ' + Math.round(s.ageMs / 1000) + ' s ago)';
+    console.log(s.state + age + ' — node ' + s.nodeId.slice(0, 13) + (s.role ? ', role ' + s.role : '') + (s.host ? ', host ' + s.host : '')
+      + ', plane ' + s.plane + (s.tls == null ? '' : ', tls ' + (s.tls ? 'on' : 'OFF')) + (s.error ? ' — ' + s.error : ''));
+    if (process.argv.includes('--json')) console.log(JSON.stringify(s));
+    process.exit(s.state === 'ALIVE' ? 0 : 1);
+  }
   else if (cmd === 'start') {
     await nodeStart({
       runWork: async ({ run, checkpoint: cp }) => {
@@ -419,7 +469,7 @@ if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
       once: process.argv.includes('--once'),
     });
   } else {
-    console.log('usage: node node.mjs [start [--once] | health | id | capabilities]');
+    console.log('usage: node node.mjs [start [--once] | health | status [--json] | id | capabilities]');
     process.exit(2);
   }
 }
