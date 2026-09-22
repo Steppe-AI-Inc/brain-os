@@ -6,3 +6,4 @@ node_modules/
 # Machine-local factory node state. A node id is generated per CHECKOUT: committing one would
 # make every clone claim to be the same node, which breaks lease ownership and surface locks.
 .factory/
+.factory-rehearsal/

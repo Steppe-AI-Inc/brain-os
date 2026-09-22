@@ -115,6 +115,11 @@ export function capabilities() {
   if (has('node', ['--version'])) caps.push('node');
   // A node can only take verification work if it can create an isolated worktree.
   try { git(['rev-parse', '--git-dir']); caps.push('worktree'); } catch { /* not a checkout */ }
+  // Facts about THIS node that a work order may require: the Factory's own acceptance work (only real supervised nodes
+  // carry it - the test workers register a different capability), and the node's identity, so an acceptance work order
+  // can be addressed to one node (the takeover half of a failover). Still checkable answers, not a typed list.
+  caps.push('factory_acceptance');
+  caps.push('node:' + nodeId());
   return caps;
 }
 
@@ -218,13 +223,19 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
     log('claimed work order ' + String(run.work_order_id).slice(0, 8) + ' as run ' + String(run.run_id).slice(0, 8));
     const stopBeat = startHeartbeat({ runId: run.run_id, id, leaseSeconds });
     try {
-      const wt = await worktree({ runId: run.run_id, baseCommit: repo.head });
-      log((wt.recovered ? 'recovered' : 'created') + ' worktree ' + wt.path);
-      await db.write(
-        'update factory.agent_runs set worktree = $2, branch = $3, base_commit = $4, updated_at = now() where run_id = $1',
-        [run.run_id, wt.path, wt.branch, repo.head]);
+      // The work order itself: its type decides whether a checkout is needed. A factory_acceptance work order has no code
+      // to check out, and the 2026-09-22 acceptances left twelve full worktrees behind before this distinction existed.
+      const woRow = (await db.read('select work_type, title, handoff, owned_surface, requires_security_role from factory.work_orders where work_order_id = $1', [run.work_order_id])).rows[0] || {};
+      let wt = null;
+      if (woRow.work_type !== 'factory_acceptance') {
+        wt = await worktree({ runId: run.run_id, baseCommit: repo.head });
+        log((wt.recovered ? 'recovered' : 'created') + ' worktree ' + wt.path);
+        await db.write(
+          'update factory.agent_runs set worktree = $2, branch = $3, base_commit = $4, updated_at = now() where run_id = $1',
+          [run.run_id, wt.path, wt.branch, repo.head]);
+      }
 
-      const result = await runWork({ run, worktree: wt, nodeId: id,
+      const result = await runWork({ run, workOrder: woRow, worktree: wt, nodeId: id, log,
         checkpoint: (location, scenario, payload) =>
           checkpoint({ runId: run.run_id, workOrderId: run.work_order_id, location, scenario, payload }) });
 
@@ -459,8 +470,11 @@ if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
     process.exit(s.state === 'ALIVE' ? 0 : 1);
   }
   else if (cmd === 'start') {
+    const { factoryAcceptance } = await import('./handlers/factory-acceptance.mjs');
     await nodeStart({
-      runWork: async ({ run, checkpoint: cp }) => {
+      runWork: async ({ run, workOrder, checkpoint: cp, nodeId: nid, log: l }) => {
+        // The Factory's own acceptance work is the one thing the generic bootstrap runs itself (handlers/factory-acceptance.mjs).
+        if (workOrder && workOrder.work_type === 'factory_acceptance') return factoryAcceptance({ run, workOrder, checkpoint: cp, nodeId: nid, log: l });
         // No provider is launched by the default bootstrap: what a node DOES is the director's business,
         // and wiring a specific agent in here would be the machine-specific logic this file forbids.
         await cp('qa/verification/CHECKPOINT.md', 'bootstrap');
