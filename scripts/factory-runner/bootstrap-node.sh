@@ -36,10 +36,10 @@ echo
 ENV_FILE="${ENV_FILE:-${FACTORY_RUNNER_ENV_FILE:-}}"
 if [ -n "$ENV_FILE" ]; then
   if [ ! -f "$ENV_FILE" ]; then echo "  FAIL env file not found: $ENV_FILE"; exit 2; fi
-  URL_LINE="$(grep -a -m1 '^FACTORY_RUNNER_PG_URL=' "$ENV_FILE" | tr -d '\r')"
-  if [ -z "$URL_LINE" ]; then echo "  FAIL $ENV_FILE has no FACTORY_RUNNER_PG_URL= line"; exit 2; fi
-  export FACTORY_RUNNER_PG_URL="${URL_LINE#FACTORY_RUNNER_PG_URL=}"
-  echo "  ok   FACTORY_RUNNER_PG_URL read from $ENV_FILE (not printed)"
+  # the shared loader resolves the CA path for this machine (runner-env.mjs); the URL itself is never printed
+  LOADED="$(node -e "import('./scripts/factory-runner/runner-env.mjs').then(m=>{const r=m.loadRunnerUrl(process.argv[1]);if(!r.url){console.error(r.note);process.exit(2)}process.stdout.write(r.url);console.error(r.note)})" "$ENV_FILE" 2>"$ROOT/.factory/.env-note")" || { cat "$ROOT/.factory/.env-note" 2>/dev/null; echo "  FAIL could not load $ENV_FILE"; exit 2; }
+  export FACTORY_RUNNER_PG_URL="$LOADED"
+  echo "  ok   FACTORY_RUNNER_PG_URL read from $ENV_FILE (not printed; $(cat "$ROOT/.factory/.env-note" 2>/dev/null))"; rm -f "$ROOT/.factory/.env-note"
 fi
 if [ -z "${FACTORY_RUNNER_PG_URL:-}" ]; then
   echo "  FAIL FACTORY_RUNNER_PG_URL is not set in this shell."

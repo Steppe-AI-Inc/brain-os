@@ -22,11 +22,10 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..', '..');
-if (!process.env.FACTORY_RUNNER_PG_URL) {
-  const f = process.env.FACTORY_RUNNER_ENV_FILE || join(homedir(), '.brain-factory', 'runner.env');
-  const line = existsSync(f) ? readFileSync(f, 'utf8').split(/\r?\n/).find((l) => l.startsWith('FACTORY_RUNNER_PG_URL=')) : null;
-  if (!line) { console.log('FACTORY_RUNNER_PG_URL is not set and ' + f + ' has no line for it'); process.exit(2); }
-  process.env.FACTORY_RUNNER_PG_URL = line.slice('FACTORY_RUNNER_PG_URL='.length).trim();
+{
+  const { ensureRunnerEnv } = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/runner-env.mjs')).href);
+  const note = ensureRunnerEnv();
+  if (!process.env.FACTORY_RUNNER_PG_URL) { console.log(note); process.exit(2); }
 }
 const db = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/db.mjs')).href);
 const nodeMod = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/node.mjs')).href);

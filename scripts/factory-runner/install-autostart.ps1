@@ -37,8 +37,10 @@ if ($Status) {
   if ($t) { "task      $TaskName  state $($t.State)" } else { "task      $TaskName  NOT INSTALLED" }
   "supervisor"; & $NodeExe $Supervisor --status
   if (Test-Path $EnvFile) {
-    $line = (Get-Content $EnvFile | Where-Object { $_ -like 'FACTORY_RUNNER_PG_URL=*' } | Select-Object -First 1)
-    if ($line) { $env:FACTORY_RUNNER_PG_URL = $line.Substring('FACTORY_RUNNER_PG_URL='.Length); "node      " + (& $NodeExe (Join-Path $Root 'scripts\factory-runner\node.mjs') status 2>$null | Select-Object -Last 1) }
+    # the shared loader resolves the CA path for this machine; the URL is handed to node.mjs through the environment only
+    $mod = 'file:///' + ((Join-Path $Root 'scripts\factory-runner\runner-env.mjs') -replace '\\', '/')
+    $url = & $NodeExe -e "import(process.argv[1]).then(m=>{const r=m.loadRunnerUrl(process.argv[2]);if(r.url)process.stdout.write(r.url)})" $mod $EnvFile
+    if ($url) { $env:FACTORY_RUNNER_PG_URL = $url; "node      " + (& $NodeExe (Join-Path $Root 'scripts\factory-runner\node.mjs') status 2>$null | Select-Object -Last 1) }
   }
   exit 0
 }

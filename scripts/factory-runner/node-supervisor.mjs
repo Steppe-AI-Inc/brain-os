@@ -48,10 +48,13 @@ if (has('--stop')) {
 }
 
 if (!['generic', 'verifier', 'release_broker'].includes(ROLE)) { console.log('role must be generic | verifier | release_broker'); process.exit(2); }
-if (!existsSync(ENV_FILE)) { console.log('env file not found: ' + ENV_FILE + ' (provision-control-plane.mjs --write-env writes it)'); process.exit(2); }
-const line = readFileSync(ENV_FILE, 'utf8').split(/\r?\n/).find((l) => l.startsWith('FACTORY_RUNNER_PG_URL='));
-if (!line) { console.log(ENV_FILE + ' has no FACTORY_RUNNER_PG_URL= line'); process.exit(2); }
-const RUNNER_URL = line.slice('FACTORY_RUNNER_PG_URL='.length).trim();
+// The env file is read through the shared loader, which resolves the CA path for THIS machine (the recorded path is the
+// provisioning machine's; a copied file on the Work PC points at a CA that lives somewhere else there).
+const { loadRunnerUrl } = await import('./runner-env.mjs');
+const loaded = loadRunnerUrl(ENV_FILE);
+if (!loaded.url) { console.log(loaded.note); process.exit(2); }
+const RUNNER_URL = loaded.url;
+const ENV_NOTE = loaded.note;
 
 // one instance per checkout
 mkdirSync(STATE_DIR, { recursive: true });
@@ -86,7 +89,7 @@ const rotate = () => { try { const keep = 14; const files = readdirSync(LOG_DIR)
 
 const status = { supervisorPid: process.pid, role: ROLE, envFile: ENV_FILE, logDir: LOG_DIR, stateDir: STATE_DIR, startedAt: new Date().toISOString(), childPid: null, childStartedAt: null, restarts: 0, consecutiveFailures: 0, lastExit: null, state: 'starting' };
 writeStatus(status);
-log('supervisor started; role ' + ROLE + '; env file ' + ENV_FILE + ' (URL not printed); state dir ' + STATE_DIR);
+log('supervisor started; role ' + ROLE + '; env file ' + ENV_FILE + ' (URL not printed; ' + ENV_NOTE + '); state dir ' + STATE_DIR);
 
 let child = null, stopping = false;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

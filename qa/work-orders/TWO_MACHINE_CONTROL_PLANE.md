@@ -49,8 +49,9 @@ Then, on the Home PC:
 ```
 bash scripts/factory-runner/bootstrap-node.sh --role generic --env-file "$env:USERPROFILE\.brain-factory\runner.env"
 ```
-On the Work PC: copy `runner.env` and the CA file (`~/.brain-factory/supabase-root-2021-ca.crt`) to the same paths there, or
-re-run the one command there with its own `--write-env`, then `bootstrap-node.sh --role verifier --env-file …`.
+On the Work PC: copy `runner.env` and the CA file (`~/.brain-factory/supabase-root-2021-ca.crt`) to the same folder there — the
+CA path inside the env file is resolved to the local copy by `runner-env.mjs`, so nothing is edited — then
+`install-autostart.ps1 -Role verifier -Start` (§H) or `bootstrap-node.sh --role verifier --env-file …`.
 **Reply with:** "shared plane is up" and the two node ids the bootstraps print. Never the URL.
 
 Rotation is the same command again (the password rotates, the identity is kept). `--force` is refused alongside the flag.

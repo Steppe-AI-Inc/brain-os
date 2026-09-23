@@ -71,8 +71,9 @@ node after a reboot; a heavy-job limit that was a count, not a lock; twelve work
 ## 6. THE GATES (the only things that stop the Director)
 
 **A — Work PC (tomorrow).** On the Work PC, from a checkout of this branch at `621b931f` or later:
-1. copy `runner.env` and `supabase-root-2021-ca.crt` into `%USERPROFILE%\.brain-factory\` there (same paths; if the username
-   differs, edit the `sslrootcert` path inside the env file);
+1. copy `runner.env` and `supabase-root-2021-ca.crt` into `%USERPROFILE%\.brain-factory\` there. Nothing is edited: every
+   reader goes through `scripts/factory-runner/runner-env.mjs`, which resolves the CA path recorded on this PC to the copy beside
+   the env file on that PC (proved against the live plane with a foreign path);
 2. `powershell -ExecutionPolicy Bypass -File scripts\factory-runner\install-autostart.ps1 -Role verifier -Start`, then `-Status`;
 3. back on the Home PC: `node qa/factory/two_machine_real.mjs nodes` (both ALIVE, two hostnames), then
    `node qa/factory/two_machine_real.mjs run` → expect **TWO MACHINES**; then `node qa/factory/factory_v1_acceptance.mjs`
