@@ -207,10 +207,18 @@ Windows Scheduled Task **BrainOS Factory Node** that launches it; an idle node s
 | `node scripts\factory-runner\node.mjs status --runner-env <runner.env>` | ALIVE (heartbeat age) / STALE / NOT REGISTERED / UNREACHABLE, read-only; URL NOT SET without `--runner-env` (the default file is never read implicitly); DEPENDENCIES_MISSING (exit 5) when the locked tree is not installed or does not load |
 
 The supervisor takes `--runner-env <file>`, not `--env-file`: Node itself consumes `--env-file` anywhere on its command line and
-exits 9 on a missing file before the supervisor runs. A pid recorded in `.factory/` is trusted only when that process's command
-line is this checkout's supervisor or worker (`proc.mjs`): after a reboot the numbers belong to whatever process Windows handed
-them to, and the supervisor neither refuses to start nor kills anything because of them. A worker that refuses its
-configuration (exit 2, REFUSED) is terminal - the supervisor stops with state `refused` instead of restarting it forever.
+exits 9 on a missing file before the supervisor runs.
+
+**One supervisor per state dir, by lock.** Each supervisor holds an exclusive control pipe named from its state directory
+(`proc.mjs`: a named pipe on Windows, a unix socket elsewhere) for its whole life. A second supervisor cannot take it and exits 3,
+however its path was spelled (relative, through a junction, a non-ASCII folder). `node-supervisor.mjs --whois` asks the running
+one who it is (pid, role, state, worker), `--stop` asks it to stop, `--status` says STALE when the status file claims a supervisor
+nobody answers for. The installer asks the same questions. Pid files are for people to read and never trusted: after a reboot
+their numbers belong to whatever process Windows handed them to. An orphaned worker is recognised by the instance token its
+supervisor put on its command line, and nothing else is ever killed. A worker that refuses its configuration (exit 2, REFUSED) is
+terminal: the supervisor stops with state `refused` instead of restarting it forever. Every refusal leaves a log line and a status
+record. Under the scheduled task the supervisor runs behind a headless console host (no window). Stopping the task stops the
+node, and `-Status` / `-Verify` report it.
 
 **Boot trigger:** Windows lets only an administrator register an AtStartup trigger (measured: "Access is denied" for a standard
 user). As installed the task is triggered **at logon**, which is the reboot path the moment the user logs on; one elevated run of
