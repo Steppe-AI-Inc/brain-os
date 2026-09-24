@@ -50,11 +50,16 @@
 //      backs off forever
 //   F11 stale pids after a reboot: a pid file and a status file naming OTHER live processes (reused numbers) neither stop the
 //      supervisor from starting nor get those processes killed
+//   F12 a supervised node claims ONLY the work types it can do: a queued verifier-gated software_development work order stays
+//      queued with no run and its dependent stays blocked, while a bootstrap_probe is claimed and completed as a probe (the
+//      default bootstrap used to report every work order done within a second, unblocking release work nobody verified)
+//   F13 a node the admission gate refuses says so - in its log and in node.mjs status - instead of reading ALIVE and never claiming
 // F1 and F8 also require the committed lock to be byte-for-byte unchanged by the install (npm 10's `npm install` rewrites it).
 import { spawn, spawnSync, execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync, mkdirSync, statfsSync } from 'node:fs';
 import { builtinModules } from 'node:module';
 import { tmpdir } from 'node:os';
+import os from 'node:os';
 import { dirname, join, relative, sep, resolve as resolvePath } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -344,6 +349,12 @@ if (!STATIC_ONLY) {
     // registered that node and stamped its heartbeat: the row saw ALIVE while the supervised worker died on every start
     // (verification 2026-09-24). Now ALIVE counts only as the supervised worker's own: role verifier (health registers generic),
     // heartbeat after the supervisor started, and the supervisor still on its first worker with no exit.
+    // F12's work orders are seeded before F4's supervised node starts, and judged after its 20 s window
+    const wo12 = { dev: randomUUID(), rel: randomUUID(), probe: randomUUID() };
+    await admin.query("insert into factory.work_orders (work_order_id, title, work_type, owned_surface, priority, status, requires_security_role) values ($1, 'F12 verifier-gated development work', 'software_development', $2::text[], 'high', 'queued', 'verifier')", [wo12.dev, ['qa/f12/dev-' + wo12.dev.slice(0, 8)]]);
+    await admin.query("insert into factory.work_orders (work_order_id, title, work_type, owned_surface, priority, status) values ($1, 'F12 release that depends on it', 'software_development', $2::text[], 'high', 'queued')", [wo12.rel, ['qa/f12/rel-' + wo12.rel.slice(0, 8)]]);
+    await admin.query('insert into factory.work_order_dependencies (work_order_id, depends_on) values ($1, $2)', [wo12.rel, wo12.dev]);
+    await admin.query("insert into factory.work_orders (work_order_id, title, work_type, owned_surface, priority, status) values ($1, 'F12 probe', 'bootstrap_probe', $2::text[], 'high', 'queued')", [wo12.probe, ['qa/f12/probe-' + wo12.probe.slice(0, 8)]]);
     const stateA4 = join(work, 'state-a4'); mkdirSync(stateA4, { recursive: true });
     const nodeEnvA4 = { ...nodeEnvA, FACTORY_STATE_DIR: stateA4 };
     const supStartedAt = Date.now();
@@ -382,8 +393,16 @@ if (!STATIC_ONLY) {
       stayed = steady && beats.size >= 3;
       if (steady && !stayed) why4 = 'the heartbeat did not advance (' + beats.size + ' distinct heartbeats in 20 s)';
     }
+    const f12 = {};
+    for (const [k, id] of Object.entries(wo12)) {
+      const w = (await admin.query('select status from factory.work_orders where work_order_id = $1', [id])).rows[0] || {};
+      const runs = (await admin.query('select status, termination_reason from factory.agent_runs where work_order_id = $1', [id])).rows;
+      f12[k] = { status: w.status, runs: runs.length, reason: runs[0] && runs[0].termination_reason };
+    }
     run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--stop'], cloneA, nodeEnvA4);
     const supExit = await new Promise((r) => { const t = setTimeout(() => r('timeout'), 25000); sup.on('exit', (c) => { clearTimeout(t); r(c); }); });
+    if (want('F12')) check('F12 the supervised node claims only what it can do: verifier-gated development work ' + JSON.stringify(f12.dev) + ', its dependent ' + JSON.stringify(f12.rel) + ', a probe ' + JSON.stringify(f12.probe),
+      f12.dev.status === 'queued' && f12.dev.runs === 0 && f12.rel.status === 'queued' && f12.rel.runs === 0 && f12.probe.status === 'done' && f12.probe.reason === 'bootstrap_probe_completed', JSON.stringify(f12) + '\n' + supOut);
     check('F4 the supervisor from the runtime-only clone, on a fresh node identity, starts a worker that goes ALIVE as role verifier with its own heartbeat, STAYS up 20 s (same worker, no restart, heartbeat advancing), and --stop ends it (exit ' + supExit + ')', !!alive && stayed && supExit === 0, why4 + '\n' + supOut);
 
     // F5 - first a TRANSITIVE package (pg-protocol: pg loads it, package.json does not name it - the first dependency check
@@ -433,7 +452,9 @@ if (!STATIC_ONLY) {
       const cyc = {};
       cyc.install = psT(['-Role', 'verifier', '-EnvFile', envFile, '-LogDir', join(work, 'logs-task'), '-Start']);
       cyc.verify = psT(['-Verify']);
+      cyc.execute = run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName '" + scratchTask + "' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).Execute}else{'NONE'}"], ROOT).out.trim();
       cyc.stop = psT(['-Stop']);
+      cyc.verifyStopped = psT(['-Verify']);
       cyc.start = psT(['-Start']);
       cyc.argsAfterStart = taskArgsOf();
       cyc.uninstall1 = psT(['-Uninstall']);
@@ -447,7 +468,8 @@ if (!STATIC_ONLY) {
       cyc.argsAfterUninstall = taskArgsOf();
       const cycleOk = cyc.install.rc === 0 && /started: supervisor pid \d+/.test(cyc.install.out) && /role verifier/.test(cyc.install.out)
         && cyc.verify.rc === 0 && /OK/.test(cyc.verify.out)
-        && cyc.stop.rc === 0
+        && (Number(String(os.release()).split('.')[2] || 0) < 17763 || /\\conhost\.exe$/i.test(cyc.execute))
+        && cyc.stop.rc === 0 && cyc.verifyStopped.rc === 1 && /not running a supervisor/.test(cyc.verifyStopped.out)
         && cyc.start.rc === 0 && /nothing re-installed/.test(cyc.start.out) && /started: supervisor pid \d+/.test(cyc.start.out) && /--role verifier/.test(cyc.argsAfterStart)
         && cyc.uninstall1.rc === 0
         && cyc.reinstall.rc === 0 && /started: supervisor pid \d+/.test(cyc.reinstall.out) && !(cyc.reinstall.out.match(/started: supervisor pid (\d+)/) || [])[1] !== String(hand.pid) && handGone
@@ -538,6 +560,16 @@ if (!STATIC_ONLY) {
       check('F11 stale pids naming other live processes: the supervisor starts its own worker (' + running11 + '), both bystanders are alive afterwards (' + bystandersAlive + '), the stale pids are logged as such, and --stop ends it (exit ' + exit11 + ')',
         running11 && bystandersAlive && /stale/.test(out11) && exit11 === 0, out11);
       for (const b of [b1, b2]) { try { b.kill(); } catch { /* gone */ } }
+    }
+
+    // F13
+    if (want('F13')) {
+      const s13 = join(work, 'state-a13'); mkdirSync(s13, { recursive: true });
+      const env13 = { ...nodeEnvA, FACTORY_STATE_DIR: s13, FACTORY_ADMISSION: '', FACTORY_MIN_FREE_MB: '99999999' };
+      const once = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node.mjs'), 'start', '--once'], cloneA, env13, 60000);
+      const st13 = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node.mjs'), 'status'], cloneA, env13, 60000);
+      check('F13 a node the admission gate refuses says so: its log names the refusal and status prints NOT CLAIMING (start exit ' + once.rc + ', status exit ' + st13.rc + ')',
+        once.rc === 0 && /admission REFUSED/.test(once.out) && /FACTORY_MIN_FREE_MB/.test(once.out) && /NOT CLAIMING/.test(st13.out), once.out + '\n--- status\n' + st13.out);
     }
   } catch (e) {
     check('F0 fresh-clone setup (free disk, clones at HEAD, disposable plane)', false, e && e.stack || e);

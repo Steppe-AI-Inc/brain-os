@@ -50,6 +50,8 @@ const results = [];
     ['scripts/factory-runner/verify-deployed-bytes.sh', 'npx --yes supabase@2.117.0 functions download'], ['scripts/factory-runner/node-supervisor.mjs', '  if (deps.ok) return;'],
     ['scripts/factory-runner/node-supervisor.mjs', 'if (!loaded.usable) {'], ['scripts/factory-runner/node-supervisor.mjs', '    if (isOurWorker(prev.childPid)) {'],
     ['scripts/factory-runner/deps.mjs', 'if (load && lockPresent && rows.every'],
+    ['scripts/factory-runner/node.mjs', '      workTypes: HANDLED_WORK_TYPES,'], ['scripts/factory-runner/node.mjs', '    noteAdmission();'],
+    ['scripts/factory-runner/install-autostart.ps1', '$headless = (Test-Path -LiteralPath $conhost)'],
     ['scripts/factory-runner/install-autostart.ps1', "if ($Start -and -not $RoleGiven -and -not $EnvGiven -and $task -and -not (Test-OtherCheckout $owner)) {"],
     ['scripts/factory-runner/install-autostart.ps1', "if (-not $RoleGiven -and (Get-TaskArg $task 'role')) {"],
     ['scripts/factory-runner/install-autostart.ps1', "foreach ($d in @($Root) + @(if ($owner -and (Test-OtherCheckout $owner)) { $owner })) {"],
@@ -118,10 +120,16 @@ try {
       expectRed('F-LATE', 'the supervised worker dies six seconds after every start (one instant of ALIVE must not pass)', d, ['F4'], ['--skip', 'F6,F7,F8,F9,F10,F11']); }
     { const d = clone('fstale'); edit(d, 'scripts/factory-runner/node-supervisor.mjs', (s) => s.replace('    if (isOurWorker(prev.childPid)) {', '    if (true) {')); commitAll(d, 'mutant: the supervisor kills whatever holds the recorded worker pid');
       expectRed('F-STALE', 'the supervisor kills whatever process now holds the worker pid recorded before a reboot', d, ['F11'], ['--skip', 'F6,F7,F8,F9,F10']); }
+    { const d = clone('fclaimall'); edit(d, 'scripts/factory-runner/node.mjs', (s) => s.replace('      workTypes: HANDLED_WORK_TYPES,', '      workTypes: null,')); commitAll(d, 'mutant: the CLI node claims every work type');
+      expectRed('F-CLAIMALL', 'the CLI node claims work it has no worker for (verifier-gated development work)', d, ['F12'], ['--skip', 'F6,F7,F8,F9,F10,F11,F13']); }
+    { const d = clone('fsilent'); edit(d, 'scripts/factory-runner/node.mjs', (s) => s.replace('    noteAdmission();', '')); commitAll(d, 'mutant: an admission refusal is silent');
+      expectRed('F-SILENT', 'a node refused by the admission gate reads ALIVE and says nothing', d, ['F13'], ['--skip', 'F6,F7,F8,F9,F10,F11']); }
     { const d = clone('frole'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("if ($Start -and -not $RoleGiven -and -not $EnvGiven -and $task -and -not (Test-OtherCheckout $owner)) {", 'if ($false) {').replace("if (-not $RoleGiven -and (Get-TaskArg $task 'role')) {", 'if ($false) {')); commitAll(d, 'mutant: -Start re-installs with the default role');
       expectRed('F-ROLE', 'the documented -Stop / -Start re-registers the verifier as generic', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11']); }
     { const d = clone('fhand'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("foreach ($d in @($Root) + @(if ($owner -and (Test-OtherCheckout $owner)) { $owner })) {", 'foreach ($d in @(if ($task) { if ($owner) { $owner } else { $Root } })) {')); commitAll(d, 'mutant: install leaves a hand-started supervisor running');
       expectRed('F-HAND', 'installing while a hand-started supervisor runs leaves the task supervisor refused (exit 3) and the node down', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11']); }
+    { const d = clone('fheadless'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace('$headless = (Test-Path -LiteralPath $conhost)', '$headless = $false -and (Test-Path -LiteralPath $conhost)')); commitAll(d, 'mutant: the task shows a console window');
+      expectRed('F-HEADLESS', 'the task runs the node in a visible console window (closing it kills the node)', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11,F12,F13']); }
     { const d = clone('f7'); edit(d, 'scripts/factory-runner/bootstrap-node.sh', (s) => s.replace('NOTE_FILE="$(mktemp 2>/dev/null || echo "${TMPDIR:-/tmp}/factory-env-note.$$")"', 'NOTE_FILE="$ROOT/.factory/.env-note"')); commitAll(d, 'mutant: bootstrap redirects into .factory');
       expectRed('F-BOOT', 'the bootstrap writes into a .factory/ a fresh clone does not have', d, ['F7'], ['--skip', 'F6,F8,F9,F10,F11']); }
     { const d = clone('f8'); editJson(d, 'package.json', (p) => { delete p.allowScripts['@embedded-postgres/windows-x64@18.4.0-beta.17']; delete p.allowScripts['@embedded-postgres/linux-x64@18.4.0-beta.17']; delete p.allowScripts['@embedded-postgres/darwin-arm64@18.4.0-beta.17']; return p; }); commitAll(d, 'mutant: postgres binary script unreviewed');
@@ -132,5 +140,5 @@ try {
 }
 const killed = results.filter((r) => r.killed).length;
 console.log('');
-console.log('package_bootstrap_mutation_proof: ' + killed + ' of ' + results.length + ' (control green + mutants killed)' + (FRESH ? '' : '  (static mutants only; --fresh adds the original defect and eleven fresh-clone mutants)'));
+console.log('package_bootstrap_mutation_proof: ' + killed + ' of ' + results.length + ' (control green + mutants killed)' + (FRESH ? '' : '  (static mutants only; --fresh adds the original defect and fourteen fresh-clone mutants)'));
 process.exit(killed === results.length ? 0 : 1);
