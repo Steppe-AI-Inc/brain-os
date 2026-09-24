@@ -97,6 +97,9 @@ async function connect() {
     keepAlive: true,
     keepAliveInitialDelayMillis: 10000,
   });
+  // a connection lost under a pending query rejects that query; the client ALSO emits 'error', which unhandled would end the
+  // whole process instead of failing one statement (found by acceptance row Q's mutation check)
+  client.on('error', () => { /* the pending query rejects with it */ });
   await client.connect();
   // NO TRANSACTION MAY OUTLIVE ITS CLIENT. The idle-transaction limit only runs once the server has said ReadyForQuery; between a
   // Parse and its Sync - a claim stalled mid-statement, a heartbeat whose UPDATE ran but whose commit never arrived - no timer
