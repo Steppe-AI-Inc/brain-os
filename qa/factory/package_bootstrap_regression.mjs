@@ -580,13 +580,17 @@ if (!STATIC_ONLY) {
       run('powershell', ['-NoProfile', '-Command', "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*" + work.replace(/'/g, "''") + "*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"], ROOT);
       // the live task must be exactly as it was; if a broken guard changed it, put it back from its own export
       const after = run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName 'BrainOS Factory Node' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).WorkingDirectory + '|' + ($t.Actions|Select-Object -First 1).Arguments + '|' + $t.Settings.Enabled}else{'NONE'}"], ROOT).out.trim();
-      if (liveTaskXml && after !== liveTaskBefore) {
+      // ...but only undo what THIS run's clones did: the task removed, or pointed into this run's work dir. Any other change was
+      // made by someone else while the run was going - an operator's re-install - and reverting it silently is the harm
+      // (2026-09-24: a run restored the export it took at its start over a legitimate re-install made meanwhile). It is said.
+      const takenByUs = after === 'NONE' || after.toLowerCase().startsWith(work.toLowerCase());
+      if (liveTaskXml && after !== liveTaskBefore && takenByUs) {
         const xmlFile = join(work, 'live-task.xml'); writeFileSync(xmlFile, liveTaskXml);
         run('powershell', ['-NoProfile', '-Command', "Register-ScheduledTask -TaskName 'BrainOS Factory Node' -Xml (Get-Content -Raw '" + xmlFile + "') -Force | Out-Null"], ROOT);
-        console.log('RESTORED the live scheduled task from its export (it had changed during the run)');
-      }
+        console.log('RESTORED the live scheduled task from its export (this run\'s clones had ' + (after === 'NONE' ? 'removed it' : 'taken it over') + ')');
+      } else if (liveTaskXml && after !== liveTaskBefore) console.log('NOTE the live scheduled task changed during this run, not by this run\'s clones (someone re-installed it?) - left as it is; F6\'s "untouched" proof does not hold for this run');
       // and running, if it was: a -Stop that got past a broken guard would otherwise leave this PC's node stopped
-      if (liveStateBefore === 'Running' && taskState() !== 'Running') {
+      if (liveStateBefore === 'Running' && taskState() !== 'Running' && (after === liveTaskBefore || takenByUs)) {
         run('powershell', ['-NoProfile', '-Command', "Start-ScheduledTask -TaskName 'BrainOS Factory Node'"], ROOT);
         console.log('RESTARTED the live scheduled task (it was Running before the run and was not after)');
       }
