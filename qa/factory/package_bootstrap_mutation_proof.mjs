@@ -63,8 +63,11 @@ const results = [];
     ['scripts/factory-runner/node-supervisor.mjs', '    if (now !== envSeen) {'],
     ['scripts/factory-runner/install-autostart.ps1', "  $o = Ask-Supervisor $dir 'whois'"],
     ['scripts/factory-runner/url-judge.mjs', "  if (!u.username) return"], ['scripts/factory-runner/install-autostart.ps1', "if (-not $PSBoundParameters.ContainsKey('WatchdogMinutes') -and $task) {"],
-    ['scripts/factory-runner/install-autostart.ps1', "if ($Start -and -not $RoleGiven -and -not $EnvGiven -and $task -and -not (Test-OtherCheckout $owner)) {"],
+    ['scripts/factory-runner/install-autostart.ps1', "if ($Start -and -not $RoleGiven -and -not $EnvGiven -and -not $ChangeGiven -and $task -and -not (Test-OtherCheckout $owner)) {"],
     ['scripts/factory-runner/install-autostart.ps1', "if (-not $RoleGiven -and (Get-TaskArg $task 'role')) {"],
+    ['scripts/factory-runner/node.mjs', '    const role = held ? held.security_role : (stated || "generic");'],
+    ['scripts/factory-runner/install-autostart.ps1', "    elseif ($live.state -ne 'running' -or -not $live.childPid) {"],
+    ['scripts/factory-runner/url-judge.mjs', '  if (/ |%[^a-f0-9]|%[a-f0-9][^a-f0-9]/i.test(String(url))) {'],
     ['scripts/factory-runner/install-autostart.ps1', "foreach ($d in @($Root) + @(if ($owner -and (Test-OtherCheckout $owner)) { $owner })) {"],
     ['scripts/factory-runner/bootstrap-node.sh', 'NOTE_FILE="$(mktemp 2>/dev/null || echo "$' + '{TMPDIR:-/tmp}/factory-env-note.$$")"']];
   const missing = need.filter(([f, s]) => readFileSync(join(ROOT, f), 'utf8').split('\r\n').join('\n').split(s).length !== 2);
@@ -161,8 +164,14 @@ try {
       expectRed('F-USERLESS', 'a URL naming no user passes the judge (pg takes PGUSER from the environment)', d, ['F10'], ['--skip', 'F6,F7,F8,F11,F12,F13,F14,F15']); }
     { const d = clone('fwatchkeep'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("if (-not $PSBoundParameters.ContainsKey('WatchdogMinutes') -and $task) {", 'if ($false) {')); commitAll(d, 'mutant: a re-install resets the watchdog');
       expectRed('F-WATCHKEEP', 'a re-install without -WatchdogMinutes resets the watchdog interval', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11,F12,F13,F14,F15']); }
-    { const d = clone('frole'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("if ($Start -and -not $RoleGiven -and -not $EnvGiven -and $task -and -not (Test-OtherCheckout $owner)) {", 'if ($false) {').replace("if (-not $RoleGiven -and (Get-TaskArg $task 'role')) {", 'if ($false) {')); commitAll(d, 'mutant: -Start re-installs with the default role');
+    { const d = clone('frole'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("if ($Start -and -not $RoleGiven -and -not $EnvGiven -and -not $ChangeGiven -and $task -and -not (Test-OtherCheckout $owner)) {", 'if ($false) {').replace("if (-not $RoleGiven -and (Get-TaskArg $task 'role')) {", 'if ($false) {')); commitAll(d, 'mutant: -Start re-installs with the default role');
       expectRed('F-ROLE', 'the documented -Stop / -Start re-registers the verifier as generic', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11']); }
+    { const d = clone('fhealthrole'); edit(d, 'scripts/factory-runner/node.mjs', (s) => s.replace('    const role = held ? held.security_role : (stated || "generic");', '    const role = nodeRole();')); commitAll(d, 'mutant: health re-registers with the defaulted role');
+      expectRed('F-HEALTHROLE', 'the documented health check from a plain shell demotes the running verifier to generic', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11,F12,F13,F14,F15']); }
+    { const d = clone('fstatusbackoff'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("    elseif ($live.state -ne 'running' -or -not $live.childPid) {", '    elseif ($false) {')); commitAll(d, 'mutant: -Status prints the plane\'s word during a backoff');
+      expectRed('F-STATUSBACKOFF', '-Status prints the plane\'s lagging ALIVE while the supervisor runs no worker (backoff)', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11,F12,F13,F14,F15']); }
+    { const d = clone('freencode'); edit(d, 'scripts/factory-runner/url-judge.mjs', (s) => s.replace('  if (/ |%[^a-f0-9]|%[a-f0-9][^a-f0-9]/i.test(String(url))) {', '  if (false) {')); commitAll(d, 'mutant: a URL pg would re-encode passes');
+      expectRed('F-REENCODE', 'a URL with a bare % passes the judge (pg re-encodes it and corrupts the CA path)', d, ['F10'], ['--skip', 'F6,F7,F8,F11,F12,F13,F14,F15']); }
     { const d = clone('fhand'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("foreach ($d in @($Root) + @(if ($owner -and (Test-OtherCheckout $owner)) { $owner })) {", 'foreach ($d in @(if ($task) { if ($owner) { $owner } else { $Root } })) {')); commitAll(d, 'mutant: install leaves a hand-started supervisor running');
       expectRed('F-HAND', 'installing while a hand-started supervisor runs leaves the task supervisor refused (exit 3) and the node down', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11']); }
     { const d = clone('fheadless'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace('$headless = (Test-Path -LiteralPath $conhost)', '$headless = $false -and (Test-Path -LiteralPath $conhost)')); commitAll(d, 'mutant: the task shows a console window');
@@ -177,5 +186,5 @@ try {
 }
 const killed = results.filter((r) => r.killed).length;
 console.log('');
-console.log('package_bootstrap_mutation_proof: ' + killed + ' of ' + results.length + ' (control green + mutants killed)' + (FRESH ? '' : '  (static mutants only; --fresh adds the original defect and twenty-seven fresh-clone mutants)'));
+console.log('package_bootstrap_mutation_proof: ' + killed + ' of ' + results.length + ' (control green + mutants killed)' + (FRESH ? '' : '  (static mutants only; --fresh adds the original defect and thirty fresh-clone mutants)'));
 process.exit(killed === results.length ? 0 : 1);

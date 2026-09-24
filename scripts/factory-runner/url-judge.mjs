@@ -67,6 +67,18 @@ export function assessUrl(url) {
         + 'server certificate is known). Only a loopback address may connect in the clear.';
     }
   }
+  // (after the refusals that name who and where, so a production or superuser URL is always named as that)
+  // WHAT PG WILL PARSE, NOT ONLY WHAT new URL() PARSES. pg-connection-string re-encodes the WHOLE URL when it holds a space or a
+  // '%' that is not a two-hex-digit escape - and the re-encode keeps only digit-pair escapes, so every %3A and %5C of a Windows
+  // sslrootcert path came out double-encoded: the preflight said OK and the worker crash-looped on ENOENT (verification round 4).
+  // The same test pg applies, applied here; and each part pg decodes on its own must decode.
+  if (/ |%[^a-f0-9]|%[a-f0-9][^a-f0-9]/i.test(String(url))) {
+    return 'FACTORY_RUNNER_PG_URL holds a space or a \'%\' that is not a percent-escape - pg would re-encode the whole URL and corrupt '
+      + 'its other escapes (the sslrootcert path). Percent-encode it: a space as %20, a \'%\' as %25.';
+  }
+  for (const [part, value, dec] of [['password', u.password, decodeURIComponent], ['host', u.hostname, decodeURIComponent], ['database', u.pathname.slice(1), decodeURI]]) {
+    try { dec(value || ''); } catch { return 'FACTORY_RUNNER_PG_URL has a malformed percent-escape in its ' + part + ' - pg cannot decode it'; }
+  }
   return null;
 }
 

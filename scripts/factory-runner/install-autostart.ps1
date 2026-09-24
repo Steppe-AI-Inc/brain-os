@@ -8,9 +8,10 @@
 # -Role      generic (Home PC) | verifier (Work PC) | release_broker. On a re-install without -Role the EXISTING task's role
 #            is kept - a verifier is never silently re-registered as generic (verification 2026-09-24).
 # -EnvFile   the runner env file (default %USERPROFILE%\.brain-factory\runner.env, or the existing task's); contents never printed
-# -Start     with -Role (or no task yet): install, then start. ALONE on an installed task of this checkout: start that task as
-#            it is - no re-install, role and env file unchanged. Either way the task's supervisor is CONFIRMED running
-#            (identity-checked pid, state running) or the command fails (exit 5) naming the task result and the refusal.
+# -Start     with -Role (or no task yet), or with -WatchdogMinutes / -LogDir: install, then start. ALONE on an installed task of
+#            this checkout: start that task as it is - no re-install, role and env file unchanged; a supervisor in backoff, or one
+#            whose node the plane does not see ALIVE in the task's role, is restarted. Either way the start is CONFIRMED by the
+#            node (the same worker up 12 s, the plane hearing it in the task's role) or the command fails (exit 5) naming why.
 # -Stop      stop the supervisor cleanly (its worker with it) and the task, and DISABLE the task (the watchdog then leaves it)
 # -Status    the task (and which checkout owns it), its role, the owner's supervisor state - marked STALE when the recorded
 #            supervisor is not running - the dependency check, and the node's liveness read with the task's own env file
@@ -121,7 +122,7 @@ function Get-SupervisorInfo($dir) {
       $want = (Join-Path $dir 'scripts\factory-runner\node-supervisor.mjs').Replace('/', '\').ToLower()
       if ($proc -and $proc.CommandLine -and $proc.CommandLine.Replace('/', '\').ToLower().Contains($want)) {
         $st = Read-SupervisorStatus $dir
-        return [pscustomobject]@{ running = $true; pid = $p; role = $(if ($st) { $st.role } else { $null }); state = $(if ($st) { $st.state } else { 'running' }); childPid = $(if ($st) { $st.childPid } else { $null }); legacy = $true }
+        return [pscustomobject]@{ running = $true; pid = $p; role = $(if ($st) { $st.role } else { $null }); state = $(if ($st) { $st.state } else { 'running' }); childPid = $(if ($st) { $st.childPid } else { $null }); nextStartAt = $(if ($st) { $st.nextStartAt } else { $null }); legacy = $true }
       }
     }
   }
@@ -146,10 +147,11 @@ function Stop-CheckoutSupervisor($dir) {
 }
 function Read-SupervisorStatus($dir) { $f = Join-Path $dir '.factory\node-status.json'; if (Test-Path -LiteralPath $f) { try { return (Get-Content -LiteralPath $f -Raw | ConvertFrom-Json) } catch { } }; return $null }
 # After Start-ScheduledTask: the task's supervisor must be running (identity-checked) with its worker, not merely "task Running"
-function Get-TaskLogFile { $ld = Get-TaskArg (Get-FactoryTask) 'logdir'; if (-not $ld) { $ld = "$env:USERPROFILE\.brain-factory\logs" }; return (Join-Path $ld ("node-" + (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd') + ".log")) }
+# The log of the supervisor being described: its own log dir when it said one (whois), else the task's, else the default.
+function Get-TaskLogFile($ld) { if (-not $ld) { $ld = Get-TaskArg (Get-FactoryTask) 'logdir' }; if (-not $ld) { $ld = "$env:USERPROFILE\.brain-factory\logs" }; return (Join-Path $ld ("node-" + (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd') + ".log")) }
 # The last error the worker logged (a connection, a password, a certificate) - what a supervisor in backoff is failing on.
-function Get-LastWorkerError {
-  $f = Get-TaskLogFile
+function Get-LastWorkerError($ld) {
+  $f = Get-TaskLogFile $ld
   if (-not (Test-Path -LiteralPath $f)) { return 'no log at ' + $f }
   $tail = Get-Content -LiteralPath $f -Tail 120
   # the worker's own one-line verdict first ('error: ...' / REFUSED), then anything naming a failure - never a field of pg's
@@ -190,7 +192,7 @@ function Confirm-TaskSupervisor($dir, $since) {
         $upFor = ((Get-Date) - $first.at).TotalSeconds
         if ($upFor -ge 12) {
           $plane = Get-NodeOnPlane $dir
-          if ($plane -and $plane.state -eq 'ALIVE' -and $plane.ageMs -ne $null -and ([double]$plane.ageMs / 1000) -le ($upFor + 14)) {
+          if ($plane -and $plane.state -eq 'ALIVE' -and $plane.ageMs -ne $null -and ([double]$plane.ageMs / 1000) -le ($upFor + 14) -and $plane.role -eq $i.role) {
             return "started: supervisor pid $($i.pid), worker pid $($i.childPid), role $($i.role); the node is ALIVE on the plane (heartbeat $([Math]::Round([double]$plane.ageMs / 1000)) s ago, role $($plane.role), tls $(if ($plane.tls) { 'on' } else { 'off' }))"
           }
         }
@@ -203,12 +205,13 @@ function Confirm-TaskSupervisor($dir, $since) {
   $st = Read-SupervisorStatus $dir
   $why = if ((& $fresh $st) -and $st.refusal) { 'the supervisor refused - ' + $st.refusal }
     elseif ((& $fresh $st) -and $st.dependencies -and $st.state -eq 'dependencies_missing') { 'the supervisor refused - ' + $st.dependencies }
-    elseif ($last -and $last.state -eq 'backoff') { 'the supervisor (pid ' + $last.pid + ') runs, but its worker cannot run - ' + (Get-LastWorkerError) }
+    elseif ($last -and $last.state -eq 'backoff') { 'the supervisor (pid ' + $last.pid + ') runs, but its worker cannot run - ' + (Get-LastWorkerError $last.logDir) }
+    elseif ($last -and $plane -and $plane.state -eq 'ALIVE' -and $plane.role -ne $last.role) { 'the worker runs as ' + $last.role + ', but the plane holds role ' + $plane.role + ' for this node' }
     elseif ($last -and $plane) { 'the worker runs, but the plane has not heard from it since it started: ' + $plane.state + $(if ($plane.error) { ' - ' + $plane.error } else { '' }) }
-    elseif ($last) { 'the supervisor (pid ' + $last.pid + ') runs, but its worker did not stay up - ' + (Get-LastWorkerError) }
+    elseif ($last) { 'the supervisor (pid ' + $last.pid + ') runs, but its worker did not stay up - ' + (Get-LastWorkerError $last.logDir) }
     else { 'no supervisor answered and it recorded no reason' }
   "FAIL the task was started but the node is not running: $why"
-  "     the supervisor's log: $(Get-TaskLogFile)"
+  "     the supervisor's log: $(Get-TaskLogFile $(if ($last) { $last.logDir } else { $null }))"
   exit 5
 }
 
@@ -271,8 +274,11 @@ if ($Status) {
     # the node line through the task's own env file - not a URL this shell happens to carry; never printed
     Remove-Item Env:FACTORY_RUNNER_PG_URL -ErrorAction SilentlyContinue
     $nodeLine = & $NodeExe (Join-Path $dir 'scripts\factory-runner\node.mjs') status --runner-env $envPath 2>&1 | ForEach-Object { "$_" } | Select-Object -Last 1
-    # the plane's heartbeat lags a dead node by minutes; with no supervisor answering here the node is DOWN, whatever it says
-    if ($live) { "node      $nodeLine" } else { "node      DOWN here (no supervisor is running) - the plane's last word: $nodeLine" }
+    # the plane's heartbeat lags a dead node by minutes; with no supervisor answering here the node is DOWN, whatever it says - and
+    # with a supervisor waiting out a backoff (no worker) it is NOT RUNNING, whatever it says (it read ALIVE; verification round 4)
+    if (-not $live) { "node      DOWN here (no supervisor is running) - the plane's last word: $nodeLine" }
+    elseif ($live.state -ne 'running' -or -not $live.childPid) { "node      NOT RUNNING here (supervisor $($live.state)$(if ($live.nextStartAt) { ', next start ' + $live.nextStartAt } else { '' }); last worker error: $(Get-LastWorkerError $live.logDir)) - the plane's last word: $nodeLine" }
+    else { "node      $nodeLine" }
   } else { "node      (no env file at $envPath - liveness not read)" }
   exit 0
 }
@@ -324,16 +330,23 @@ if ($Verify) {
     elseif ($task.State -ne 'Running') { 'the task is not running - install-autostart.ps1 -Start' + $taskHint }
     elseif (-not $sv) { 'the task runs but no supervisor of this checkout answers - install-autostart.ps1 -Start' + $taskHint }
     elseif ($sv.role -ne (Get-TaskArg $task 'role')) { 'the running supervisor has role ' + $sv.role + ', the task says ' + (Get-TaskArg $task 'role') + ' - install-autostart.ps1 -Start' + $taskHint }
-    elseif ($sv.state -eq 'backoff') { 'the supervisor runs, but its worker cannot run - ' + (Get-LastWorkerError) }
+    elseif ($sv.state -eq 'backoff') { 'the supervisor runs, but no worker does (backoff' + $(if ($sv.nextStartAt) { ' until ' + $sv.nextStartAt } else { '' }) + ') - last worker error: ' + (Get-LastWorkerError $sv.logDir) + ' - install-autostart.ps1 -Start' + $taskHint + ' restarts it now' }
     elseif ($sv.state -ne 'running') { 'the supervisor is ' + $sv.state }
     elseif (-not $plane -or $plane.state -ne 'ALIVE') { 'the worker runs, but the plane does not see the node ALIVE' + $(if ($plane) { ': ' + $plane.state + $(if ($plane.error) { ' - ' + $plane.error } else { '' }) } else { '' }) }
+    # THE ROLE THAT DECIDES WHAT THE NODE CLAIMS IS THE PLANE'S: a verifier the plane held as generic claimed no verifier work while
+    # this said OK (a health check from a plain shell had re-registered it; verification round 4). The worker re-asserts its role
+    # on every beat, so a mismatch that lasts is a fault.
+    elseif ($plane.role -ne (Get-TaskArg $task 'role')) { 'the plane holds role ' + $plane.role + ' for this node, the task says ' + (Get-TaskArg $task 'role') + ' - the worker re-asserts its role within a minute; if this stays, install-autostart.ps1 -Start' + $taskHint }
     else { $null }
   if (-not $problem) { "OK   the task is enabled, watched, and running this checkout's supervisor (pid $supPid) whose worker the plane sees ALIVE; its env file, CA and dependencies pass the preflight"; exit 0 }
   "FAIL $problem"; exit 1
 }
 
 # ---- -Start ALONE on an installed task of this checkout: start it as it is (role and env file unchanged) ---------------------
-if ($Start -and -not $RoleGiven -and -not $EnvGiven -and $task -and -not (Test-OtherCheckout $owner)) {
+# -WatchdogMinutes or -LogDir with -Start is a change to the task: it re-installs (keeping role and env file), instead of being
+# silently ignored by "already running" (verification round 4).
+$ChangeGiven = $PSBoundParameters.ContainsKey('WatchdogMinutes') -or $LogGiven
+if ($Start -and -not $RoleGiven -and -not $EnvGiven -and -not $ChangeGiven -and $task -and -not (Test-OtherCheckout $owner)) {
   $want = Get-TaskArg $task 'role'
   $envPath = Get-TaskArg $task 'env'; if (-not $envPath) { $envPath = $EnvFile }
   $pre = Test-NodePreflight $envPath
@@ -345,7 +358,7 @@ if ($Start -and -not $RoleGiven -and -not $EnvGiven -and $task -and -not (Test-O
     if ($sv.state -eq 'backoff') {
       # restarted, not just reported: after the env file was fixed or the credential rotated, reporting left the node down until
       # a re-install (verification round 4). The new supervisor reads the env file again and the start is confirmed.
-      "the supervisor (pid $($sv.pid), role $($sv.role)) is running but its worker cannot run - $(Get-LastWorkerError) - restarting it"
+      "the supervisor (pid $($sv.pid), role $($sv.role)) is running but its worker cannot run - $(Get-LastWorkerError $sv.logDir) - restarting it"
       $s3 = Stop-CheckoutSupervisor $Root; $s3 | Where-Object { $_ -is [string] }
       if ($s3[-1] -ne $true) { "REFUSED - that supervisor is still running 20 s after the stop request"; exit 4 }
       if ((Get-FactoryTask).State -eq 'Running') { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue }
@@ -357,8 +370,8 @@ if ($Start -and -not $RoleGiven -and -not $EnvGiven -and $task -and -not (Test-O
     # one sample of 'running' is not a working node: a worker hanging on its connect reads 'running' for its whole timeout
     # (verification round 4). The plane must see the node ALIVE; otherwise it is restarted and the start confirmed.
     $plane = Get-NodeOnPlane $Root
-    if ($plane -and $plane.state -eq 'ALIVE') { "already running: supervisor pid $($sv.pid) (task '$TaskName', role $($sv.role), state $($sv.state); the plane sees the node ALIVE; nothing re-installed)"; exit 0 }
-    "the supervisor (pid $($sv.pid)) runs, but the plane does not see the node ALIVE ($(if ($plane) { $plane.state + $(if ($plane.error) { ' - ' + $plane.error } else { '' }) } else { 'no answer' })) - restarting it"
+    if ($plane -and $plane.state -eq 'ALIVE' -and $plane.role -eq $want) { "already running: supervisor pid $($sv.pid) (task '$TaskName', role $($sv.role), state $($sv.state); the plane sees the node ALIVE as $($plane.role); nothing re-installed)"; exit 0 }
+    "the supervisor (pid $($sv.pid)) runs, but the plane does not see the node ALIVE as $want ($(if ($plane) { $plane.state + ', role ' + $plane.role + $(if ($plane.error) { ' - ' + $plane.error } else { '' }) } else { 'no answer' })) - restarting it"
     $s4 = Stop-CheckoutSupervisor $Root; $s4 | Where-Object { $_ -is [string] }
     if ($s4[-1] -ne $true) { "REFUSED - that supervisor is still running 20 s after the stop request"; exit 4 }
     if ((Get-FactoryTask).State -eq 'Running') { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue }
@@ -453,7 +466,7 @@ if ($elevated) {
 "installed task '$TaskName' (logon type $logon; triggers $trig + watchdog every $WatchdogMinutes min; role $Role; env file $EnvFile, contents not printed)"
 if (-not $elevated) {
   "note: the boot trigger needs one elevated run (a standard user may not register AtStartup). From an ADMINISTRATOR PowerShell, once:"
-  "      powershell -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Role $Role -Start$taskHint$(if ($LogDir) { ' -LogDir ' + [char]34 + $LogDir + [char]34 } else { '' })"
+  "      powershell -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Role $Role -Start$taskHint$(if ($LogDir) { ' -LogDir ' + [char]34 + $LogDir + [char]34 } else { '' })$(if ($WatchdogMinutes -ne 5) { ' -WatchdogMinutes ' + $WatchdogMinutes } else { '' })"
   "      Until then the node starts when this user logs on after a reboot."
 }
 if ($Start) {

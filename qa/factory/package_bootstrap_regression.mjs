@@ -36,8 +36,9 @@
 //   F6 (Windows) install-autostart.ps1 -Preflight refuses on the broken clone, refuses an env file whose CA exists nowhere
 //      here, and passes on the repaired one; from the clone, install, -Stop and -Uninstall all refuse (exit 3) to act on a task
 //      that belongs to another checkout, and -Status names that owner; a SCRATCH task (-TaskName, never the live one) goes through
-//      the Work-PC cycle: install -Role verifier -Start (supervisor confirmed), -Verify, -Stop, -Start alone (still verifier,
-//      nothing re-installed), a hand-started supervisor stopped by a re-install whose task supervisor is confirmed, -Uninstall;
+//      the Work-PC cycle: install -Role verifier -Start (supervisor confirmed), -Verify, node.mjs health and plane-health.mjs from a
+//      plain shell (the running verifier stays verifier on the plane, -Verify still OK), -Stop, -Start alone (still verifier,
+//      nothing re-installed), -Status NOT RUNNING while a supervisor waits out a backoff, a hand-started supervisor stopped by a re-install whose task supervisor is confirmed, -Uninstall;
 //      the live task is untouched throughout
 //   F7 bootstrap-node.sh on a SECOND fresh clone with no node_modules and no .factory installs from the lock and ends
 //      BOOTSTRAPPED against the plane - the Work-PC path, end to end
@@ -45,7 +46,7 @@
 //      and embedded-postgres starts and stops a server from the clone's own install
 //   F9 the accessor and runner-env regression tests pass inside the clone (they include a BOM'd env file and a missing CA)
 //   F10 every runner.env the worker would refuse or fail on - a CA that exists nowhere here (the Work PC with the CA forgotten), a
-//      key=value string, the superuser, a CA file that is not a certificate - is refused by the supervisor (exit 2, no worker
+//      key=value string, the superuser, a CA file that is not a certificate, a bare % that pg would re-encode - is refused by the supervisor (exit 2, no worker
 //      started), and the missing CA by bootstrap-node.sh (nothing registered), instead of a worker that fails every connect and
 //      backs off forever
 //   F11 stale pids after a reboot: a pid file and a status file naming OTHER live processes (reused numbers) neither stop the
@@ -457,6 +458,13 @@ if (!STATIC_ONLY) {
       const cyc = {};
       cyc.install = psT(['-Role', 'verifier', '-EnvFile', envFile, '-LogDir', join(work, 'logs-task'), '-WatchdogMinutes', '1', '-Start']);
       cyc.verify = psT(['-Verify']);
+      // THE DOCUMENTED HEALTH CHECKS, FROM A PLAIN SHELL (no FACTORY_NODE_ROLE), MUST NOT DEMOTE THE RUNNING VERIFIER: they
+      // re-registered it as generic and verifier work waited while -Verify said OK (verification round 4). Judged on their own
+      // words (deterministic - the worker would re-assert within its beat) and on the plane's role read straight after.
+      cyc.healthPlain = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node.mjs'), 'health', '--runner-env', envFile], cloneA, cleanEnv, 60000);
+      cyc.planeHealthPlain = run(process.execPath, [join(cloneA, 'scripts/factory-runner/plane-health.mjs')], cloneA, { ...cleanEnv, FACTORY_RUNNER_PG_URL: pg.runnerUrl }, 60000);
+      cyc.roleAfterHealth = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node.mjs'), 'status', '--json', '--runner-env', envFile], cloneA, cleanEnv, 60000).out.trim().split(/\r?\n/).filter((l) => l.startsWith('{')).map((l) => { try { return JSON.parse(l).role; } catch { return '?'; } }).pop() || 'none';
+      cyc.verifyAfterHealth = psT(['-Verify']);
       cyc.execute = run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName '" + scratchTask + "' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).Execute}else{'NONE'}"], ROOT).out.trim();
       cyc.stop = psT(['-Stop']);
       cyc.verifyStopped = psT(['-Verify']);
@@ -499,6 +507,20 @@ if (!STATIC_ONLY) {
       cyc.argsAfterKeep = taskArgsOf();
       cyc.watchdogAfterKeep = run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName '" + scratchTask + "' -ErrorAction SilentlyContinue; if($t){ @($t.Triggers | Where-Object { $_.CimClass.CimClassName -eq 'MSFT_TaskTimeTrigger' } | ForEach-Object { $_.Repetition.Interval }) -join ',' } else { 'NONE' }"], ROOT).out.trim();
       cyc.uninstall1 = psT(['-Uninstall']);
+      // A SUPERVISOR IN BACKOFF RUNS NO WORKER: -Status printed the plane's lagging "ALIVE" as the node line (verification round 4).
+      // A hand-started supervisor whose worker fails on a wrong password; -Status is sampled until it answers in backoff.
+      {
+        const env6 = join(work, 'env6bad', 'runner.env'); mkdirSync(dirname(env6), { recursive: true });
+        const bad6 = new URL(pg.runnerUrl); bad6.password = 'wrong-' + randomUUID().slice(0, 6); writeFileSync(env6, 'FACTORY_RUNNER_PG_URL=' + bad6.toString() + '\n');
+        const h6 = spawn(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--runner-env', env6, '--role', 'verifier', '--log-dir', join(work, 'logs-hand-bad')], { cwd: cloneA, env: { ...process.env, ...cleanEnv }, stdio: 'ignore', windowsHide: true });
+        started.push(h6);
+        let st6 = null;
+        for (let i = 0; i < 40; i++) { await sleep(1000); const w = whois(); if (w.running && w.pid === h6.pid && w.state === 'backoff' && w.restarts >= 2) break; }
+        for (let i = 0; i < 4 && !st6; i++) { const s = psT(['-Status', '-EnvFile', envFile]); if (/^running\s+supervisor pid \d+, state backoff/m.test(s.out)) st6 = s; }
+        cyc.statusBackoff = st6 || { rc: 'no sample in backoff', out: '' };
+        run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--stop'], cloneA, cleanEnv);
+        cyc.handBadGone = await gone(h6);
+      }
       // a hand-started supervisor with NO task, then an install with a RELATIVE -EnvFile (resolved against the caller's directory,
       // registered absolute - it used to be registered verbatim and the task's supervisor looked for it in the checkout)
       const hand = await handStart('verifier', 'logs-hand');
@@ -528,6 +550,8 @@ if (!STATIC_ONLY) {
       cyc.argsAfterUninstall = taskArgsOf();
       const cycleOk = cyc.install.rc === 0 && /started: supervisor pid \d+/.test(cyc.install.out) && /role verifier/.test(cyc.install.out)
         && cyc.verify.rc === 0 && /OK/.test(cyc.verify.out)
+        && cyc.healthPlain.rc === 0 && /role verifier kept as the plane holds it/.test(cyc.healthPlain.out) && /registered on the plane as verifier/.test(cyc.planeHealthPlain.out)
+        && cyc.roleAfterHealth === 'verifier' && cyc.verifyAfterHealth.rc === 0 && /plane\s+ALIVE .*role verifier/.test(cyc.verifyAfterHealth.out)
         && (Number(String(os.release()).split('.')[2] || 0) < 17763 || /\\conhost\.exe$/i.test(cyc.execute))
         && cyc.stop.rc === 0 && cyc.verifyStopped.rc === 1 && /task is disabled/.test(cyc.verifyStopped.out)
         && cyc.start.rc === 0 && /nothing re-installed/.test(cyc.start.out) && /started: supervisor pid \d+/.test(cyc.start.out) && /--role verifier/.test(cyc.argsAfterStart)
@@ -536,6 +560,7 @@ if (!STATIC_ONLY) {
         && /stopped true, said why true/.test(cyc.rawStop) && cyc.stopAfterRaw.rc === 0 && /DOWN here/.test(cyc.statusDown.out)
         && cyc.reinstallKeep.rc === 0 && /--log-dir /.test(cyc.argsAfterKeep) && /--role verifier/.test(cyc.argsAfterKeep) && cyc.watchdogAfterKeep === 'PT1M'
         && cyc.uninstall1.rc === 0
+        && /^node\s+NOT RUNNING here \(supervisor backoff, next start \S+; last worker error: .*password authentication failed/m.test(cyc.statusBackoff.out) && cyc.handBadGone
         && cyc.reinstall.rc === 0 && /started: supervisor pid \d+/.test(cyc.reinstall.out) && (cyc.reinstall.out.match(/started: supervisor pid (\d+)/) || [])[1] !== String(hand.pid) && handGone
         && cyc.argsAfterReinstall.includes('--runner-env "' + envFile + '"')
         && cyc.uninstall.rc === 0 && cyc.argsAfterUninstall === 'NONE'
@@ -597,6 +622,10 @@ if (!STATIC_ONLY) {
       envs['a DER CA (the Windows export default; pg reads PEM)'] = [mk('der', 'FACTORY_RUNNER_PG_URL=' + pg.runnerUrl + '?sslmode=verify-full&sslrootcert=' + encodeURIComponent(derCa) + '\n'), /DER, not PEM/];
       envs['the production ref percent-encoded, with an undecodable escape elsewhere'] = [mk('prodenc', 'FACTORY_RUNNER_PG_URL=postgresql://factory_runner.%70vphxgrtdfrudejjhzjk:pw@127.0.0.1:' + pg.port + '/factory_control_plane?application_name=%C0\n'), /PRODUCTION/];
       envs['a URL naming no user (pg would take PGUSER)'] = [mk('nouser', 'FACTORY_RUNNER_PG_URL=postgresql://127.0.0.1:' + pg.port + '/factory_control_plane\n'), /names no user/];
+      // a bare '%' in the password: pg re-encodes such a URL whole and double-encodes the CA path (verification round 4)
+      const pem10 = join(work, 'env10', 'ca.pem'); writeFileSync(pem10, '-----BEGIN CERTIFICATE-----\n' + ((pemCa ? pemCa[1] : '').replace(/[',\s]/g, '').match(/.{1,64}/g) || []).join('\n') + '\n-----END CERTIFICATE-----\n');
+      const pctUrl = pg.runnerUrl.replace(/^(postgresql:\/\/[^:]+:)[^@]*@/, (_, p) => p + '50%off@') + '?sslrootcert=' + encodeURIComponent(pem10);
+      envs['a bare % in the password (pg would re-encode the URL and corrupt the CA path)'] = [mk('pct', 'FACTORY_RUNNER_PG_URL=' + pctUrl + '\n'), /re-encode/];
       envs['a CA file that is not a certificate'] = [mk('badca', 'FACTORY_RUNNER_PG_URL=' + pg.runnerUrl + '?sslmode=verify-full&sslrootcert=' + encodeURIComponent(badCa) + '\n'), /is not a certificate/];
       const results = Object.entries(envs).map(([label, [f, why]]) => {
         const r = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--runner-env', f, '--role', 'verifier', '--log-dir', join(work, 'logs-a10')], cloneA, { ...cleanEnv, FACTORY_STATE_DIR: state10 }, 30000);

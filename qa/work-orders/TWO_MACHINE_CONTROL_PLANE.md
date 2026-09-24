@@ -93,8 +93,8 @@ Run on each node, in this order; each stops at the first failing link and names 
 
 | command | proves |
 |---|---|
-| `node scripts/factory-runner/node.mjs health` | URL present and judged safe; connected as a non-superuser; schema present; queue readable; registered; PostgreSQL ≥ 13; no business tables; the accessor spawns nothing |
-| `node scripts/factory-runner/plane-health.mjs --role <r>` | all of the above, then: TLS **in use** on this backend; role attributes on the server; the server refuses DDL; `001`+`002`+`003` applied; clock skew and round trip within limits; registered as `<r>`; which other nodes and **which other hostnames** this plane has seen in 24 h |
+| `node scripts/factory-runner/node.mjs health` | URL present and judged safe; connected as a non-superuser; schema present; queue readable; registered (**the role the plane holds is kept** - a check never changes a running node's role; a different `FACTORY_NODE_ROLE` in the shell is said, not written); PostgreSQL ≥ 13; no business tables; the accessor spawns nothing; work orders `claimed` with no run in progress, and failed ones, named |
+| `node scripts/factory-runner/plane-health.mjs [--role <r>]` | all of the above, then: TLS **in use** on this backend; role attributes on the server; the server refuses DDL; `001`+`002`+`003` applied; clock skew and round trip within limits; registered - as `<r>` when `--role` is given (the bootstrap passes it), else with the role the plane holds; which other nodes and **which other hostnames** this plane has seen in 24 h |
 | `node scripts/factory-runner/monitor-gc.mjs list` | no stale monitors on this node (milestone 5) |
 
 Exit 0 healthy, 1 otherwise; `--json` appends the rows as JSON for a record.
@@ -161,7 +161,7 @@ Its rehearsal on one machine (a generic and a verifier node id, real processes) 
 | remove the acceptance rows only | `node qa/factory/two_machine_failover.mjs cleanup all` — deletes this script's work orders, runs, locks and checkpoints, nothing else | runner role |
 | stop a node | stop the process; its leases expire and any live claim is taken over; or `setx FACTORY_RUNNER_PG_URL ""` and a new shell — the node refuses to start | operator |
 | deregister a node | `delete from factory.nodes where node_id = '<id>'` (a node with no live lease) | runner role |
-| rotate the credential | run `provision-control-plane.mjs --admin …` again (the role's password rotates, attributes re-asserted, schema re-converged); set the new URL on both PCs | founder (admin URL) |
+| rotate the credential | run `provision-control-plane.mjs --admin …` again (the role's password rotates, attributes re-asserted, schema re-converged); copy the new `runner.env` to both PCs. Each supervisor reads the file again before every worker start, so a node failing on the old password heals at its next restart; `install-autostart.ps1 -Start` on each PC restarts it now (a supervisor in backoff, or one whose node the plane does not see ALIVE, is restarted and the start confirmed) | founder (admin URL) |
 | drop the control plane | `drop schema factory cascade; drop role factory_runner;` — orchestration state only; the queue is rebuilt from git (`reconstruct.mjs`) | founder (admin URL) |
 | retire the database | delete the instance / close the private network route | founder |
 
@@ -179,6 +179,10 @@ orders (`scripts/factory-runner/handlers/factory-acceptance.mjs`: hold, die-and-
 | S2 failover work→home | the same the other way | idem |
 | S3 scheduling | three work orders held 25 s each, two on one surface | the pair never overlapped; the free one completed |
 | S4 verifier independence | a verifier-role work order makes the work worker record a verification of a run the home node completed | verifier node ≠ authoring node on the run row |
+
+A worker completes only an instruction it carried out: an action its checkout does not know (a newer seeder, a typo, a wrong
+case) or a handoff that is not a JSON object FAILS the run and its work order by name (`factory_acceptance_unknown_action`,
+`factory_acceptance_bad_handoff`), and a dependent is never released; the checkpoints carry the handler version.
 
 Exit 0 TWO MACHINES (the two nodes are on different hostnames), 3 SAME MACHINE, 1 FAIL. Rehearsed 2026-09-22 on this machine
 with the real Home worker and a second supervised verifier node against the live plane: every row green, verdict SAME
@@ -200,9 +204,9 @@ Windows Scheduled Task **BrainOS Factory Node** that launches it; an idle node s
 |---|---|
 | `powershell -ExecutionPolicy Bypass -File scripts\factory-runner\install-autostart.ps1 -Role generic -Start` | install and start; Work PC: `-Role verifier`. Any supervisor of this checkout (the old task's, or one started by hand in a terminal) is stopped first, and the new task's supervisor is CONFIRMED running (identity-checked pid, state running) or the command fails (exit 5) naming the task result and the refusal. A re-install without `-Role` keeps the installed role |
 | `… install-autostart.ps1 -Preflight` | checks only, changes nothing: the env file judged by `runner-env.mjs` (the same judge the supervisor uses: a URL, not the superuser/production/plaintext, its CA present here and a real certificate; UTF-16 and BOM decoded) and the locked runtime tree installed AND loadable (`npm ci` otherwise) |
-| `… install-autostart.ps1 -Status` | the task (and which checkout owns it), its role, the owner's supervisor state - STALE when the recorded supervisor is not running - the dependency check, and the node's liveness read with the task's own env file |
-| `… install-autostart.ps1 -Stop` / `-Start` | stop cleanly (worker ends, no orphan) / `-Start` ALONE starts the installed task as it is (role and env file unchanged; nothing re-installed). Run from the checkout that owns the task: from any other checkout -Stop, -Uninstall and install refuse (exit 3) unless `-ReplaceOtherCheckout`, which stops THAT checkout's supervisor and refuses (exit 4) if it does not stop |
-| `… install-autostart.ps1 -Verify` | exit 0 only if the task exists, is enabled, is RUNNING an identity-checked supervisor of this checkout, and its own env file and the dependencies pass the preflight |
+| `… install-autostart.ps1 -Status` | the task (and which checkout owns it), its role, the owner's supervisor state - STALE when the recorded supervisor is not running - the dependency check, and the node's liveness read with the task's own env file: DOWN when no supervisor answers, NOT RUNNING (with the next start and the worker's last error) while the supervisor waits out a backoff, whatever the plane's lagging heartbeat says |
+| `… install-autostart.ps1 -Stop` / `-Start` | stop cleanly (worker ends, no orphan) and disable the task / `-Start` ALONE starts the installed task as it is (role and env file unchanged; nothing re-installed); a supervisor in backoff, or one whose node the plane does not see ALIVE in the task's role, is restarted and the start confirmed. `-Start` with `-WatchdogMinutes` or `-LogDir` re-installs (keeping role and env file) instead of ignoring them. Run from the checkout that owns the task: from any other checkout -Stop, -Uninstall and install refuse (exit 3) unless `-ReplaceOtherCheckout`, which stops THAT checkout's supervisor and refuses (exit 4) if it does not stop |
+| `… install-autostart.ps1 -Verify` | exit 0 only if the task exists, is enabled, has its watchdog, is RUNNING an identity-checked supervisor of this checkout whose worker the plane sees ALIVE **in the task's role**, and its own env file and the dependencies pass the preflight |
 | `… install-autostart.ps1 -Uninstall` | stop the owning checkout's supervisor, then remove the task |
 | `node scripts\factory-runner\node.mjs status --runner-env <runner.env>` | ALIVE (heartbeat age) / STALE / NOT REGISTERED / UNREACHABLE, read-only; URL NOT SET without `--runner-env` (the default file is never read implicitly); DEPENDENCIES_MISSING (exit 5) when the locked tree is not installed or does not load |
 
@@ -228,14 +232,31 @@ task so the watchdog cannot undo a deliberate stop; `-Start` re-enables it after
 **A start is confirmed by the node.** `-Start` succeeds only when the same worker has stayed up for 12 s AND the plane has heard
 from it since it started. Otherwise it fails (exit 5) and says why: the refusal the supervisor recorded, or the error its worker
 keeps failing on (a password, a certificate, a host that does not answer). `-Verify` names the failing part: disabled, no
-watchdog, preflight, task not running, no supervisor, wrong role, worker failing (with its error), or the plane not seeing the
-node. `-Status` says DOWN when no supervisor answers here, whatever the plane's last heartbeat says.
+watchdog, preflight, task not running, no supervisor, wrong role, worker failing (with its error and the next start), the plane
+not seeing the node, or the plane holding another role. `-Status` says DOWN when no supervisor answers here, and NOT RUNNING while
+the supervisor waits out a backoff, whatever the plane's last heartbeat says.
 
 **No connection and no claim can hang or hold the plane.** Every plane connection has a connect timeout (20 s), a statement
 timeout (60 s) and TCP keepalive, set on the client because the Supabase pooler drops startup settings. Every claim transaction
 opens with a 15 s lock timeout and a 30 s idle-transaction limit, so a node that dies inside a claim cannot block the others. A
 run whose lease was taken over can neither checkpoint nor complete its work order: only the run that holds the lease completes
-it. That is the "exactly once" of the two-machine takeover.
+it. That is the "exactly once" of the two-machine takeover. Every session also carries `transaction_timeout` (PostgreSQL 17), so a
+statement stalled between its protocol messages cannot hold a lock either, and a completion is ONE statement (run, locks, work
+order): all or nothing.
+
+**What a node says about itself is true** (verification round 4; `qa/factory/node_truth_acceptance.mjs`):
+- *The role belongs to the running worker.* Health checks keep the role the plane holds (they used to re-register a running
+  verifier as generic); the worker re-asserts its own role on every beat, while idle and while busy, and says when it had to.
+  `-Verify`, `-Start` and the start confirmation compare the plane's role with the task's.
+- *A busy node is ALIVE.* The run heartbeat stamps the node record too (one statement with the lease and the locks); a node
+  working longer than three minutes used to read STALE.
+- *Short losses do not take a node down.* A transient plane error (a reset, a refused or timed-out connection, a server
+  restart) is retried inside the worker, 2 s doubling to 30 s, and it says so; only five minutes of nothing but such errors hand
+  the node to its supervisor. The supervisor's backoff resets as soon as a worker has registered on the plane.
+- *A failed run fails its work order,* in the same statement: nothing is left `claimed` with no run holding it, and its
+  dependents are visibly blocked. `node.mjs health` names any stranded or failed work order.
+- *The URL judge refuses what pg would misread:* a space or a `%` that is not an escape (pg re-encodes such a URL whole and
+  corrupts the CA path), or an escape that does not decode.
 
 **Boot trigger:** Windows lets only an administrator register an AtStartup trigger (measured: "Access is denied" for a standard
 user). As installed the task is triggered **at logon**, which is the reboot path the moment the user logs on; one elevated run of

@@ -23,11 +23,25 @@ import { recordVerification } from '../claim.mjs';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// The instructions this handler carries out. Stated in every checkpoint, so a seeder newer than this worker can see which it ran.
+export const HANDLER_VERSION = 'factory-acceptance/2';
+export const ACTIONS = ['hold', 'die', 'verify', 'complete'];
+
 export async function factoryAcceptance({ run, workOrder, checkpoint, nodeId, log = () => {} }) {
-  let p = {};
-  try { p = JSON.parse(workOrder.handoff || '{}'); } catch { p = {}; }
   const host = hostname();
-  const base = { hostname: host, nodeId, action: p.action || 'complete', title: workOrder.title };
+  // DONE ONLY FOR AN INSTRUCTION ACTUALLY CARRIED OUT. A handoff that did not parse became {} and any action other than
+  // hold/die/verify fell through to 'complete' - 'verify-v2', 'Verify' and 'hold 30 seconds' were all reported done within a
+  // second, releasing their dependents with nothing verified (verification 2026-09-24, round 4). Across two machines the worker
+  // runs the checkout it cloned while the seeder runs its own: an action this version does not know FAILS, by name.
+  let p;
+  try { p = JSON.parse(workOrder.handoff || ''); } catch { p = null; }
+  if (!p || typeof p !== 'object' || Array.isArray(p)) {
+    return { status: 'failed', terminationReason: 'factory_acceptance_bad_handoff', summary: 'handoff is not a JSON object (' + JSON.stringify(String(workOrder.handoff ?? '').slice(0, 60)) + '); ' + HANDLER_VERSION + ' carries out ' + ACTIONS.join(' | ') + ' - nothing was done on ' + host };
+  }
+  if (!ACTIONS.includes(p.action)) {
+    return { status: 'failed', terminationReason: 'factory_acceptance_unknown_action', summary: 'action ' + JSON.stringify(p.action ?? null) + ' is not one ' + HANDLER_VERSION + ' carries out (' + ACTIONS.join(' | ') + ') - nothing was done on ' + host };
+  }
+  const base = { hostname: host, nodeId, action: p.action, title: workOrder.title, handler: HANDLER_VERSION };
 
   if (p.action === 'hold') {
     const seconds = Math.min(600, Math.max(1, Number(p.seconds) || 10));
@@ -51,8 +65,9 @@ export async function factoryAcceptance({ run, workOrder, checkpoint, nodeId, lo
       process.exit(3);
     }
     if (!prior.length) {
-      // not the named node and nobody has died yet: this must not be taken here. Hand it to the named node and finish
-      // without claiming success - the run is failed with a stated reason so the work order is re-queued by the director.
+      // not the named node and nobody has died yet: this must not be taken here (a seeder addresses a die with node:<dieOn>, so
+      // this is a mis-seeded work order). Finished without claiming success: the run fails with a stated reason, and its work
+      // order with it - nothing re-queues a failed work order.
       return { status: 'failed', terminationReason: 'factory_acceptance_wrong_node', summary: 'die was addressed to ' + p.dieOn + ', not ' + nodeId };
     }
     const dead = prior[0].payload || {};
@@ -68,6 +83,7 @@ export async function factoryAcceptance({ run, workOrder, checkpoint, nodeId, lo
       : { status: 'failed', terminationReason: 'verification_refused', summary: 'verification of ' + p.authoringRunId + ' refused: ' + v.reason };
   }
 
+  // p.action === 'complete': the one remaining instruction, stated explicitly
   await checkpoint('handlers/factory-acceptance.mjs', 'complete', base);
   return { status: 'done', terminationReason: 'factory_acceptance_completed', summary: 'completed on ' + host + ' by ' + nodeId };
 }

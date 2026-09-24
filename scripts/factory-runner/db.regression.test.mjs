@@ -119,6 +119,19 @@ test('the production guard cannot be bypassed by percent-encoding: escapes are d
   assert.ok(r3 && /malformed percent-escape/.test(r3), String(r3));
 });
 
+test('what pg would re-encode or cannot decode is refused: a space or a bare % anywhere, a malformed escape in the password or database', async () => {
+  const { assessUrl } = await import('./db.mjs');
+  const ca = encodeURIComponent('C:\\Users\\Work PC\\.brain-factory\\supabase-root-2021-ca.crt');
+  // the provisioner's form passes: every escape a two-hex-digit pair
+  assert.equal(assessUrl('postgresql://factory_runner.abc:pw@plane.example.com:5432/postgres?sslmode=verify-full&sslrootcert=' + ca), null);
+  // a bare '%' in the password made pg-connection-string re-encode the whole URL and double-encode the CA path's %3A / %5C: the
+  // preflight said OK and the worker crash-looped on ENOENT (verification round 4)
+  assert.match(String(assessUrl('postgresql://factory_runner.abc:50%off@plane.example.com:5432/postgres?sslmode=verify-full&sslrootcert=' + ca)), /re-encode/);
+  assert.match(String(assessUrl('postgresql://factory_runner.abc:pw@plane.example.com:5432/postgres?sslmode=verify-full&sslrootcert=C:/Work PC/ca.crt')), /re-encode/);
+  assert.match(String(assessUrl('postgresql://factory_runner.abc:pw%E0@plane.example.com:5432/postgres?sslmode=require')), /malformed percent-escape in its password/);
+  assert.match(String(assessUrl('postgresql://factory_runner.abc:pw@127.0.0.1:5432/db%E0')), /malformed percent-escape in its database/);
+});
+
 test('nothing may come from the environment: a URL without user, password, port or database is refused', async () => {
   const { assessUrl } = await import('./db.mjs');
   // pg fills what the URL leaves out from PGUSER / PGPASSWORD / PGPORT / PGDATABASE: a userless URL ran a worker as the superuser

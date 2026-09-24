@@ -22,10 +22,13 @@ import { registerNode } from './claim.mjs';
 
 const args = process.argv.slice(2);
 const json = args.includes('--json');
-const roleArg = args.includes('--role') ? args[args.indexOf('--role') + 1] : (process.env.FACTORY_NODE_ROLE || 'generic');
+// --role is an explicit statement (the bootstrap passes the role its operator gave). Without it the role the plane holds is KEPT:
+// the default 'generic' demoted a running verifier to generic whenever this was run from a plain shell (verification round 4).
+const roleArg = args.includes('--role') ? args[args.indexOf('--role') + 1] : null;
 const ROLES = ['generic', 'verifier', 'release_broker'];
 
-export async function planeHealth({ role = roleArg } = {}) {
+export async function planeHealth({ role: stated = roleArg } = {}) {
+  let role = stated;
   const rows = [];
   let ok = true;
   const say = (good, label, detail) => { if (!good) ok = false; rows.push({ ok: good, label, detail: detail || '' }); };
@@ -92,10 +95,13 @@ export async function planeHealth({ role = roleArg } = {}) {
 
     // 6. this node's role on the plane, and who else is here
     try {
+      const held = (await c.query('select security_role from factory.nodes where node_id = $1', [nodeId()])).rows[0];
+      if (!role) role = held ? held.security_role : 'generic';
       if (!ROLES.includes(role)) throw new Error('unknown role ' + role + ' (generic | verifier | release_broker)');
       await registerNode({ nodeId: nodeId(), capabilities: capabilities(), securityRole: role, platform: process.platform + ' ' + hostname(), agentVersion: process.version });
       const me = (await c.query('select security_role from factory.nodes where node_id = $1', [nodeId()])).rows[0];
-      say(me && me.security_role === role, 'registered on the plane as ' + role + ' with hostname ' + hostname());
+      say(me && me.security_role === role, 'registered on the plane as ' + role + ' with hostname ' + hostname()
+        + (!stated && held ? ' (the role the plane holds, kept - pass --role to state one)' : held && held.security_role !== role ? ' (the plane held ' + held.security_role + '; a running worker of this node re-asserts its own role within a minute)' : ''));
       const others = (await c.query("select node_id, security_role, platform, last_heartbeat_at from factory.nodes where node_id <> $1 and last_heartbeat_at > now() - interval '24 hours' order by last_heartbeat_at desc", [nodeId()])).rows;
       rows.push({ ok: true, label: others.length + ' other node(s) seen on this plane in 24 h' + (others.length ? ': ' + others.map((o) => o.node_id.slice(0, 13) + ' ' + o.security_role + ' [' + o.platform + ']').join('; ') : ''), detail: '' });
       const hosts = new Set(others.map((o) => String(o.platform).split(' ')[1]).filter(Boolean));

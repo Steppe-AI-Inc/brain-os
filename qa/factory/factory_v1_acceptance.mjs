@@ -40,6 +40,8 @@ const noUrl = { FACTORY_RUNNER_PG_URL: '' };
 if (!PLANE_ONLY) {
 let r = run(join(ROOT, 'qa/factory/acceptance.mjs'), [], noUrl);
 row('1', 'control-plane acceptance on a disposable real PostgreSQL: ' + summary(r.out, /factory acceptance: \d+ passed, \d+ failed/), r.rc === 0);
+r = run(join(ROOT, 'qa/factory/node_truth_acceptance.mjs'), [], { ...noUrl, FACTORY_STATE_DIR: '' });
+row('1', 'what a node says about itself is true (role kept by health checks and re-asserted, strict acceptance handler, failed runs fail their work orders, busy nodes ALIVE, transient losses survived, backoff reset): ' + summary(r.out, /node_truth_acceptance: \d+ passed, \d+ failed/), r.rc === 0);
 r = run(join(ROOT, 'qa/factory/health_check.mjs'), [], noUrl);
 row('1', 'health check harness: ' + summary(r.out, /health_check: \d+ passed, \d+ failed/), r.rc === 0);
 r = run(join(ROOT, 'qa/factory/founder_poke_not_required.mjs'), [], noUrl);

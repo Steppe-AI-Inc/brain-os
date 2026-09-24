@@ -311,22 +311,29 @@ async function claimInTransaction({ nodeId, lease, capabilities,
   });
 }
 
-/** Renew the lease. A node that stops calling this loses its claim, which is the point. */
+/** Renew the lease. A node that stops calling this loses its claim, which is the point.
+ *
+ * ONE STATEMENT: the run's lease, its surface locks, and the NODE's own record. A node busy on a run stamped nothing on its node
+ * record - only the idle loop did - so a node working for more than three minutes read STALE: -Verify failed and the Home PC saw
+ * no ALIVE node exactly while it worked (verification 2026-09-24, round 4). And the lock renewal was a second statement that a
+ * lost connection could skip. */
 export async function heartbeat({ runId, nodeId, leaseSeconds = DEFAULT_LEASE_SECONDS }) {
   const r = await db.write(
-    `update factory.agent_runs
-        set last_heartbeat_at = now(),
-            lease_expires_at = now() + ($3 || ' seconds')::interval,
-            updated_at = now()
-      where run_id = $1 and node_id = $2 and status = 'in_progress'
-      returning run_id`,
+    `with run as (
+      update factory.agent_runs
+         set last_heartbeat_at = now(),
+             lease_expires_at = now() + ($3 || ' seconds')::interval,
+             updated_at = now()
+       where run_id = $1 and node_id = $2 and status = 'in_progress'
+       returning run_id),
+    locks as (
+      update factory.surface_locks set lease_expires_at = now() + ($3 || ' seconds')::interval
+       where run_id in (select run_id from run)),
+    stamped as (
+      update factory.nodes set last_heartbeat_at = now()
+       where node_id = $2 and exists (select 1 from run))
+    select run_id from run`,
     [runId, nodeId, String(leaseSeconds)]);
-  if (r.rows.length) {
-    await db.write(
-      `update factory.surface_locks
-          set lease_expires_at = now() + ($2 || ' seconds')::interval
-        where run_id = $1`, [runId, String(leaseSeconds)]);
-  }
   return r.rows.length === 1;
 }
 
@@ -369,6 +376,8 @@ export async function checkpoint({ runId, workOrderId, location, scenario = null
 export async function completeRun({ runId, status = 'done', summary = null, headCommit = null,
   terminationReason = null, actualProvider = null, actualModel = null, fallbackReason = null,
   usage = null, nodeId = null }) {
+  // a run finishes done or failed; anything else would leave its work order 'claimed' with no run holding it
+  if (status !== 'done' && status !== 'failed') throw new Error('completeRun: status must be done or failed, not ' + JSON.stringify(status));
   if ((status === 'done' || status === 'failed') && !terminationReason) {
     throw new Error('completeRun: status ' + status + ' claims a terminal outcome, so terminationReason is'
       + ' required — name the terminal condition that was actually observed (completed, stream_timeout,'
@@ -409,9 +418,14 @@ export async function completeRun({ runId, status = 'done', summary = null, head
       where run_id = $1 and status = 'in_progress' and ($14::text is null or node_id = $14::text)
       returning run_id, work_order_id),
     unlocked as (delete from factory.surface_locks where run_id in (select run_id from fin)),
+    -- A FAILED RUN FAILS ITS WORK ORDER, in the same statement. Only 'done' moved the work order before: a run that returned
+    -- 'failed' left it 'claimed' with no run holding it - the lease recovery requeues runs in progress only - so its dependents
+    -- waited forever while health said HEALTHY (verification 2026-09-24, round 4). A returned failure is terminal (a transient
+    -- error throws instead, and the lease brings the work back); the run's termination_reason says why.
     finished as (
-      update factory.work_orders set status = 'done', completed_at = now(), updated_at = now()
-       where $2 = 'done' and work_order_id in (select work_order_id from fin))
+      update factory.work_orders
+         set status = $2, completed_at = case when $2 = 'done' then now() else completed_at end, updated_at = now()
+       where work_order_id in (select work_order_id from fin))
     select work_order_id from fin`,
     [runId, status, summary, headCommit, terminationReason, actualProvider, actualModel, fallbackReason,
       u.reasoningEffort ?? null, u.inputTokens ?? null, u.cachedTokens ?? null, u.outputTokens ?? null,

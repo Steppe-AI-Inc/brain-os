@@ -63,9 +63,48 @@ export function nodeRole() {
 export const NODE_BEAT_MS = Math.max(1000, Number(process.env.FACTORY_NODE_BEAT_MS) || 60_000);
 export const NODE_STALE_MS = Math.max(2000, Number(process.env.FACTORY_NODE_STALE_MS) || 3 * 60_000);
 
-/** Stamp this node's record on the plane. DML only; the row must already exist (registerNode). */
-export async function nodeBeat(id) {
-  await db.write('update factory.nodes set last_heartbeat_at = now() where node_id = $1', [id]);
+/** Stamp this node's record on the plane AND RE-ASSERT ITS ROLE. DML only; the row must already exist (registerNode).
+ *  The running worker is the one authority on the node's role (its supervisor's --role, the task's): anything else that wrote the
+ *  record - a health check from a plain shell used to demote a running verifier to generic (verification round 4) - is undone
+ *  within one beat, and said. @returns {Promise<{found:boolean, was:string|null}>} */
+export async function nodeBeat(id, role = nodeRole()) {
+  // the self-join reads the row as it was before this update: the role the plane held until now
+  const r = await db.write(
+    'update factory.nodes n set last_heartbeat_at = now(), security_role = $2 from factory.nodes o where n.node_id = $1 and o.node_id = $1 returning o.security_role as was',
+    [id, role]);
+  return { found: r.rows.length === 1, was: r.rows.length ? r.rows[0].was : null };
+}
+
+// A PLANE ERROR THAT SAYS NOTHING ABOUT THE CONFIGURATION: the network or the server went away for a moment. One of them used to
+// end the worker (an uncaught claim error), and the supervisor's backoff turned a run of 4-second losses into 5-minute outages
+// (verification 2026-09-24, round 4). These are retried in the worker; a refusal, a password, a certificate or a missing table is
+// not transient - the worker exits and its supervisor (which re-reads runner.env) takes over.
+const TRANSIENT_CODES = new Set(['ECONNRESET', 'ECONNREFUSED', 'ECONNABORTED', 'ETIMEDOUT', 'EPIPE', 'EAI_AGAIN', 'ENOTFOUND', 'ENETUNREACH', 'EHOSTUNREACH', 'ENETDOWN',
+  '57P01', '57P02', '57P03', '53300', '08000', '08001', '08003', '08006', '25P03', '25P04', '57014']);
+export function isTransientPlaneError(e) {
+  if (!e || e.name === 'FactoryDbRefusal') return false;
+  const codes = [e.code, ...(Array.isArray(e.errors) ? e.errors.map((x) => x && x.code) : [])].filter(Boolean).map(String);
+  if (codes.some((c) => TRANSIENT_CODES.has(c))) return true;
+  return /timeout expired|Connection terminated|Query read timeout|terminating connection|server closed the connection|socket hang up/i.test(errText(e));
+}
+/** How long a worker keeps retrying nothing but transient plane errors before it exits to its supervisor. */
+export const TRANSIENT_GIVE_UP_MS = Math.max(1000, Number(process.env.FACTORY_TRANSIENT_GIVE_UP_MS) || 5 * 60_000);
+async function retryTransient(fn, what, log) {
+  let wait = 2000, since = 0;
+  for (;;) {
+    try {
+      const v = await fn();
+      if (since) log(what + ': the plane answers again after ' + Math.round((Date.now() - since) / 1000) + ' s of transient errors');
+      return v;
+    } catch (e) {
+      if (!isTransientPlaneError(e)) throw e;
+      if (!since) since = Date.now();
+      if (Date.now() - since >= TRANSIENT_GIVE_UP_MS) { log(what + ': transient plane errors for ' + Math.round((Date.now() - since) / 1000) + ' s - the worker exits to its supervisor'); throw e; }
+      log(what + ' failed on a transient plane error (' + errText(e).slice(0, 120) + ') - retrying in ' + Math.round(wait / 1000) + ' s');
+      await new Promise((r) => setTimeout(r, wait));
+      wait = Math.min(30_000, wait * 2);
+    }
+  }
 }
 
 /**
@@ -178,7 +217,7 @@ export function ensureWorktree({ runId, baseCommit, branch }) {
   return { path, branch: wtBranch, recovered: false, head: git(['rev-parse', 'HEAD'], path) };
 }
 
-/** 8. Renew the lease on a timer for as long as the work is running. */
+/** 8. Renew the lease on a timer for as long as the work is running (the heartbeat also stamps the node record - claim.mjs). */
 export function startHeartbeat({ runId, id, leaseSeconds = DEFAULT_LEASE_SECONDS }) {
   const everyMs = Math.max(5000, Math.floor((leaseSeconds * 1000) / 3));
   let lost = false;
@@ -187,6 +226,8 @@ export function startHeartbeat({ runId, id, leaseSeconds = DEFAULT_LEASE_SECONDS
       // a lost lease is said once; the completion fence (claim.mjs completeRun) keeps this run's result off the work order
       .then((ok) => { if (!ok && !lost) { lost = true; console.log('[' + String(id).slice(0, 13) + '] run ' + String(runId).slice(0, 8) + ' LOST its lease (taken over by another node); its result will not complete the work order'); } })
       .catch(() => { /* the lease will expire; that is the design */ });
+    // ...and the role, while busy too (a long run no longer leaves a demotion standing until it ends)
+    nodeBeat(id).then((b) => { if (b.found && b.was !== nodeRole()) console.log('[' + String(id).slice(0, 13) + '] the plane held role ' + b.was + ' for this node - re-asserted ' + nodeRole()); }, () => { /* the next beat */ });
   }, everyMs);
   if (typeof timer.unref === 'function') timer.unref();
   return () => clearInterval(timer);
@@ -209,8 +250,9 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
   // THE ROLE IS STATED BY THE ENVIRONMENT AND ENFORCED FROM THE PLANE'S NODE RECORD. Before this, every start
   // re-registered the node as `generic`, so a Work PC bootstrapped as the verifier was silently demoted the first
   // time it started - and the claim would then have refused it verifier work while looking healthy.
-  await registerNode({ nodeId: id, capabilities: caps, securityRole: nodeRole(), platform: process.platform + ' ' + hostname(), agentVersion: process.version });
   const log = (m) => console.log('[' + id.slice(0, 13) + '] ' + m);
+  const register = () => registerNode({ nodeId: id, capabilities: caps, securityRole: nodeRole(), platform: process.platform + ' ' + hostname(), agentVersion: process.version });
+  await retryTransient(register, 'registration', log);
   log('security role ' + nodeRole() + ' (FACTORY_NODE_ROLE); host ' + hostname());
   log('registered; capabilities ' + JSON.stringify(caps) + '; head ' + String(repo.head).slice(0, 8));
 
@@ -241,12 +283,18 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
   // idle loop stamps last_heartbeat_at; `node.mjs status` reads it back.
   let lastBeat = Date.now();
   for (let i = 0; i < maxIterations; i++) {
-    const run = await claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel, workTypes });
+    const run = await retryTransient(() => claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel, workTypes }), 'claim', log);
     noteAdmission();
     if (!run) {
       if (once) { log('nothing eligible'); break; }
       if (Date.now() - lastBeat >= NODE_BEAT_MS) {
-        try { await nodeBeat(id); lastBeat = Date.now(); } catch (e) { log('node heartbeat failed: ' + errText(e).slice(0, 100)); }
+        try {
+          const b = await nodeBeat(id);
+          // a record removed from the plane is written again; a role changed by anything but this worker is re-asserted, and said
+          if (!b.found) { await register(); log('the plane had no record of this node - registered again as ' + nodeRole()); }
+          else if (b.was !== nodeRole()) log('the plane held role ' + b.was + ' for this node - re-asserted ' + nodeRole());
+          lastBeat = Date.now();
+        } catch (e) { log('node heartbeat failed: ' + errText(e).slice(0, 100)); }
       }
       await new Promise((r) => setTimeout(r, idleMs));
       continue;
@@ -290,6 +338,8 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
         usage: result && result.usage,
       });
       if (fin && fin.superseded) log('run ' + String(run.run_id).slice(0, 8) + ' finished AFTER its lease was taken over - its result is not recorded as the work order\'s (the node that holds it completes it)');
+      // a failure is said as one ('completed run' was logged for failed runs too - verification round 4)
+      else if (finished === 'failed') log('FAILED run ' + String(run.run_id).slice(0, 8) + ' (' + ((result && result.terminationReason) || 'no terminal condition stated') + ') - its work order is failed; ' + String((result && result.summary) || '').slice(0, 160));
       else log('completed run ' + String(run.run_id).slice(0, 8));
     } catch (e) {
       // A thrown worker does NOT mark the run failed: it may be a transient provider error, and the lease
@@ -412,11 +462,21 @@ export async function health() {
     say(true, "can read the queue (" + q.rows[0].n + " work order(s))");
   } catch (e) { say(false, "cannot read the queue", errText(e).slice(0, 120)); }
 
+  // A CHECK DOES NOT CHANGE WHO THE NODE IS. This re-registered the node with FACTORY_NODE_ROLE || 'generic': run from a plain
+  // shell on the Work PC (the documented check), it demoted the running verifier to generic, and verifier work waited while every
+  // check passed (verification 2026-09-24, round 4). The role the plane holds is kept; only a node with no record yet is registered,
+  // with the role this shell states. A different FACTORY_NODE_ROLE here is said, not written - the supervisor's --role decides.
   try {
-    await registerNode({ nodeId: nodeId(), capabilities: capabilities(), securityRole: nodeRole(),
+    const held = (await db.read("select security_role from factory.nodes where node_id = $1", [nodeId()])).rows[0];
+    const stated = process.env.FACTORY_NODE_ROLE ? nodeRole() : null;
+    const role = held ? held.security_role : (stated || "generic");
+    await registerNode({ nodeId: nodeId(), capabilities: capabilities(), securityRole: role,
       platform: process.platform + ' ' + hostname(), agentVersion: process.version });
     const n = await db.read("select count(*)::int n from factory.nodes");
-    say(true, "registered itself as " + nodeRole() + " (" + n.rows[0].n + " node(s) known to this control plane)");
+    say(true, (held ? "refreshed its registration, role " + role + " kept as the plane holds it" : "registered itself as " + role)
+      + " (" + n.rows[0].n + " node(s) known to this control plane)");
+    if (held && stated && stated !== held.security_role) lines.push("  note FACTORY_NODE_ROLE here says " + stated + " but the plane holds "
+      + held.security_role + " for this node - a health check does not change a role (install-autostart.ps1 -Role " + stated + " does)");
   } catch (e) { say(false, "cannot register", errText(e).slice(0, 120)); }
 
   // ---- the repository this node would work in -------------------------------------------------------
@@ -494,6 +554,18 @@ export async function health() {
     if (Number(a.stale) > 0) lines.push("  note " + a.stale + " expired lease(s) awaiting takeover"
       + " — normal briefly; persistent means nothing is claiming");
     else lines.push("  ok   no stale leases");
+    // WORK THAT NOTHING WILL MOVE, NAMED. A work order 'claimed' with no run in progress is held by nobody - the lease recovery
+    // only requeues runs in progress - and its dependents wait forever; health said HEALTHY with "no stale leases" over two of
+    // them (verification round 4). A failed work order is terminal and holds its dependents too. Both are said by id.
+    const stranded = await db.read(
+      "select wo.work_order_id, wo.title from factory.work_orders wo where wo.status = 'claimed'"
+      + " and not exists (select 1 from factory.agent_runs r where r.work_order_id = wo.work_order_id and r.status = 'in_progress')"
+      + " order by wo.updated_at limit 5");
+    const cnt = (await db.read("select count(*) filter (where status = 'claimed' and not exists (select 1 from factory.agent_runs r where r.work_order_id = w.work_order_id and r.status = 'in_progress'))::int stranded,"
+      + " count(*) filter (where status = 'failed')::int failed from factory.work_orders w")).rows[0];
+    if (cnt.stranded) lines.push("  note " + cnt.stranded + " work order(s) 'claimed' with NO run in progress - nothing will move them and their dependents wait: "
+      + stranded.rows.map((x) => String(x.work_order_id).slice(0, 8) + " " + JSON.stringify(String(x.title).slice(0, 40))).join("; "));
+    if (cnt.failed) lines.push("  note " + cnt.failed + " work order(s) FAILED - their dependents wait; each run's termination_reason says why");
   } catch (e) { say(false, "cannot read claims and leases", errText(e).slice(0, 100)); }
   console.log(lines.join("\n"));
   console.log("");

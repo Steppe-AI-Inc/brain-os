@@ -1,51 +1,40 @@
 # FACTORY V1 — DURABLE CHECKPOINT (for a fresh Claude Code session)
 
-## 0. RESUME HERE — 2026-09-24, packaging fix under independent verification (NOTHING PUSHED since `ee2fce2b`)
+## 0. RESUME HERE — 2026-09-24, packaging fix: round 4 applied, certification protocol running (NOTHING PUSHED since `ee2fce2b`)
 
 - **Published remote** `factory/computer-agnostic-control-plane` = `ee2fce2b` (the founder found it cannot `npm ci`: no lock, `pg`
-  undeclared). **Do not hand the Work PC any SHA until the steps below finish and the remote is re-verified from a fresh clone.**
-- **Local branch**, not pushed: `git log --oneline ee2fce2b..HEAD` (lock + pg + deps.mjs, eol=lf, regression + mutation proof,
-  then the fixes for verification wf_0bc2563b-650 in `050d5543`, `0f1e1e9d`, `0f90a9f0`, `a5cba4de`, `ca341633`, `bf7fef32`).
-  Backup of the unpushed commits: `C:\Users\Dell\dev\backups\factory-cp-2026-09-24-*.bundle`.
-- **Verification wf_0bc2563b-650** (against `1c3bce0f`) found: [high] deps.mjs checked only the manifest (pg-protocol missing read
-  as ready -> crash loop); [high, critic] a missing CA passed -Preflight -> crash loop; [medium] node.mjs start/status raw errors;
-  F4 read ALIVE from another registration; harness teardown orphaned PostgreSQL io workers (npm ci EPERM); -ReplaceOtherCheckout
-  stopped the wrong checkout; [low] -Stop/-Uninstall from any clone; `#` in path; BOM; F9 on Node 20/22; F2 on Node 20.0-20.5; K3
-  createRequire blind spot; npx @latest; bootstrap next step; icacls success printed on failure; -Verify ignored env/CA. **All
-  fixed**, each with a regression row (K7, F2, F4, F5, F6, F9, F10, lock-unchanged in F1/F8) and a mutant where plantable. Refuters
-  independently reproduced the [high] closure defect and the F4 defect at `1c3bce0f` (both fixed).
-- **Verification round 2, wf_6627f6cf-dbc** (against `d552c9ea`): confirmed every round-1 fix holds (also on Node 20.0.0) and found
-  more, each fixed in `af93e952` / `442dc5b7` / `66f80654` / `f1a13223` with a regression row and a mutant: stale pids trusted after a
-  reboot (the supervisor killed a reused pid's process, or refused to start) -> `proc.mjs` identity checks; `-Stop`/`-Start` demoted
-  a verifier to generic -> `-Start` alone starts the installed task; a hand-started supervisor made the task's exit 3 -> install
-  stops it and CONFIRMS the task's supervisor; quoted / key=value / superuser / bad-CA env files passed the preflight -> one shared
-  judge (`runner-env.mjs` `usable`); a damaged package passed the dependency check -> deps imports the packages; Node's own
-  `--env-file` -> `--runner-env`; UTF-16 env files; `[` in paths; -Status on stderr; and from its critic: [high] the default node
-  reported EVERY claimed work order done (verifier-gated too) -> the CLI node claims only `factory_acceptance` and
-  `bootstrap_probe`; a visible console window whose closing killed the node -> `conhost --headless`; a silent admission refusal ->
-  logged and shown by status. Registered, bounded: K3 does not scan package names inside `node -e` strings.
-- **Verification round 3, wf_f5622b3e-b8f** (against `f0a7d8c1`; every serious finding reproduced by a refuter) - fixed in
-  `2583268c`, `b6cf2052`, `d35cc0e7`: the supervisor's identity by a path spelling (relative / junction / non-ASCII -> two workers,
-  one node id) -> identity is a LOCK, an exclusive control pipe per state dir (`proc.mjs`; `--whois` / `--stop`); a DER CA -> PEM
-  required; Stop-ScheduledTask killed only conhost -> the supervisor watches its host; -Start alone accepted any supervisor; a
-  relative -EnvFile; --log-dir dropped; `?user=` / `?host=` / repeated keys in the URL query overrode the judge -> only the
-  Factory's TLS/client keys, once each; a dead supervisor never restarted -> a watchdog trigger (every 5 min; -Stop disables);
-  -Start/-Verify misread a worker in backoff -> a start is confirmed by the node on the plane, -Verify names the failing part;
-  -Status ALIVE for a dead node -> DOWN. And a harness bug of mine: the regression's safety net reverted a legitimate live-task
-  re-install made during a run -> it now undoes only what its own clones did.
-- **Proofs so far**: regression 21/21 on full fresh clones of `d35cc0e7` (F0-F14, the watchdog, the lock through a non-ASCII
-  junction); fresh mutation proof 36/36 on `a017e6ad` (control green, every mutant killed incl. `ee2fce2b`); reboot 8/9 (R9a waits
-  for the live task's migration to the new installer), control-plane 48/48, health 10/10, founder-poke 12/12, db+runner-env 26/26.
-- **Next, in order**: (1) round 3's critic, fix what it confirms; (2) migrate the live Home task (`install-autostart.ps1 -Role generic
-  -Start`: control pipe, watchdog; the legacy supervisor is recognised and stopped) - only when no old-code regression is running;
-  (3) fresh mutation proof on the final HEAD; (4) a final independent verification round on the final HEAD; (5) composer
-  `factory_v1_acceptance.mjs` with the live URL loaded from runner.env; (6) push with exactly
-  `git -C C:/Users/Dell/dev/brain-os-factory-cp push -u origin factory/computer-agnostic-control-plane`; then a fresh
-  `git -c http.sslBackend=schannel clone` of the remote branch: lock present, `pg` declared, `--static --root` green; only then report
-  the new remote SHA; (7) ledger 217 via `scratchpad/record_217.mjs` in the candidate repo, bundles, memory.
-- **Live state 2026-09-24 ~15:30 local**: plane `npvhuoozkbexddnvkqsj` healthy; Home node `node-4d4a74dd` ALIVE on `66f80654` code
-  (task action conhost --headless ... --runner-env, principal/trigger DESKTOP-MDPE6FS\Dell, claims only factory_acceptance and
-  bootstrap_probe); local plane serving on 54329. Backups: `C:\Users\Dell\dev\backups\factory-cp-2026-09-24-*.bundle`.
+  undeclared). **No SHA goes to the Work PC until the certification protocol below has finished and the REMOTE is re-verified
+  from a fresh clone.** The frozen SHA and every measurement on it are recorded in ledger 217 of the candidate repo
+  (`C:\Users\Dell\dev\brain-os-wo-resolver\qa\KNOWN_FAILURE_MODES.md`), never in this file (writing it here would change it).
+- **The founder's certification protocol (2026-09-24, binding):** (1) apply every confirmed finding; (2) freeze HEAD; (3) ONE final
+  independent verification against that exact SHA - the verifier reports the SHA it inspected, and no implementation change
+  follows it; (4) package regression + mutation proofs on that SHA; (5) the full composer on that SHA; (6) MEASURED == APPLIED
+  (the live Home node restarted on it) == FROZEN == REBUILT (the fresh remote clone); (7) only then push, with exactly
+  `git -C C:/Users/Dell/dev/brain-os-factory-cp push -u origin factory/computer-agnostic-control-plane`; (8) fresh-clone the remote
+  (`git -c http.sslBackend=schannel clone`): HEAD == frozen, lock present, `pg` declared, `npm ci`, deps, bootstrap / install /
+  status, regressions green; (9) ledger 217 + CHECKPOINT (candidate repo), bundles, memory; report the remote SHA. Do not touch
+  master, production or Edge.
+- **Rounds 1-3** (wf_0bc2563b-650, wf_6627f6cf-dbc, wf_f5622b3e-b8f): every confirmed finding fixed with a regression row and a
+  mutant where plantable - the locked-closure dependency check, the one env-file judge, the supervisor's identity as a lock (control
+  pipe), headless console, watchdog trigger, start confirmed by the node on the plane, claims only handled work types, no hang
+  (timeouts), no claim holding the plane (lock/idle limits), the lease fence on checkpoint and completion.
+- **Round 4, wf_fc1cfe41-b29** (against `6806e885`; every finding reproduced by two refuters): fixed in `78516d01`, `78d3c923`,
+  `b6a74d12` and the round-4 completion commit: the installer never runs another checkout's scripts; the production guard decodes
+  escape by escape; a completion is ONE statement; the supervisor re-reads runner.env before every restart and `-Start` restarts a
+  supervisor in backoff; `transaction_timeout` on every session; the URL must name user, password, port and database; and from the
+  critic and the Work-PC probe: [high] the documented health checks demoted a running verifier to generic -> the plane's role is
+  kept, the worker re-asserts its role every beat, `-Verify`/`-Start` compare the plane's role; unknown acceptance actions reported
+  done -> they fail by name; a failed run stranded its work order in `claimed` -> it fails in the same statement, health names
+  stranded ones; a busy node read STALE -> the run heartbeat stamps the node; one transient error ended the worker and short losses
+  walked the backoff to 5 min -> retried in the worker, backoff reset on registration; `-Status` ALIVE during a backoff -> NOT
+  RUNNING; a bare `%` made pg corrupt the CA path -> refused by the judge; `-Start -WatchdogMinutes/-LogDir` ignored -> re-installs.
+  New suite `qa/factory/node_truth_acceptance.mjs` (N1-N7) and `qa/factory/acceptance_mutation_proof.mjs` (rows M-Q, N1-N7).
+- **Live state**: plane `npvhuoozkbexddnvkqsj` healthy; Home node `node-4d4a74dd` generic under the task (conhost --headless,
+  control pipe, watchdog), to be restarted on the frozen SHA (APPLIED). Local plane on 54329. Backups:
+  `C:\Users\Dell\dev\backups\factory-cp-2026-09-24-*.bundle`.
+- **After the push**: the Work PC clones the branch at the reported SHA, `npm ci`, copies `runner.env` + the CA to
+  `%USERPROFILE%\.brain-factory\`, runs `install-autostart.ps1 -Preflight`, then `install-autostart.ps1 -Role verifier -Start`, and
+  replies with its node id (gate A); then `two_machine_real.mjs run` from the Home PC, then the composer.
 
 ## 1. Where things are
 
@@ -89,10 +78,12 @@
 
 | suite | count | engine |
 |---|---|---|
-| `qa/factory/acceptance.mjs` | 48/48 | disposable PostgreSQL 18 |
+| `qa/factory/acceptance.mjs` | 53/53 (A-Q) | disposable PostgreSQL 18 |
+| `qa/factory/node_truth_acceptance.mjs` | 7/7 (N1-N7) | disposable plane, real worker and supervisor processes |
+| `qa/factory/acceptance_mutation_proof.mjs` | every mutant killed (M-Q, N1-N7) | sparse clones with one fix reverted each |
 | `qa/factory/health_check.mjs` | 10/10 | disposable |
 | `qa/factory/founder_poke_not_required.mjs` | 12/12 | disposable |
-| `scripts/factory-runner/db.regression.test.mjs` | 7 tests | pure |
+| `scripts/factory-runner/db.regression.test.mjs` + `runner-env.regression.test.mjs` | 32 tests | pure |
 | `qa/factory/shared_control_plane_acceptance.mjs` | 18/18 | local embedded plane, real processes |
 | `qa/factory/tls_plane_acceptance.mjs` | 7/7 | disposable TLS server on the LAN address |
 | `qa/factory/dedicated_supabase_provisioning.mjs` | 11/11 | disposable TLS server dressed as Supabase |
