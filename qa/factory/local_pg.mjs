@@ -16,7 +16,7 @@
 // superuser once, to create the schema and a least-privilege role, and hands the runner a URL for THAT
 // role. The acceptance tests therefore exercise the same refusal surface the shared control plane will.
 import EmbeddedPostgres from 'embedded-postgres';
-import { mkdtempSync, rmSync, existsSync } from 'node:fs';
+import { mkdtempSync, rmSync, existsSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { createServer } from 'node:net';
@@ -114,7 +114,8 @@ export async function startLocalPg({ quiet = true } = {}) {
 // `node local_pg.mjs` starts one and prints its URLs, for manual poking - only when THIS file is the entry script. The old
 // test (argv[1] ends in local_pg.mjs) was also true when another script was run with this file's path as its first argument,
 // and importing it then started a second server that nothing stopped.
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+const isEntry = () => { try { const a = realpathSync(resolve(process.argv[1])), b = realpathSync(fileURLToPath(import.meta.url)); return process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b; } catch { return false; } };
+if (process.argv[1] && isEntry()) {
   const pg = await startLocalPg({ quiet: false });
   console.log('port        ' + pg.port);
   console.log('super       ' + pg.superUrl);

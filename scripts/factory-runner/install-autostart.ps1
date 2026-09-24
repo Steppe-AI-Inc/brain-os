@@ -8,15 +8,19 @@
 # -Role      generic (Home PC) | verifier (Work PC) | release_broker
 # -EnvFile   the runner env file (default %USERPROFILE%\.brain-factory\runner.env); its contents are never printed
 # -Start     start the task now (the supervisor refuses to run twice per checkout, so this is idempotent)
-# -Stop      stop the supervisor cleanly (its worker with it) and the task
+# -Stop      stop the supervisor cleanly (its worker with it) and the task; refused (exit 3) when the task belongs to another
+#            checkout unless -ReplaceOtherCheckout (a stop file written here never reaches that checkout's supervisor)
 # -Status    task state, the supervisor's state file, the dependency check and the node's liveness on the plane
 # -Preflight check only - env file, the runner URL it yields, and the runtime dependencies at their locked versions - and
 #            exit 0/1 without touching any task (what the package regression drives)
 # -Verify    exit 0 only if the task exists, is enabled, its action is this checkout's supervisor, and the dependencies
 #            the supervisor needs are installed (a task that starts a supervisor which cannot load pg is not a working task)
-# -Uninstall remove the task and ask a running supervisor to stop
-# -ReplaceOtherCheckout  allow replacing a task that points at a DIFFERENT checkout (refused by default: one PC, one task
-#            name, and an install from a scratch clone must not silently take over the node this PC is running)
+# -Uninstall remove the task after its supervisor stopped cleanly; refused (exit 3) for another checkout's task unless
+#            -ReplaceOtherCheckout, and (exit 4) if the supervisor does not stop
+# -ReplaceOtherCheckout  allow replacing, stopping or removing a task that points at a DIFFERENT checkout (refused by default:
+#            one PC, one task name, and a scratch clone must not silently take over or end the node this PC is running). The
+#            other checkout's own supervisor is asked to stop - its stop file, its pid file - and the install refuses (exit 4)
+#            if it is still alive 20 s later, rather than leave a second worker running under the old identity.
 #
 # Before any task is touched the install runs the same preflight and refuses with the fix named: a missing env file, or
 # runtime dependencies not installed from the committed package-lock.json (`npm ci` fixes it).
@@ -43,13 +47,44 @@ function Test-NodePreflight {
   $ok = $true
   if (-not (Test-Path $EnvFile)) { "FAIL env file not found: $EnvFile (provision-control-plane.mjs --write-env writes it; copy it to this path)"; $ok = $false }
   else {
-    $mod = 'file:///' + ((Join-Path $Root 'scripts\factory-runner\runner-env.mjs') -replace '\\', '/')
-    $note = & $NodeExe -e "import(process.argv[1]).then(m=>{const r=m.loadRunnerUrl(process.argv[2]);console.log((r.url?'ok   ':'FAIL ')+'env file '+process.argv[2]+' yields a runner URL (not printed; '+r.note+')');process.exit(r.url?0:1)})" $mod $EnvFile
+    # the module goes to node as a PATH and node builds the URL (pathToFileURL): concatenating 'file:///' + path turned a '#'
+    # in a checkout path into a URL fragment, and the preflight failed on a checkout that runs fine (found 2026-09-24).
+    # A URL whose CA file exists nowhere on this machine FAILS: a verify-full connection would fail closed on every start.
+    $mod = Join-Path $Root 'scripts\factory-runner\runner-env.mjs'
+    $note = & $NodeExe -e "import(require('url').pathToFileURL(process.argv[1]).href).then(m=>{const r=m.loadRunnerUrl(process.argv[2]);const good=!!r.url&&!r.caMissing;console.log((good?'ok   ':'FAIL ')+'env file '+process.argv[2]+' yields a runner URL'+(r.caMissing?' whose CA file is missing on this machine':'')+' (not printed; '+r.note+')');process.exit(good?0:1)})" $mod $EnvFile
     $note; if ($LASTEXITCODE -ne 0) { $ok = $false }
   }
+  # ok only on exit 0 AND the check's own words - a check that printed nothing proved nothing
   $deps = & $NodeExe $DepsCheck
-  if ($LASTEXITCODE -eq 0) { "ok   $deps" } else { "FAIL $deps"; $ok = $false }
+  if (($LASTEXITCODE -eq 0) -and ("$deps" -like 'runtime dependencies installed at their locked versions*')) { "ok   $deps" } else { "FAIL $(if ("$deps") { $deps } else { 'the dependency check printed nothing (exit ' + $LASTEXITCODE + ')' })"; $ok = $false }
   return $ok
+}
+
+# WHOSE TASK IS IT. The task's working directory is the checkout whose supervisor it runs. Stopping "the supervisor" means
+# stopping THAT checkout's supervisor - its stop file and pid file live under that checkout - not this one's (before
+# 2026-09-24 -ReplaceOtherCheckout wrote the stop file into this checkout and the other supervisor never saw it).
+function Get-TaskOwnerDir { $t = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue; if ($t) { return ($t.Actions | Select-Object -First 1).WorkingDirectory } return $null }
+function Test-OtherCheckout($dir) { return [bool]($dir -and ($dir.TrimEnd('\') -ne $Root.TrimEnd('\'))) }
+# Ask the supervisor of checkout $dir to stop and wait for it; $true when no supervisor of that checkout is alive afterwards.
+function Stop-CheckoutSupervisor($dir) {
+  $sup = Join-Path $dir 'scripts\factory-runner\node-supervisor.mjs'
+  $pidFile = Join-Path $dir '.factory\node-supervisor.pid'
+  if (-not (Test-Path $pidFile)) { return $true }
+  $oldPid = 0; try { $oldPid = [int](Get-Content -Raw $pidFile).Trim() } catch { }
+  if (Test-Path $sup) { & $NodeExe $sup --stop | Out-Null } else { New-Item -ItemType Directory -Force (Join-Path $dir '.factory') | Out-Null; Set-Content -Path (Join-Path $dir '.factory\node.stop') -Value 'stop' }
+  $deadline = (Get-Date).AddSeconds(20)
+  while ((Get-Date) -lt $deadline) {
+    if (-not (Test-Path $pidFile)) { return $true }
+    if ($oldPid -and -not (Get-Process -Id $oldPid -ErrorAction SilentlyContinue)) { return $true }
+    Start-Sleep -Milliseconds 500
+  }
+  return (-not ($oldPid -and (Get-Process -Id $oldPid -ErrorAction SilentlyContinue)))
+}
+$owner = Get-TaskOwnerDir
+function Deny-OtherCheckout($what) {
+  "REFUSED - the task '$TaskName' belongs to another checkout ($owner); this is $Root."
+  "          Nothing was $what. Run this from that checkout, or pass -ReplaceOtherCheckout if this checkout should act on it."
+  exit 3
 }
 
 if ($Preflight) {
@@ -59,7 +94,9 @@ if ($Preflight) {
 }
 
 if ($Stop) {
-  & $NodeExe $Supervisor --stop
+  if ((Test-OtherCheckout $owner) -and -not $ReplaceOtherCheckout) { Deny-OtherCheckout 'stopped' }
+  $dir = if ($owner) { $owner } else { $Root }
+  if (Stop-CheckoutSupervisor $dir) { "supervisor of $dir stopped (or was not running)" } else { "note: the supervisor of $dir did not stop within 20 s" }
   $t = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
   if ($t -and $t.State -eq 'Running') { Stop-ScheduledTask -TaskName $TaskName; "task '$TaskName' stopped" }
   exit 0
@@ -72,17 +109,19 @@ if ($Status) {
   "deps      " + (& $NodeExe $DepsCheck)
   if (Test-Path $EnvFile) {
     # the shared loader resolves the CA path for this machine; the URL is handed to node.mjs through the environment only
-    $mod = 'file:///' + ((Join-Path $Root 'scripts\factory-runner\runner-env.mjs') -replace '\\', '/')
-    $url = & $NodeExe -e "import(process.argv[1]).then(m=>{const r=m.loadRunnerUrl(process.argv[2]);if(r.url)process.stdout.write(r.url)})" $mod $EnvFile
+    $mod = Join-Path $Root 'scripts\factory-runner\runner-env.mjs'
+    $url = & $NodeExe -e "import(require('url').pathToFileURL(process.argv[1]).href).then(m=>{const r=m.loadRunnerUrl(process.argv[2]);if(r.url)process.stdout.write(r.url)})" $mod $EnvFile
     if ($url) { $env:FACTORY_RUNNER_PG_URL = $url; "node      " + (& $NodeExe (Join-Path $Root 'scripts\factory-runner\node.mjs') status 2>$null | Select-Object -Last 1) }
   }
   exit 0
 }
 
 if ($Uninstall) {
-  & $NodeExe $Supervisor --stop | Out-Null
+  if ((Test-OtherCheckout $owner) -and -not $ReplaceOtherCheckout) { Deny-OtherCheckout 'stopped or removed' }
+  $dir = if ($owner) { $owner } else { $Root }
+  if (-not (Stop-CheckoutSupervisor $dir)) { "REFUSED - the supervisor of $dir is still running 20 s after the stop request; the task was not removed"; exit 4 }
   $t = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
-  if ($t) { Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false; "task '$TaskName' removed" } else { "task '$TaskName' was not installed" }
+  if ($t) { if ($t.State -eq 'Running') { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue }; Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false; "task '$TaskName' removed" } else { "task '$TaskName' was not installed" }
   exit 0
 }
 
@@ -111,15 +150,7 @@ if ($Verify) {
 $pre = Test-NodePreflight
 $pre | Where-Object { $_ -is [string] }
 if ($pre[-1] -ne $true) { "REFUSED - the preflight failed; no task was installed, changed or removed"; exit 2 }
-$existingForGuard = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
-if ($existingForGuard) {
-  $existingDir = ($existingForGuard.Actions | Select-Object -First 1).WorkingDirectory
-  if ($existingDir -and ($existingDir -ne $Root) -and -not $ReplaceOtherCheckout) {
-    "REFUSED - the task '$TaskName' belongs to another checkout ($existingDir); this is $Root."
-    "          Nothing was changed. Re-run with -ReplaceOtherCheckout only if this checkout should become this PC's node."
-    exit 3
-  }
-}
+if ((Test-OtherCheckout $owner) -and -not $ReplaceOtherCheckout) { Deny-OtherCheckout 'changed' }
 # THE CREDENTIAL FILE IS READABLE BY THIS USER ONLY. Node's 0o600 is ignored on Windows, so the ACL is set here: inheritance
 # removed, one explicit grant. -Verify reports the ACL so a widened one is visible.
 try { & icacls $EnvFile /inheritance:r /grant:r "$($env:USERNAME):(R,W)" | Out-Null; "env file ACL: inheritance removed, $env:USERNAME read/write only" } catch { "note: could not tighten the env file ACL: $($_.Exception.Message)" }
@@ -132,12 +163,12 @@ $existing = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
 if ($existing) {
   # IDEMPOTENT: a re-install ends the running supervisor cleanly first (its worker with it), so the re-registered task starts
   # exactly one new supervisor and no orphan keeps the node identity alive twice.
-  & $NodeExe $Supervisor --stop | Out-Null
-  $pidFile = Join-Path $Root '.factory\node-supervisor.pid'
-  $deadline = (Get-Date).AddSeconds(20); while ((Test-Path $pidFile) -and ((Get-Date) -lt $deadline)) { Start-Sleep -Milliseconds 500 }
+  # The supervisor asked to stop is the one the EXISTING task runs - the other checkout's, when this replaces it.
+  $dir = if ($owner) { $owner } else { $Root }
+  if (-not (Stop-CheckoutSupervisor $dir)) { "REFUSED - the supervisor of $dir is still running 20 s after the stop request; nothing was replaced"; exit 4 }
   if ($existing.State -eq 'Running') { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue }
   Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
-  "previous task removed (supervisor stopped first)"
+  "previous task removed (the supervisor of $dir stopped first)"
 }
 # A BOOT trigger (AtStartup) can only be registered by an administrator - Windows refuses it for a standard user with
 # "Access is denied" (measured 2026-09-22, for S4U and Interactive alike). Elevated: boot + logon, S4U (no window, no stored

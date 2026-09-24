@@ -25,7 +25,9 @@ OUT="$REPO/qa/verification/scratch/deployed-check-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$OUT"
 cd "$OUT"
 echo "downloading live $SLUG from $PROJECT ..."
-npx --yes supabase@latest functions download "$SLUG" --project-ref "$PROJECT" >/dev/null
+# PINNED: 2.117.0 is the CLI the 2026-09-08 byte comparisons ran. "@latest" fetched whatever was newest at run time - an
+# undeclared, unlocked dependency of this repository (package regression K7).
+npx --yes supabase@2.117.0 functions download "$SLUG" --project-ref "$PROJECT" >/dev/null
 
 LIVE="$OUT/supabase/functions/$SLUG/index.ts"
 [ -f "$LIVE" ] || { echo "FAIL: download produced no $LIVE"; exit 1; }

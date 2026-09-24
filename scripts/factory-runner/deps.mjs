@@ -15,7 +15,7 @@
 //     embedded-postgres, oxc-parser) - needs the member for this platform installed, and a family with no member for this
 //     platform is reported by name ("publishes no build for win32-arm64") instead of failing later when the binary is run.
 // Pure filesystem reads; no network, no import of the packages themselves.
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -104,8 +104,18 @@ export function describe(report) {
   return 'DEPENDENCIES NOT READY - ' + (report.lockPresent ? '' : 'no package-lock.json; ') + shown + ' - ' + report.fix;
 }
 
+// Is this file the entry script? Both sides through realpath: node runs the main module from its real path, so a checkout
+// reached through a junction or symlink has argv[1] != import.meta.url - an exact comparison there skipped the CLI, printed
+// nothing and exited 0, which the installer's preflight read as "ok" (caught 2026-09-24 testing a checkout path with '#').
+export const isEntry = (metaUrl) => {
+  try {
+    const a = realpathSync(process.argv[1]), b = realpathSync(fileURLToPath(metaUrl));
+    return process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b;
+  } catch { return false; }
+};
+
 // `node scripts/factory-runner/deps.mjs [--dev] [--json]` - exit 0 ready, 1 not (used by the installer and the bootstrap)
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && isEntry(import.meta.url)) {
   const r = checkDependencies(ROOT, { dev: process.argv.includes('--dev') });
   console.log(describe(r));
   if (process.argv.includes('--json')) console.log(JSON.stringify(r));

@@ -40,7 +40,8 @@ if [ -n "$ENV_FILE" ]; then
   # to a temp file, not under .factory/ - a fresh clone has no .factory/ yet, and redirecting into a missing directory failed
   # the whole step (found 2026-09-24 on a clean clone).
   NOTE_FILE="$(mktemp 2>/dev/null || echo "${TMPDIR:-/tmp}/factory-env-note.$$")"
-  LOADED="$(node -e "import('./scripts/factory-runner/runner-env.mjs').then(m=>{const r=m.loadRunnerUrl(process.argv[1]);if(!r.url){console.error(r.note);process.exit(2)}process.stdout.write(r.url);console.error(r.note)})" "$ENV_FILE" 2>"$NOTE_FILE")" || { cat "$NOTE_FILE" 2>/dev/null; rm -f "$NOTE_FILE"; echo "  FAIL could not load $ENV_FILE"; exit 2; }
+  # a URL whose CA file exists nowhere on this machine is refused here: verify-full would fail closed on every connection
+  LOADED="$(node -e "import('./scripts/factory-runner/runner-env.mjs').then(m=>{const r=m.loadRunnerUrl(process.argv[1]);if(!r.url||r.caMissing){console.error(r.note);process.exit(2)}process.stdout.write(r.url);console.error(r.note)})" "$ENV_FILE" 2>"$NOTE_FILE")" || { cat "$NOTE_FILE" 2>/dev/null; rm -f "$NOTE_FILE"; echo "  FAIL could not load $ENV_FILE"; exit 2; }
   export FACTORY_RUNNER_PG_URL="$LOADED"
   echo "  ok   FACTORY_RUNNER_PG_URL read from $ENV_FILE (not printed; $(cat "$NOTE_FILE" 2>/dev/null))"; rm -f "$NOTE_FILE"
 fi
@@ -61,6 +62,11 @@ echo "  ok   git $(git --version | cut -d' ' -f3) at $(git rev-parse --short HEA
 # the runtime dependencies, installed from the COMMITTED package-lock.json and at its versions (deps.mjs) - not merely "a
 # pg folder exists", which a stale or hand-made install also satisfies. npm's own output is shown when it fails.
 [ -f package-lock.json ] || { echo "  FAIL package-lock.json is missing - this checkout is not a Factory candidate (npm ci installs from the committed lock)"; exit 2; }
+# npm < 11 ignores package.json allowScripts: every locked install script runs. The committed lock's scripted packages are all
+# approved (package regression K5), so nothing extra runs today - but the policy is only ENFORCED from npm 11 on. And only
+# `npm ci` leaves the lock untouched on every npm; `npm install` on npm 10 rewrites it.
+NPM_MAJOR="$(npm -v 2>/dev/null | cut -d. -f1)"
+if [ -n "$NPM_MAJOR" ] && [ "$NPM_MAJOR" -lt 11 ] 2>/dev/null; then echo "  note npm $(npm -v) does not enforce allowScripts (npm 11+ does); the locked install scripts are all approved, so this is not a refusal"; fi
 if ! DEPLINE="$(node scripts/factory-runner/deps.mjs 2>&1)"; then
   echo "  ..   $DEPLINE"
   echo "  ..   installing the locked dependencies (npm ci)"
@@ -83,5 +89,12 @@ echo
 echo "  node id  $(node scripts/factory-runner/node.mjs id)"
 echo "  role     $ROLE (registered on the plane; the claim enforces it from the node record)"
 echo
-echo "BOOTSTRAPPED. To start claiming work:  FACTORY_NODE_ROLE=$ROLE node scripts/factory-runner/node.mjs start"
+# The next step must work in THIS shell. node.mjs does not read the env file (the URL came from --env-file into this script's
+# environment only), so after --env-file the command printed is the supervisor, which reads the file itself.
+if [ -n "$ENV_FILE" ]; then
+  echo "BOOTSTRAPPED. To start claiming work:  node scripts/factory-runner/node-supervisor.mjs --env-file \"$ENV_FILE\" --role $ROLE"
+  echo "  (Windows, surviving reboots:          powershell -ExecutionPolicy Bypass -File scripts\\factory-runner\\install-autostart.ps1 -Role $ROLE -EnvFile \"$ENV_FILE\" -Start)"
+else
+  echo "BOOTSTRAPPED. To start claiming work:  FACTORY_NODE_ROLE=$ROLE node scripts/factory-runner/node.mjs start"
+fi
 echo "Two-machine acceptance:              qa/work-orders/TWO_MACHINE_CONTROL_PLANE.md §E"
