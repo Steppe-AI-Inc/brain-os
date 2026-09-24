@@ -41,7 +41,7 @@ if [ -n "$ENV_FILE" ]; then
   # the whole step (found 2026-09-24 on a clean clone).
   NOTE_FILE="$(mktemp 2>/dev/null || echo "${TMPDIR:-/tmp}/factory-env-note.$$")"
   # a URL whose CA file exists nowhere on this machine is refused here: verify-full would fail closed on every connection
-  LOADED="$(node -e "import('./scripts/factory-runner/runner-env.mjs').then(m=>{const r=m.loadRunnerUrl(process.argv[1]);if(!r.url||r.caMissing){console.error(r.note);process.exit(2)}process.stdout.write(r.url);console.error(r.note)})" "$ENV_FILE" 2>"$NOTE_FILE")" || { cat "$NOTE_FILE" 2>/dev/null; rm -f "$NOTE_FILE"; echo "  FAIL could not load $ENV_FILE"; exit 2; }
+  LOADED="$(node -e "import('./scripts/factory-runner/runner-env.mjs').then(m=>{const r=m.loadRunnerUrl(process.argv[1]);if(!r.usable){console.error(r.note);process.exit(2)}process.stdout.write(r.url);console.error(r.note)})" "$ENV_FILE" 2>"$NOTE_FILE")" || { cat "$NOTE_FILE" 2>/dev/null; rm -f "$NOTE_FILE"; echo "  FAIL could not load $ENV_FILE"; exit 2; }
   export FACTORY_RUNNER_PG_URL="$LOADED"
   echo "  ok   FACTORY_RUNNER_PG_URL read from $ENV_FILE (not printed; $(cat "$NOTE_FILE" 2>/dev/null))"; rm -f "$NOTE_FILE"
 fi
@@ -91,9 +91,15 @@ echo "  role     $ROLE (registered on the plane; the claim enforces it from the 
 echo
 # The next step must work in THIS shell. node.mjs does not read the env file (the URL came from --env-file into this script's
 # environment only), so after --env-file the command printed is the supervisor, which reads the file itself.
-if [ -n "$ENV_FILE" ]; then
-  echo "BOOTSTRAPPED. To start claiming work:  node scripts/factory-runner/node-supervisor.mjs --env-file \"$ENV_FILE\" --role $ROLE"
-  echo "  (Windows, surviving reboots:          powershell -ExecutionPolicy Bypass -File scripts\\factory-runner\\install-autostart.ps1 -Role $ROLE -EnvFile \"$ENV_FILE\" -Start)"
+# On Windows the node runs under the scheduled task, never a terminal: a supervisor started by hand holds the checkout, and
+# the installer then has to stop it first (it does). The path is printed in Windows form for PowerShell.
+case "$(uname -s 2>/dev/null)" in MINGW*|MSYS*|CYGWIN*) IS_WIN=1 ;; *) IS_WIN=0 ;; esac
+if [ -n "$ENV_FILE" ] && [ "$IS_WIN" = 1 ]; then
+  WIN_ENV="$(cygpath -w "$ENV_FILE" 2>/dev/null || echo "$ENV_FILE")"
+  echo "BOOTSTRAPPED. To start claiming work (and after every reboot), from PowerShell in this checkout:"
+  echo "  powershell -ExecutionPolicy Bypass -File scripts\\factory-runner\\install-autostart.ps1 -Role $ROLE -EnvFile \"$WIN_ENV\" -Start"
+elif [ -n "$ENV_FILE" ]; then
+  echo "BOOTSTRAPPED. To start claiming work:  node scripts/factory-runner/node-supervisor.mjs --runner-env \"$ENV_FILE\" --role $ROLE"
 else
   echo "BOOTSTRAPPED. To start claiming work:  FACTORY_NODE_ROLE=$ROLE node scripts/factory-runner/node.mjs start"
 fi

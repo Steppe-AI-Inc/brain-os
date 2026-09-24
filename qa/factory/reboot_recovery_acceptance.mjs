@@ -50,7 +50,7 @@ const password = decodeURIComponent(new URL(pg.runnerUrl).password);
 
 const ENV = { ...process.env, FACTORY_STATE_DIR: stateDir, FACTORY_NODE_BEAT_MS: '3000', FACTORY_NODE_STALE_MS: '4000', FACTORY_ADMISSION: 'off', FACTORY_RUNNER_PG_URL: pg.runnerUrl };
 delete ENV.FACTORY_NODE_ROLE;
-const startSupervisor = () => { const c = spawn(process.execPath, [SUP, '--env-file', envFile, '--role', 'generic', '--log-dir', logDir], { cwd: ROOT, env: ENV, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }); c.out = ''; c.stdout.on('data', (d) => { c.out += d; }); c.stderr.on('data', (d) => { c.out += d; }); return c; };
+const startSupervisor = () => { const c = spawn(process.execPath, [SUP, '--runner-env', envFile, '--role', 'generic', '--log-dir', logDir], { cwd: ROOT, env: ENV, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }); c.out = ''; c.stdout.on('data', (d) => { c.out += d; }); c.stderr.on('data', (d) => { c.out += d; }); return c; };
 const readStatus = () => { try { return JSON.parse(readFileSync(join(stateDir, 'node-status.json'), 'utf8')); } catch { return null; } };
 const nodeStatus = () => { const r = spawnSync(process.execPath, [NODE, 'status', '--json'], { cwd: ROOT, env: ENV, encoding: 'utf8' }); const m = /\{.*\}\s*$/s.exec(r.stdout || ''); return m ? JSON.parse(m[0]) : { state: 'PARSE_ERROR', raw: r.stdout + r.stderr }; };
 const waitFor = async (fn, ms, every = 1000) => { const until = Date.now() + ms; let v; while (Date.now() < until) { v = await fn(); if (v) return v; await sleep(every); } return null; };
@@ -100,7 +100,7 @@ try {
   check('R5 supervisor crash (orphan was alive: ' + orphanAlive + '): after a new supervisor starts exactly one worker runs (' + workers + '), and work before and after the crash is completed exactly once (' + wos + ' work orders, no duplicate or concurrent runs)', !!st5 && !!orphanGone && workers === 1 && !!doneB && dupOk && wos === 3, JSON.stringify({ st5, orphanGone, doneB, dup }) + '\n' + sup.out.slice(-400));
 
   // R6
-  const second = spawnSync(process.execPath, [SUP, '--env-file', envFile, '--role', 'generic', '--log-dir', logDir], { cwd: ROOT, env: ENV, encoding: 'utf8' });
+  const second = spawnSync(process.execPath, [SUP, '--runner-env', envFile, '--role', 'generic', '--log-dir', logDir], { cwd: ROOT, env: ENV, encoding: 'utf8' });
   check('R6 a second supervisor for the same checkout is refused (exit 3)', second.status === 3 && /already running/.test(second.stdout), second.stdout + second.stderr);
 
   // R7

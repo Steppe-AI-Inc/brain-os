@@ -14,7 +14,13 @@
 //   - a PLATFORM FAMILY - a package that ships its binary as three or more platform-specific optional packages (esbuild,
 //     embedded-postgres, oxc-parser) - needs the member for this platform installed, and a family with no member for this
 //     platform is reported by name ("publishes no build for win32-arm64") instead of failing later when the binary is run.
-// Pure filesystem reads; no network, no import of the packages themselves.
+//
+// AND THEN THE DECLARED PACKAGES ARE ACTUALLY LOADED, in a child process. Metadata is not loadability: a package whose
+// package.json is at the locked version but whose files are gone (a damaged or half-deleted install) passed every check
+// above while the worker died on "Cannot find module ...pg-protocol/dist/index.js" and the supervisor backed off forever
+// (verification 2026-09-24). A real import loads the package and everything it loads; ~0.2 s for pg.
+// No network, and nothing of this checkout runs in the child except the import of the declared packages.
+import { spawnSync } from 'node:child_process';
 import { readFileSync, realpathSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -47,7 +53,7 @@ const constrained = (e) => !!(e && (e.os || e.cpu || e.libc));
  * @param {{dev?: boolean, platform?: string, arch?: string}} [opts] dev: the full install the acceptance harnesses need
  * @returns {{ok:boolean, root:string, lockPresent:boolean, checked:number, rows:Array<{name:string, spec:string, kind:string, installed:string|null, locked:string|null, ok:boolean, why:string}>, problems:string[], fix:string}}
  */
-export function checkDependencies(root = ROOT, { dev = false, platform = process.platform, arch = process.arch } = {}) {
+export function checkDependencies(root = ROOT, { dev = false, platform = process.platform, arch = process.arch, load = true } = {}) {
   const pkg = readJson(join(root, 'package.json')) || {};
   const lock = readJson(join(root, 'package-lock.json'));
   const lockPresent = !!(lock && lock.packages);
@@ -89,16 +95,26 @@ export function checkDependencies(root = ROOT, { dev = false, platform = process
       else if (!mine.some(([n]) => installedVersion('node_modules/' + n) !== null)) problems.push(nameOf(path) + ': its ' + platform + '-' + arch + ' build ' + mine.map(([n]) => n).join(' / ') + ' is not installed');
     }
   }
+  // loadability: only when everything above passed (a missing package is already named), and only on this platform
+  let loaded = null;
+  if (load && lockPresent && rows.every((r) => r.ok) && problems.length === 0 && platform === process.platform && arch === process.arch) {
+    const names = rows.map((r) => r.name);
+    const probe = "const names=JSON.parse(process.argv[1]);const bad=[];for(const n of names){try{await import(n)}catch(e){bad.push(n+' does not load: '+(e.code||'')+' '+String(e.message||e).split(/\\r?\\n/)[0].slice(0,160))}}process.stdout.write(JSON.stringify(bad));process.exit(0);";
+    const r = spawnSync(process.execPath, ['--input-type=module', '-e', probe, JSON.stringify(names)], { cwd: root, encoding: 'utf8', timeout: 60000, windowsHide: true });
+    let bad = null; try { bad = JSON.parse((r.stdout || '').trim()); } catch { bad = null; }
+    if (!Array.isArray(bad)) problems.push('the load check could not run (exit ' + r.status + '): ' + String(r.stderr || r.error || '').split(/\r?\n/)[0].slice(0, 160));
+    else { problems.push(...bad); loaded = names.filter((n) => !bad.some((b) => b.startsWith(n + ' '))); }
+  }
   const ok = lockPresent && rows.every((r) => r.ok) && problems.length === 0;
   const fix = !lockPresent ? 'package-lock.json is missing in ' + root + ' - this checkout is not a Factory candidate (the committed lock is what npm ci installs)'
     : problems.some((p) => /publishes no build/.test(p)) ? 'this platform cannot run that package - use an x64 Node on this machine, or another machine'
     : 'run `npm ci` in ' + root;
-  return { ok, root, lockPresent, checked, rows, problems, fix };
+  return { ok, root, lockPresent, checked, loaded, rows, problems, fix };
 }
 
 /** One line for logs and health: what is wrong, and the command that fixes it. */
 export function describe(report) {
-  if (report.ok) return 'runtime dependencies installed at their locked versions (' + report.rows.map((r) => r.name + ' ' + r.installed).join(', ') + '; ' + report.checked + ' locked packages checked)';
+  if (report.ok) return 'runtime dependencies installed at their locked versions (' + report.rows.map((r) => r.name + ' ' + r.installed).join(', ') + '; ' + report.checked + ' locked packages checked' + (report.loaded ? '; ' + report.loaded.join(', ') + ' load' : '') + ')';
   const bad = [...report.rows.filter((r) => !r.ok).map((r) => r.name + ': ' + r.why), ...report.problems.filter((p) => !report.rows.some((r) => !r.ok && p.startsWith(r.name + ' ')))];
   const shown = bad.slice(0, 6).join('; ') + (bad.length > 6 ? '; and ' + (bad.length - 6) + ' more' : '');
   return 'DEPENDENCIES NOT READY - ' + (report.lockPresent ? '' : 'no package-lock.json; ') + shown + ' - ' + report.fix;
@@ -107,7 +123,10 @@ export function describe(report) {
 // Is this file the entry script? Both sides through realpath: node runs the main module from its real path, so a checkout
 // reached through a junction or symlink has argv[1] != import.meta.url - an exact comparison there skipped the CLI, printed
 // nothing and exited 0, which the installer's preflight read as "ok" (caught 2026-09-24 testing a checkout path with '#').
+// And never under an eval flag: for `node -e "<code>" <path>` argv[1] is the first USER argument, so a script that passed this
+// file's path would have run its CLI on import (verification 2026-09-24).
 export const isEntry = (metaUrl) => {
+  if (process.execArgv.some((a) => /^(-e|--eval|-p|--print)(=|$)/.test(a))) return false;
   try {
     const a = realpathSync(process.argv[1]), b = realpathSync(fileURLToPath(metaUrl));
     return process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b;

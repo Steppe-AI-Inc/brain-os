@@ -291,7 +291,7 @@ if (!STATIC_ONLY) {
     const stateA4 = join(work, 'state-a4'); mkdirSync(stateA4, { recursive: true });
     const nodeEnvA4 = { ...nodeEnvA, FACTORY_STATE_DIR: stateA4 };
     const supStartedAt = Date.now();
-    const sup = spawn(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--env-file', envFile, '--role', 'verifier', '--log-dir', join(work, 'logs-a')], { cwd: cloneA, env: { ...process.env, ...nodeEnvA4, FACTORY_RUNNER_PG_URL: '' }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+    const sup = spawn(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--runner-env', envFile, '--role', 'verifier', '--log-dir', join(work, 'logs-a')], { cwd: cloneA, env: { ...process.env, ...nodeEnvA4, FACTORY_RUNNER_PG_URL: '' }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
     started.push(sup); let supOut = ''; sup.stdout.on('data', (d) => { supOut += d; }); sup.stderr.on('data', (d) => { supOut += d; });
     let alive = null, why4 = 'never ALIVE'; const t0 = Date.now();
     while (Date.now() - t0 < 45000) {
@@ -313,7 +313,7 @@ if (!STATIC_ONLY) {
     // F5 - first a TRANSITIVE package (pg-protocol: pg loads it, package.json does not name it - the first dependency check
     // missed exactly this and the supervisor crash-looped), then pg itself. Every entry point must refuse by name.
     const refusals = (label) => {
-      const sp = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--env-file', envFile, '--role', 'verifier', '--log-dir', join(work, 'logs-a5')], cloneA, { ...nodeEnvA, FACTORY_RUNNER_PG_URL: '' }, 60000);
+      const sp = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--runner-env', envFile, '--role', 'verifier', '--log-dir', join(work, 'logs-a5')], cloneA, { ...nodeEnvA, FACTORY_RUNNER_PG_URL: '' }, 60000);
       const st = existsSync(join(stateA, 'node-status.json')) ? readJson(join(stateA, 'node-status.json')) : {};
       const h = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node.mjs'), 'health'], cloneA, nodeEnvA, 60000);
       const ns = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node.mjs'), 'start', '--once'], cloneA, nodeEnvA, 60000);
@@ -386,7 +386,7 @@ if (!STATIC_ONLY) {
     // F10
     if (want('F10')) {
       const state10 = join(work, 'state-a10'); mkdirSync(state10, { recursive: true });
-      const sup10 = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--env-file', noCaEnv, '--role', 'verifier', '--log-dir', join(work, 'logs-a10')], cloneA, { ...cleanEnv, FACTORY_STATE_DIR: state10 }, 30000);
+      const sup10 = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--runner-env', noCaEnv, '--role', 'verifier', '--log-dir', join(work, 'logs-a10')], cloneA, { ...cleanEnv, FACTORY_STATE_DIR: state10 }, 30000);
       let boot10 = { rc: 'skipped', out: 'bash not available' };
       if (process.platform === 'win32' || existsSync('/bin/bash')) boot10 = run('bash', ['scripts/factory-runner/bootstrap-node.sh', '--role', 'verifier', '--env-file', noCaEnv], cloneA, { ...cleanEnv, FACTORY_STATE_DIR: state10 }, 120000);
       const bootOk = boot10.rc === 'skipped' || (boot10.rc === 2 && /copy the CA file/.test(boot10.out) && !/BOOTSTRAPPED/.test(boot10.out));

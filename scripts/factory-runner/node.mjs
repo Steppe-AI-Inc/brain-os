@@ -70,10 +70,18 @@ export async function nodeBeat(id) {
  * alive on the plane? Reads the row registerNode/nodeBeat wrote; registers nothing; prints no URL.
  * @returns {Promise<{state:'ALIVE'|'STALE'|'NOT REGISTERED'|'UNREACHABLE', ageMs:number|null, role:string|null, host:string|null, tls:boolean|null, plane:string}>}
  */
+/** This checkout's node id if it has one - never creates it (a read-only status must not mint an identity). */
+export function peekNodeId() {
+  try { const v = readFileSync(NODE_ID_FILE, 'utf8').trim(); return v || null; } catch { return null; }
+}
+
 export async function nodeStatus() {
-  const id = nodeId();
+  const id = peekNodeId();
   let plane = '?';
   try { plane = new URL(process.env.FACTORY_RUNNER_PG_URL || '').hostname; } catch { /* judged by db.mjs */ }
+  // no URL in this process is not a fact about the plane: it is said as what it is, not as UNREACHABLE
+  if (!process.env.FACTORY_RUNNER_PG_URL) return { state: 'URL NOT SET', ageMs: null, role: null, host: null, tls: null, plane, nodeId: id, error: 'FACTORY_RUNNER_PG_URL is not set in this shell - pass --runner-env <runner.env>, or run install-autostart.ps1 -Status (it reads the task\'s env file)' };
+  if (!id) return { state: 'NOT REGISTERED', ageMs: null, role: null, host: null, tls: null, plane, nodeId: null, error: 'this checkout has no node identity yet (' + NODE_ID_FILE + ')' };
   try {
     const r = await db.read(
       "select security_role, platform, last_heartbeat_at, extract(epoch from (now() - last_heartbeat_at)) * 1000 as age_ms from factory.nodes where node_id = $1", [id]);
@@ -468,6 +476,20 @@ export async function health() {
 }
 if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
   const cmd = process.argv[2] || 'start';
+  // --runner-env <file>: read the URL from that env file, through the same judge the supervisor uses. Explicit only: the
+  // default file is never read implicitly, so a harness that blanks FACTORY_RUNNER_PG_URL can never reach the live plane.
+  const reIdx = process.argv.indexOf('--runner-env');
+  if (reIdx > -1 && process.argv[reIdx + 1] && !process.env.FACTORY_RUNNER_PG_URL) {
+    const { loadRunnerUrl } = await import('./runner-env.mjs');
+    const r = loadRunnerUrl(process.argv[reIdx + 1]);
+    if (!r.usable) { console.log('REFUSED — ' + r.note); process.exit(2); }
+    // db.mjs reads the URL when it is imported (statically, above), so the command runs once more with the URL in the
+    // CHILD's environment only - never printed, never in an argument
+    const { spawnSync } = await import('node:child_process');
+    const args = process.argv.slice(1).filter((a, i, all) => a !== '--runner-env' && all[i - 1] !== '--runner-env');
+    const child = spawnSync(process.execPath, args, { stdio: 'inherit', env: { ...process.env, FACTORY_RUNNER_PG_URL: r.url } });
+    process.exit(child.status === null ? 1 : child.status);
+  }
   // THE COMMANDS THAT LOAD THE DRIVER REFUSE BY NAME WITHOUT IT. `start` and `status` import pg through db.mjs; with a
   // dependency missing they used to end in a raw ERR_MODULE_NOT_FOUND stack (start) or a connection-worded UNREACHABLE
   // (status). Same check, same exit code (5) as the supervisor; `health` reports it as its own row.
@@ -475,8 +497,10 @@ if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
     const { checkDependencies, describe: describeDeps } = await import('./deps.mjs');
     const deps = checkDependencies();
     if (!deps.ok) {
-      if (cmd === 'status' && process.argv.includes('--json')) console.log(JSON.stringify({ state: 'DEPENDENCIES_MISSING', nodeId: nodeId(), error: describeDeps(deps) }));
-      console.log((cmd === 'status' ? 'DEPENDENCIES_MISSING — node ' + nodeId().slice(0, 13) + ' — ' : 'REFUSED — ') + describeDeps(deps));
+      const idNow = peekNodeId();
+      // human line first, JSON last - the same order as the normal status path, which consumers parse from the last line
+      console.log((cmd === 'status' ? 'DEPENDENCIES_MISSING — node ' + (idNow ? idNow.slice(0, 13) : '(none yet)') + ' — ' : 'REFUSED — ') + describeDeps(deps));
+      if (cmd === 'status' && process.argv.includes('--json')) console.log(JSON.stringify({ state: 'DEPENDENCIES_MISSING', nodeId: idNow, error: describeDeps(deps) }));
       process.exit(5);
     }
   }
@@ -486,7 +510,7 @@ if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
   else if (cmd === 'status') {
     const s = await nodeStatus();
     const age = s.ageMs == null ? '' : ' (heartbeat ' + Math.round(s.ageMs / 1000) + ' s ago)';
-    console.log(s.state + age + ' — node ' + s.nodeId.slice(0, 13) + (s.role ? ', role ' + s.role : '') + (s.host ? ', host ' + s.host : '')
+    console.log(s.state + age + ' — node ' + (s.nodeId ? s.nodeId.slice(0, 13) : '(none yet)') + (s.role ? ', role ' + s.role : '') + (s.host ? ', host ' + s.host : '')
       + ', plane ' + s.plane + (s.tls == null ? '' : ', tls ' + (s.tls ? 'on' : 'OFF')) + (s.error ? ' — ' + s.error : ''));
     if (process.argv.includes('--json')) console.log(JSON.stringify(s));
     process.exit(s.state === 'ALIVE' ? 0 : 1);
@@ -510,11 +534,11 @@ if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
     } catch (e) {
       if (!(e && e.name === 'FactoryDbRefusal')) throw e;
       console.log(e.message);
-      console.log('(the supervisor reads the env file itself: node scripts/factory-runner/node-supervisor.mjs --env-file <runner.env> --role <role>)');
+      console.log('(the supervisor reads the env file itself: node scripts/factory-runner/node-supervisor.mjs --runner-env <runner.env> --role <role>)');
       process.exit(2);
     }
   } else {
-    console.log('usage: node node.mjs [start [--once] | health | status [--json] | id | capabilities]');
+    console.log('usage: node node.mjs [start [--once] | health | status [--json] | id | capabilities] [--runner-env <runner.env>]');
     process.exit(2);
   }
 }

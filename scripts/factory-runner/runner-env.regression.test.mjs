@@ -66,6 +66,91 @@ test('loadRunnerUrl flags a CA that exists nowhere on this machine (the prefligh
     const r = loadRunnerUrl(join(dir, 'runner.env'));
     assert.ok(r.url);
     assert.equal(r.caMissing, true);
+    assert.equal(r.usable, false);
     assert.match(r.note, /copy the CA file/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+// ---- the shared judge (verification 2026-09-24, second round): every gate refuses what the worker would refuse ----------
+// A throwaway self-signed certificate (public part only; its key was discarded when it was made). Nothing trusts it.
+const TEST_CA = [
+  '-----BEGIN CERTIFICATE-----',
+  'MIIBtjCCAV2gAwIBAgIUfc8TQlVCDVL785DW+yQhwSIDBjYwCgYIKoZIzj0EAwIw',
+  'MDEuMCwGA1UEAwwlZmFjdG9yeS1ydW5uZXItZW52LXJlZ3Jlc3Npb24tdGVzdC1j',
+  'YTAgFw0yNjA5MjQwNjQxMDRaGA8yMTI2MDgzMTA2NDEwNFowMDEuMCwGA1UEAwwl',
+  'ZmFjdG9yeS1ydW5uZXItZW52LXJlZ3Jlc3Npb24tdGVzdC1jYTBZMBMGByqGSM49',
+  'AgEGCCqGSM49AwEHA0IABHEbxmDdstbnWfKHprC+SjYQMso2YPd2tjJqEmEOwbYy',
+  '/4h9ZGq4Ao7uSxyE/xtf7GK0zMGSPTPiNU6pUWNY5TajUzBRMB0GA1UdDgQWBBRv',
+  'pjJ9Al3JgUj+KJ+PUEWr8JJUXDAfBgNVHSMEGDAWgBRvpjJ9Al3JgUj+KJ+PUEWr',
+  '8JJUXDAPBgNVHRMBAf8EBTADAQH/MAoGCCqGSM49BAMCA0cAMEQCIBIS5hRD6D0z',
+  'FN/HUvBLR+v+P6EQY5Jw8U5D57346diFAiBbfMGSFxnhqQbnzpQu9jRsBqJ/boeO',
+  't59OhEIKn+ko3Q==',
+  '-----END CERTIFICATE-----',
+].join('\n') + '\n';
+const judge = (content, files = {}) => {
+  const dir = mkdtempSync(join(tmpdir(), 'runner-env-'));
+  try {
+    for (const [n, c] of Object.entries(files)) writeFileSync(join(dir, n), c);
+    writeFileSync(join(dir, 'runner.env'), typeof content === 'function' ? content(dir) : content);
+    return loadRunnerUrl(join(dir, 'runner.env'));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+};
+const GOOD = (dir) => 'postgresql://factory_runner:pw@db.example.invalid:5432/postgres?sslmode=verify-full&sslrootcert=' + encodeURIComponent(join(dir, 'ca.crt'));
+
+test('a URL with a real CA beside it is usable', () => {
+  const r = judge((d) => 'FACTORY_RUNNER_PG_URL=' + GOOD(d) + '\n', { 'ca.crt': TEST_CA });
+  assert.equal(r.usable, true, r.note);
+});
+
+test('a value in one pair of quotes is the URL inside them', () => {
+  const r = judge((d) => 'FACTORY_RUNNER_PG_URL="' + GOOD(d) + '"\n', { 'ca.crt': TEST_CA });
+  assert.equal(r.usable, true, r.note);
+  assert.ok(!r.url.startsWith('"'));
+});
+
+test('a UTF-16LE file (Windows PowerShell 5.1 re-save) is decoded and usable', () => {
+  const r = judge((d) => Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from('FACTORY_RUNNER_PG_URL=' + GOOD(d) + '\r\n', 'utf16le')]), { 'ca.crt': TEST_CA });
+  assert.equal(r.usable, true, r.note);
+});
+
+test('a UTF-16BE file is decoded and usable', () => {
+  const r = judge((d) => { const b = Buffer.from('FACTORY_RUNNER_PG_URL=' + GOOD(d) + '\n', 'utf16le'); b.swap16(); return Buffer.concat([Buffer.from([0xfe, 0xff]), b]); }, { 'ca.crt': TEST_CA });
+  assert.equal(r.usable, true, r.note);
+});
+
+test('NUL bytes without a byte-order mark are refused naming the encoding, not "no line"', () => {
+  const r = judge((d) => Buffer.from('FACTORY_RUNNER_PG_URL=' + GOOD(d) + '\n', 'utf16le'), { 'ca.crt': TEST_CA });
+  assert.equal(r.usable, false); assert.equal(r.url, null);
+  assert.match(r.note, /NUL bytes|UTF-16/);
+});
+
+test('a key=value connection string is not a URL: refused, url null', () => {
+  const r = judge('FACTORY_RUNNER_PG_URL=host=127.0.0.1 port=5432 user=factory_runner password=pw\n');
+  assert.equal(r.usable, false); assert.equal(r.url, null);
+  assert.match(r.note, /not a URL/);
+});
+
+test('the superuser is refused by the same rule the accessor applies', () => {
+  const r = judge('FACTORY_RUNNER_PG_URL=postgresql://postgres:pw@127.0.0.1:54329/factory_control_plane\n');
+  assert.equal(r.usable, false);
+  assert.match(r.note, /REFUSED by the accessor: .*superuser/);
+});
+
+test('the production project is refused by name', () => {
+  const r = judge('FACTORY_RUNNER_PG_URL=postgresql://factory_runner.pvphxgrtdfrudejjhzjk:pw@aws-0-x.pooler.example.com:5432/postgres?sslmode=verify-full\n');
+  assert.equal(r.usable, false);
+  assert.match(r.note, /PRODUCTION/);
+});
+
+test('plaintext across a network is refused', () => {
+  const r = judge('FACTORY_RUNNER_PG_URL=postgresql://factory_runner:pw@db.example.invalid:5432/postgres\n');
+  assert.equal(r.usable, false);
+  assert.match(r.note, /over a network/);
+});
+
+test('a CA file that is not a certificate is refused, naming the file', () => {
+  const r = judge((d) => 'FACTORY_RUNNER_PG_URL=' + GOOD(d) + '\n', { 'ca.crt': 'this is not a certificate\n' });
+  assert.equal(r.usable, false);
+  assert.match(r.note, /is not a certificate/);
+});
+
