@@ -24,14 +24,25 @@
   reported EVERY claimed work order done (verifier-gated too) -> the CLI node claims only `factory_acceptance` and
   `bootstrap_probe`; a visible console window whose closing killed the node -> `conhost --headless`; a silent admission refusal ->
   logged and shown by status. Registered, bounded: K3 does not scan package names inside `node -e` strings.
-- **Proofs so far**: regression 18/18 on full fresh clones of `442dc5b7` (before F12/F13); static mutation 15/15; reboot acceptance
-  9/9, control-plane acceptance 48/48, health 10/10, founder-poke 12/12, runner-env tests 17/17 on `66f80654`; the live Home task
-  re-installed with the final installer (conhost --headless, --runner-env, -Verify OK, ALIVE).
-- **Next, in order**: (1) full regression on `f1a13223` (F12/F13); (2) third independent verification workflow on that HEAD, and the
-  fresh mutation proof; fix what they confirm; (3) composer `factory_v1_acceptance.mjs` with the live URL loaded from runner.env; (4) push with exactly
-  `git -C C:/Users/Dell/dev/brain-os-factory-cp push -u origin factory/computer-agnostic-control-plane`; (5) fresh
+- **Verification round 3, wf_f5622b3e-b8f** (against `f0a7d8c1`; every serious finding reproduced by a refuter) - fixed in
+  `2583268c`, `b6cf2052`, `d35cc0e7`: the supervisor's identity by a path spelling (relative / junction / non-ASCII -> two workers,
+  one node id) -> identity is a LOCK, an exclusive control pipe per state dir (`proc.mjs`; `--whois` / `--stop`); a DER CA -> PEM
+  required; Stop-ScheduledTask killed only conhost -> the supervisor watches its host; -Start alone accepted any supervisor; a
+  relative -EnvFile; --log-dir dropped; `?user=` / `?host=` / repeated keys in the URL query overrode the judge -> only the
+  Factory's TLS/client keys, once each; a dead supervisor never restarted -> a watchdog trigger (every 5 min; -Stop disables);
+  -Start/-Verify misread a worker in backoff -> a start is confirmed by the node on the plane, -Verify names the failing part;
+  -Status ALIVE for a dead node -> DOWN. And a harness bug of mine: the regression's safety net reverted a legitimate live-task
+  re-install made during a run -> it now undoes only what its own clones did.
+- **Proofs so far**: regression 21/21 on full fresh clones of `d35cc0e7` (F0-F14, the watchdog, the lock through a non-ASCII
+  junction); fresh mutation proof 36/36 on `a017e6ad` (control green, every mutant killed incl. `ee2fce2b`); reboot 8/9 (R9a waits
+  for the live task's migration to the new installer), control-plane 48/48, health 10/10, founder-poke 12/12, db+runner-env 26/26.
+- **Next, in order**: (1) round 3's critic, fix what it confirms; (2) migrate the live Home task (`install-autostart.ps1 -Role generic
+  -Start`: control pipe, watchdog; the legacy supervisor is recognised and stopped) - only when no old-code regression is running;
+  (3) fresh mutation proof on the final HEAD; (4) a final independent verification round on the final HEAD; (5) composer
+  `factory_v1_acceptance.mjs` with the live URL loaded from runner.env; (6) push with exactly
+  `git -C C:/Users/Dell/dev/brain-os-factory-cp push -u origin factory/computer-agnostic-control-plane`; then a fresh
   `git -c http.sslBackend=schannel clone` of the remote branch: lock present, `pg` declared, `--static --root` green; only then report
-  the new remote SHA; (6) ledger 217 via `scratchpad/record_217.mjs` in the candidate repo, bundles, memory.
+  the new remote SHA; (7) ledger 217 via `scratchpad/record_217.mjs` in the candidate repo, bundles, memory.
 - **Live state 2026-09-24 ~15:30 local**: plane `npvhuoozkbexddnvkqsj` healthy; Home node `node-4d4a74dd` ALIVE on `66f80654` code
   (task action conhost --headless ... --runner-env, principal/trigger DESKTOP-MDPE6FS\Dell, claims only factory_acceptance and
   bootstrap_probe); local plane serving on 54329. Backups: `C:\Users\Dell\dev\backups\factory-cp-2026-09-24-*.bundle`.
