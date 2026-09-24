@@ -287,8 +287,11 @@ order): all or nothing.
   plane is registered and stamped again at once by the running worker.
 - *Not claiming is said.* A refused admission, and a plane-wide claim lock held past the lock timeout, are logged and shown by
   `node.mjs status`, `-Status` and `-Verify` (NOT CLAIMING, with since when).
-- *The role belongs to the running worker.* Health checks keep the role the plane holds (they used to re-register a running
-  verifier as generic); the worker re-asserts its own role on every beat, while idle and while busy, and says when it had to.
+- *The registration belongs to the running worker.* Health checks keep the record the plane holds (they used to re-register a
+  running verifier as generic); the runbook's scripts (`two_machine_scheduling.mjs`, `two_machine_failover.mjs`) register their own node ids,
+  never the checkout's (they overwrote the running node's commit and acceptance capabilities, and it silently stopped claiming); the
+  worker re-asserts its whole registration - role, capabilities with its commit and handler, version - on every beat, while idle and
+  while busy, and says when it had to.
   `-Verify`, `-Start` and the start confirmation compare the plane's role with the task's.
 - *A busy node is ALIVE.* The run heartbeat stamps the node record too (one statement with the lease and the locks); a node
   working longer than three minutes used to read STALE.

@@ -31,6 +31,9 @@
 //      passed the two-machine acceptance)
 //   N16 a claim-lock BUSY record left by an earlier worker (a crash, a reboot) is replaced by the next worker's first claim cycle
 //   N19 a running worker whose node record was deleted registers again and reads ALIVE at once (it read STALE for a beat)
+//   N23 a runbook script run beside the running worker (two_machine_scheduling.mjs seed) leaves that node's record alone - it
+//      registered the checkout's node id and erased its commit and acceptance capabilities - and a record overwritten anyway is
+//      restored by the worker's next beat, whole, and said
 //   N20 the composer's plane rows count only evidence at the commit under acceptance: machines whose node runs it, runs stamped with
 //      it (not '<sha>+dirty'), failover checkpoints at it, verifications whose verifying run completed
 //   N8 also: health does not say "can claim work" while the node's supervisor is in backoff
@@ -478,6 +481,22 @@ try {
     const st = statusOf(S1);
     check('N19 a running worker whose node record was deleted registers again and reads ALIVE at once (' + (st.match(/^(ALIVE|STALE)[^\n]*/m) || ['?'])[0].slice(0, 70) + ')',
       !!back && /"state":"ALIVE"/.test(st) && !/"neverBeaten":true/.test(st) && /registered again as verifier/.test(w1.out), st.slice(-300) + '\n' + w1.out.slice(-400));
+  }
+
+  // ---- N23. a script beside the worker leaves its record alone; an overwritten record is restored whole ---------------------------
+  {
+    const capsOf = async () => (await admin.query('select capabilities from factory.nodes where node_id = $1', [w1id])).rows[0].capabilities || [];
+    const before = await capsOf();
+    const seedRun = spawnSync(process.execPath, [join(ROOT, 'qa/factory/two_machine_scheduling.mjs'), 'seed'], { cwd: ROOT, encoding: 'utf8', timeout: 60000, env: { ...process.env, FACTORY_RUNNER_PG_URL: pg.runnerUrl, FACTORY_STATE_DIR: S1, FACTORY_NODE_ROLE: 'verifier' } });
+    const afterSeed = await capsOf();
+    const harnessNode = (await admin.query("select node_id from factory.nodes where node_id like 'node-tms-%'")).rows.map((r) => r.node_id);
+    // ...and overwritten anyway (an older checkout's script, a hand-written update): the worker restores it on its next beat
+    await admin.query("update factory.nodes set capabilities = '[\"two-machine-scheduling\"]'::jsonb, agent_version = 'v0' where node_id = $1", [w1id]);
+    const restored = await waitFor(async () => { const c = await capsOf(); return c.includes('head:' + HEAD) && c.includes('handler:factory-acceptance/2') && c.includes('factory_acceptance'); }, 15000, 300);
+    const said = await waitFor(async () => /the plane held a different registration for this node/.test(w1.out), 5000, 200);
+    check('N23 a runbook script beside the worker leaves its record alone (seed exit ' + seedRun.status + ', the script registered ' + (harnessNode[0] || 'nothing') + '), and an overwritten record is restored whole by the next beat, and said',
+      seedRun.status === 0 && JSON.stringify(afterSeed) === JSON.stringify(before) && harnessNode.length === 1 && !!restored && !!said,
+      JSON.stringify({ before, afterSeed, harnessNode }) + '\n' + String(seedRun.stdout).slice(-300) + '\n' + w1.out.slice(-500));
   }
 
   // ---- N20. the composer's plane rows count only evidence at the commit under acceptance -----------------------------------------

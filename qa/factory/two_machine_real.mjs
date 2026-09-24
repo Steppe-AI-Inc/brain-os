@@ -70,7 +70,7 @@ console.log('acceptance of commit ' + EXPECTED);
 console.log('home ' + home.nodeId.slice(0, 20) + ' (' + home.role + ') on ' + home.host + ' at ' + String(home.head).slice(0, 12) + ' | work ' + work.nodeId.slice(0, 20) + ' (' + work.role + ') on ' + work.host + ' at ' + String(work.head).slice(0, 12));
 for (const [name, n] of [['home', home], ['work', work]]) {
   if (n.head !== EXPECTED || n.dirty || !n.handler) {
-    console.log('REFUSED - the ' + name + ' node ' + n.nodeId.slice(0, 20) + ' on ' + n.host + ' runs ' + (n.head || 'an unrecorded commit (a node from before commits were recorded)') + (n.dirty ? ' with uncommitted changes' : '') + (n.handler ? '' : ', without ' + HANDLER_CAP)
+    console.log('REFUSED - the ' + name + ' node ' + n.nodeId.slice(0, 20) + ' on ' + n.host + ' runs ' + (n.head || 'an unrecorded commit (its plane record has no head capability: a node from before commits were recorded, or a record overwritten by a script - a running worker restores it within a beat)') + (n.dirty ? ' with uncommitted changes' : '') + (n.handler ? '' : ', without ' + HANDLER_CAP)
       + ', not ' + EXPECTED + '. Put that PC on exactly this commit (git fetch; git checkout ' + EXPECTED.slice(0, 12) + '; npm ci) and restart its node (install-autostart.ps1 -Start). Nothing was seeded.');
     process.exit(1);
   }

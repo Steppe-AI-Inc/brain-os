@@ -68,14 +68,19 @@ export const NODE_STALE_MS = Math.max(2000, Number(process.env.FACTORY_NODE_STAL
  *  The running worker is the one authority on the node's role (its supervisor's --role, the task's): anything else that wrote the
  *  record - a health check from a plain shell used to demote a running verifier to generic (verification round 4) - is undone
  *  within one beat, and said. @returns {Promise<{found:boolean, was:string|null}>} */
-export async function nodeBeat(id, role = nodeRole()) {
-  // the previous role is read UNDER THE ROW LOCK (for update waits for a concurrent writer and then reads what it committed): a
+// reg: { capabilities, agentVersion } - the WHOLE registration is re-asserted, not only the role. A script run on the same PC that
+// registered the checkout's node id replaced its capabilities (its commit, its handler, factory_acceptance): the node silently stopped
+// claiming acceptance work while every check read healthy (final verification 2, 2026-09-25). recordChanged says it happened.
+export async function nodeBeat(id, role = nodeRole(), reg = null) {
+  // the previous record is read UNDER THE ROW LOCK (for update waits for a concurrent writer and then reads what it committed): a
   // plain self-join read its snapshot, so a demotion committed during the beat was overwritten without being said (final
   // verification 2026-09-24)
   const r = await db.write(
-    'with was as (select node_id, security_role from factory.nodes where node_id = $1 for update) update factory.nodes n set last_heartbeat_at = now(), security_role = $2 from was where n.node_id = was.node_id returning was.security_role as was',
-    [id, role]);
-  return { found: r.rows.length === 1, was: r.rows.length ? r.rows[0].was : null };
+    'with was as (select node_id, security_role, capabilities, agent_version from factory.nodes where node_id = $1 for update) update factory.nodes n set last_heartbeat_at = now(), security_role = $2, capabilities = coalesce($3::jsonb, n.capabilities), agent_version = coalesce($4, n.agent_version) from was where n.node_id = was.node_id returning was.security_role as was, was.capabilities as caps_was, was.agent_version as av_was',
+    [id, role, reg ? JSON.stringify(reg.capabilities) : null, reg ? reg.agentVersion : null]);
+  const row = r.rows[0];
+  return { found: !!row, was: row ? row.was : null,
+    recordChanged: !!(row && reg && (JSON.stringify(row.caps_was) !== JSON.stringify(reg.capabilities) || row.av_was !== reg.agentVersion)) };
 }
 
 // A PLANE ERROR THAT SAYS NOTHING ABOUT THE CONFIGURATION: the network or the server went away for a moment. One of them used to
@@ -233,7 +238,7 @@ export function ensureWorktree({ runId, baseCommit, branch }) {
 
 /** 8. Renew the lease on a timer for as long as the work is running (the heartbeat also stamps the node record - claim.mjs).
  *  Returns { stop, signal }: the signal ABORTS the run when its lease cannot be kept (see below). */
-export function startHeartbeat({ runId, id, leaseSeconds = DEFAULT_LEASE_SECONDS }) {
+export function startHeartbeat({ runId, id, leaseSeconds = DEFAULT_LEASE_SECONDS, reg = null }) {
   const leaseMs = leaseSeconds * 1000;
   const everyMs = Math.max(5000, Math.floor(leaseMs / 3));
   // the lease the plane holds runs from the START of the last renewal that landed (the server stamps it while the statement runs)
@@ -266,7 +271,7 @@ export function startHeartbeat({ runId, id, leaseSeconds = DEFAULT_LEASE_SECONDS
     if (stopped) return;
     renew();
     // ...and the role, while busy too (a long run no longer leaves a demotion standing until it ends)
-    nodeBeat(id).then((b) => { if (b.found && b.was !== nodeRole()) console.log('[' + String(id).slice(0, 13) + '] the plane held role ' + b.was + ' for this node - re-asserted ' + nodeRole()); }, () => { /* the next beat */ });
+    nodeBeat(id, nodeRole(), reg).then((b) => { if (b.found && b.was !== nodeRole()) console.log('[' + String(id).slice(0, 13) + '] the plane held role ' + b.was + ' for this node - re-asserted ' + nodeRole()); if (b.recordChanged) console.log('[' + String(id).slice(0, 13) + '] the plane held a different registration for this node - re-asserted'); }, () => { /* the next beat */ });
   }, everyMs);
   // A RUN THAT CANNOT RENEW ITS LEASE STOPS BEFORE THE LEASE CAN LAPSE. A node cut off from the plane kept working after its lease
   // lapsed and another node had taken the surface: two machines worked one surface at once, and the work ran twice (final
@@ -299,7 +304,8 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
   const log = (m) => console.log('[' + id.slice(0, 13) + '] ' + m);
   // registered WITHOUT liveness: the node reads ALIVE only once it has completed a claim cycle (below). A worker that registered
   // and then failed every claim read ALIVE while it crash-looped (final verification 2026-09-24).
-  const register = () => registerNode({ nodeId: id, capabilities: caps, securityRole: nodeRole(), platform: process.platform + ' ' + hostname(), agentVersion: process.version + ' ' + String(repo.head).slice(0, 12) + (caps.includes('dirty') ? '+dirty' : ''), stamp: false });
+  const reg = { capabilities: caps, agentVersion: process.version + ' ' + String(repo.head).slice(0, 12) + (caps.includes('dirty') ? '+dirty' : '') };
+  const register = () => registerNode({ nodeId: id, capabilities: caps, securityRole: nodeRole(), platform: process.platform + ' ' + hostname(), agentVersion: reg.agentVersion, stamp: false });
   // THE COMMIT ON EVERY RUN AND CHECKPOINT CARRIES ITS DIRTINESS: a tree with uncommitted changes recorded plain <sha>, and its
   // evidence counted as the commit's (final verification 2, 2026-09-25). '<sha>+dirty' matches no commit under acceptance.
   const commit = String(repo.head) + (caps.includes('dirty') ? '+dirty' : '');
@@ -357,18 +363,21 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
     // at all read ALIVE and reset its supervisor's backoff whenever its first cycle was refused - final verification 2, 2026-09-25)
     const admitted = !(claimWork.lastAdmission && claimWork.lastAdmission.admit === false);
     if (!ready && admitted) {
-      try { await nodeBeat(id); ready = true; lastBeat = Date.now(); log('ready: first claim cycle completed - the node reads ALIVE on the plane'); }
+      try { await nodeBeat(id, nodeRole(), reg); ready = true; lastBeat = Date.now(); log('ready: first claim cycle completed - the node reads ALIVE on the plane'); }
       catch (e) { log('node heartbeat failed: ' + errText(e).slice(0, 100)); }
     }
     if (!run) {
       if (once) { log('nothing eligible'); break; }
       if (ready && Date.now() - lastBeat >= NODE_BEAT_MS) {
         try {
-          const b = await nodeBeat(id);
-          // a record removed from the plane is written again; a role changed by anything but this worker is re-asserted, and said
+          const b = await nodeBeat(id, nodeRole(), reg);
+          // a record removed from the plane is written again; a role or registration changed by anything but this worker is re-asserted, and said
           // (stamped at once: this worker has completed claim cycles, it is not "never beaten" - it read STALE for a whole beat)
-          if (!b.found) { await register(); await nodeBeat(id); log('the plane had no record of this node - registered again as ' + nodeRole()); }
-          else if (b.was !== nodeRole()) log('the plane held role ' + b.was + ' for this node - re-asserted ' + nodeRole());
+          if (!b.found) { await register(); await nodeBeat(id, nodeRole(), reg); log('the plane had no record of this node - registered again as ' + nodeRole()); }
+          else {
+            if (b.was !== nodeRole()) log('the plane held role ' + b.was + ' for this node - re-asserted ' + nodeRole());
+            if (b.recordChanged) log('the plane held a different registration for this node (capabilities or version - another script registered this node id?) - re-asserted: head ' + String(repo.head).slice(0, 12) + ', handler ' + HANDLER_VERSION);
+          }
           lastBeat = Date.now();
         } catch (e) { log('node heartbeat failed: ' + errText(e).slice(0, 100)); }
       }
@@ -377,7 +386,7 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
     }
     claimed++;
     log('claimed work order ' + String(run.work_order_id).slice(0, 8) + ' as run ' + String(run.run_id).slice(0, 8));
-    const hb = startHeartbeat({ runId: run.run_id, id, leaseSeconds });
+    const hb = startHeartbeat({ runId: run.run_id, id, leaseSeconds, reg });
     const stopBeat = hb.stop;
     try {
       // The work order itself: its type decides whether a checkout is needed. A factory_acceptance work order has no code

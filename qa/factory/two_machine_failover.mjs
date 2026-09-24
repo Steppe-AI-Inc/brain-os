@@ -35,7 +35,13 @@ if (!process.env.FACTORY_RUNNER_PG_URL) { console.log('FACTORY_RUNNER_PG_URL is 
 const db = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/db.mjs')).href);
 const claim = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/claim.mjs')).href);
 const nodeMod = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/node.mjs')).href);
-const myNode = process.env.FACTORY_NODE_ID || nodeMod.nodeId();
+// ITS OWN NODE ID, never the checkout's: it registered the checkout's id with its own capabilities and a liveness stamp, erasing the
+// running node's commit, handler and acceptance capabilities - that node silently stopped claiming acceptance work while every check
+// read healthy, and a stopped node read ALIVE (final verification 2, 2026-09-25). And the commit it runs, clean or '+dirty', on
+// every run it claims and every checkpoint it writes - evidence the composer's commit-bound rows can count.
+const { execFileSync: xf } = await import('node:child_process');
+const COMMIT = (() => { try { const h = xf('git', ['rev-parse', 'HEAD'], { cwd: join(HERE, '..', '..'), encoding: 'utf8' }).trim(); const d = xf('git', ['status', '--porcelain', '--untracked-files=no'], { cwd: join(HERE, '..', '..'), encoding: 'utf8' }).trim(); return h + (d ? '+dirty' : ''); } catch { return null; } })();
+const myNode = process.env.FACTORY_NODE_ID || ('node-tmf-' + nodeMod.nodeId().slice(5, 17));
 const role = process.env.FACTORY_NODE_ROLE || 'generic';
 const HOST = hostname();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -55,7 +61,7 @@ async function claimStamp(stamp, lease, maxSeconds = 600) {
   const until = Date.now() + maxSeconds * 1000;
   let said = '';
   while (Date.now() < until) {
-    const run = await claim.claimWork({ nodeId: myNode, leaseSeconds: lease, onlyWorkOrderId: wo.work_order_id });
+    const run = await claim.claimWork({ nodeId: myNode, leaseSeconds: lease, onlyWorkOrderId: wo.work_order_id, baseCommit: COMMIT });
     if (run) return run;
     const g = claim.claimWork.lastAdmission;
     const why = g && g.admit === false ? 'admission refused: ' + g.reason : 'not claimable yet (leased elsewhere or lease not expired)';
@@ -85,7 +91,7 @@ if (mode === 'hold') {
   const run = await claimStamp(stampArg, lease);
   if (!run) { console.log('could not claim the stamped work order'); process.exit(1); }
   await claim.checkpoint({ runId: run.run_id, workOrderId: run.work_order_id, location: 'qa/factory/two_machine_failover.mjs', scenario: 'phase-1-hold',
-    payload: { phase: 1, nodeId: myNode, hostname: HOST, platform: process.platform, pid: process.pid, lease } });
+    payload: { phase: 1, nodeId: myNode, hostname: HOST, platform: process.platform, pid: process.pid, lease, head: COMMIT } });
   console.log('CLAIMED run ' + run.run_id + ' on ' + HOST + ' as ' + myNode.slice(0, 13) + '; checkpoint written; lease ' + lease + ' s');
   console.log('DYING NOW without completing or heartbeating - the other machine must take over after the lease expires');
   process.exit(3);
@@ -103,7 +109,7 @@ if (mode === 'takeover') {
   console.log('TOOK OVER run ' + run.run_id + ' after ' + Math.round((Date.now() - t0) / 1000) + ' s on ' + HOST + ' as ' + myNode.slice(0, 13)
     + (p1 ? '; the dead node was ' + String(p1.nodeId).slice(0, 13) + ' on ' + p1.hostname : '; NO phase-1 checkpoint found'));
   await claim.checkpoint({ runId: run.run_id, workOrderId: run.work_order_id, location: 'qa/factory/two_machine_failover.mjs', scenario: 'phase-2-takeover',
-    payload: { phase: 2, nodeId: myNode, hostname: HOST, platform: process.platform, pid: process.pid, resumedFrom: p1 && p1.nodeId, resumedFromHost: p1 && p1.hostname, waitedMs: Date.now() - t0 } });
+    payload: { phase: 2, nodeId: myNode, hostname: HOST, platform: process.platform, pid: process.pid, resumedFrom: p1 && p1.nodeId, resumedFromHost: p1 && p1.hostname, waitedMs: Date.now() - t0, head: COMMIT } });
   await claim.completeRun({ runId: run.run_id, status: 'done', summary: 'two-machine takeover by ' + myNode + ' on ' + HOST, terminationReason: 'two_machine_failover_completed' });
   console.log('COMPLETED. next, on either PC: node qa/factory/two_machine_failover.mjs verify ' + stampArg);
   process.exit(0);

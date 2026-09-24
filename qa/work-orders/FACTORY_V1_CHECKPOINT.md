@@ -50,7 +50,12 @@
   Its Work-PC probe added: [medium] over a slow link one failed lease renewal aborted a healthy run (the guard raced the next renewal)
   -> a failed renewal is retried in 5 s, the guard judges the lease from the last landed renewal's start with a margin of at most 5 s,
   an aborted run gives its lease back; [low] a first claim cycle refused by admission counted as ready -> only an admitted cycle
-  (node_truth N21, N22).
+  (node_truth N21, N22). Its critic added: [high] the runbook's own two_machine_scheduling / two_machine_failover registered the
+  checkout's node id and erased the running node's commit and acceptance capabilities (it silently stopped claiming while every check
+  read healthy) -> their own node ids, commit-stamped runs and checkpoints; the worker re-asserts its whole registration every beat;
+  -Verify flags a record with no commit (node_truth N23); [medium] edits made during a two_machine_real run became the run's code
+  through its own die restarts -> the per-row '<sha>+dirty' refusals (e5afa147) make such evidence count for no commit.
+  Operational recommendation (NEXT, not done): run the Home node from a dedicated clean clone, not the implementer's worktree.
 - **Live state**: plane `npvhuoozkbexddnvkqsj` healthy; Home node `node-4d4a74dd` generic under the task (conhost --headless,
   control pipe, watchdog), to be restarted on the frozen SHA (APPLIED). Local plane on 54329. Backups:
   `C:\Users\Dell\dev\backups\factory-cp-2026-09-24-*.bundle`.

@@ -32,7 +32,13 @@ if (!process.env.FACTORY_RUNNER_PG_URL) { console.log('FACTORY_RUNNER_PG_URL is 
 const db = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/db.mjs')).href);
 const claim = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/claim.mjs')).href);
 const nodeMod = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/node.mjs')).href);
-const myNode = process.env.FACTORY_NODE_ID || nodeMod.nodeId();
+// ITS OWN NODE ID, never the checkout's: it registered the checkout's id with its own capabilities and a liveness stamp, erasing the
+// running node's commit, handler and acceptance capabilities - that node silently stopped claiming acceptance work while every check
+// read healthy, and a stopped node read ALIVE (final verification 2, 2026-09-25). And the commit it runs, clean or '+dirty', on
+// every run it claims and every checkpoint it writes - evidence the composer's commit-bound rows can count.
+const { execFileSync: xf } = await import('node:child_process');
+const COMMIT = (() => { try { const h = xf('git', ['rev-parse', 'HEAD'], { cwd: join(HERE, '..', '..'), encoding: 'utf8' }).trim(); const d = xf('git', ['status', '--porcelain', '--untracked-files=no'], { cwd: join(HERE, '..', '..'), encoding: 'utf8' }).trim(); return h + (d ? '+dirty' : ''); } catch { return null; } })();
+const myNode = process.env.FACTORY_NODE_ID || ('node-tms-' + nodeMod.nodeId().slice(5, 17));
 const role = nodeMod.nodeRole();
 const HOST = hostname();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -71,10 +77,10 @@ if (mode === 'wave') {
       if (held.some((h) => h.wo === wo.work_order_id)) continue;
       const done = (await db.read('select status from factory.work_orders where work_order_id = $1', [wo.work_order_id])).rows[0];
       if (!done || done.status === 'done') continue;
-      const run = await claim.claimWork({ nodeId: myNode, leaseSeconds: 60, onlyWorkOrderId: wo.work_order_id });
+      const run = await claim.claimWork({ nodeId: myNode, leaseSeconds: 60, onlyWorkOrderId: wo.work_order_id, baseCommit: COMMIT });
       if (run) {
         held.push({ wo: wo.work_order_id, run: run.run_id, kind: wo.title.split(' ').pop(), at: Date.now() });
-        await claim.checkpoint({ runId: run.run_id, workOrderId: wo.work_order_id, location: 'qa/factory/two_machine_scheduling.mjs', scenario: 'wave', payload: { nodeId: myNode, hostname: HOST, role, kind: wo.title.split(' ').pop() } });
+        await claim.checkpoint({ runId: run.run_id, workOrderId: wo.work_order_id, location: 'qa/factory/two_machine_scheduling.mjs', scenario: 'wave', payload: { nodeId: myNode, hostname: HOST, role, kind: wo.title.split(' ').pop(), head: COMMIT } });
         console.log('  claimed ' + wo.title.split(' ').pop() + ' as run ' + run.run_id.slice(0, 8));
       }
     }

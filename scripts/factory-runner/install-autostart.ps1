@@ -359,6 +359,7 @@ if ($Verify) {
     # THE ROLE THAT DECIDES WHAT THE NODE CLAIMS IS THE PLANE'S: a verifier the plane held as generic claimed no verifier work while
     # this said OK (a health check from a plain shell had re-registered it; verification round 4). The worker re-asserts its role
     # on every beat, so a mismatch that lasts is a fault.
+    elseif (-not $plane.head) { 'the plane''s record of this node carries no commit (overwritten by a script that registered this node id?) - its worker restores it within a beat; if this stays: install-autostart.ps1 -Stop' + $taskHint + ', then -Start' + $taskHint }
     elseif (-not (Test-SameCommit $plane)) { 'the node runs commit ' + $plane.head + ' but this checkout is at ' + $CheckoutHead + ' - install-autostart.ps1 -Start' + $taskHint + ' restarts it on the checkout''s commit' }
     elseif ($plane.role -ne (Get-TaskArg $task 'role')) { 'the plane holds role ' + $plane.role + ' for this node, the task says ' + (Get-TaskArg $task 'role') + ' - the worker re-asserts its role within a minute; if this stays, install-autostart.ps1 -Start' + $taskHint }
     else { $null }
