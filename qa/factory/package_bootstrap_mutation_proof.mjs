@@ -5,6 +5,9 @@
 //   node qa/factory/package_bootstrap_mutation_proof.mjs --fresh    also the fresh-clone mutants, including the ORIGINAL defect:
 //                                                                   the published commit ee2fce2b (no lock, pg undeclared)
 //
+// Before any mutant runs, every source string a mutant rewrites must exist exactly once, or the mutant would silently be the
+// unmutated code and "survive" for the wrong reason (or, worse, be counted as killed by an unrelated row).
+//
 // Every mutant is its own clone of HEAD with one defect committed in it; the regression is run against it with --root. A
 // mutant "is killed" when the row named for its defect fails. The fresh mutants skip F6 (the installer row): code from
 // before the other-checkout guard would replace this PC's live scheduled task, and the guard is proved by F6 on the real code.
@@ -42,6 +45,13 @@ const runRegression = (d, extra = []) => {
   return { rc: r.status, failed: [...out.matchAll(/^FAIL (\w+)/gm)].map((m) => m[1]), out };
 };
 const results = [];
+{
+  const need = [['scripts/factory-runner/deps.mjs', 'const entries = Object.entries(lock.packages).filter('], ['scripts/factory-runner/node.mjs', "  const cmd = process.argv[2] || 'start';"],
+    ['scripts/factory-runner/verify-deployed-bytes.sh', 'npx --yes supabase@2.117.0 functions download'], ['scripts/factory-runner/node-supervisor.mjs', '  if (deps.ok) return;'],
+    ['scripts/factory-runner/bootstrap-node.sh', 'NOTE_FILE="$(mktemp 2>/dev/null || echo "$' + '{TMPDIR:-/tmp}/factory-env-note.$$")"']];
+  const missing = need.filter(([f, s]) => readFileSync(join(ROOT, f), 'utf8').split('\r\n').join('\n').split(s).length !== 2);
+  if (missing.length) { console.log('MUTATION ANCHORS MISSING - the proof would test nothing: ' + missing.map(([f, s]) => f + ': ' + s).join(' | ')); process.exit(2); }
+}
 const expectRed = (id, label, d, rows, extra = []) => {
   n++;
   const r = runRegression(d, extra.includes('--static') ? extra : [...extra, '--sparse']);
@@ -73,12 +83,22 @@ try {
     expectRed('M7', 'a runtime package gains an install script', d, ['K6'], ['--static']); }
   { const d = clone('m8'); editJson(d, 'package.json', (p) => { p.dependencies['pg-pool'] = '3.14.0'; return p; }); commitAll(d, 'mutant: manifest ahead of lock');
     expectRed('M8', 'the manifest changed without regenerating the lock (npm ci would refuse)', d, ['K2'], ['--static']); }
+  { const d = clone('m9'); edit(d, 'scripts/factory-runner/deps.mjs', (s) => "import { createRequire } from 'node:module';\nconst load = createRequire(import.meta.url);\nexport const leftPad = () => load('left-pad');\n" + s); commitAll(d, 'mutant: undeclared load through a createRequire alias');
+    expectRed('M9', 'a runtime file loads an undeclared package through a createRequire alias', d, ['K3'], ['--static']); }
+  { const d = clone('m10'); edit(d, 'scripts/factory-runner/deps.mjs', (s) => s + "\nexport const later = (n) => import(n);\n"); commitAll(d, 'mutant: non-constant load');
+    expectRed('M10', 'a runtime file loads a package whose name is only known at run time (cannot be checked)', d, ['K3'], ['--static']); }
+  { const d = clone('m11'); edit(d, 'scripts/factory-runner/verify-deployed-bytes.sh', (s) => s.replace('npx --yes supabase@2.117.0 functions download', 'npx --yes supabase@latest functions download')); commitAll(d, 'mutant: npx @latest');
+    expectRed('M11', 'a script fetches supabase@latest at run time (unpinned, outside the lock)', d, ['K7'], ['--static']); }
 
   if (FRESH) {
     { const d = clone('original', ORIGINAL_DEFECT);
       expectRed('F-ORIG', 'the ORIGINAL defect: published commit ' + ORIGINAL_DEFECT.slice(0, 8) + ' (no package-lock.json, pg undeclared)', d, ['K1', 'K2', 'K3', 'F1', 'F2', 'F3', 'F4', 'F5', 'F7'], ['--skip', 'F6']); }
     { const d = clone('f5'); edit(d, 'scripts/factory-runner/node-supervisor.mjs', (s) => s.replace('  if (deps.ok) return;', '  return;')); commitAll(d, 'mutant: supervisor never refuses');
       expectRed('F-SUP', 'the supervisor starts a worker whatever the dependency check says (the crash loop)', d, ['F5'], ['--skip', 'F6,F7,F8,F9']); }
+    { const d = clone('fclosure'); edit(d, 'scripts/factory-runner/deps.mjs', (s) => s.replace('const entries = Object.entries(lock.packages).filter(', 'const entries = [].filter(')); commitAll(d, 'mutant: dependency check reads only the manifest');
+      expectRed('F-CLOSURE', 'the dependency check covers only the packages package.json names (pg-protocol missing reads as ready)', d, ['F5'], ['--skip', 'F6,F7,F8,F9']); }
+    { const d = clone('fdie'); edit(d, 'scripts/factory-runner/node.mjs', (s) => s.replace("  const cmd = process.argv[2] || 'start';", "  const cmd = process.argv[2] || 'start';\n  if (cmd === 'start') process.exit(1);")); commitAll(d, 'mutant: the worker dies on every start');
+      expectRed('F-DIE', 'the supervised worker exits on every start (the row must not read ALIVE from another registration)', d, ['F4'], ['--skip', 'F6,F7,F8,F9']); }
     { const d = clone('f7'); edit(d, 'scripts/factory-runner/bootstrap-node.sh', (s) => s.replace('NOTE_FILE="$(mktemp 2>/dev/null || echo "${TMPDIR:-/tmp}/factory-env-note.$$")"', 'NOTE_FILE="$ROOT/.factory/.env-note"')); commitAll(d, 'mutant: bootstrap redirects into .factory');
       expectRed('F-BOOT', 'the bootstrap writes into a .factory/ a fresh clone does not have', d, ['F7'], ['--skip', 'F6,F8,F9']); }
     { const d = clone('f8'); editJson(d, 'package.json', (p) => { delete p.allowScripts['@embedded-postgres/windows-x64@18.4.0-beta.17']; delete p.allowScripts['@embedded-postgres/linux-x64@18.4.0-beta.17']; delete p.allowScripts['@embedded-postgres/darwin-arm64@18.4.0-beta.17']; return p; }); commitAll(d, 'mutant: postgres binary script unreviewed');
@@ -89,5 +109,5 @@ try {
 }
 const killed = results.filter((r) => r.killed).length;
 console.log('');
-console.log('package_bootstrap_mutation_proof: ' + killed + ' of ' + results.length + ' (control green + mutants killed)' + (FRESH ? '' : '  (static mutants only; --fresh adds the original defect and three fresh-clone mutants)'));
+console.log('package_bootstrap_mutation_proof: ' + killed + ' of ' + results.length + ' (control green + mutants killed)' + (FRESH ? '' : '  (static mutants only; --fresh adds the original defect and five fresh-clone mutants)'));
 process.exit(killed === results.length ? 0 : 1);

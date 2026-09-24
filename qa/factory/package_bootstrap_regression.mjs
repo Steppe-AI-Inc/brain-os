@@ -19,13 +19,18 @@
 //      version the TLS semantics in TWO_MACHINE_CONTROL_PLANE.md were measured on (a bump must re-run tls_plane_acceptance)
 //   K5 every locked package with an install script has a pinned allowScripts decision (the static form of --strict-allow-scripts)
 //   K6 the runtime closure (everything a `npm ci --omit=dev` node installs) runs no install scripts at all
+//   K7 every package fetched at run time by `npx --yes` under scripts/factory-runner/** names an exact version (an
+//      "@latest" is an undeclared, unlocked dependency the lock cannot see)
 // FRESH CLONE (HEAD cloned into a temp dir; nothing from this checkout's node_modules)
 //   F1 `npm ci --omit=dev --strict-allow-scripts` succeeds - the runtime-only install a node needs
-//   F2 the runtime install is exactly the runtime set: deps.mjs ok, every runtime import resolves, no dev package present
+//   F2 the runtime install is exactly the runtime set: deps.mjs ok, every runtime package IMPORTS (a real import(), which
+//      loads the package's own dependencies too), no dev package present
 //   F3 node.mjs health from that clone reaches a real PostgreSQL through `pg` and reports HEALTHY
-//   F4 the supervisor from that clone starts a worker that goes ALIVE on the plane, and --stop ends it (exit 0)
-//   F5 with `pg` removed the supervisor refuses by name (exit 5, state dependencies_missing, no worker started) and node
-//      health names the missing dependency instead of a connection error
+//   F4 the supervisor from that clone, on a node identity nothing else registered, starts a worker that goes ALIVE on the plane
+//      as ITS role with a heartbeat after the supervisor started and no restart, and --stop ends it (exit 0)
+//   F5 with a TRANSITIVE driver package (pg-protocol) removed, and then with `pg` itself removed, every entry point refuses by
+//      name: the supervisor (exit 5, state dependencies_missing, no worker started), node health (the dependency, not the
+//      connection), node.mjs start and node.mjs status (exit 5)
 //   F6 (Windows) install-autostart.ps1 -Preflight refuses on the broken clone and passes on the repaired one; an install
 //      from the clone does not replace a task that belongs to another checkout; the live task is untouched throughout
 //   F7 bootstrap-node.sh on a SECOND fresh clone with no node_modules and no .factory installs from the lock and ends
@@ -84,11 +89,34 @@ function specifiersOf(source) {
   const specs = [];
   const constant = (n) => (n && n.type === 'Literal' && typeof n.value === 'string') ? n.value
     : (n && n.type === 'TemplateLiteral' && n.expressions.length === 0 ? n.quasis[0].value.cooked : null);
+  // A load whose specifier is not a constant cannot be checked against the manifest. Two shapes are provably files, not
+  // packages: a relative string with something appended ('./db.mjs?x=' + n) and pathToFileURL(...) (with or without .href and
+  // an appended query). Anything else is reported - a blind spot is a failure, not a pass (verification 2026-09-24).
+  const isFileLoad = (n) => {
+    let x = n; while (x && x.type === 'BinaryExpression' && x.operator === '+') x = x.left;
+    if (!x) return false;
+    if (x.type === 'Literal' && typeof x.value === 'string') return /^(\.{1,2}\/|\/|file:)/.test(x.value);
+    if (x.type === 'TemplateLiteral') return /^(\.{1,2}\/|\/|file:)/.test(x.quasis[0].value.cooked);
+    if (x.type === 'MemberExpression' && x.property && x.property.name === 'href') x = x.object;
+    return x.type === 'CallExpression' && ((x.callee.type === 'Identifier' && x.callee.name === 'pathToFileURL') || (x.callee.type === 'MemberExpression' && x.callee.property && x.callee.property.name === 'pathToFileURL'));
+  };
+  const nonConstant = (n) => { if (!isFileLoad(n)) specs.push({ dynamic: source.slice(n.start, n.end).slice(0, 80) }); };
+  // Functions made by createRequire(...) load packages exactly like require - an alias must not hide a load (verification
+  // 2026-09-24: 'const load = createRequire(import.meta.url); load("left-pad")' passed K3).
+  const requireNames = new Set(['require']);
+  const isCreateRequire = (n) => n && n.type === 'CallExpression' && ((n.callee.type === 'Identifier' && n.callee.name === 'createRequire') || (n.callee.type === 'MemberExpression' && n.callee.property && n.callee.property.name === 'createRequire'));
+  const collectAliases = (node) => {
+    if (!node || typeof node.type !== 'string') return;
+    if (node.type === 'VariableDeclarator' && node.id.type === 'Identifier' && isCreateRequire(node.init)) requireNames.add(node.id.name);
+    if (node.type === 'AssignmentExpression' && node.left.type === 'Identifier' && isCreateRequire(node.right)) requireNames.add(node.left.name);
+    for (const key of Object.keys(node)) { const v = node[key]; if (Array.isArray(v)) v.forEach(collectAliases); else if (v && typeof v === 'object' && typeof v.type === 'string') collectAliases(v); }
+  };
+  collectAliases(ast);
   const visit = (node) => {
     if (!node || typeof node.type !== 'string') return;
     if ((node.type === 'ImportDeclaration' || node.type === 'ExportAllDeclaration' || node.type === 'ExportNamedDeclaration') && node.source) specs.push(node.source.value);
-    else if (node.type === 'ImportExpression') { const c = constant(node.source); if (c !== null) specs.push(c); }
-    else if (node.type === 'CallExpression' && node.callee.type === 'Identifier' && node.callee.name === 'require' && node.arguments.length) { const c = constant(node.arguments[0]); if (c !== null) specs.push(c); }
+    else if (node.type === 'ImportExpression') { const c = constant(node.source); if (c !== null) specs.push(c); else nonConstant(node.source); }
+    else if (node.type === 'CallExpression' && node.arguments.length && ((node.callee.type === 'Identifier' && requireNames.has(node.callee.name)) || isCreateRequire(node.callee))) { const c = constant(node.arguments[0]); if (c !== null) specs.push(c); else nonConstant(node.arguments[0]); }
     for (const key of Object.keys(node)) {
       if (key === 'loc' || key === 'range') continue;
       const v = node[key];
@@ -99,6 +127,7 @@ function specifiersOf(source) {
   return specs;
 }
 const unparsed = [];
+const dynamicLoads = [];
 function scanImports(root, dir) {
   const found = new Map();
   const walk = (d) => {
@@ -110,6 +139,7 @@ function scanImports(root, dir) {
       let specs;
       try { specs = specifiersOf(readFileSync(p, 'utf8')); } catch (err) { unparsed.push(rel + ': ' + String(err && err.message || err).slice(0, 120)); continue; }
       for (const spec of specs) {
+        if (typeof spec === 'object') { dynamicLoads.push(rel + ': ' + spec.dynamic); continue; }
         if (spec.startsWith('node:') || spec.startsWith('.') || spec.startsWith('/') || /^[A-Za-z]:/.test(spec) || spec.startsWith('file:')) continue;
         const name = spec.startsWith('@') ? spec.split('/').slice(0, 2).join('/') : spec.split('/')[0];
         if (!PKG_NAME.test(name) || BUILTINS.has(name)) continue; // builtins imported without the node: prefix
@@ -151,8 +181,8 @@ const harnessImports = scanImports(ROOT, 'qa/factory');
   const missingRuntime = [...runtimeImports].filter(([n]) => !(n in deps)).map(([n, f]) => n + (n in dev ? ' (declared only as dev - a --omit=dev node cannot load it)' : ' (undeclared)') + ' <- ' + [...f].join(', '));
   const missingHarness = [...harnessImports].filter(([n]) => !(n in deps) && !(n in dev)).map(([n, f]) => n + ' <- ' + [...f].join(', '));
   check('K3 every package the Factory imports is declared (parsed, not grepped): runtime ' + [...runtimeImports.keys()].join(', ') + ' in dependencies; harness ' + [...harnessImports.keys()].join(', ') + ' in dependencies or devDependencies',
-    runtimeImports.size > 0 && missingRuntime.length === 0 && missingHarness.length === 0 && unparsed.length === 0,
-    [...missingRuntime, ...missingHarness, ...unparsed.map((u) => 'does not parse: ' + u)].join(' | '));
+    runtimeImports.size > 0 && missingRuntime.length === 0 && missingHarness.length === 0 && unparsed.length === 0 && dynamicLoads.length === 0,
+    [...missingRuntime, ...missingHarness, ...unparsed.map((u) => 'does not parse: ' + u), ...dynamicLoads.map((d) => 'a load that cannot be checked (not a constant, not a file): ' + d)].join(' | '));
 }
 { // K4
   const exact = /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/;
@@ -176,6 +206,14 @@ const harnessImports = scanImports(ROOT, 'qa/factory');
   const prodScripted = lock ? Object.entries(lock.packages).filter(([k, v]) => k && !v.dev && !v.devOptional && v.hasInstallScript).map(([k, v]) => nameFromLockPath(k) + '@' + v.version) : ['(no lock)'];
   const prodCount = lock ? Object.entries(lock.packages).filter(([k, v]) => k && !v.dev && !v.devOptional).length : 0;
   check('K6 the runtime closure (' + prodCount + ' packages a --omit=dev node installs) runs no install scripts', prodScripted.length === 0, prodScripted.join(', '));
+}
+
+{ // K7
+  const found = [], bad = [];
+  const walk = (d) => { for (const e of readdirSync(d, { withFileTypes: true })) { const p = join(d, e.name); if (e.isDirectory()) { if (e.name !== 'node_modules') walk(p); continue; } if (!/\.(sh|ps1|mjs|js|cjs|cmd|bat)$/.test(e.name)) continue;
+    readFileSync(p, 'utf8').split(/\r?\n/).forEach((line, i) => { if (/^\s*(#|\/\/|\*)/.test(line)) return; for (const m of line.matchAll(/\bnpx\s+(?:--yes|-y)\s+((?:@[\w.-]+\/)?[\w.-]+)(?:@(\S+))?/g)) { const at = relative(ROOT, p).split(sep).join('/') + ':' + (i + 1); found.push(m[1] + '@' + (m[2] || '(none)') + ' ' + at); if (!m[2] || !/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/.test(m[2])) bad.push(m[1] + (m[2] ? '@' + m[2] : ' (no version)') + ' at ' + at); } }); } };
+  walk(join(ROOT, 'scripts/factory-runner'));
+  check('K7 every package fetched at run time by npx --yes under scripts/factory-runner names an exact version (' + (found.join(', ') || 'none') + ')', bad.length === 0, 'not pinned: ' + bad.join(', '));
 }
 
 // ================================================================= FRESH CLONE ============================================
@@ -223,32 +261,65 @@ if (!STATIC_ONLY) {
 
     // F2
     const depsA = run(process.execPath, [join(cloneA, 'scripts/factory-runner/deps.mjs'), '--json'], cloneA, cleanEnv);
-    const resolveScript = 'const names=JSON.parse(process.argv[1]);const bad=[];for(const n of names){try{import.meta.resolve(n)}catch(e){bad.push(n+": "+e.code)}}console.log(JSON.stringify(bad));';
+    // a REAL import: it loads the package and everything the package loads (pg -> pg-pool, pg-protocol, ...). import.meta.resolve
+    // only found the package's own entry file - and does not exist on Node 20.0-20.5, which engines >=20 admits.
+    const resolveScript = 'const names=JSON.parse(process.argv[1]);const bad=[];for(const n of names){try{await import(n)}catch(e){bad.push(n+": "+(e.code||e.message))}}console.log(JSON.stringify(bad));process.exit(0);';
     const resRt = run(process.execPath, ['--input-type=module', '-e', resolveScript, JSON.stringify([...runtimeImports.keys()])], join(cloneA, 'scripts/factory-runner'), cleanEnv);
     const devPresent = Object.keys(pkg.devDependencies || {}).filter((n) => existsSync(join(cloneA, 'node_modules', ...n.split('/'))));
-    check('F2 the runtime-only install is exactly the runtime set: deps.mjs ok, every runtime import resolves (' + [...runtimeImports.keys()].join(', ') + '), no dev package installed',
+    check('F2 the runtime-only install is exactly the runtime set: deps.mjs ok, every runtime package imports (' + [...runtimeImports.keys()].join(', ') + '), no dev package installed',
       depsA.rc === 0 && resRt.rc === 0 && resRt.out.trim().endsWith('[]') && devPresent.length === 0, depsA.out + ' | unresolved ' + resRt.out + ' | dev present: ' + devPresent.join(', '));
 
     // F3
     const f3 = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node.mjs'), 'health'], cloneA, nodeEnvA, 120000);
     check('F3 node.mjs health from the runtime-only clone reaches a real PostgreSQL through pg and reports HEALTHY', f3.rc === 0 && /HEALTHY/.test(f3.out) && /runtime dependencies installed at their locked versions \(pg /.test(f3.out), f3.out);
 
-    // F4
-    const sup = spawn(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--env-file', envFile, '--role', 'verifier', '--log-dir', join(work, 'logs-a')], { cwd: cloneA, env: { ...process.env, ...nodeEnvA, FACTORY_RUNNER_PG_URL: '' }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+    // F4 - on a node identity NOTHING ELSE registered. The first version used F3's state dir, so F3's health had already
+    // registered that node and stamped its heartbeat: the row saw ALIVE while the supervised worker died on every start
+    // (verification 2026-09-24). Now ALIVE counts only as the supervised worker's own: role verifier (health registers generic),
+    // heartbeat after the supervisor started, and the supervisor still on its first worker with no exit.
+    const stateA4 = join(work, 'state-a4'); mkdirSync(stateA4, { recursive: true });
+    const nodeEnvA4 = { ...nodeEnvA, FACTORY_STATE_DIR: stateA4 };
+    const supStartedAt = Date.now();
+    const sup = spawn(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--env-file', envFile, '--role', 'verifier', '--log-dir', join(work, 'logs-a')], { cwd: cloneA, env: { ...process.env, ...nodeEnvA4, FACTORY_RUNNER_PG_URL: '' }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
     started.push(sup); let supOut = ''; sup.stdout.on('data', (d) => { supOut += d; }); sup.stderr.on('data', (d) => { supOut += d; });
-    let alive = null; const t0 = Date.now();
-    while (Date.now() - t0 < 45000) { const s = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node.mjs'), 'status', '--json'], cloneA, nodeEnvA); if (/"state":"ALIVE"/.test(s.out)) { alive = s.out; break; } await sleep(2000); }
-    run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--stop'], cloneA, nodeEnvA);
+    let alive = null, why4 = 'never ALIVE'; const t0 = Date.now();
+    while (Date.now() - t0 < 45000) {
+      const s = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node.mjs'), 'status', '--json'], cloneA, nodeEnvA4);
+      const js = (s.out.match(/^\{.*\}$/m) || [null])[0]; const st = js ? JSON.parse(js) : {};
+      const supSt = existsSync(join(stateA4, 'node-status.json')) ? readJson(join(stateA4, 'node-status.json')) : {};
+      if (st.state === 'ALIVE') {
+        const beat = Date.parse(st.lastHeartbeatAt || '');
+        const own = st.role === 'verifier' && beat >= supStartedAt - 2000 && supSt.state === 'running' && supSt.restarts === 0 && !supSt.lastExit;
+        if (own) { alive = s.out; break; }
+        why4 = 'ALIVE but not the supervised worker: role ' + st.role + ', heartbeat ' + st.lastHeartbeatAt + ' vs supervisor start ' + new Date(supStartedAt).toISOString() + ', supervisor ' + JSON.stringify({ state: supSt.state, restarts: supSt.restarts, lastExit: supSt.lastExit });
+      }
+      await sleep(2000);
+    }
+    run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--stop'], cloneA, nodeEnvA4);
     const supExit = await new Promise((r) => { const t = setTimeout(() => r('timeout'), 25000); sup.on('exit', (c) => { clearTimeout(t); r(c); }); });
-    check('F4 the supervisor from the runtime-only clone starts a worker that goes ALIVE on the plane, and --stop ends it (exit ' + supExit + ')', !!alive && supExit === 0, supOut);
+    check('F4 the supervisor from the runtime-only clone, on a fresh node identity, starts a worker that goes ALIVE as role verifier with its own heartbeat and no restart, and --stop ends it (exit ' + supExit + ')', !!alive && supExit === 0, why4 + '\n' + supOut);
 
-    // F5
+    // F5 - first a TRANSITIVE package (pg-protocol: pg loads it, package.json does not name it - the first dependency check
+    // missed exactly this and the supervisor crash-looped), then pg itself. Every entry point must refuse by name.
+    const refusals = (label) => {
+      const sp = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--env-file', envFile, '--role', 'verifier', '--log-dir', join(work, 'logs-a5')], cloneA, { ...nodeEnvA, FACTORY_RUNNER_PG_URL: '' }, 60000);
+      const st = existsSync(join(stateA, 'node-status.json')) ? readJson(join(stateA, 'node-status.json')) : {};
+      const h = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node.mjs'), 'health'], cloneA, nodeEnvA, 60000);
+      const ns = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node.mjs'), 'start', '--once'], cloneA, nodeEnvA, 60000);
+      const nt = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node.mjs'), 'status'], cloneA, nodeEnvA, 60000);
+      const ok = sp.rc === 5 && st.state === 'dependencies_missing' && /npm ci/.test(sp.out) && !/node started/.test(sp.out)
+        && h.rc === 1 && /runtime dependencies are not installed/.test(h.out) && !/cannot connect/.test(h.out)
+        && ns.rc === 5 && /DEPENDENCIES NOT READY/.test(ns.out) && !/ERR_MODULE_NOT_FOUND/.test(ns.out)
+        && nt.rc === 5 && /DEPENDENCIES_MISSING/.test(nt.out);
+      return { ok, text: label + ': supervisor exit ' + sp.rc + ' state ' + st.state + '; health exit ' + h.rc + '; start exit ' + ns.rc + '; status exit ' + nt.rc,
+        detail: label + '\n' + sp.out + '\n--- health\n' + h.out + '\n--- start\n' + ns.out + '\n--- status\n' + nt.out };
+    };
+    rmSync(join(cloneA, 'node_modules', 'pg-protocol'), { recursive: true, force: true });
+    const f5t = refusals('pg-protocol removed (transitive)');
     rmSync(join(cloneA, 'node_modules', 'pg'), { recursive: true, force: true });
-    const f5 = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--env-file', envFile, '--role', 'verifier', '--log-dir', join(work, 'logs-a5')], cloneA, { ...nodeEnvA, FACTORY_RUNNER_PG_URL: '' }, 60000);
-    const st5 = existsSync(join(stateA, 'node-status.json')) ? readJson(join(stateA, 'node-status.json')) : {};
-    const h5 = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node.mjs'), 'health'], cloneA, nodeEnvA, 60000);
-    check('F5 with pg removed the supervisor refuses by name (exit ' + f5.rc + ', state ' + st5.state + ', no worker started) and node health names the dependency, not the connection',
-      f5.rc === 5 && st5.state === 'dependencies_missing' && /npm ci/.test(f5.out) && !/node started/.test(f5.out) && h5.rc === 1 && /runtime dependencies are not installed/.test(h5.out) && !/cannot connect/.test(h5.out), f5.out + '\n--- health\n' + h5.out);
+    const f5d = refusals('pg removed');
+    check('F5 every entry point refuses by name with a transitive driver package missing and with pg missing (' + f5t.text + ' | ' + f5d.text + ')',
+      f5t.ok && f5d.ok, f5t.detail + '\n=====\n' + f5d.detail);
 
     // F6
     if (isWin && want('F6')) {
@@ -291,8 +362,11 @@ if (!STATIC_ONLY) {
     // F9
     if (want('F9')) {
     const f9 = run(process.execPath, ['--test', 'scripts/factory-runner/db.regression.test.mjs', 'scripts/factory-runner/runner-env.regression.test.mjs'], cloneA, cleanEnv, 180000);
-    const passN = (f9.out.match(/ℹ pass (\d+)/) || [, '?'])[1], failN = (f9.out.match(/ℹ fail (\d+)/) || [, '?'])[1];
-    check('F9 the accessor and runner-env regression tests pass inside the clone (pass ' + passN + ', fail ' + failN + ')', f9.rc === 0 && failN === '0', f9.out.slice(-600));
+    // node --test prints the spec reporter on Node 24 and TAP ("# pass N") when not on a TTY on Node 20/22: both are read, and
+    // the verdict is the exit code (a Node 22 Work PC passing every test failed this row before, 2026-09-24)
+    const num = (k) => (f9.out.match(new RegExp('^(?:ℹ|#) ' + k + ' (\\d+)', 'm')) || [, '?'])[1];
+    const passN = num('pass'), failN = num('fail');
+    check('F9 the accessor and runner-env regression tests pass inside the clone (pass ' + passN + ', fail ' + failN + ', exit ' + f9.rc + ')', f9.rc === 0 && Number(passN) > 0 && failN === '0', f9.out.slice(-600));
     }
   } catch (e) {
     check('F0 fresh-clone setup (free disk, clones at HEAD, disposable plane)', false, e && e.stack || e);
