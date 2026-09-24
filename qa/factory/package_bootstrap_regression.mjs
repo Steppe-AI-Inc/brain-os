@@ -38,7 +38,11 @@
 //      BOOTSTRAPPED against the plane - the Work-PC path, end to end
 //   F8 the full `npm ci --strict-allow-scripts` gives the acceptance harnesses everything: every qa/factory import resolves
 //      and embedded-postgres starts and stops a server from the clone's own install
-//   F9 the accessor and runner-env regression tests pass inside the clone
+//   F9 the accessor and runner-env regression tests pass inside the clone (they include a BOM'd env file and a missing CA)
+//   F10 a runner.env whose CA file exists nowhere on this machine - the Work PC with runner.env copied and the CA forgotten - is
+//      refused by the supervisor (exit 2, no worker started) and by bootstrap-node.sh (nothing registered), instead of a
+//      worker that fails every connect and backs off forever
+// F1 and F8 also require the committed lock to be byte-for-byte unchanged by the install (npm 10's `npm install` rewrites it).
 import { spawn, spawnSync, execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync, mkdirSync, statfsSync } from 'node:fs';
 import { builtinModules } from 'node:module';
@@ -255,12 +259,16 @@ if (!STATIC_ONLY) {
     await admin.query('grant usage on schema factory to ' + pg.runnerRole);
     await admin.query('grant select, insert, update, delete on all tables in schema factory to ' + pg.runnerRole);
     const envFile = join(work, 'runner.env'); writeFileSync(envFile, 'FACTORY_RUNNER_PG_URL=' + pg.runnerUrl + '\n');
+    // the Work-PC mistake: runner.env copied, the CA it names not (its recorded path is another machine's)
+    const noCaEnv = join(work, 'noca', 'runner.env'); mkdirSync(dirname(noCaEnv), { recursive: true });
+    writeFileSync(noCaEnv, 'FACTORY_RUNNER_PG_URL=' + pg.runnerUrl + '?sslmode=verify-full&sslrootcert=' + encodeURIComponent(join(work, 'nowhere', 'absent-ca-' + randomUUID().slice(0, 8) + '.crt')) + '\n');
+    const lockUnchanged = (c) => git(['status', '--porcelain', '--', 'package-lock.json', 'package.json'], c) === '';
     const stateA = join(work, 'state-a'); mkdirSync(stateA, { recursive: true });
     const nodeEnvA = { ...cleanEnv, FACTORY_RUNNER_PG_URL: pg.runnerUrl, FACTORY_STATE_DIR: stateA, FACTORY_NODE_BEAT_MS: '2000', FACTORY_NODE_STALE_MS: '6000', FACTORY_ADMISSION: 'off' };
 
     // F1
     const f1 = run(NPM, ['ci', '--omit=dev', '--strict-allow-scripts'], cloneA, cleanEnv);
-    check('F1 a fresh clone of ' + head.slice(0, 12) + ': `npm ci --omit=dev --strict-allow-scripts` succeeds', f1.rc === 0, f1.out);
+    check('F1 a fresh clone of ' + head.slice(0, 12) + ': `npm ci --omit=dev --strict-allow-scripts` succeeds and leaves the committed lock unchanged', f1.rc === 0 && lockUnchanged(cloneA), f1.out + ' | git status: ' + git(['status', '--porcelain'], cloneA));
 
     // F2
     const depsA = run(process.execPath, [join(cloneA, 'scripts/factory-runner/deps.mjs'), '--json'], cloneA, cleanEnv);
@@ -331,8 +339,6 @@ if (!STATIC_ONLY) {
       run(NPM, ['ci', '--omit=dev', '--strict-allow-scripts'], cloneA, cleanEnv);
       const fixed = ps(['-Preflight', '-EnvFile', envFile]);
       // an env file whose URL names a CA that exists nowhere on this machine: a verify-full connection would fail closed on every start
-      const noCaEnv = join(work, 'noca', 'runner.env'); mkdirSync(dirname(noCaEnv), { recursive: true });
-      writeFileSync(noCaEnv, 'FACTORY_RUNNER_PG_URL=' + pg.runnerUrl + '?sslmode=verify-full&sslrootcert=' + encodeURIComponent(join(work, 'nowhere', 'absent-ca-' + randomUUID().slice(0, 8) + '.crt')) + '\n');
       const noCa = ps(['-Preflight', '-EnvFile', noCaEnv]);
       let guard = { rc: 'skipped', out: 'no live task on this machine; the other-checkout guard is not exercised (an install here would create one)' }, stopGuard = guard, uninstallGuard = guard;
       if (liveTaskBefore !== 'NONE' && !liveTaskBefore.startsWith(cloneA)) { guard = ps(['-Role', 'verifier', '-EnvFile', envFile]); stopGuard = ps(['-Stop']); uninstallGuard = ps(['-Uninstall']); }
@@ -364,7 +370,7 @@ if (!STATIC_ONLY) {
     const ep = run(process.execPath, ['--input-type=module', '-e', epScript, pathToFileURL(join(cloneA, 'qa/factory/local_pg.mjs')).href], join(cloneA, 'qa/factory'), cleanEnv, 180000);
     const epFromClone = /EMBEDDED PostgreSQL/.test(ep.out);
     check('F8 the full `npm ci --strict-allow-scripts` gives the harnesses everything: deps.mjs --dev ok, every qa/factory import resolves, and embedded-postgres from the clone\'s own install starts a server (' + (ep.out.match(/EMBEDDED ([^\n]+)/) || [, '?'])[1] + ')',
-      f8.rc === 0 && depsDev.rc === 0 && resH.out.trim().endsWith('[]') && epFromClone, f8.out.slice(-400) + ' | ' + depsDev.out + ' | ' + resH.out + ' | ' + ep.out);
+      f8.rc === 0 && lockUnchanged(cloneA) && depsDev.rc === 0 && resH.out.trim().endsWith('[]') && epFromClone, f8.out.slice(-400) + ' | ' + depsDev.out + ' | ' + resH.out + ' | ' + ep.out);
     }
 
     // F9
@@ -375,6 +381,18 @@ if (!STATIC_ONLY) {
     const num = (k) => (f9.out.match(new RegExp('^(?:ℹ|#) ' + k + ' (\\d+)', 'm')) || [, '?'])[1];
     const passN = num('pass'), failN = num('fail');
     check('F9 the accessor and runner-env regression tests pass inside the clone (pass ' + passN + ', fail ' + failN + ', exit ' + f9.rc + ')', f9.rc === 0 && Number(passN) > 0 && failN === '0', f9.out.slice(-600));
+    }
+
+    // F10
+    if (want('F10')) {
+      const state10 = join(work, 'state-a10'); mkdirSync(state10, { recursive: true });
+      const sup10 = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--env-file', noCaEnv, '--role', 'verifier', '--log-dir', join(work, 'logs-a10')], cloneA, { ...cleanEnv, FACTORY_STATE_DIR: state10 }, 30000);
+      let boot10 = { rc: 'skipped', out: 'bash not available' };
+      if (process.platform === 'win32' || existsSync('/bin/bash')) boot10 = run('bash', ['scripts/factory-runner/bootstrap-node.sh', '--role', 'verifier', '--env-file', noCaEnv], cloneA, { ...cleanEnv, FACTORY_STATE_DIR: state10 }, 120000);
+      const bootOk = boot10.rc === 'skipped' || (boot10.rc === 2 && /copy the CA file/.test(boot10.out) && !/BOOTSTRAPPED/.test(boot10.out));
+      check('F10 a runner.env whose CA exists nowhere on this machine is refused by the supervisor (exit ' + sup10.rc + ', no worker) and by bootstrap-node.sh (exit ' + boot10.rc + ', nothing registered)',
+        sup10.rc === 2 && /REFUSED/.test(sup10.out) && /copy the CA file/.test(sup10.out) && !/node started/.test(sup10.out) && bootOk,
+        'supervisor: ' + sup10.out + '\n--- bootstrap\n' + boot10.out);
     }
   } catch (e) {
     check('F0 fresh-clone setup (free disk, clones at HEAD, disposable plane)', false, e && e.stack || e);

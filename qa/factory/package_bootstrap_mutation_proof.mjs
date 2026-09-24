@@ -48,6 +48,7 @@ const results = [];
 {
   const need = [['scripts/factory-runner/deps.mjs', 'const entries = Object.entries(lock.packages).filter('], ['scripts/factory-runner/node.mjs', "  const cmd = process.argv[2] || 'start';"],
     ['scripts/factory-runner/verify-deployed-bytes.sh', 'npx --yes supabase@2.117.0 functions download'], ['scripts/factory-runner/node-supervisor.mjs', '  if (deps.ok) return;'],
+    ['scripts/factory-runner/node-supervisor.mjs', 'if (loaded.caMissing) {'],
     ['scripts/factory-runner/bootstrap-node.sh', 'NOTE_FILE="$(mktemp 2>/dev/null || echo "$' + '{TMPDIR:-/tmp}/factory-env-note.$$")"']];
   const missing = need.filter(([f, s]) => readFileSync(join(ROOT, f), 'utf8').split('\r\n').join('\n').split(s).length !== 2);
   if (missing.length) { console.log('MUTATION ANCHORS MISSING - the proof would test nothing: ' + missing.map(([f, s]) => f + ': ' + s).join(' | ')); process.exit(2); }
@@ -97,6 +98,8 @@ try {
       expectRed('F-SUP', 'the supervisor starts a worker whatever the dependency check says (the crash loop)', d, ['F5'], ['--skip', 'F6,F7,F8,F9']); }
     { const d = clone('fclosure'); edit(d, 'scripts/factory-runner/deps.mjs', (s) => s.replace('const entries = Object.entries(lock.packages).filter(', 'const entries = [].filter(')); commitAll(d, 'mutant: dependency check reads only the manifest');
       expectRed('F-CLOSURE', 'the dependency check covers only the packages package.json names (pg-protocol missing reads as ready)', d, ['F5'], ['--skip', 'F6,F7,F8,F9']); }
+    { const d = clone('fca'); edit(d, 'scripts/factory-runner/node-supervisor.mjs', (s) => s.replace('if (loaded.caMissing) {', 'if (false) {')); commitAll(d, 'mutant: supervisor ignores a missing CA');
+      expectRed('F-CA', 'the supervisor starts a worker on a URL whose CA file exists nowhere here (the Work-PC crash loop)', d, ['F10'], ['--skip', 'F6,F7,F8,F9']); }
     { const d = clone('fdie'); edit(d, 'scripts/factory-runner/node.mjs', (s) => s.replace("  const cmd = process.argv[2] || 'start';", "  const cmd = process.argv[2] || 'start';\n  if (cmd === 'start') process.exit(1);")); commitAll(d, 'mutant: the worker dies on every start');
       expectRed('F-DIE', 'the supervised worker exits on every start (the row must not read ALIVE from another registration)', d, ['F4'], ['--skip', 'F6,F7,F8,F9']); }
     { const d = clone('f7'); edit(d, 'scripts/factory-runner/bootstrap-node.sh', (s) => s.replace('NOTE_FILE="$(mktemp 2>/dev/null || echo "${TMPDIR:-/tmp}/factory-env-note.$$")"', 'NOTE_FILE="$ROOT/.factory/.env-note"')); commitAll(d, 'mutant: bootstrap redirects into .factory');
@@ -109,5 +112,5 @@ try {
 }
 const killed = results.filter((r) => r.killed).length;
 console.log('');
-console.log('package_bootstrap_mutation_proof: ' + killed + ' of ' + results.length + ' (control green + mutants killed)' + (FRESH ? '' : '  (static mutants only; --fresh adds the original defect and five fresh-clone mutants)'));
+console.log('package_bootstrap_mutation_proof: ' + killed + ' of ' + results.length + ' (control green + mutants killed)' + (FRESH ? '' : '  (static mutants only; --fresh adds the original defect and six fresh-clone mutants)'));
 process.exit(killed === results.length ? 0 : 1);
