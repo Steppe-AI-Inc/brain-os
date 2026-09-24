@@ -54,6 +54,8 @@
 //      queued with no run and its dependent stays blocked, while a bootstrap_probe is claimed and completed as a probe (the
 //      default bootstrap used to report every work order done within a second, unblocking release work nobody verified)
 //   F13 a node the admission gate refuses says so - in its log and in node.mjs status - instead of reading ALIVE and never claiming
+//   F15 a supervisor whose worker fails on a wrong password recovers BY ITSELF once runner.env is fixed: the env file is read
+//      again before every restart (it used to keep the URL it read at its own start - verification round 4)
 //   F14 one supervisor per state dir WHATEVER THE PATH SPELLING: launched through a relative path, a second one launched through a
 //      junction with a non-ASCII name is refused (exit 3); --whois and --status through the junction see the first running; --stop
 //      through the junction stops it (identity by a path spelling let two supervisors share one node id - verification round 3)
@@ -503,6 +505,25 @@ if (!STATIC_ONLY) {
       const handGone = await gone(hand);
       cyc.argsAfterReinstall = taskArgsOf();
       cyc.uninstall = psT(['-Uninstall']);
+      // ANOTHER CHECKOUT'S SCRIPTS ARE NEVER RUN. A task owned by a checkout from before the control pipe: -Status and
+      // -Stop/-Uninstall -ReplaceOtherCheckout used to run THAT checkout's node-supervisor.mjs --whois, which ignored the flag and
+      // started a generic supervisor (verification round 4). The owner here is a fake checkout whose scripts leave a marker when
+      // run; the marker must never appear.
+      {
+        const fake = join(work, 'fake-owner'); const fakeSup = join(fake, 'scripts', 'factory-runner', 'node-supervisor.mjs');
+        mkdirSync(dirname(fakeSup), { recursive: true });
+        const marker = join(work, 'fake-owner-ran.txt');
+        writeFileSync(fakeSup, "require('fs').appendFileSync(" + JSON.stringify(marker) + ", process.argv.slice(2).join(' ') + '\\n');\n");
+        writeFileSync(join(fake, 'scripts', 'factory-runner', 'deps.mjs'), "import('node:fs').then((f) => f.appendFileSync(" + JSON.stringify(marker) + ", 'deps\\n'));\n");
+        const T2 = scratchTask + '-OWNER';
+        run('powershell', ['-NoProfile', '-Command', "$a = New-ScheduledTaskAction -Execute '" + process.execPath + "' -Argument '\"" + fakeSup + "\" --runner-env \"" + envFile + "\" --role verifier' -WorkingDirectory '" + fake + "'; $p = New-ScheduledTaskPrincipal -UserId ([Security.Principal.WindowsIdentity]::GetCurrent().Name) -LogonType Interactive -RunLevel Limited; Register-ScheduledTask -TaskName '" + T2 + "' -Action $a -Principal $p | Out-Null"], ROOT);
+        const psO = (args) => ps([...args, '-TaskName', T2]);
+        cyc.ownerStatus = psO(['-Status']);
+        cyc.ownerStop = psO(['-Stop', '-ReplaceOtherCheckout']);
+        cyc.ownerUninstall = psO(['-Uninstall', '-ReplaceOtherCheckout']);
+        run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName '" + T2 + "' -ErrorAction SilentlyContinue; if($t){ Unregister-ScheduledTask -TaskName '" + T2 + "' -Confirm:$false }"], ROOT);
+        cyc.ownerScriptRan = existsSync(marker) ? readFileSync(marker, 'utf8').trim().replace(/\r?\n/g, ' | ') : 'never';
+      }
       cyc.argsAfterUninstall = taskArgsOf();
       const cycleOk = cyc.install.rc === 0 && /started: supervisor pid \d+/.test(cyc.install.out) && /role verifier/.test(cyc.install.out)
         && cyc.verify.rc === 0 && /OK/.test(cyc.verify.out)
@@ -516,7 +537,8 @@ if (!STATIC_ONLY) {
         && cyc.uninstall1.rc === 0
         && cyc.reinstall.rc === 0 && /started: supervisor pid \d+/.test(cyc.reinstall.out) && (cyc.reinstall.out.match(/started: supervisor pid (\d+)/) || [])[1] !== String(hand.pid) && handGone
         && cyc.argsAfterReinstall.includes('--runner-env "' + envFile + '"')
-        && cyc.uninstall.rc === 0 && cyc.argsAfterUninstall === 'NONE';
+        && cyc.uninstall.rc === 0 && cyc.argsAfterUninstall === 'NONE'
+        && cyc.ownerScriptRan === 'never' && /ANOTHER checkout/.test(cyc.ownerStatus.out) && cyc.ownerStop.rc === 0 && cyc.ownerUninstall.rc === 0;
       const liveTaskAfter = run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName 'BrainOS Factory Node' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).WorkingDirectory + '|' + ($t.Actions|Select-Object -First 1).Arguments + '|' + $t.Settings.Enabled}else{'NONE'}"], ROOT).out.trim();
       const refused = (g) => g.rc === 'skipped' || (g.rc === 3 && /belongs to another checkout/.test(g.out));
       const guardOk = refused(guard) && refused(stopGuard) && refused(uninstallGuard) && (statusOther.rc === 'skipped' || (/ANOTHER checkout/.test(statusOther.out) && /run -Status there/.test(statusOther.out)));
@@ -572,6 +594,7 @@ if (!STATIC_ONLY) {
       const pemCa = readFileSync(join(ROOT, 'scripts/factory-runner/runner-env.regression.test.mjs'), 'utf8').match(/'-----BEGIN CERTIFICATE-----',([\s\S]*?)'-----END CERTIFICATE-----'/);
       const derCa = join(work, 'env10', 'der-ca.cer'); writeFileSync(derCa, Buffer.from((pemCa ? pemCa[1] : '').replace(/[',\s]/g, ''), 'base64'));
       envs['a DER CA (the Windows export default; pg reads PEM)'] = [mk('der', 'FACTORY_RUNNER_PG_URL=' + pg.runnerUrl + '?sslmode=verify-full&sslrootcert=' + encodeURIComponent(derCa) + '\n'), /DER, not PEM/];
+      envs['the production ref percent-encoded, with an undecodable escape elsewhere'] = [mk('prodenc', 'FACTORY_RUNNER_PG_URL=postgresql://factory_runner.%70vphxgrtdfrudejjhzjk:pw@127.0.0.1:' + pg.port + '/factory_control_plane?application_name=%C0\n'), /PRODUCTION/];
       envs['a CA file that is not a certificate'] = [mk('badca', 'FACTORY_RUNNER_PG_URL=' + pg.runnerUrl + '?sslmode=verify-full&sslrootcert=' + encodeURIComponent(badCa) + '\n'), /is not a certificate/];
       const results = Object.entries(envs).map(([label, [f, why]]) => {
         const r = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--runner-env', f, '--role', 'verifier', '--log-dir', join(work, 'logs-a10')], cloneA, { ...cleanEnv, FACTORY_STATE_DIR: state10 }, 30000);
@@ -634,6 +657,28 @@ if (!STATIC_ONLY) {
       const st13 = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node.mjs'), 'status'], cloneA, env13, 60000);
       check('F13 a node the admission gate refuses says so: its log names the refusal and status prints NOT CLAIMING (start exit ' + once.rc + ', status exit ' + st13.rc + ')',
         once.rc === 0 && /admission REFUSED/.test(once.out) && /FACTORY_MIN_FREE_MB/.test(once.out) && /NOT CLAIMING/.test(st13.out), once.out + '\n--- status\n' + st13.out);
+    }
+
+    // F15
+    if (want('F15')) {
+      const s15 = join(work, 'state-a15'); mkdirSync(s15, { recursive: true });
+      const env15 = join(work, 'env15', 'runner.env'); mkdirSync(dirname(env15), { recursive: true });
+      const bad = new URL(pg.runnerUrl); bad.password = 'wrong-password-' + randomUUID().slice(0, 6);
+      writeFileSync(env15, 'FACTORY_RUNNER_PG_URL=' + bad.toString() + '\n');
+      let out15 = '';
+      const sup15 = spawn(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--runner-env', env15, '--role', 'verifier', '--log-dir', join(work, 'logs-a15')], { cwd: cloneA, env: { ...process.env, ...nodeEnvA, FACTORY_STATE_DIR: s15, FACTORY_RUNNER_PG_URL: '' }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+      started.push(sup15); sup15.stdout.on('data', (d) => { out15 += d; }); sup15.stderr.on('data', (d) => { out15 += d; });
+      const st15 = () => (existsSync(join(s15, 'node-status.json')) ? readJson(join(s15, 'node-status.json')) : {});
+      let inBackoff = false;
+      for (let i = 0; i < 30 && !inBackoff; i++) { await sleep(1000); inBackoff = st15().state === 'backoff'; }
+      // the founder fixes the file (or rotates the credential) - nothing else is done
+      writeFileSync(env15, 'FACTORY_RUNNER_PG_URL=' + pg.runnerUrl + '\n');
+      let recovered = false;
+      for (let i = 0; i < 60 && !recovered; i++) { await sleep(1000); const s = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node.mjs'), 'status', '--json'], cloneA, { ...nodeEnvA, FACTORY_STATE_DIR: s15 }); recovered = /"state":"ALIVE"/.test(s.out) && st15().state === 'running'; }
+      run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--stop'], cloneA, { ...nodeEnvA, FACTORY_STATE_DIR: s15 });
+      const exit15 = await new Promise((r) => { if (sup15.exitCode !== null) return r(sup15.exitCode); const t = setTimeout(() => r('timeout'), 25000); sup15.on('exit', (c) => { clearTimeout(t); r(c); }); });
+      check('F15 a supervisor whose worker failed on a wrong password (backoff ' + inBackoff + ') recovers by itself once runner.env is fixed (ALIVE ' + recovered + '), naming the change, and --stop ends it (exit ' + exit15 + ')',
+        inBackoff && recovered && /the env file changed/.test(out15) && exit15 === 0 && !out15.includes(bad.password), out15.slice(-1500));
     }
 
     // F14

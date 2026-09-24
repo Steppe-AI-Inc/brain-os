@@ -14,7 +14,7 @@
 // The file's encoding is decoded rather than guessed: a UTF-8 BOM, or UTF-16 (what Windows PowerShell 5.1's `>` / Out-File
 // write when the copied file is re-saved) - anything else with NUL bytes is refused naming the encoding.
 import { X509Certificate } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { assessUrl } from './url-judge.mjs'; // not db.mjs: importing db.mjs captures FACTORY_RUNNER_PG_URL too early
@@ -59,6 +59,14 @@ export function decodeEnvFile(buf) {
  * @returns {{url:string|null, usable:boolean, envFile:string, note:string, caMissing:boolean}}
  */
 export function loadRunnerUrl(explicit = null) {
+  // THE JUDGE NEVER THROWS. An unexpected error (a directory where the CA should be, a malformed escape) used to escape as a raw
+  // stack: the supervisor died with no log line, -Preflight crashed (verification round 4). It is a refusal, named.
+  try { return judgeRunnerEnv(explicit); } catch (e) {
+    return { url: null, usable: false, envFile: envFilePath(explicit), note: 'the env file could not be judged: ' + String(e && e.message || e).slice(0, 160), caMissing: false };
+  }
+}
+
+function judgeRunnerEnv(explicit) {
   const envFile = envFilePath(explicit);
   const no = (note, extra = {}) => ({ url: null, usable: false, envFile, note, caMissing: false, ...extra });
   if (!existsSync(envFile)) return no('env file not found: ' + envFile + ' (provision-control-plane.mjs --write-env writes it)');
@@ -75,6 +83,16 @@ export function loadRunnerUrl(explicit = null) {
   if (r.caMissing) return { url: r.url, usable: false, envFile, note: r.note, caMissing: true };
   const why = assessUrl(r.url);
   if (why) return { url: r.url, usable: false, envFile, note: 'REFUSED by the accessor: ' + why, caMissing: false };
+  // what pg's own parser throws on is refused here by name, not met by a worker that crash-loops (verification round 4)
+  {
+    const q = new URL(r.url).searchParams;
+    for (const k of ['sslcert', 'sslkey']) {
+      const p = q.get(k);
+      if (p && !(existsSync(p) && statSync(p).isFile())) return { url: r.url, usable: false, envFile, note: 'the ' + k + ' file ' + p + ' named in the URL does not exist here', caMissing: false };
+    }
+    if (q.get('uselibpqcompat') === 'true' && /^verify-(ca|full)$/.test(q.get('sslmode') || '') && !q.get('sslrootcert')) return { url: r.url, usable: false, envFile, note: 'sslmode=' + q.get('sslmode') + ' with uselibpqcompat=true needs sslrootcert (the CA to verify against)', caMissing: false };
+  }
+  if (r.ca && !statSync(r.ca).isFile()) return { url: r.url, usable: false, envFile, note: 'the CA path ' + r.ca + ' is not a file', caMissing: false };
   if (r.ca) {
     // judged the way pg consumes it: pg hands the file's TEXT to TLS as PEM. A DER file (the Windows certificate export default)
     // parses as a certificate but fails every TLS handshake - it passed this check and crash-looped (verification round 3).

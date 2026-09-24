@@ -27,8 +27,8 @@
 # Exit codes: 0 done; 1 check failed (-Preflight/-Verify); 2 install refused by the preflight; 3 the task belongs to another
 # checkout; 4 a supervisor that had to stop did not stop within 20 s; 5 the task was started but no supervisor is running.
 #
-# WHO IS RUNNING is asked of the supervisor itself: node-supervisor.mjs --whois talks to the control pipe each supervisor holds
-# for its state dir (proc.mjs). A pid file is never trusted - after a reboot its number belongs to someone else - and a command
+# WHO IS RUNNING is asked of the supervisor itself, over the control pipe each supervisor holds for its state dir - asked with
+# THIS checkout's proc.mjs, never by running another checkout's scripts (round 4). A pid file is never trusted - after a reboot its number belongs to someone else - and a command
 # line cannot prove identity either (a relative path, a junction, a non-ASCII folder; verification 2026-09-24, rounds 2-3).
 # A supervisor from before the control pipe is still recognised the old way, by its pid file and command line, so a node can be
 # migrated in place.
@@ -96,14 +96,22 @@ function Deny-OtherCheckout($what) {
 }
 
 # ---- the supervisor of a checkout, ASKED ------------------------------------------------------------------------------------
-# Its own answer over the control pipe (node-supervisor.mjs --whois): pid, role, state, worker - or $null when none is running.
-function Get-SupervisorInfo($dir) {
-  $sup = Join-Path $dir 'scripts\factory-runner\node-supervisor.mjs'
-  if (-not (Test-Path -LiteralPath $sup)) { return $null }
+# Its own answer over the control pipe: pid, role, state, worker - or $null when none is running. ASKED WITH THIS CHECKOUT'S CODE
+# (proc.mjs computes the same pipe name from the state dir): running another checkout's node-supervisor.mjs --whois executed that
+# checkout's code, and a checkout from before the control pipe ignored --whois and STARTED a supervisor - a generic node on the
+# owner's default env file, a verifier demoted on the plane, and the installer waiting forever (verification round 4).
+$ProcModule = Join-Path $Root 'scripts\factory-runner\proc.mjs'
+function Ask-Supervisor($dir, $command) {
   $prev = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
-  $j = $null; try { $j = & $NodeExe $sup --whois 2>$null } catch { $j = $null }
+  $j = $null
+  try { $j = & $NodeExe -e "import(require('url').pathToFileURL(process.argv[1]).href).then(async m=>{const i=await m.askSupervisor(process.argv[2],process.argv[3]);process.stdout.write(JSON.stringify(i?Object.assign({running:true},i):{running:false}));process.exit(0)})" $ProcModule (Join-Path $dir '.factory') $command 2>$null } catch { $j = $null }
   $ErrorActionPreference = $prev
-  if ($j) { try { $o = ($j | Select-Object -Last 1) | ConvertFrom-Json; if ($o.running) { return $o } } catch { } }
+  if ($j) { try { return (($j | Select-Object -Last 1) | ConvertFrom-Json) } catch { } }
+  return $null
+}
+function Get-SupervisorInfo($dir) {
+  $o = Ask-Supervisor $dir 'whois'
+  if ($o -and $o.running) { return $o }
   # a supervisor from before the control pipe answers no whois: recognised the old way (pid file + command line), for migration
   $pidFile = Join-Path $dir '.factory\node-supervisor.pid'
   if (Test-Path -LiteralPath $pidFile) {
@@ -129,8 +137,9 @@ function Stop-CheckoutSupervisor($dir) {
     if (Test-Path -LiteralPath $pidFile) { Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue; "note: removed a stale pid file under $dir (no supervisor answers for it)" }
     return $true
   }
-  $sup = Join-Path $dir 'scripts\factory-runner\node-supervisor.mjs'
-  & $NodeExe $sup --stop | Out-Null   # the control pipe, and the stop file a pre-pipe supervisor watches
+  # the control pipe (this checkout's code), and the stop file a pre-pipe supervisor watches - nothing of that checkout is run
+  $null = Ask-Supervisor $dir 'stop'
+  try { [IO.Directory]::CreateDirectory((Join-Path $dir '.factory')) | Out-Null; [IO.File]::WriteAllText((Join-Path $dir '.factory\node.stop'), [string][DateTimeOffset]::Now.ToUnixTimeMilliseconds()) } catch { }
   $deadline = (Get-Date).AddSeconds(20)
   while ((Get-Date) -lt $deadline) { if (-not (Get-Process -Id $i.pid -ErrorAction SilentlyContinue)) { return $true }; Start-Sleep -Milliseconds 500 }
   return (-not (Get-Process -Id $i.pid -ErrorAction SilentlyContinue))
@@ -142,7 +151,11 @@ function Get-TaskLogFile { $ld = Get-TaskArg (Get-FactoryTask) 'logdir'; if (-no
 function Get-LastWorkerError {
   $f = Get-TaskLogFile
   if (-not (Test-Path -LiteralPath $f)) { return 'no log at ' + $f }
-  $l = Get-Content -LiteralPath $f -Tail 80 | Where-Object { $_ -match 'Error|REFUSED|FAIL|ECONN|ETIMEDOUT|ENOTFOUND|password|certificate|refused' } | Select-Object -Last 1
+  $tail = Get-Content -LiteralPath $f -Tail 120
+  # the worker's own one-line verdict first ('error: ...' / REFUSED), then anything naming a failure - never a field of pg's
+  # error-object dump ("routine: 'auth_failed'" was quoted as the cause; verification round 4)
+  $l = $tail | Where-Object { $_ -match '^(error: |REFUSED)' -or $_ -match '\] (error: |REFUSED)' } | Select-Object -Last 1
+  if (-not $l) { $l = $tail | Where-Object { $_ -notmatch '^\s+[a-zA-Z]+: ' -and $_ -match 'Error|REFUSED|FAIL|ECONN|ETIMEDOUT|ENOTFOUND|password|certificate|refused' } | Select-Object -Last 1 }
   if ($l) { return ([string]$l).Trim().Substring(0, [Math]::Min(220, ([string]$l).Trim().Length)) } else { return 'nothing logged that names it (' + $f + ')' }
 }
 # The plane's view of this checkout's node, read with the task's own env file. Returns the status object, or $null.
@@ -248,7 +261,8 @@ if ($Status) {
   if ($st) { ($st | ConvertTo-Json -Depth 4) } else { "no status file ($(Join-Path $dir '.factory\node-status.json'))" }
   if ($live) { "running   supervisor pid $($live.pid), state $($live.state), worker $($live.childPid), role $($live.role)$(if ($task -and $task.State -ne 'Running') { ' - NOT the task''s (the task is ' + $task.State + '); install-autostart.ps1 -Start' + $taskHint + ' hands it to the task' } else { '' })" }
   elseif ($st -and ($st.state -in @('starting', 'running', 'backoff'))) { "STALE     the recorded supervisor (pid $($st.supervisorPid)) is not running - the node is DOWN; install-autostart.ps1 -Start$taskHint" }
-  "deps      " + (& $NodeExe (Join-Path $dir 'scripts\factory-runner\deps.mjs') 2>&1 | Out-String).Trim()
+  if (Test-OtherCheckout $owner) { "deps      (the task belongs to $owner - its dependencies are checked by -Status there; nothing of that checkout is run from here)" }
+  else { "deps      " + (& $NodeExe $DepsCheck 2>&1 | Out-String).Trim() }
   $envPath = if ($EnvGiven) { $EnvFile } elseif (Get-TaskArg $task 'env') { Get-TaskArg $task 'env' } else { $EnvFile }
   # ANOTHER checkout's task: its credential and its plane are that checkout's business - this -Status does not read the owner's
   # env file or query its plane (a scratch clone's regression did both on the live node; verification 2026-09-24, round 3)
@@ -328,7 +342,18 @@ if ($Start -and -not $RoleGiven -and -not $EnvGiven -and $task -and -not (Test-O
   if (-not $task.Settings.Enabled) { Enable-ScheduledTask -TaskName $TaskName | Out-Null; "task '$TaskName' enabled again (its watchdog restarts a dead supervisor)" }
   $sv = Get-SupervisorInfo $Root
   if ($sv -and $task.State -eq 'Running' -and $sv.role -eq $want) {
-    if ($sv.state -eq 'backoff') { "already running, but NOT working: supervisor pid $($sv.pid) (role $($sv.role)) - its worker cannot run - $(Get-LastWorkerError)"; exit 5 }
+    if ($sv.state -eq 'backoff') {
+      # restarted, not just reported: after the env file was fixed or the credential rotated, reporting left the node down until
+      # a re-install (verification round 4). The new supervisor reads the env file again and the start is confirmed.
+      "the supervisor (pid $($sv.pid), role $($sv.role)) is running but its worker cannot run - $(Get-LastWorkerError) - restarting it"
+      $s3 = Stop-CheckoutSupervisor $Root; $s3 | Where-Object { $_ -is [string] }
+      if ($s3[-1] -ne $true) { "REFUSED - that supervisor is still running 20 s after the stop request"; exit 4 }
+      if ((Get-FactoryTask).State -eq 'Running') { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue }
+      $since = Get-Date
+      Start-ScheduledTask -TaskName $TaskName
+      Confirm-TaskSupervisor $Root $since
+      exit 0
+    }
     "already running: supervisor pid $($sv.pid) (task '$TaskName', role $($sv.role), state $($sv.state); nothing re-installed)"; exit 0
   }
   # a supervisor that is not the task's own - started by hand, or with another role - would hold the checkout while the task

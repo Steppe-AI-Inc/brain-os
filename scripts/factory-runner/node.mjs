@@ -568,7 +568,9 @@ if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
       workTypes: HANDLED_WORK_TYPES,
     });
     } catch (e) {
-      if (!(e && e.name === 'FactoryDbRefusal')) throw e;
+      // anything else (a password refused, a certificate, a host that does not answer) is ONE line naming it, then exit 1: the
+      // installer's -Start/-Verify quote that line (they quoted the last field of pg's error dump - verification round 4)
+      if (!(e && e.name === 'FactoryDbRefusal')) { console.log('error: ' + errText(e) + (e && e.code ? ' (' + e.code + ')' : '')); process.exit(1); }
       console.log(e.message);
       console.log('(the supervisor reads the env file itself: node scripts/factory-runner/node-supervisor.mjs --runner-env <runner.env> --role <role>)');
       process.exit(2);

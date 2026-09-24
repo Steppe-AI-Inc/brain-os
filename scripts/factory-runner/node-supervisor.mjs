@@ -94,7 +94,8 @@ const refuse = (code, state, why) => {
   process.exit(code);
 };
 
-if (!['generic', 'verifier', 'release_broker'].includes(ROLE)) refuse(2, 'refused', 'role must be generic | verifier | release_broker, not ' + ROLE);
+// (no status record: before the lock is held, the status file may belong to a supervisor that IS running - verification round 4)
+if (!['generic', 'verifier', 'release_broker'].includes(ROLE)) refuse(2, null, 'role must be generic | verifier | release_broker, not ' + ROLE);
 
 // ---- one supervisor per state dir, by lock ----------------------------------------------------------------------------------
 const INSTANCE = randomUUID();
@@ -117,7 +118,8 @@ if (!held.held) {
 const { loadRunnerUrl } = await import('./runner-env.mjs');
 const loaded = loadRunnerUrl(ENV_FILE);
 if (!loaded.usable) refuse(2, 'refused', loaded.note);
-const RUNNER_URL = loaded.url;
+let RUNNER_URL = loaded.url;
+let envSeen = (() => { try { return readFileSync(ENV_FILE, 'utf8'); } catch { return null; } })();
 // NOTHING SECRET REACHES A LOG. The child prints host, database and role, never the URL - but a driver error could quote a
 // connection string, so every line written here has the credential's password and the whole URL scrubbed first.
 secrets = (() => { try { const u = new URL(RUNNER_URL); return [RUNNER_URL, decodeURIComponent(u.password), u.password].filter((x) => x && x.length >= 6); } catch { return [RUNNER_URL]; } })();
@@ -179,6 +181,20 @@ if (process.platform === 'win32' && /conhost(\.exe)?"?\s+--headless/i.test(comma
 while (!stopRequested()) {
   rotate();
   refuseIfDependenciesMissing();
+  // THE ENV FILE IS READ AGAIN BEFORE EVERY START. A supervisor kept the URL it read at its own start for its whole life: after the
+  // file was fixed or the credential rotated, its worker kept failing on the old one until someone re-installed
+  // (verification round 4). A file that turned unusable is a refusal, by name.
+  {
+    const now = (() => { try { return readFileSync(ENV_FILE, 'utf8'); } catch { return null; } })();
+    if (now !== envSeen) {
+      const again = loadRunnerUrl(ENV_FILE);
+      if (!again.usable) { status.state = 'refused'; status.refusal = again.note.slice(0, 400); status.childPid = null; status.stoppedAt = new Date().toISOString(); writeStatus(status); log('REFUSED - the env file changed and can no longer be used: ' + again.note + ' - the supervisor exits (2)'); try { unlinkSync(PID_FILE); } catch { /* gone */ } process.exit(2); }
+      RUNNER_URL = again.url; envSeen = now;
+      // additive: the previous credential stays scrubbed too
+      secrets = [...new Set([...secrets, ...(() => { try { const u = new URL(RUNNER_URL); return [RUNNER_URL, decodeURIComponent(u.password), u.password].filter((x) => x && x.length >= 6); } catch { return [RUNNER_URL]; } })()])];
+      log('the env file changed: the next worker uses it (' + again.note + ')');
+    }
+  }
   const started = Date.now();
   child = spawn(process.execPath, [join(HERE, 'node.mjs'), 'start', '--supervisor-instance', INSTANCE], {
     cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true,

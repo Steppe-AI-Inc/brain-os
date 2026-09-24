@@ -58,7 +58,10 @@ const results = [];
     ['scripts/factory-runner/node-supervisor.mjs', "if (process.platform === 'win32' && /conhost(\\.exe)?\"?\\s+--headless/i.test(commandLineOf(process.ppid) || '')) {"],
     ['scripts/factory-runner/install-autostart.ps1', "if (-not $LogGiven -and (Get-TaskArg $task 'logdir')) { $LogDir = Get-TaskArg $task 'logdir' }"],
     ['scripts/factory-runner/install-autostart.ps1', "-Trigger @((New-ScheduledTaskTrigger -AtLogOn -User $me), $watchdogTrigger)"],
-    ['scripts/factory-runner/db.mjs', '  if (foreign.length) {'],
+    ['scripts/factory-runner/url-judge.mjs', '  if (foreign.length) {'],
+    ['scripts/factory-runner/url-judge.mjs', "  const lower = lenient.toLowerCase() + '\\n' + String(url).toLowerCase();"],
+    ['scripts/factory-runner/node-supervisor.mjs', '    if (now !== envSeen) {'],
+    ['scripts/factory-runner/install-autostart.ps1', "  $o = Ask-Supervisor $dir 'whois'"],
     ['scripts/factory-runner/install-autostart.ps1', "if ($Start -and -not $RoleGiven -and -not $EnvGiven -and $task -and -not (Test-OtherCheckout $owner)) {"],
     ['scripts/factory-runner/install-autostart.ps1', "if (-not $RoleGiven -and (Get-TaskArg $task 'role')) {"],
     ['scripts/factory-runner/install-autostart.ps1', "foreach ($d in @($Root) + @(if ($owner -and (Test-OtherCheckout $owner)) { $owner })) {"],
@@ -145,8 +148,14 @@ try {
       expectRed('F-LOGDIR', 'a re-install without -LogDir drops the task\'s log dir', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11,F12,F13,F14']); }
     { const d = clone('fwatchdog'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("-Trigger @((New-ScheduledTaskTrigger -AtLogOn -User $me), $watchdogTrigger)", '-Trigger @(New-ScheduledTaskTrigger -AtLogOn -User $me)').replace("$triggers = @((New-ScheduledTaskTrigger -AtLogOn -User $me), (New-ScheduledTaskTrigger -AtStartup), $watchdogTrigger)", '$triggers = @((New-ScheduledTaskTrigger -AtLogOn -User $me), (New-ScheduledTaskTrigger -AtStartup))')); commitAll(d, 'mutant: no watchdog trigger');
       expectRed('F-WATCHDOG', 'a supervisor that dies stays dead until the next logon (no watchdog; restart-on-failure never fires)', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11,F12,F13,F14']); }
-    { const d = clone('fquery'); edit(d, 'scripts/factory-runner/db.mjs', (s) => s.replace('  if (foreign.length) {', '  if (false) {')); commitAll(d, 'mutant: the query string may override the user');
+    { const d = clone('fquery'); edit(d, 'scripts/factory-runner/url-judge.mjs', (s) => s.replace('  if (foreign.length) {', '  if (false) {')); commitAll(d, 'mutant: the query string may override the user');
       expectRed('F-QUERY', 'a least-privilege URL with ?user=postgres connects as the superuser', d, ['F10'], ['--skip', 'F6,F7,F8,F11,F12,F13,F14']); }
+    { const d = clone('fprodenc'); edit(d, 'scripts/factory-runner/url-judge.mjs', (s) => s.replace("  const lower = lenient.toLowerCase() + '\\n' + String(url).toLowerCase();", "  let lower = ''; try { lower = decodeURIComponent(url).toLowerCase(); } catch { lower = String(url).toLowerCase(); }")); commitAll(d, 'mutant: all-or-nothing decode of the URL');
+      expectRed('F-PRODENC', 'the production ref percent-encoded beside an undecodable escape passes the judge', d, ['F10'], ['--skip', 'F6,F7,F8,F11,F12,F13,F14,F15']); }
+    { const d = clone('fenvread'); edit(d, 'scripts/factory-runner/node-supervisor.mjs', (s) => s.replace('    if (now !== envSeen) {', '    if (false) {')); commitAll(d, 'mutant: the supervisor keeps the URL it started with');
+      expectRed('F-ENVREAD', 'a fixed or rotated runner.env is never read by a running supervisor', d, ['F15'], ['--skip', 'F6,F7,F8,F9,F10,F11,F12,F13,F14']); }
+    { const d = clone('fownerscript'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("  $o = Ask-Supervisor $dir 'whois'", "  $o = \$null; \$ow = & \$NodeExe (Join-Path \$dir 'scripts\\factory-runner\\node-supervisor.mjs') --whois 2>\$null; if (\$ow) { try { \$o = (\$ow | Select-Object -Last 1) | ConvertFrom-Json } catch { } }")); commitAll(d, 'mutant: the installer runs the owner checkout\'s script');
+      expectRed('F-OWNERSCRIPT', 'the installer runs another checkout\'s node-supervisor.mjs to ask who is running', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11,F12,F13,F14,F15']); }
     { const d = clone('frole'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("if ($Start -and -not $RoleGiven -and -not $EnvGiven -and $task -and -not (Test-OtherCheckout $owner)) {", 'if ($false) {').replace("if (-not $RoleGiven -and (Get-TaskArg $task 'role')) {", 'if ($false) {')); commitAll(d, 'mutant: -Start re-installs with the default role');
       expectRed('F-ROLE', 'the documented -Stop / -Start re-registers the verifier as generic', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11']); }
     { const d = clone('fhand'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("foreach ($d in @($Root) + @(if ($owner -and (Test-OtherCheckout $owner)) { $owner })) {", 'foreach ($d in @(if ($task) { if ($owner) { $owner } else { $Root } })) {')); commitAll(d, 'mutant: install leaves a hand-started supervisor running');
@@ -163,5 +172,5 @@ try {
 }
 const killed = results.filter((r) => r.killed).length;
 console.log('');
-console.log('package_bootstrap_mutation_proof: ' + killed + ' of ' + results.length + ' (control green + mutants killed)' + (FRESH ? '' : '  (static mutants only; --fresh adds the original defect and twenty-two fresh-clone mutants)'));
+console.log('package_bootstrap_mutation_proof: ' + killed + ' of ' + results.length + ' (control green + mutants killed)' + (FRESH ? '' : '  (static mutants only; --fresh adds the original defect and twenty-five fresh-clone mutants)'));
 process.exit(killed === results.length ? 0 : 1);

@@ -1,7 +1,7 @@
 // The runner env loader: the CA path recorded on the provisioning machine is resolved for the machine that reads it.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
 import { tmpdir, homedir } from 'node:os';
 import { join } from 'node:path';
 import { resolveCaPath, loadRunnerUrl } from './runner-env.mjs';
@@ -153,6 +153,19 @@ test('a DER-encoded CA (the Windows export default) is refused naming the conver
   const r = judge((d) => 'FACTORY_RUNNER_PG_URL=' + GOOD(d) + '\n', { 'ca.crt': der });
   assert.equal(r.usable, false);
   assert.match(r.note, /DER, not PEM/);
+});
+
+test('what pg itself would throw on is refused by the judge: a missing client cert/key, verify-* with uselibpqcompat and no CA', () => {
+  const r1 = judge('FACTORY_RUNNER_PG_URL=postgresql://factory_runner:pw@127.0.0.1:5432/db?sslmode=require&sslcert=Z%3A%5Cnowhere%5Cclient.crt\n');
+  assert.equal(r1.usable, false); assert.match(r1.note, /sslcert file .* does not exist/);
+  const r2 = judge('FACTORY_RUNNER_PG_URL=postgresql://factory_runner:pw@plane.example.com:5432/db?sslmode=verify-ca&uselibpqcompat=true\n');
+  assert.equal(r2.usable, false); assert.match(r2.note, /needs sslrootcert/);
+});
+
+test('the judge never throws: a directory where the CA should be is a refusal, not EISDIR', () => {
+  let r;
+  assert.doesNotThrow(() => { r = judge((d) => { mkdirSync(join(d, 'ca-dir')); return 'FACTORY_RUNNER_PG_URL=postgresql://factory_runner:pw@db.example.invalid:5432/postgres?sslmode=verify-full&sslrootcert=' + encodeURIComponent(join(d, 'ca-dir')) + '\n'; }); });
+  assert.equal(r.usable, false); assert.match(r.note, /not a file|could not be judged/);
 });
 
 test('a CA file that is not a certificate is refused, naming the file', () => {

@@ -106,3 +106,15 @@ test('the query string cannot override who or where: user/host/port/password set
   assert.equal(assessUrl('postgresql://factory_runner.abc:pw@aws-0-x.pooler.example.com:5432/postgres?sslmode=verify-full&sslrootcert=C%3A%5Cca.crt'), null);
   assert.equal(assessUrl('postgresql://factory_runner:pw@192.168.1.5:5432/cp?sslmode=verify-ca&sslrootcert=%2Fca.crt&uselibpqcompat=true'), null);
 });
+
+test('the production guard cannot be bypassed by percent-encoding: escapes are decoded one by one, and a malformed user name is refused, not thrown', async () => {
+  const { assessUrl } = await import('./db.mjs');
+  // one encoded letter of the ref plus an undecodable escape elsewhere used to make the whole-URL decode throw, so the raw
+  // text was searched and missed the ref, while pg decodes each part and connects to production (verification round 4)
+  const r1 = assessUrl('postgresql://factory_runner.%70vphxgrtdfrudejjhzjk:pw@aws-0-x.pooler.supabase.com:5432/postgres?sslmode=require&application_name=%C0');
+  assert.ok(r1 && /PRODUCTION/.test(r1), String(r1));
+  const r2 = assessUrl('postgresql://factory_runner:p%ss@db.%70vphxgrtdfrudejjhzjk.supabase.co:5432/postgres?sslmode=require');
+  assert.ok(r2 && /PRODUCTION/.test(r2), String(r2));
+  let r3; assert.doesNotThrow(() => { r3 = assessUrl('postgresql://fact%zzory:pw@127.0.0.1:5432/db'); });
+  assert.ok(r3 && /malformed percent-escape/.test(r3), String(r3));
+});

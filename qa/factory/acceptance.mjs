@@ -585,6 +585,36 @@ try {
       JSON.stringify({ midMs, midErr: midErr.slice(0, 80), conMs, conErr: conErr.slice(0, 80) }));
   }
 
+  // ---- P. a completion is all or nothing ------------------------------------------------------------------
+  // The run, its surface locks and its work order were three writes on three connections: a failure after the first left the run
+  // done, its locks held and its work order 'claimed' forever (the lease recovery requeues only runs in progress), so its
+  // dependents never ran (verification 2026-09-24, round 4). A failure is injected on the LAST part - the work order becoming
+  // done - with a trigger on this disposable plane; the whole completion must roll back, and succeed once the fault is gone.
+  {
+    await reset();
+    const woP = await wo('P: completes atomically', { surface: ['qa/p.txt'] });
+    const woPD = await wo('P: depends on it', { surface: ['qa/p-dep.txt'] });
+    await admin.query('insert into factory.work_order_dependencies (work_order_id, depends_on) values ($1, $2)', [woPD, woP]);
+    const runP = await claim.claimWork({ nodeId: 'node-alpha', leaseSeconds: 60, onlyWorkOrderId: woP });
+    await admin.query("create or replace function factory.qa_fail_done() returns trigger language plpgsql as $f$ begin if new.status = 'done' and new.title = 'P: completes atomically' then raise exception 'injected failure on the work order'; end if; return new; end $f$");
+    await admin.query('create trigger qa_fail_done before update on factory.work_orders for each row execute function factory.qa_fail_done()');
+    let failed = '';
+    try { await claim.completeRun({ runId: runP.run_id, nodeId: 'node-alpha', status: 'done', terminationReason: 'completed' }); } catch (e) { failed = String(e && e.message || e); }
+    const runAfterFail = (await admin.query('select status from factory.agent_runs where run_id = $1', [runP.run_id])).rows[0].status;
+    const locksAfterFail = (await admin.query('select count(*)::int n from factory.surface_locks where run_id = $1', [runP.run_id])).rows[0].n;
+    const woAfterFail = (await admin.query('select status from factory.work_orders where work_order_id = $1', [woP])).rows[0].status;
+    await admin.query('drop trigger qa_fail_done on factory.work_orders');
+    await admin.query('drop function factory.qa_fail_done()');
+    const ok2 = await claim.completeRun({ runId: runP.run_id, nodeId: 'node-alpha', status: 'done', terminationReason: 'completed' });
+    const runDone = (await admin.query('select status from factory.agent_runs where run_id = $1', [runP.run_id])).rows[0].status;
+    const woDone = (await admin.query('select status from factory.work_orders where work_order_id = $1', [woP])).rows[0].status;
+    const locksDone = (await admin.query('select count(*)::int n from factory.surface_locks where run_id = $1', [runP.run_id])).rows[0].n;
+    const dep = await claim.claimWork({ nodeId: 'node-alpha', leaseSeconds: 60 });
+    check('P  a completion is all or nothing: with the work order update failing, the run stays ' + runAfterFail + ' with its lock (' + locksAfterFail + ') and the work order ' + woAfterFail + '; without the fault all three complete and the dependent is released',
+      /injected failure/.test(failed) && runAfterFail === 'in_progress' && locksAfterFail === 1 && woAfterFail === 'claimed' && ok2 && ok2.superseded === false && runDone === 'done' && woDone === 'done' && locksDone === 0 && dep && dep.work_order_id === woPD,
+      JSON.stringify({ failed: failed.slice(0, 80), runAfterFail, locksAfterFail, woAfterFail, ok2, runDone, woDone, locksDone, dep: dep && dep.work_order_id }));
+  }
+
   // ---- K. no ambient production credential path exists ----------------------------------------------
   //
   // IN A CHILD PROCESS, because db.mjs captures FACTORY_RUNNER_PG_URL at MODULE LOAD. A process that

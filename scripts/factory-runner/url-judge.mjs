@@ -30,7 +30,9 @@ export function assessUrl(url) {
   }
   const repeated = [...new Set(keys.filter((k, i) => keys.indexOf(k) !== i))];
   if (repeated.length) return 'FACTORY_RUNNER_PG_URL repeats ' + repeated.join(', ') + ' in its query string - pg uses the LAST value, which is not the one checked here.';
-  const username = decodeURIComponent(u.username || '');
+  // a malformed escape in the user name is refused, not thrown (the supervisor used to die on it with no log line)
+  let username;
+  try { username = decodeURIComponent(u.username || ''); } catch { return 'FACTORY_RUNNER_PG_URL has a malformed percent-escape in its user name'; }
   // `postgres`, `supabase_admin`, and Supabase's pooler form `postgres.<ref>` are all the superuser.
   if (username === 'postgres' || username === 'supabase_admin' || /^postgres\./.test(username)) {
     return 'FACTORY_RUNNER_PG_URL connects as the `postgres` superuser. A least-privilege accessor pointed at '
@@ -38,8 +40,11 @@ export function assessUrl(url) {
   }
   const host = (u.hostname || '').replace(/^\[|\]$/g, '');
   // the WHOLE url is searched - a pooler names the project in `options=project=<ref>`, not in the host
-  let lower = '';
-  try { lower = decodeURIComponent(url).toLowerCase(); } catch { lower = String(url).toLowerCase(); }
+  // Decoded escape by escape, never all-or-nothing: one undecodable sequence anywhere (%C0, %zz) made the whole-URL decode throw
+  // and the marks were then searched in the RAW text, so '%70vphx...' walked past the production guard while pg, which decodes
+  // each part on its own, connected to the production tenant (verification 2026-09-24, round 4). Both spellings are searched.
+  const lenient = String(url).replace(/%([0-9a-fA-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+  const lower = lenient.toLowerCase() + '\n' + String(url).toLowerCase();
   const extra = (process.env.FACTORY_FORBIDDEN_HOST_MARKS || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
   for (const mark of [...PRODUCTION_HOST_MARKS, ...extra]) {
     if (mark && lower.includes(mark.toLowerCase())) {

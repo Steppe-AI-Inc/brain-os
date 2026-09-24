@@ -389,8 +389,12 @@ export async function completeRun({ runId, status = 'done', summary = null, head
     }
   }
   const u = usage || {};
+  // ONE STATEMENT, SO ALL OR NOTHING. The run, its surface locks and its work order were three writes on three connections; a
+  // connection lost after the first left the run done, its locks held and its work order 'claimed' forever - the lease
+  // recovery only requeues runs in progress, so nothing freed it and its dependents never ran (verification round 4).
   const fin = await db.write(
-    `update factory.agent_runs
+    `with fin as (
+      update factory.agent_runs
         set status = $2, summary = coalesce($3, summary), head_commit = coalesce($4, head_commit),
             termination_reason = $5,
             actual_provider = coalesce($6, actual_provider),
@@ -403,7 +407,12 @@ export async function completeRun({ runId, status = 'done', summary = null, head
             estimated_cost_usd = coalesce($13, estimated_cost_usd),
             finished_at = now(), lease_expires_at = null, updated_at = now()
       where run_id = $1 and status = 'in_progress' and ($14::text is null or node_id = $14::text)
-      returning work_order_id`,
+      returning run_id, work_order_id),
+    unlocked as (delete from factory.surface_locks where run_id in (select run_id from fin)),
+    finished as (
+      update factory.work_orders set status = 'done', completed_at = now(), updated_at = now()
+       where $2 = 'done' and work_order_id in (select work_order_id from fin))
+    select work_order_id from fin`,
     [runId, status, summary, headCommit, terminationReason, actualProvider, actualModel, fallbackReason,
       u.reasoningEffort ?? null, u.inputTokens ?? null, u.cachedTokens ?? null, u.outputTokens ?? null,
       u.estimatedCostUsd ?? null, nodeId]);
@@ -413,12 +422,5 @@ export async function completeRun({ runId, status = 'done', summary = null, head
   // this run is still in progress (and this node's, when the node says who it is); the work order is completed only by
   // the run that holds it.
   if (!fin.rows.length) return { superseded: true };
-  await db.write('delete from factory.surface_locks where run_id = $1', [runId]);
-  if (status === 'done') {
-    await db.write(
-      `update factory.work_orders
-          set status = 'done', completed_at = now(), updated_at = now()
-        where work_order_id = $1`, [fin.rows[0].work_order_id]);
-  }
   return { superseded: false };
 }
