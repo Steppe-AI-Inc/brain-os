@@ -62,6 +62,7 @@ const results = [];
     ['scripts/factory-runner/url-judge.mjs', "  const lower = lenient.toLowerCase() + '\\n' + String(url).toLowerCase();"],
     ['scripts/factory-runner/node-supervisor.mjs', '    if (now !== envSeen) {'],
     ['scripts/factory-runner/install-autostart.ps1', "  $o = Ask-Supervisor $dir 'whois'"],
+    ['scripts/factory-runner/url-judge.mjs', "  if (!u.username) return"], ['scripts/factory-runner/install-autostart.ps1', "if (-not $PSBoundParameters.ContainsKey('WatchdogMinutes') -and $task) {"],
     ['scripts/factory-runner/install-autostart.ps1', "if ($Start -and -not $RoleGiven -and -not $EnvGiven -and $task -and -not (Test-OtherCheckout $owner)) {"],
     ['scripts/factory-runner/install-autostart.ps1', "if (-not $RoleGiven -and (Get-TaskArg $task 'role')) {"],
     ['scripts/factory-runner/install-autostart.ps1', "foreach ($d in @($Root) + @(if ($owner -and (Test-OtherCheckout $owner)) { $owner })) {"],
@@ -156,6 +157,10 @@ try {
       expectRed('F-ENVREAD', 'a fixed or rotated runner.env is never read by a running supervisor', d, ['F15'], ['--skip', 'F6,F7,F8,F9,F10,F11,F12,F13,F14']); }
     { const d = clone('fownerscript'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("  $o = Ask-Supervisor $dir 'whois'", "  $o = \$null; \$ow = & \$NodeExe (Join-Path \$dir 'scripts\\factory-runner\\node-supervisor.mjs') --whois 2>\$null; if (\$ow) { try { \$o = (\$ow | Select-Object -Last 1) | ConvertFrom-Json } catch { } }")); commitAll(d, 'mutant: the installer runs the owner checkout\'s script');
       expectRed('F-OWNERSCRIPT', 'the installer runs another checkout\'s node-supervisor.mjs to ask who is running', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11,F12,F13,F14,F15']); }
+    { const d = clone('fuserless'); edit(d, 'scripts/factory-runner/url-judge.mjs', (s) => s.replace("  if (!u.username) return", "  if (false) return")); commitAll(d, 'mutant: a URL with no user passes');
+      expectRed('F-USERLESS', 'a URL naming no user passes the judge (pg takes PGUSER from the environment)', d, ['F10'], ['--skip', 'F6,F7,F8,F11,F12,F13,F14,F15']); }
+    { const d = clone('fwatchkeep'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("if (-not $PSBoundParameters.ContainsKey('WatchdogMinutes') -and $task) {", 'if ($false) {')); commitAll(d, 'mutant: a re-install resets the watchdog');
+      expectRed('F-WATCHKEEP', 'a re-install without -WatchdogMinutes resets the watchdog interval', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11,F12,F13,F14,F15']); }
     { const d = clone('frole'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("if ($Start -and -not $RoleGiven -and -not $EnvGiven -and $task -and -not (Test-OtherCheckout $owner)) {", 'if ($false) {').replace("if (-not $RoleGiven -and (Get-TaskArg $task 'role')) {", 'if ($false) {')); commitAll(d, 'mutant: -Start re-installs with the default role');
       expectRed('F-ROLE', 'the documented -Stop / -Start re-registers the verifier as generic', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11']); }
     { const d = clone('fhand'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("foreach ($d in @($Root) + @(if ($owner -and (Test-OtherCheckout $owner)) { $owner })) {", 'foreach ($d in @(if ($task) { if ($owner) { $owner } else { $Root } })) {')); commitAll(d, 'mutant: install leaves a hand-started supervisor running');
@@ -172,5 +177,5 @@ try {
 }
 const killed = results.filter((r) => r.killed).length;
 console.log('');
-console.log('package_bootstrap_mutation_proof: ' + killed + ' of ' + results.length + ' (control green + mutants killed)' + (FRESH ? '' : '  (static mutants only; --fresh adds the original defect and twenty-five fresh-clone mutants)'));
+console.log('package_bootstrap_mutation_proof: ' + killed + ' of ' + results.length + ' (control green + mutants killed)' + (FRESH ? '' : '  (static mutants only; --fresh adds the original defect and twenty-seven fresh-clone mutants)'));
 process.exit(killed === results.length ? 0 : 1);

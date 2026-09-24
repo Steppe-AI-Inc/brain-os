@@ -48,7 +48,9 @@ export function discoverWorkBranches({ repo, prefixes = ['wo/', 'factory/', 'run
 export function reconstructBranch({ repo, branch, trunk = 'p1/execution-truth-governance', deploySurface = null }) {
   const latest = git(['rev-parse', branch], repo);
   let base = null;
-  try { base = git(['merge-base', trunk, branch], repo); } catch { base = null; }
+  // the trunk as a local branch, else as the remote-tracking ref every ordinary clone has (a fresh clone of one branch has no local
+  // trunk branch, and base came back null - verification round 4)
+  try { base = git(['merge-base', trunk, branch], repo); } catch { try { base = git(['merge-base', 'origin/' + trunk, branch], repo); } catch { base = null; } }
   const commits = git(['rev-list', '--count', (base ? base + '..' : '') + branch], repo);
 
   const facts = {

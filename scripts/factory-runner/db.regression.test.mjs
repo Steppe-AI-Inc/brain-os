@@ -118,3 +118,14 @@ test('the production guard cannot be bypassed by percent-encoding: escapes are d
   let r3; assert.doesNotThrow(() => { r3 = assessUrl('postgresql://fact%zzory:pw@127.0.0.1:5432/db'); });
   assert.ok(r3 && /malformed percent-escape/.test(r3), String(r3));
 });
+
+test('nothing may come from the environment: a URL without user, password, port or database is refused', async () => {
+  const { assessUrl } = await import('./db.mjs');
+  // pg fills what the URL leaves out from PGUSER / PGPASSWORD / PGPORT / PGDATABASE: a userless URL ran a worker as the superuser
+  // from PGUSER=postgres (verification round 4)
+  assert.match(String(assessUrl('postgresql://127.0.0.1:5432/factory_control_plane')), /names no user/);
+  assert.match(String(assessUrl('postgresql://factory_runner@127.0.0.1:5432/factory_control_plane')), /no password/);
+  assert.match(String(assessUrl('postgresql://factory_runner:pw@127.0.0.1/factory_control_plane')), /names no port/);
+  assert.match(String(assessUrl('postgresql://factory_runner:pw@127.0.0.1:5432')), /names no database/);
+  assert.equal(assessUrl('postgresql://factory_runner:pw@127.0.0.1:5432/factory_control_plane'), null);
+});

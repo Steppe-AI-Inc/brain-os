@@ -165,6 +165,12 @@ log(status.dependencies);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const stopRequested = () => stopping || existsSync(STOP_FILE);
+// The worker's environment: this supervisor's, minus every libpq variable (PGUSER, PGPASSWORD, PGHOST, ... - pg reads them for
+// anything the URL leaves out; the judge already requires the URL to name everything), plus the URL, role and state dir.
+const workerEnv = () => {
+  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^PG[A-Z]/.test(k)));
+  return { ...env, FACTORY_RUNNER_PG_URL: RUNNER_URL, FACTORY_NODE_ROLE: ROLE, FACTORY_STATE_DIR: STATE_DIR };
+};
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 // a closed console (CTRL_CLOSE_EVENT arrives as SIGHUP on Windows) ends the supervisor with a truthful 'stopped' state
@@ -198,7 +204,7 @@ while (!stopRequested()) {
   const started = Date.now();
   child = spawn(process.execPath, [join(HERE, 'node.mjs'), 'start', '--supervisor-instance', INSTANCE], {
     cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true,
-    env: { ...process.env, FACTORY_RUNNER_PG_URL: RUNNER_URL, FACTORY_NODE_ROLE: ROLE, FACTORY_STATE_DIR: STATE_DIR },
+    env: workerEnv(),
   });
   status.childPid = child.pid; status.childStartedAt = new Date().toISOString(); status.state = 'running'; writeStatus(status);
   log('node started (pid ' + child.pid + ')');

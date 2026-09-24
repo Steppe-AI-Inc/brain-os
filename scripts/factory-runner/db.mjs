@@ -98,6 +98,20 @@ async function connect() {
     keepAliveInitialDelayMillis: 10000,
   });
   await client.connect();
+  // NO TRANSACTION MAY OUTLIVE ITS CLIENT. The idle-transaction limit only runs once the server has said ReadyForQuery; between a
+  // Parse and its Sync - a claim stalled mid-statement, a heartbeat whose UPDATE ran but whose commit never arrived - no timer
+  // runs, statement_timeout does not count the wait, and the claim lock or the run's row lock was held for as long as the dead
+  // path lived (verification round 4). PostgreSQL 17's transaction_timeout covers every transaction, implicit ones included.
+  // Sent as a command after connecting (a plain SET survives the Supabase pooler, which drops startup settings); one round trip.
+  const txMs = Math.round(pgTimeoutMs('FACTORY_PG_TX_TIMEOUT_MS', 60000)), idleTxMs = Math.round(pgTimeoutMs('FACTORY_PG_IDLE_TX_TIMEOUT_MS', 30000));
+  try {
+    await client.query('set idle_in_transaction_session_timeout = ' + idleTxMs + '; set transaction_timeout = ' + txMs);
+  } catch (e) {
+    // a server older than PostgreSQL 17 has no transaction_timeout: keep the idle limit, and say what is missing, once
+    if (String(e && e.code) !== '42704') { try { await client.end(); } catch { /* closing */ } throw e; }
+    await client.query('set idle_in_transaction_session_timeout = ' + idleTxMs);
+    if (!connect.warned) { connect.warned = true; console.log('note: this control plane has no transaction_timeout (PostgreSQL < 17) - a transaction stalled between protocol messages is not bounded'); }
+  }
   return client;
 }
 

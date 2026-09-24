@@ -30,6 +30,13 @@ export function assessUrl(url) {
   }
   const repeated = [...new Set(keys.filter((k, i) => keys.indexOf(k) !== i))];
   if (repeated.length) return 'FACTORY_RUNNER_PG_URL repeats ' + repeated.join(', ') + ' in its query string - pg uses the LAST value, which is not the one checked here.';
+  // NOTHING MAY COME FROM THE ENVIRONMENT. pg fills a missing user, password, port or database from PGUSER / PGPASSWORD / PGPORT /
+  // PGDATABASE (or .pgpass): a URL with no user connected a supervised worker as the superuser from PGUSER=postgres
+  // (verification round 4). The URL must name all four.
+  if (!u.username) return 'FACTORY_RUNNER_PG_URL names no user - pg would take PGUSER from the environment, an ambient credential';
+  if (!u.password) return 'FACTORY_RUNNER_PG_URL carries no password - pg would take PGPASSWORD or .pgpass from the environment, an ambient credential';
+  if (!u.port) return 'FACTORY_RUNNER_PG_URL names no port - pg would take PGPORT from the environment';
+  if (!u.pathname || u.pathname === '/') return 'FACTORY_RUNNER_PG_URL names no database - pg would take PGDATABASE from the environment';
   // a malformed escape in the user name is refused, not thrown (the supervisor used to die on it with no log line)
   let username;
   try { username = decodeURIComponent(u.username || ''); } catch { return 'FACTORY_RUNNER_PG_URL has a malformed percent-escape in its user name'; }

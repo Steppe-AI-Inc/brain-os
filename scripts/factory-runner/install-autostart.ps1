@@ -155,7 +155,7 @@ function Get-LastWorkerError {
   # the worker's own one-line verdict first ('error: ...' / REFUSED), then anything naming a failure - never a field of pg's
   # error-object dump ("routine: 'auth_failed'" was quoted as the cause; verification round 4)
   $l = $tail | Where-Object { $_ -match '^(error: |REFUSED)' -or $_ -match '\] (error: |REFUSED)' } | Select-Object -Last 1
-  if (-not $l) { $l = $tail | Where-Object { $_ -notmatch '^\s+[a-zA-Z]+: ' -and $_ -match 'Error|REFUSED|FAIL|ECONN|ETIMEDOUT|ENOTFOUND|password|certificate|refused' } | Select-Object -Last 1 }
+  if (-not $l) { $l = $tail | Where-Object { $_ -notmatch '^\s+(at |[a-zA-Z]+: )' -and $_ -match 'Error|REFUSED|FAIL|ECONN|ETIMEDOUT|ENOTFOUND|password|certificate|refused' } | Select-Object -Last 1 }
   if ($l) { return ([string]$l).Trim().Substring(0, [Math]::Min(220, ([string]$l).Trim().Length)) } else { return 'nothing logged that names it (' + $f + ')' }
 }
 # The plane's view of this checkout's node, read with the task's own env file. Returns the status object, or $null.
@@ -354,7 +354,18 @@ if ($Start -and -not $RoleGiven -and -not $EnvGiven -and $task -and -not (Test-O
       Confirm-TaskSupervisor $Root $since
       exit 0
     }
-    "already running: supervisor pid $($sv.pid) (task '$TaskName', role $($sv.role), state $($sv.state); nothing re-installed)"; exit 0
+    # one sample of 'running' is not a working node: a worker hanging on its connect reads 'running' for its whole timeout
+    # (verification round 4). The plane must see the node ALIVE; otherwise it is restarted and the start confirmed.
+    $plane = Get-NodeOnPlane $Root
+    if ($plane -and $plane.state -eq 'ALIVE') { "already running: supervisor pid $($sv.pid) (task '$TaskName', role $($sv.role), state $($sv.state); the plane sees the node ALIVE; nothing re-installed)"; exit 0 }
+    "the supervisor (pid $($sv.pid)) runs, but the plane does not see the node ALIVE ($(if ($plane) { $plane.state + $(if ($plane.error) { ' - ' + $plane.error } else { '' }) } else { 'no answer' })) - restarting it"
+    $s4 = Stop-CheckoutSupervisor $Root; $s4 | Where-Object { $_ -is [string] }
+    if ($s4[-1] -ne $true) { "REFUSED - that supervisor is still running 20 s after the stop request"; exit 4 }
+    if ((Get-FactoryTask).State -eq 'Running') { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue }
+    $since = Get-Date
+    Start-ScheduledTask -TaskName $TaskName
+    Confirm-TaskSupervisor $Root $since
+    exit 0
   }
   # a supervisor that is not the task's own - started by hand, or with another role - would hold the checkout while the task
   # does not run; it is stopped so the task's supervisor takes over (verification round 3: -Start used to report it as running)
@@ -376,6 +387,11 @@ if ($Start -and -not $RoleGiven -and -not $EnvGiven -and $task -and -not (Test-O
 if (-not $RoleGiven -and (Get-TaskArg $task 'role')) { $Role = Get-TaskArg $task 'role'; "role      $Role (kept from the installed task; pass -Role to change it)" }
 if (-not $EnvGiven -and (Get-TaskArg $task 'env')) { $EnvFile = Get-TaskArg $task 'env' }
 if (-not $LogGiven -and (Get-TaskArg $task 'logdir')) { $LogDir = Get-TaskArg $task 'logdir' }
+# the watchdog interval too (a re-install reset a 1-minute watchdog to 5; verification round 4)
+if (-not $PSBoundParameters.ContainsKey('WatchdogMinutes') -and $task) {
+  $iv = @($task.Triggers | Where-Object { $_.CimClass.CimClassName -eq 'MSFT_TaskTimeTrigger' -and $_.Repetition.Interval } | ForEach-Object { $_.Repetition.Interval }) | Select-Object -First 1
+  if ($iv) { try { $m = [int][Math]::Round([System.Xml.XmlConvert]::ToTimeSpan($iv).TotalMinutes); if ($m -ge 1 -and $m -le 60) { $WatchdogMinutes = $m; "watchdog  every $m min (kept from the installed task; pass -WatchdogMinutes to change it)" } } catch { } }
+}
 $pre = Test-NodePreflight $EnvFile
 $pre | Where-Object { $_ -is [string] }
 if ($pre[-1] -ne $true) { "REFUSED - the preflight failed; no task was installed, changed or removed"; exit 2 }

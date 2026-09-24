@@ -615,6 +615,62 @@ try {
       JSON.stringify({ failed: failed.slice(0, 80), runAfterFail, locksAfterFail, woAfterFail, ok2, runDone, woDone, locksDone, dep: dep && dep.work_order_id }));
   }
 
+  // ---- Q. a statement stalled between its protocol messages cannot hold a lock ------------------------------
+  // The idle-transaction limit starts only after ReadyForQuery. A client whose UPDATE was executed but whose Sync never arrived held
+  // the row lock (and a claimer the plane-wide claim lock) for as long as the dead path lived; no timer ran on the server
+  // (verification 2026-09-24, round 4). Every session now carries transaction_timeout (PostgreSQL 17+), which covers the implicit
+  // transaction of a single statement. A relay parses the client's messages: it forwards the marked UPDATE through its Execute and
+  // withholds the Sync. The server must end that session within the limit, freeing the row for another writer.
+  {
+    await reset();
+    const woQ = await wo('Q: stalled writer', { surface: ['qa/q.txt'] });
+    const runQ = await claim.claimWork({ nodeId: 'node-alpha', leaseSeconds: 300, onlyWorkOrderId: woQ });
+    const net = await import('node:net');
+    const conns = [];
+    const relay = net.createServer((c) => {
+      const u = net.connect(pg.port, '127.0.0.1'); conns.push(c, u); c.on('error', () => {}); u.on('error', () => {});
+      let buf = Buffer.alloc(0), started = false, trap = false, held = false;
+      c.on('data', (d) => {
+        if (held) return;
+        buf = Buffer.concat([buf, d]);
+        const out = [];
+        for (;;) {
+          if (!started) { if (buf.length < 4) break; const n = buf.readInt32BE(0); if (buf.length < n) break; const m = buf.subarray(0, n); out.push(m); buf = buf.subarray(n); const code = n >= 8 ? m.readInt32BE(4) : 0; if (code !== 80877103) started = true; continue; }
+          if (buf.length < 5) break;
+          const t = String.fromCharCode(buf[0]); const n = buf.readInt32BE(1); if (buf.length < 1 + n) break;
+          const m = buf.subarray(0, 1 + n);
+          if (t === 'P' && m.toString('latin1').includes('qa-stalled-writer')) trap = true;
+          if (trap && t === 'S') { held = true; break; }
+          out.push(m); buf = buf.subarray(1 + n);
+        }
+        if (out.length) u.write(Buffer.concat(out));
+      });
+      u.on('data', (d) => { if (!c.destroyed) c.write(d); });
+    });
+    await new Promise((r) => relay.listen(0, '127.0.0.1', r));
+    const relayUrl = pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + relay.address().port + '/');
+    const saved = { url: process.env.FACTORY_RUNNER_PG_URL, tx: process.env.FACTORY_PG_TX_TIMEOUT_MS, q: process.env.FACTORY_PG_QUERY_TIMEOUT_MS };
+    process.env.FACTORY_RUNNER_PG_URL = relayUrl; process.env.FACTORY_PG_TX_TIMEOUT_MS = '3000'; process.env.FACTORY_PG_QUERY_TIMEOUT_MS = '30000';
+    const dbQ = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/db.mjs')).href + '?stalled=' + Date.now());
+    const stalled = dbQ.write('update factory.agent_runs set updated_at = now() where run_id = $1 /* qa-stalled-writer */', [runQ.run_id]).then(() => 'returned', (e) => 'error: ' + String(e && e.message || e));
+    await new Promise((r) => setTimeout(r, 800));
+    const lockedBy = (await admin.query("select count(*)::int n from pg_stat_activity where query like '%qa-stalled-writer%' and pid <> pg_backend_pid()")).rows[0].n;
+    // another writer wants the same row: it must get it within the transaction limit, not wait for the dead path
+    const t0 = Date.now(); let otherErr = '';
+    try { await admin.query('begin'); await admin.query("set local lock_timeout = '12s'"); await admin.query('update factory.agent_runs set updated_at = now() where run_id = $1', [runQ.run_id]); await admin.query('commit'); }
+    catch (e) { otherErr = String(e && e.message || e); try { await admin.query('rollback'); } catch { /* none */ } }
+    const otherMs = Date.now() - t0;
+    const leftover = (await admin.query("select count(*)::int n from pg_stat_activity where query like '%qa-stalled-writer%' and pid <> pg_backend_pid()")).rows[0].n;
+    for (const x of conns) { try { x.destroy(); } catch { /* gone */ } }
+    relay.close();
+    const stalledResult = await Promise.race([stalled, new Promise((r) => setTimeout(() => r('HUNG'), 35000))]);
+    process.env.FACTORY_RUNNER_PG_URL = saved.url;
+    for (const [k, v] of [['FACTORY_PG_TX_TIMEOUT_MS', saved.tx], ['FACTORY_PG_QUERY_TIMEOUT_MS', saved.q]]) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+    check('Q  a statement stalled between its Execute and its Sync cannot hold its lock: the server ends that session (' + lockedBy + ' stalled, ' + leftover + ' left) and another writer gets the row in ' + otherMs + ' ms (limit 3000 ms)',
+      lockedBy === 1 && !otherErr && otherMs < 9000 && leftover === 0 && stalledResult !== 'HUNG',
+      JSON.stringify({ lockedBy, otherErr: otherErr.slice(0, 80), otherMs, leftover, stalledResult: String(stalledResult).slice(0, 80) }));
+  }
+
   // ---- K. no ambient production credential path exists ----------------------------------------------
   //
   // IN A CHILD PROCESS, because db.mjs captures FACTORY_RUNNER_PG_URL at MODULE LOAD. A process that

@@ -497,6 +497,7 @@ if (!STATIC_ONLY) {
       // a re-install without -LogDir keeps the task's log dir
       cyc.reinstallKeep = psT(['-Role', 'verifier', '-EnvFile', envFile]);
       cyc.argsAfterKeep = taskArgsOf();
+      cyc.watchdogAfterKeep = run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName '" + scratchTask + "' -ErrorAction SilentlyContinue; if($t){ @($t.Triggers | Where-Object { $_.CimClass.CimClassName -eq 'MSFT_TaskTimeTrigger' } | ForEach-Object { $_.Repetition.Interval }) -join ',' } else { 'NONE' }"], ROOT).out.trim();
       cyc.uninstall1 = psT(['-Uninstall']);
       // a hand-started supervisor with NO task, then an install with a RELATIVE -EnvFile (resolved against the caller's directory,
       // registered absolute - it used to be registered verbatim and the task's supervisor looked for it in the checkout)
@@ -533,7 +534,7 @@ if (!STATIC_ONLY) {
         && cyc.startOverHand.rc === 0 && /stopping it so the task's own supervisor takes over/.test(cyc.startOverHand.out) && /started: supervisor pid \d+, worker pid \d+, role verifier/.test(cyc.startOverHand.out) && cyc.handGenericGone
         && /revived by pid \d+ role verifier/.test(cyc.watchdog)
         && /stopped true, said why true/.test(cyc.rawStop) && cyc.stopAfterRaw.rc === 0 && /DOWN here/.test(cyc.statusDown.out)
-        && cyc.reinstallKeep.rc === 0 && /--log-dir /.test(cyc.argsAfterKeep) && /--role verifier/.test(cyc.argsAfterKeep)
+        && cyc.reinstallKeep.rc === 0 && /--log-dir /.test(cyc.argsAfterKeep) && /--role verifier/.test(cyc.argsAfterKeep) && cyc.watchdogAfterKeep === 'PT1M'
         && cyc.uninstall1.rc === 0
         && cyc.reinstall.rc === 0 && /started: supervisor pid \d+/.test(cyc.reinstall.out) && (cyc.reinstall.out.match(/started: supervisor pid (\d+)/) || [])[1] !== String(hand.pid) && handGone
         && cyc.argsAfterReinstall.includes('--runner-env "' + envFile + '"')
@@ -595,6 +596,7 @@ if (!STATIC_ONLY) {
       const derCa = join(work, 'env10', 'der-ca.cer'); writeFileSync(derCa, Buffer.from((pemCa ? pemCa[1] : '').replace(/[',\s]/g, ''), 'base64'));
       envs['a DER CA (the Windows export default; pg reads PEM)'] = [mk('der', 'FACTORY_RUNNER_PG_URL=' + pg.runnerUrl + '?sslmode=verify-full&sslrootcert=' + encodeURIComponent(derCa) + '\n'), /DER, not PEM/];
       envs['the production ref percent-encoded, with an undecodable escape elsewhere'] = [mk('prodenc', 'FACTORY_RUNNER_PG_URL=postgresql://factory_runner.%70vphxgrtdfrudejjhzjk:pw@127.0.0.1:' + pg.port + '/factory_control_plane?application_name=%C0\n'), /PRODUCTION/];
+      envs['a URL naming no user (pg would take PGUSER)'] = [mk('nouser', 'FACTORY_RUNNER_PG_URL=postgresql://127.0.0.1:' + pg.port + '/factory_control_plane\n'), /names no user/];
       envs['a CA file that is not a certificate'] = [mk('badca', 'FACTORY_RUNNER_PG_URL=' + pg.runnerUrl + '?sslmode=verify-full&sslrootcert=' + encodeURIComponent(badCa) + '\n'), /is not a certificate/];
       const results = Object.entries(envs).map(([label, [f, why]]) => {
         const r = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--runner-env', f, '--role', 'verifier', '--log-dir', join(work, 'logs-a10')], cloneA, { ...cleanEnv, FACTORY_STATE_DIR: state10 }, 30000);
