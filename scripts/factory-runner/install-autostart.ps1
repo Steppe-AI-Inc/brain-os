@@ -8,8 +8,18 @@
 # -Role      generic (Home PC) | verifier (Work PC) | release_broker
 # -EnvFile   the runner env file (default %USERPROFILE%\.brain-factory\runner.env); its contents are never printed
 # -Start     start the task now (the supervisor refuses to run twice per checkout, so this is idempotent)
-# -Verify    exit 0 only if the task exists, is enabled, and its action is this checkout's supervisor
+# -Stop      stop the supervisor cleanly (its worker with it) and the task
+# -Status    task state, the supervisor's state file, the dependency check and the node's liveness on the plane
+# -Preflight check only - env file, the runner URL it yields, and the runtime dependencies at their locked versions - and
+#            exit 0/1 without touching any task (what the package regression drives)
+# -Verify    exit 0 only if the task exists, is enabled, its action is this checkout's supervisor, and the dependencies
+#            the supervisor needs are installed (a task that starts a supervisor which cannot load pg is not a working task)
 # -Uninstall remove the task and ask a running supervisor to stop
+# -ReplaceOtherCheckout  allow replacing a task that points at a DIFFERENT checkout (refused by default: one PC, one task
+#            name, and an install from a scratch clone must not silently take over the node this PC is running)
+#
+# Before any task is touched the install runs the same preflight and refuses with the fix named: a missing env file, or
+# runtime dependencies not installed from the committed package-lock.json (`npm ci` fixes it).
 #
 # The task runs as this user with S4U logon (no stored password, no console window; falls back to an interactive logon
 # if S4U is refused), unlimited execution time, restart on failure every minute, one instance at a time, and it may start
@@ -17,13 +27,36 @@
 param(
   [ValidateSet('generic', 'verifier', 'release_broker')] [string] $Role = 'generic',
   [string] $EnvFile = (Join-Path $env:USERPROFILE '.brain-factory\runner.env'),
-  [switch] $Start, [switch] $Stop, [switch] $Status, [switch] $Verify, [switch] $Uninstall
+  [switch] $Start, [switch] $Stop, [switch] $Status, [switch] $Preflight, [switch] $Verify, [switch] $Uninstall,
+  [switch] $ReplaceOtherCheckout
 )
 $ErrorActionPreference = 'Stop'
 $TaskName = 'BrainOS Factory Node'
 $Root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $Supervisor = Join-Path $Root 'scripts\factory-runner\node-supervisor.mjs'
+$DepsCheck = Join-Path $Root 'scripts\factory-runner\deps.mjs'
 $NodeExe = (Get-Command node -ErrorAction Stop).Source
+
+# The same checks the supervisor makes before it starts a worker, run here first so a task is never registered for a checkout
+# that cannot run one. Returns $true/$false and prints one line per check; prints no URL.
+function Test-NodePreflight {
+  $ok = $true
+  if (-not (Test-Path $EnvFile)) { "FAIL env file not found: $EnvFile (provision-control-plane.mjs --write-env writes it; copy it to this path)"; $ok = $false }
+  else {
+    $mod = 'file:///' + ((Join-Path $Root 'scripts\factory-runner\runner-env.mjs') -replace '\\', '/')
+    $note = & $NodeExe -e "import(process.argv[1]).then(m=>{const r=m.loadRunnerUrl(process.argv[2]);console.log((r.url?'ok   ':'FAIL ')+'env file '+process.argv[2]+' yields a runner URL (not printed; '+r.note+')');process.exit(r.url?0:1)})" $mod $EnvFile
+    $note; if ($LASTEXITCODE -ne 0) { $ok = $false }
+  }
+  $deps = & $NodeExe $DepsCheck
+  if ($LASTEXITCODE -eq 0) { "ok   $deps" } else { "FAIL $deps"; $ok = $false }
+  return $ok
+}
+
+if ($Preflight) {
+  $lines = Test-NodePreflight
+  $lines | Where-Object { $_ -is [string] }
+  if ($lines[-1] -eq $true) { "PREFLIGHT OK for $Root"; exit 0 } else { "PREFLIGHT FAILED for $Root - nothing was installed or changed"; exit 1 }
+}
 
 if ($Stop) {
   & $NodeExe $Supervisor --stop
@@ -36,6 +69,7 @@ if ($Status) {
   $t = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
   if ($t) { "task      $TaskName  state $($t.State)" } else { "task      $TaskName  NOT INSTALLED" }
   "supervisor"; & $NodeExe $Supervisor --status
+  "deps      " + (& $NodeExe $DepsCheck)
   if (Test-Path $EnvFile) {
     # the shared loader resolves the CA path for this machine; the URL is handed to node.mjs through the environment only
     $mod = 'file:///' + ((Join-Path $Root 'scripts\factory-runner\runner-env.mjs') -replace '\\', '/')
@@ -67,16 +101,30 @@ if ($Verify) {
   "workdir   $($action.WorkingDirectory)"
   "last run  $($info.LastRunTime)  result 0x$('{0:X}' -f $info.LastTaskResult)"
   if (Test-Path $EnvFile) { $acl = (Get-Acl $EnvFile).Access | ForEach-Object { "$($_.IdentityReference):$($_.FileSystemRights)" }; "env ACL   $($acl -join '; ')" }
-  if ($okAction -and $enabled) { "OK   the task exists, is enabled, and starts this checkout's supervisor"; exit 0 }
-  "FAIL " + $(if (-not $enabled) { 'the task is disabled' } else { 'the task action is not this checkout''s supervisor' }); exit 1
+  $depsLine = & $NodeExe $DepsCheck; $depsOk = ($LASTEXITCODE -eq 0)
+  "deps      $depsLine"
+  if ($okAction -and $enabled -and $depsOk) { "OK   the task exists, is enabled, starts this checkout's supervisor, and the dependencies it needs are installed"; exit 0 }
+  "FAIL " + $(if (-not $enabled) { 'the task is disabled' } elseif (-not $okAction) { 'the task action is not this checkout''s supervisor' } else { 'the runtime dependencies are not installed - run npm ci in ' + $Root }); exit 1
 }
 
-if (-not (Test-Path $EnvFile)) { "FAIL env file not found: $EnvFile (provision-control-plane.mjs --write-env writes it)"; exit 2 }
+# ---- install: preflight first, and nothing is touched unless it passes -------------------------------------------------
+$pre = Test-NodePreflight
+$pre | Where-Object { $_ -is [string] }
+if ($pre[-1] -ne $true) { "REFUSED - the preflight failed; no task was installed, changed or removed"; exit 2 }
+$existingForGuard = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+if ($existingForGuard) {
+  $existingDir = ($existingForGuard.Actions | Select-Object -First 1).WorkingDirectory
+  if ($existingDir -and ($existingDir -ne $Root) -and -not $ReplaceOtherCheckout) {
+    "REFUSED - the task '$TaskName' belongs to another checkout ($existingDir); this is $Root."
+    "          Nothing was changed. Re-run with -ReplaceOtherCheckout only if this checkout should become this PC's node."
+    exit 3
+  }
+}
 # THE CREDENTIAL FILE IS READABLE BY THIS USER ONLY. Node's 0o600 is ignored on Windows, so the ACL is set here: inheritance
 # removed, one explicit grant. -Verify reports the ACL so a widened one is visible.
 try { & icacls $EnvFile /inheritance:r /grant:r "$($env:USERNAME):(R,W)" | Out-Null; "env file ACL: inheritance removed, $env:USERNAME read/write only" } catch { "note: could not tighten the env file ACL: $($_.Exception.Message)" }
-$args = "`"$Supervisor`" --env-file `"$EnvFile`" --role $Role"
-$action = New-ScheduledTaskAction -Execute $NodeExe -Argument $args -WorkingDirectory $Root
+$taskArgs = "`"$Supervisor`" --env-file `"$EnvFile`" --role $Role"
+$action = New-ScheduledTaskAction -Execute $NodeExe -Argument $taskArgs -WorkingDirectory $Root
 $triggers = @((New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME), (New-ScheduledTaskTrigger -AtStartup))
 $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) `
   -MultipleInstances IgnoreNew -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -Hidden

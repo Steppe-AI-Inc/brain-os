@@ -36,10 +36,13 @@ echo
 ENV_FILE="${ENV_FILE:-${FACTORY_RUNNER_ENV_FILE:-}}"
 if [ -n "$ENV_FILE" ]; then
   if [ ! -f "$ENV_FILE" ]; then echo "  FAIL env file not found: $ENV_FILE"; exit 2; fi
-  # the shared loader resolves the CA path for this machine (runner-env.mjs); the URL itself is never printed
-  LOADED="$(node -e "import('./scripts/factory-runner/runner-env.mjs').then(m=>{const r=m.loadRunnerUrl(process.argv[1]);if(!r.url){console.error(r.note);process.exit(2)}process.stdout.write(r.url);console.error(r.note)})" "$ENV_FILE" 2>"$ROOT/.factory/.env-note")" || { cat "$ROOT/.factory/.env-note" 2>/dev/null; echo "  FAIL could not load $ENV_FILE"; exit 2; }
+  # the shared loader resolves the CA path for this machine (runner-env.mjs); the URL itself is never printed. The note goes
+  # to a temp file, not under .factory/ - a fresh clone has no .factory/ yet, and redirecting into a missing directory failed
+  # the whole step (found 2026-09-24 on a clean clone).
+  NOTE_FILE="$(mktemp 2>/dev/null || echo "${TMPDIR:-/tmp}/factory-env-note.$$")"
+  LOADED="$(node -e "import('./scripts/factory-runner/runner-env.mjs').then(m=>{const r=m.loadRunnerUrl(process.argv[1]);if(!r.url){console.error(r.note);process.exit(2)}process.stdout.write(r.url);console.error(r.note)})" "$ENV_FILE" 2>"$NOTE_FILE")" || { cat "$NOTE_FILE" 2>/dev/null; rm -f "$NOTE_FILE"; echo "  FAIL could not load $ENV_FILE"; exit 2; }
   export FACTORY_RUNNER_PG_URL="$LOADED"
-  echo "  ok   FACTORY_RUNNER_PG_URL read from $ENV_FILE (not printed; $(cat "$ROOT/.factory/.env-note" 2>/dev/null))"; rm -f "$ROOT/.factory/.env-note"
+  echo "  ok   FACTORY_RUNNER_PG_URL read from $ENV_FILE (not printed; $(cat "$NOTE_FILE" 2>/dev/null))"; rm -f "$NOTE_FILE"
 fi
 if [ -z "${FACTORY_RUNNER_PG_URL:-}" ]; then
   echo "  FAIL FACTORY_RUNNER_PG_URL is not set in this shell."
@@ -55,11 +58,16 @@ if [ "$NODE_MAJOR" -lt 20 ]; then echo "  FAIL node $NODE_MAJOR found; 20 or new
 echo "  ok   node $(node -v)"
 git --version >/dev/null 2>&1 || { echo "  FAIL git is not on PATH"; exit 2; }
 echo "  ok   git $(git --version | cut -d' ' -f3) at $(git rev-parse --short HEAD) on $(git rev-parse --abbrev-ref HEAD)"
-if [ ! -d node_modules/pg ]; then
-  echo "  ..   installing dependencies (npm ci)"
-  npm ci --no-audit --no-fund >/dev/null 2>&1 || { echo "  FAIL npm ci failed"; exit 2; }
+# the runtime dependencies, installed from the COMMITTED package-lock.json and at its versions (deps.mjs) - not merely "a
+# pg folder exists", which a stale or hand-made install also satisfies. npm's own output is shown when it fails.
+[ -f package-lock.json ] || { echo "  FAIL package-lock.json is missing - this checkout is not a Factory candidate (npm ci installs from the committed lock)"; exit 2; }
+if ! DEPLINE="$(node scripts/factory-runner/deps.mjs 2>&1)"; then
+  echo "  ..   $DEPLINE"
+  echo "  ..   installing the locked dependencies (npm ci)"
+  if ! NPMOUT="$(npm ci --no-audit --no-fund 2>&1)"; then echo "$NPMOUT" | tail -12 | sed 's/^/       /'; echo "  FAIL npm ci failed"; exit 2; fi
+  DEPLINE="$(node scripts/factory-runner/deps.mjs 2>&1)" || { echo "  FAIL $DEPLINE"; exit 2; }
 fi
-echo "  ok   dependencies present"
+echo "  ok   $DEPLINE"
 if command -v claude >/dev/null 2>&1; then echo "  ok   claude CLI $(claude --version 2>/dev/null | head -1)"; else echo "  note claude CLI not on PATH - this node can hold the plane but cannot run an agent"; fi
 
 # 3. the plane, link by link (refuses a superuser, a production project, or a network crossed in the clear)

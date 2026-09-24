@@ -329,6 +329,16 @@ export async function health() {
       tlsOn ? "" : "sslmode=" + sslmode + " — add ?sslmode=require; a shared control plane is reached over a network");
   }
 
+  // 1b. The driver this node needs, installed at its locked version. Checked BEFORE connecting, because a missing `pg`
+  // otherwise surfaces as "cannot connect - Cannot find package" - a connection fault in the wording of a packaging one
+  // (2026-09-24: a fresh clone of a branch with no package-lock.json).
+  {
+    const { checkDependencies, describe: describeDeps } = await import("./deps.mjs");
+    const deps = checkDependencies();
+    say(deps.ok, deps.ok ? describeDeps(deps) : "runtime dependencies are not installed at their locked versions", deps.ok ? "" : describeDeps(deps));
+    if (!deps.ok) { console.log(lines.join("\n")); return { ok: false, reason: "dependencies" }; }
+  }
+
   // 2. Connection, identity and privilege, in one round trip.
   let who = null;
   try {

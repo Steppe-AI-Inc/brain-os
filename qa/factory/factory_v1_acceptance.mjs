@@ -56,6 +56,8 @@ r = run(join(ROOT, 'qa/factory/http_provider_acceptance.mjs'), [], { ...noUrl, D
 row('6', 'the HTTP provider path against a stub: ' + summary(r.out, /http_provider_acceptance: \d+ passed, \d+ failed/), r.rc === 0);
 r = run(join(ROOT, 'scripts/factory-runner/monitor-gc.mjs'), ['list']);
 row('5', 'monitor garbage collection: ' + (r.out.trim().split(/\r?\n/).pop() || ''), r.rc === 0);
+r = run(join(ROOT, 'qa/factory/package_bootstrap_regression.mjs'), [], { ...noUrl, FACTORY_STATE_DIR: '' });
+row('bootstrap', 'a fresh clone installs from the committed lock and runs a node, the supervisor, the installer preflight and the bootstrap: ' + summary(r.out, /package_bootstrap_regression: \d+ passed, \d+ failed/), r.rc === 0);
 r = run(join(ROOT, 'qa/factory/reboot_recovery_acceptance.mjs'), [], { ...noUrl, FACTORY_STATE_DIR: '' });
 row('reboot', 'reboot / recovery persistence (supervisor, crash restart, identity, queue claim, live scheduled task): ' + summary(r.out, /reboot_recovery_acceptance: \d+ passed, \d+ failed/), r.rc === 0);
 if (process.env.FACTORY_RUNNER_PG_URL && !LOCAL_ONLY) {

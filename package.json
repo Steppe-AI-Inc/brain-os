@@ -3,14 +3,35 @@
   "version": "0.7.1",
   "private": true,
   "description": "SEM Brain AI-native operating system - auto deployment pack",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "python3 -m http.server 8080",
     "verify": "node scripts/verify-release.mjs",
     "deploy:vercel": "vercel --prod",
     "supabase:deploy:function": "supabase functions deploy sem-ai-command",
-    "supabase:db:push": "supabase db push"
+    "supabase:db:push": "supabase db push",
+    "factory:package-check": "node qa/factory/package_bootstrap_regression.mjs",
+    "factory:acceptance": "node qa/factory/factory_v1_acceptance.mjs"
+  },
+  "dependencies": {
+    "pg": "8.23.0"
   },
   "devDependencies": {
-    "@vercel/node": "latest"
+    "@vercel/node": "latest",
+    "embedded-postgres": "18.4.0-beta.17"
+  },
+  "allowScripts": {
+    "@embedded-postgres/darwin-arm64@18.4.0-beta.17": true,
+    "@embedded-postgres/darwin-x64@18.4.0-beta.17": true,
+    "@embedded-postgres/linux-arm@18.4.0-beta.17": true,
+    "@embedded-postgres/linux-arm64@18.4.0-beta.17": true,
+    "@embedded-postgres/linux-ia32@18.4.0-beta.17": true,
+    "@embedded-postgres/linux-ppc64@18.4.0-beta.17": true,
+    "@embedded-postgres/linux-x64@18.4.0-beta.17": true,
+    "@embedded-postgres/windows-x64@18.4.0-beta.17": true,
+    "esbuild@0.27.0": true,
+    "fsevents@2.3.3": true
   }
 }

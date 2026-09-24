@@ -12,6 +12,10 @@
 // One instance per checkout (pid file). Everything it knows is in .factory/node-status.json for `status` and for the
 // reboot-recovery acceptance; the child's output goes to a daily log under the log dir (14 days kept).
 //
+// Exit codes: 0 stopped when asked; 2 bad arguments or no usable env file; 3 another supervisor already runs for this
+// checkout; 5 the runtime dependencies are not installed at their locked versions (deps.mjs) - `npm ci` fixes it, and the
+// supervisor never starts or restarts a worker that could not load its driver.
+//
 // The scheduled task install-autostart.ps1 registers is what launches this at logon and at boot; the supervisor is what
 // makes "PROCESS LIFETIME != NODE LIFETIME" true between reboots as well as within one session.
 import { spawn } from 'node:child_process';
@@ -91,6 +95,24 @@ const status = { supervisorPid: process.pid, role: ROLE, envFile: ENV_FILE, logD
 writeStatus(status);
 log('supervisor started; role ' + ROLE + '; env file ' + ENV_FILE + ' (URL not printed; ' + ENV_NOTE + '); state dir ' + STATE_DIR);
 
+// A WORKER THAT CANNOT LOAD ITS DRIVER IS NOT RESTARTED, IT IS REFUSED BY NAME. Before 2026-09-24 a checkout without `pg`
+// (a fresh clone of a branch with no package-lock.json) started a worker that died on ERR_MODULE_NOT_FOUND within a second,
+// and the supervisor backed off and tried again forever - a crash loop whose only trace was a stack in the log. The check is
+// repeated before every restart, because node_modules can be removed under a running supervisor (npm ci does exactly that).
+const { checkDependencies, describe: describeDeps } = await import('./deps.mjs');
+const EXIT_DEPENDENCIES_MISSING = 5;
+const refuseIfDependenciesMissing = () => {
+  const deps = checkDependencies(ROOT);
+  status.dependencies = describeDeps(deps);
+  if (deps.ok) return;
+  status.state = 'dependencies_missing'; status.childPid = null; status.stoppedAt = new Date().toISOString(); writeStatus(status);
+  log(status.dependencies + ' - the supervisor exits (' + EXIT_DEPENDENCIES_MISSING + ') instead of restarting a worker that cannot load');
+  try { unlinkSync(PID_FILE); } catch { /* gone */ }
+  process.exit(EXIT_DEPENDENCIES_MISSING);
+};
+refuseIfDependenciesMissing();
+log(status.dependencies);
+
 let child = null, stopping = false;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const stopRequested = () => stopping || existsSync(STOP_FILE);
@@ -100,6 +122,7 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 while (!stopRequested()) {
   rotate();
+  refuseIfDependenciesMissing();
   const started = Date.now();
   child = spawn(process.execPath, [join(HERE, 'node.mjs'), 'start'], {
     cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true,
