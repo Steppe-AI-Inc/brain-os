@@ -7,3 +7,4 @@ node_modules/
 # make every clone claim to be the same node, which breaks lease ownership and surface locks.
 .factory/
 .factory-rehearsal/
+.claude/settings.local.json
