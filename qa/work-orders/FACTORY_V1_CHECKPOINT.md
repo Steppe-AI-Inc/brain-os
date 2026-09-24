@@ -47,6 +47,10 @@
   runs by another node or commit; and lows (dirty evidence counted, row 4 counted an unfinished verifying run, a re-registered node read
   STALE for a beat). All fixed with rows and mutants (acceptance S2; node_truth N16, N19, N20, N8 health; regression F6 commit check).
   Registered, bounded: more than eight assurance-declined work orders starve a node that requests a model (none does today).
+  Its Work-PC probe added: [medium] over a slow link one failed lease renewal aborted a healthy run (the guard raced the next renewal)
+  -> a failed renewal is retried in 5 s, the guard judges the lease from the last landed renewal's start with a margin of at most 5 s,
+  an aborted run gives its lease back; [low] a first claim cycle refused by admission counted as ready -> only an admitted cycle
+  (node_truth N21, N22).
 - **Live state**: plane `npvhuoozkbexddnvkqsj` healthy; Home node `node-4d4a74dd` generic under the task (conhost --headless,
   control pipe, watchdog), to be restarted on the frozen SHA (APPLIED). Local plane on 54329. Backups:
   `C:\Users\Dell\dev\backups\factory-cp-2026-09-24-*.bundle`.

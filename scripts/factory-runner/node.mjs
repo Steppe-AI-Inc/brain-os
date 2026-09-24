@@ -234,28 +234,49 @@ export function ensureWorktree({ runId, baseCommit, branch }) {
 /** 8. Renew the lease on a timer for as long as the work is running (the heartbeat also stamps the node record - claim.mjs).
  *  Returns { stop, signal }: the signal ABORTS the run when its lease cannot be kept (see below). */
 export function startHeartbeat({ runId, id, leaseSeconds = DEFAULT_LEASE_SECONDS }) {
-  const everyMs = Math.max(5000, Math.floor((leaseSeconds * 1000) / 3));
-  let lost = false, stopped = false, lastOk = Date.now();
+  const leaseMs = leaseSeconds * 1000;
+  const everyMs = Math.max(5000, Math.floor(leaseMs / 3));
+  // the lease the plane holds runs from the START of the last renewal that landed (the server stamps it while the statement runs)
+  let lost = false, stopped = false, inFlight = false, leaseFrom = Date.now(), retry = null;
   const ac = new AbortController();
   const say = (m) => console.log('[' + String(id).slice(0, 13) + '] run ' + String(runId).slice(0, 8) + ' ' + m);
-  const abort = (why) => { if (!ac.signal.aborted && !stopped) { say('ABORTED: ' + why); ac.abort(new Error('run aborted: ' + why)); } };
-  const timer = setInterval(() => {
-    if (stopped) return;
+  const abort = (why) => {
+    if (ac.signal.aborted || stopped) return;
+    say('ABORTED: ' + why);
+    ac.abort(new Error('run aborted: ' + why));
+    // ...and its lease is given back at once, so the plane and the Home PC do not show an abandoned run as a live claim (best effort:
+    // the plane may be the thing that is unreachable)
+    db.write("update factory.agent_runs set lease_expires_at = now() where run_id = $1 and node_id = $2 and status = 'in_progress'", [runId, id])
+      .then(() => db.write('update factory.surface_locks set lease_expires_at = now() where run_id = $1', [runId])).catch(() => { /* the lease lapses by itself */ });
+  };
+  const renew = () => {
+    if (stopped || inFlight || ac.signal.aborted) return;
+    inFlight = true;
+    const startedAt = Date.now();
     heartbeat({ runId, nodeId: id, leaseSeconds })
       // a lost lease is said once; the completion fence (claim.mjs completeRun) keeps this run's result off the work order
       // (never said of a run this node has already finished - its beat may land after the completion)
-      .then((ok) => { if (stopped) return; if (ok) { lastOk = Date.now(); return; } if (!lost) { lost = true; say('LOST its lease (taken over by another node); its result will not complete the work order'); abort('its lease was taken over by another node'); } })
-      .catch(() => { /* a failed renewal: the guard below decides */ });
+      .then((ok) => { if (stopped) return; if (ok) { leaseFrom = startedAt; return; } if (!lost) { lost = true; say('LOST its lease (taken over by another node); its result will not complete the work order'); abort('its lease was taken over by another node'); } })
+      // A FAILED RENEWAL IS RETRIED IN SECONDS, not at the next tick: one failure left the next attempt racing the abort guard, and
+      // over the internet (a renewal takes ~1.5 s through a remote pooler) it lost - a healthy run was aborted (final verification 2)
+      .catch(() => { if (!stopped && !retry) { retry = setTimeout(() => { retry = null; renew(); }, 5000); if (typeof retry.unref === 'function') retry.unref(); } })
+      .finally(() => { inFlight = false; });
+  };
+  const timer = setInterval(() => {
+    if (stopped) return;
+    renew();
     // ...and the role, while busy too (a long run no longer leaves a demotion standing until it ends)
     nodeBeat(id).then((b) => { if (b.found && b.was !== nodeRole()) console.log('[' + String(id).slice(0, 13) + '] the plane held role ' + b.was + ' for this node - re-asserted ' + nodeRole()); }, () => { /* the next beat */ });
   }, everyMs);
   // A RUN THAT CANNOT RENEW ITS LEASE STOPS BEFORE THE LEASE CAN LAPSE. A node cut off from the plane kept working after its lease
   // lapsed and another node had taken the surface: two machines worked one surface at once, and the work ran twice (final
-  // verification 2026-09-24). With no renewal for two thirds of the lease the run is aborted - the work stays recoverable (its
-  // checkpoints), the surface is left before anyone else can take it.
-  const guard = setInterval(() => { if (!stopped && Date.now() - lastOk > (leaseSeconds * 1000 * 2) / 3) abort('no lease renewal for ' + Math.round((Date.now() - lastOk) / 1000) + ' s (lease ' + leaseSeconds + ' s) - stopped before the lease can lapse and another node takes its surface'); }, 1000);
+  // verification 2026-09-24). The run is aborted when its lease - as the plane holds it, from the start of the last renewal that landed -
+  // is about to lapse: a third of the lease, at most 5 s, before it does. Not at two thirds of the lease: that aborted healthy runs
+  // whose next renewal was still landing over a slow link (final verification 2, 2026-09-25).
+  const margin = Math.min(5000, leaseMs / 3);
+  const guard = setInterval(() => { if (!stopped && Date.now() - leaseFrom > leaseMs - margin) abort('no lease renewal for ' + Math.round((Date.now() - leaseFrom) / 1000) + ' s (lease ' + leaseSeconds + ' s) - stopped before the lease can lapse and another node takes its surface'); }, 1000);
   for (const t of [timer, guard]) if (typeof t.unref === 'function') t.unref();
-  return { stop: () => { stopped = true; clearInterval(timer); clearInterval(guard); }, signal: ac.signal };
+  return { stop: () => { stopped = true; clearInterval(timer); clearInterval(guard); if (retry) clearTimeout(retry); }, signal: ac.signal };
 }
 
 /**
@@ -332,13 +353,16 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
     noteBusy();
     // READY = ONE COMPLETED CLAIM CYCLE. Only now is liveness stamped, and the line below is what the supervisor resets its
     // backoff on - not the registration, which a worker that fails every claim also reaches (final verification 2026-09-24).
-    if (!ready) {
+    // (an admission refusal returns before any statement reaches the plane: that is not a claim cycle - a worker that could not claim
+    // at all read ALIVE and reset its supervisor's backoff whenever its first cycle was refused - final verification 2, 2026-09-25)
+    const admitted = !(claimWork.lastAdmission && claimWork.lastAdmission.admit === false);
+    if (!ready && admitted) {
       try { await nodeBeat(id); ready = true; lastBeat = Date.now(); log('ready: first claim cycle completed - the node reads ALIVE on the plane'); }
       catch (e) { log('node heartbeat failed: ' + errText(e).slice(0, 100)); }
     }
     if (!run) {
       if (once) { log('nothing eligible'); break; }
-      if (Date.now() - lastBeat >= NODE_BEAT_MS) {
+      if (ready && Date.now() - lastBeat >= NODE_BEAT_MS) {
         try {
           const b = await nodeBeat(id);
           // a record removed from the plane is written again; a role changed by anything but this worker is re-asserted, and said

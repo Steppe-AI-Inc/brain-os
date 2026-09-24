@@ -34,6 +34,10 @@
 //   N20 the composer's plane rows count only evidence at the commit under acceptance: machines whose node runs it, runs stamped with
 //      it (not '<sha>+dirty'), failover checkpoints at it, verifications whose verifying run completed
 //   N8 also: health does not say "can claim work" while the node's supervisor is in backoff
+//   N21 over a slow link (latency added both ways), one failed lease renewal does not abort a healthy run: the failed renewal is
+//      retried in seconds and the run completes (it was aborted at two thirds of the lease while its next renewal was landing)
+//   N22 a worker whose admission refuses every cycle never declares itself ready and never reads ALIVE (an admission-only cycle
+//      counted as a claim cycle)
 //   N12 only a finished, successful run can be verified: a verify of a FAILED run is refused by name and writes nothing (it was
 //      recorded as verified and reported 'completed_with_verdict'); a done run authored elsewhere is still verified
 import { startLocalPg } from './local_pg.mjs';
@@ -397,6 +401,51 @@ try {
     check('N13 a run whose lease cannot be renewed is aborted before the lease lapses (' + (abortedAt ? Math.round((takenAt - abortedAt) / 1000) + ' s before' : 'NOT aborted before') + ' another node took its surface), and the abandoned run keeps the node that ran it (' + (runAafter && runAafter.node_id === w3id ? 'kept' : 'lost') + ')',
       !!taken && abortedAt > 0 && abortedAt < takenAt && runAafter && runAafter.status === 'queued' && runAafter.node_id === w3id && !/completed run/.test(w3.out.split('holding')[1] || ''),
       JSON.stringify({ taken: !!taken, abortedAt, takenAt, runAafter }) + '\n' + w3.out.slice(-900));
+  }
+
+  // ---- N21. one failed renewal over a slow link does not abort a healthy run -------------------------------------------------------
+  {
+    const net = await import('node:net');
+    let hole = false; const socks = [];
+    const DELAY = 300; // ms each way
+    const relay = net.createServer((c) => {
+      c.on('error', () => {}); socks.push(c);
+      if (hole) return; // held: the client's connect times out
+      const u = net.connect(pg.port, '127.0.0.1'); u.on('error', () => {}); socks.push(u);
+      c.on('data', (d) => setTimeout(() => { if (!u.destroyed) u.write(d); }, DELAY));
+      u.on('data', (d) => setTimeout(() => { if (!c.destroyed) c.write(d); }, DELAY));
+      c.on('close', () => setTimeout(() => u.destroy(), DELAY)); u.on('close', () => setTimeout(() => c.destroy(), DELAY));
+    });
+    await new Promise((r) => relay.listen(0, '127.0.0.1', r));
+    const slowUrl = pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + relay.address().port + '/');
+    const S7 = join(WORK, 'state-slow');
+    const w4 = spawnWorker({ state: S7, role: 'generic', url: slowUrl, extra: { FACTORY_LEASE_SECONDS: '30', FACTORY_PG_CONNECT_TIMEOUT_MS: '2000', FACTORY_PG_QUERY_TIMEOUT_MS: '8000' } });
+    await waitFor(async () => /\] ready: first claim cycle completed/.test(w4.out), 60000);
+    const w4id = idOf(S7);
+    const h = await seed('N21 a hold over a slow link', { type: 'factory_acceptance', handoff: JSON.stringify({ action: 'hold', seconds: 30 }), caps: ['factory_acceptance', 'node:' + w4id] });
+    await waitFor(async () => /holding [0-9a-f]{8} for 30 s/.test(w4.out), 60000, 100);
+    const t0 = Date.now();
+    // the first renewal is due 10 s after the claim: the link is cut from 8 s to 12 s, so exactly that renewal fails
+    await sleep(8000); hole = true; await sleep(4000); hole = false;
+    const done = await waitFor(async () => (await woStatus(h)) === 'done', 60000, 500);
+    const runsH = await runsOf(h);
+    try { w4.kill(); } catch { /* gone */ }
+    relay.close(); for (const x of socks) { try { x.destroy(); } catch { /* gone */ } }
+    check('N21 over a slow link (300 ms each way) one failed lease renewal does not abort a healthy run: it is retried in seconds and the hold completes (' + (done ? 'done' : 'NOT done') + ', ' + runsH.length + ' run(s), ' + Math.round((Date.now() - t0) / 1000) + ' s)',
+      !!done && runsH.length === 1 && runsH[0].status === 'done' && !/ABORTED/.test(w4.out), JSON.stringify(runsH.map((r) => r.status + ':' + r.termination_reason)) + '\n' + w4.out.slice(-900));
+  }
+
+  // ---- N22. an admission-only cycle is not a claim cycle ------------------------------------------------------------------------
+  {
+    const S8 = join(WORK, 'state-refused');
+    const w5 = spawnWorker({ state: S8, role: 'verifier', extra: { FACTORY_ADMISSION: '', FACTORY_MIN_FREE_MB: '99999999' } });
+    await waitFor(async () => /admission REFUSED/.test(w5.out), 30000, 200);
+    await sleep(6000);
+    const st = statusOf(S8);
+    try { w5.kill(); } catch { /* gone */ }
+    check('N22 a worker whose admission refuses every cycle never declares itself ready and never reads ALIVE (' + (st.match(/^(ALIVE|STALE)[^\n]*/m) || ['?'])[0].slice(0, 70) + ')',
+      /admission REFUSED/.test(w5.out) && !/ready: first claim cycle completed/.test(w5.out) && /"neverBeaten":true/.test(st) && !/"state":"ALIVE"/.test(st) && /NOT CLAIMING: admission refused/.test(st),
+      st.slice(-300) + '\n' + w5.out.slice(-500));
   }
 
   // ---- N12. only a finished, successful run can be verified ---------------------------------------------------------------------

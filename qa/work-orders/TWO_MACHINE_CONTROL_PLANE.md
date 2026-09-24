@@ -258,16 +258,19 @@ order): all or nothing.
 
 **What a node says about itself is true** (verification round 4 and the final verification of 2026-09-24;
 `qa/factory/node_truth_acceptance.mjs` N1-N11, `acceptance.mjs` R-S):
-- *ALIVE means working.* A node reads ALIVE only after its worker has completed a claim cycle (it logs `ready:`); registering, a
+- *ALIVE means working.* A node reads ALIVE only after its worker has completed a claim cycle that reached the plane (it logs `ready:`; a
+  cycle refused by admission does not count); registering, a
   health check or a bootstrap never stamp liveness (a check once made a dead node read ALIVE for three minutes). A worker that reaches
   the plane but fails its claims is backed off (5 s doubling to 5 min) and reads STALE, "never beaten" - it used to reset its backoff
   on registration and crash-loop every 6 s while reading ALIVE. `-Verify` and `-Start` also require that the plane has heard from
   the worker running NOW, not from its predecessor.
 - *One worker per node identity.* A worker holds a lock for its state dir; a second one, or a bare `node.mjs start` beside a
   supervisor, does not start (exit 4).
-- *A run that cannot keep its lease stops before it lapses.* With no lease renewal for two thirds of the lease (the node cut off
-  from the plane), or with the lease taken over, the run is aborted - its work stays recoverable from its checkpoints - so another
-  node takes the surface only after it stopped (a cut-off node kept working and two machines worked one surface). An abandoned run
+- *A run that cannot keep its lease stops before it lapses.* A failed renewal is retried within seconds; only when the lease the
+  plane holds (from the start of the last renewal that landed) is about to lapse - a third of the lease, at most 5 s, before - or
+  when the lease was taken over, is the run aborted, its lease given back, and its work left recoverable from its checkpoints, so
+  another node takes the surface only after it stopped (a cut-off node kept working and two machines worked one surface; an earlier
+  guard at two thirds of the lease aborted healthy runs over a slow link). An abandoned run
   keeps the node that ran it and its last heartbeat, so an overlap would be visible; `two_machine_real` S3 compares every
   execution, abandoned ones included.
 - *Nothing waits forever on the plane.* A connection close is bounded too (5 s, then the socket is destroyed): a close the other side
