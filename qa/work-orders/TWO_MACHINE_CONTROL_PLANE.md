@@ -220,6 +220,23 @@ terminal: the supervisor stops with state `refused` instead of restarting it for
 record. Under the scheduled task the supervisor runs behind a headless console host (no window). Stopping the task stops the
 node, and `-Status` / `-Verify` report it.
 
+**A watchdog, not "restart on failure".** Task Scheduler's restart-on-failure never fires for an action that exits, and the
+headless host reports 0x0 whatever happened. So the task also carries a time trigger that repeats every 5 minutes
+(`-WatchdogMinutes`). While a supervisor runs the start is ignored (one instance); a dead one is started again. `-Stop` DISABLES the
+task so the watchdog cannot undo a deliberate stop; `-Start` re-enables it after the preflight passes.
+
+**A start is confirmed by the node.** `-Start` succeeds only when the same worker has stayed up for 12 s AND the plane has heard
+from it since it started. Otherwise it fails (exit 5) and says why: the refusal the supervisor recorded, or the error its worker
+keeps failing on (a password, a certificate, a host that does not answer). `-Verify` names the failing part: disabled, no
+watchdog, preflight, task not running, no supervisor, wrong role, worker failing (with its error), or the plane not seeing the
+node. `-Status` says DOWN when no supervisor answers here, whatever the plane's last heartbeat says.
+
+**No connection and no claim can hang or hold the plane.** Every plane connection has a connect timeout (20 s), a statement
+timeout (60 s) and TCP keepalive, set on the client because the Supabase pooler drops startup settings. Every claim transaction
+opens with a 15 s lock timeout and a 30 s idle-transaction limit, so a node that dies inside a claim cannot block the others. A
+run whose lease was taken over can neither checkpoint nor complete its work order: only the run that holds the lease completes
+it. That is the "exactly once" of the two-machine takeover.
+
 **Boot trigger:** Windows lets only an administrator register an AtStartup trigger (measured: "Access is denied" for a standard
 user). As installed the task is triggered **at logon**, which is the reboot path the moment the user logs on; one elevated run of
 the same install command adds the boot trigger (`-Verify` then lists both). Proof: `qa/factory/reboot_recovery_acceptance.mjs`
