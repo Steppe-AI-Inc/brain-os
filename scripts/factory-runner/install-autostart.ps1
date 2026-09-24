@@ -250,7 +250,10 @@ if ($Status) {
   elseif ($st -and ($st.state -in @('starting', 'running', 'backoff'))) { "STALE     the recorded supervisor (pid $($st.supervisorPid)) is not running - the node is DOWN; install-autostart.ps1 -Start$taskHint" }
   "deps      " + (& $NodeExe (Join-Path $dir 'scripts\factory-runner\deps.mjs') 2>&1 | Out-String).Trim()
   $envPath = if ($EnvGiven) { $EnvFile } elseif (Get-TaskArg $task 'env') { Get-TaskArg $task 'env' } else { $EnvFile }
-  if (Test-Path -LiteralPath $envPath) {
+  # ANOTHER checkout's task: its credential and its plane are that checkout's business - this -Status does not read the owner's
+  # env file or query its plane (a scratch clone's regression did both on the live node; verification 2026-09-24, round 3)
+  if ((Test-OtherCheckout $owner) -and -not $EnvGiven) { "node      (the task belongs to $owner - run -Status there to read the node's liveness)" }
+  elseif (Test-Path -LiteralPath $envPath) {
     # the node line through the task's own env file - not a URL this shell happens to carry; never printed
     Remove-Item Env:FACTORY_RUNNER_PG_URL -ErrorAction SilentlyContinue
     $nodeLine = & $NodeExe (Join-Path $dir 'scripts\factory-runner\node.mjs') status --runner-env $envPath 2>&1 | ForEach-Object { "$_" } | Select-Object -Last 1
