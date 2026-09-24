@@ -442,7 +442,7 @@ export async function health() {
   // network, so there is nothing for TLS to protect; a connection to anything else does. Treating both the
   // same made a healthy local node report NOT HEALTHY, and — worse — made a missing TLS on a REMOTE host
   // look like the same routine noise.
-  const loopback = /^(127\.|\[?::1\]?$|localhost$)/.test(host);
+  const loopback = /^(127\.|\[?::1\]?$|localhost$)/.test(host.replace(/:\d+$/, ''));
   const tlsOn = sslmode === "require" || sslmode === "verify-ca" || sslmode === "verify-full";
   if (loopback) {
     lines.push((tlsOn ? "  ok   " : "  note ") + "TLS " + (tlsOn ? "is requested" : "not requested, and not needed")
@@ -610,7 +610,14 @@ export async function health() {
   } catch (e) { say(false, "cannot read claims and leases", errText(e).slice(0, 100)); }
   console.log(lines.join("\n"));
   console.log("");
-  console.log(ok ? "HEALTHY — this node can claim work." : "NOT HEALTHY — see the failing line above.");
+  // THE LINKS ARE HEALTHY; WHETHER ANYTHING CLAIMS IS A SEPARATE FACT. "can claim work" was printed on a PC whose supervisor was
+  // dead (final verification 2026-09-24): the supervisor of this node is asked, and its absence said.
+  let sup = null;
+  try { const { askSupervisor } = await import("./proc.mjs"); sup = await askSupervisor(STATE_DIR, "whois", 1500); } catch { sup = null; }
+  console.log(sup ? "  ok   a supervisor runs this node here (pid " + sup.pid + ", role " + sup.role + ", " + sup.state + ")"
+    : "  note no supervisor runs this node here - nothing on this machine claims its work (install-autostart.ps1 -Start)");
+  console.log("");
+  console.log(ok ? (sup ? "HEALTHY — this node can claim work." : "HEALTHY — the plane is reachable and usable; start the node to claim work.") : "NOT HEALTHY — see the failing line above.");
   return { ok, host, database };
 }
 if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {

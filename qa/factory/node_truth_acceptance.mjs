@@ -23,6 +23,8 @@
 //   N9 one worker per node identity: a second worker on the same state dir does not start, nor a bare one beside a supervisor
 //   N10 a malformed argument fails its run by name, and a data exception inside a run is terminal (both were retried forever)
 //   N11 a plane-wide claim lock held past the lock timeout is said in the worker's log and its status (it idled ALIVE, silent)
+//   N12 only a finished, successful run can be verified: a verify of a FAILED run is refused by name and writes nothing (it was
+//      recorded as verified and reported 'completed_with_verdict'); a done run authored elsewhere is still verified
 import { startLocalPg } from './local_pg.mjs';
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync, rmSync } from 'node:fs';
@@ -299,6 +301,28 @@ try {
       !!settled && rv === 'failed:factory_acceptance_bad_argument' && rh === 'failed:factory_acceptance_bad_argument' && rd === 'failed:data_exception_22P02'
         && (await woStatus(v)) === 'failed' && (await woStatus(h)) === 'failed' && (await woStatus(d)) === 'failed',
       JSON.stringify({ rv, rh, rd }) + '\n' + w1.out.slice(-800));
+  }
+
+  // ---- N12. only a finished, successful run can be verified ---------------------------------------------------------------------
+  {
+    await claim.registerNode({ nodeId: 'node-author-n12', capabilities: [], securityRole: 'generic', platform: 'test other-host' });
+    const authored = async (status, reason) => {
+      const w = await seed('N12 authored ' + status, { type: 'qa_none' });
+      const r = (await admin.query("insert into factory.agent_runs (work_order_id, node_id, status, termination_reason, authoring_node_id, started_at, finished_at) values ($1, 'node-author-n12', $2, $3, 'node-author-n12', now(), now()) returning run_id", [w, status, reason])).rows[0].run_id;
+      await admin.query('update factory.agent_runs set authoring_run_id = run_id where run_id = $1', [r]);
+      return r;
+    };
+    const failedRun = await authored('failed', 'qa_failed_on_purpose'), doneRun = await authored('done', 'completed');
+    const vf = await seed('N12 verify a failed run', { type: 'factory_acceptance', handoff: JSON.stringify({ action: 'verify', authoringRunId: failedRun }) });
+    const vd = await seed('N12 verify a done run', { type: 'factory_acceptance', handoff: JSON.stringify({ action: 'verify', authoringRunId: doneRun }) });
+    const settled = await waitFor(async () => (await seq([vf, vd], woStatus)).every((x) => x === 'failed' || x === 'done'), 40000);
+    const rf = (await runsOf(vf)).map((r) => r.status + ':' + r.termination_reason).join(','), rdn = (await runsOf(vd)).map((r) => r.status + ':' + r.termination_reason).join(',');
+    const colsF = (await admin.query('select verification_run_id, verification_node_id from factory.agent_runs where run_id = $1', [failedRun])).rows[0];
+    const colsD = (await admin.query('select verification_run_id, verification_node_id from factory.agent_runs where run_id = $1', [doneRun])).rows[0];
+    check('N12 only a finished, successful run can be verified: a verify of a FAILED run is refused by name (' + rf + ') and writes nothing on it; a done run authored elsewhere is verified (' + rdn + ')',
+      !!settled && rf === 'failed:verification_refused' && colsF.verification_run_id === null && colsF.verification_node_id === null
+        && rdn === 'done:completed_with_verdict' && colsD.verification_node_id === w1id && /authoring run is failed, not done/.test(w1.out),
+      JSON.stringify({ rf, rdn, colsF, colsD }) + '\n' + w1.out.slice(-800));
   }
 
   // ---- N8. a worker that reaches the plane but fails every claim backs off and never reads ALIVE (last: it revokes a grant) ------

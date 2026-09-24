@@ -49,13 +49,20 @@ export async function recordVerification({ authoringRunId, verificationRunId }) 
   const v = await db.read('select node_id from factory.agent_runs where run_id = $1', [verificationRunId]);
   if (!v.rows.length) return { accepted: false, reason: 'verification run not found' };
   try {
+    // ONLY A FINISHED, SUCCESSFUL RUN CAN BE VERIFIED. This matched the authoring run by id alone: a FAILED run was marked
+    // verified, the verify work order reported 'completed_with_verdict', and the milestone count took it as independent
+    // evidence (final verification 2026-09-24). The run must be 'done'; anything else is refused by name and nothing is written.
+    // The independence constraints still decide FIRST: a row that would violate them (a run verifying itself - always still in
+    // progress - or its authoring node) stays in the update, so the database refuses it by the constraint's name.
     const r = await db.write(
       `update factory.agent_runs
           set verification_run_id = $2, verification_node_id = $3, updated_at = now()
-        where run_id = $1
+        where run_id = $1 and (status = 'done' or run_id = $2 or authoring_node_id = $3)
         returning run_id, authoring_node_id, verification_node_id`,
       [authoringRunId, verificationRunId, v.rows[0].node_id]);
-    return r.rowCount === 1 ? { accepted: true, row: r.rows[0] } : { accepted: false, reason: 'authoring run not found' };
+    if (r.rowCount === 1) return { accepted: true, row: r.rows[0] };
+    const a = await db.read('select status from factory.agent_runs where run_id = $1', [authoringRunId]);
+    return { accepted: false, reason: a.rows.length ? 'authoring run is ' + a.rows[0].status + ', not done - only a finished, successful run can be verified' : 'authoring run not found' };
   } catch (e) {
     const m = String(e && e.message || e);
     if (/verification_is_independent|verification_node_is_independent/.test(m)) return { accepted: false, reason: m.match(/verification_(?:node_)?is_independent/)[0] };

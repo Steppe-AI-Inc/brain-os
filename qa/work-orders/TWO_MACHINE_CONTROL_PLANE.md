@@ -258,6 +258,9 @@ order): all or nothing.
 - *A malformed work order is declined, not retried.* A NULL or empty surface is declined by name and the next work order taken (it
   crash-looped every node); a repeated surface is one surface (it collided with itself and starved the queue); an acceptance action
   with a malformed argument fails by name; a data exception (SQLSTATE class 22) inside a run fails it - the same input fails every time.
+- *Only a finished, successful run can be verified.* A `verify` of a failed or unfinished run is refused by name and writes
+  nothing (it was recorded as verified and counted as milestone-4 evidence); the independence constraints still refuse a run
+  verifying itself, or its authoring node, by their own names. The composer counts only done authoring runs.
 - *Not claiming is said.* A refused admission, and a plane-wide claim lock held past the lock timeout, are logged and shown by
   `node.mjs status`, `-Status` and `-Verify` (NOT CLAIMING, with since when).
 - *The role belongs to the running worker.* Health checks keep the role the plane holds (they used to re-register a running
@@ -272,6 +275,14 @@ order): all or nothing.
   dependents are visibly blocked. `node.mjs health` names any stranded or failed work order.
 - *The URL judge refuses what pg would misread:* a space or a `%` that is not an escape (pg re-encodes such a URL whole and
   corrupts the CA path), or an escape that does not decode.
+
+**Registered, bounded - not fixed (final verification 2026-09-24):** (1) a node refusing admission reads ALIVE on the plane: the
+refusal is local to the node (`node.mjs status`, `-Status` and `-Verify` print NOT CLAIMING there), and the Home PC cannot see it
+without a plane schema change - if a `two_machine_real.mjs` scenario times out, run `-Status` on the Work PC; `-Verify` does not fail on it,
+because this PC's own heavy suites push the CPU over the admission threshold for minutes; (2) a work order whose run keeps
+throwing an error that is not a data exception is retried every lease period with no attempt ceiling, and each lapse leaves the
+old run as a `queued` row - the lease is the arbiter by design; `node.mjs health` shows the expired leases; (3)
+`round-state.regression.test.mjs` RS-C* read other worktrees of this PC (not part of the node, and not in the composer).
 
 **Boot trigger:** Windows lets only an administrator register an AtStartup trigger (measured: "Access is denied" for a standard
 user). As installed the task is triggered **at logon**, which is the reboot path the moment the user logs on; one elevated run of

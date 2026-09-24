@@ -85,7 +85,7 @@ if (LOCAL_ONLY || !process.env.FACTORY_RUNNER_PG_URL) {
     row('2', 'failover in BOTH directions', both.size >= 2, both.size >= 2 ? '' : 'run §E the other way round too', both.size < 2);
     const three = (await db.read("select count(distinct split_part(n.platform, ' ', 2))::int m from factory.agent_runs r join factory.nodes n on n.node_id = r.node_id where r.status = 'done' and r.finished_at > now() - interval '7 days'")).rows[0].m;
     row('3', 'completed runs from ' + three + ' distinct machine(s) in 7 days (three-node scheduling needs 3)', three >= 3, three < 3 ? 'run two_machine_scheduling.mjs: seed, then wave on each machine, then verify (§G)' : '', three < 3);
-    const ver = (await db.read("select count(*)::int n from factory.agent_runs a join factory.nodes na on na.node_id = a.authoring_node_id join factory.nodes nv on nv.node_id = a.verification_node_id where a.verification_run_id is not null and split_part(na.platform, ' ', 2) <> split_part(nv.platform, ' ', 2)")).rows[0].n;
+    const ver = (await db.read("select count(*)::int n from factory.agent_runs a join factory.nodes na on na.node_id = a.authoring_node_id join factory.nodes nv on nv.node_id = a.verification_node_id where a.verification_run_id is not null and a.status = 'done' and split_part(na.platform, ' ', 2) <> split_part(nv.platform, ' ', 2)")).rows[0].n;
     row('4', 'verifications recorded by a DIFFERENT machine than the author: ' + ver, ver >= 1, ver < 1 ? 'the verifier wave of two_machine_scheduling.mjs on the Work PC records it (§G)' : '', ver < 1);
   } catch (e) { row('1-4', 'reading the shared plane', false, String(e.message).slice(0, 200)); }
 }

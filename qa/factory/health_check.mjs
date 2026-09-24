@@ -49,8 +49,9 @@ try {
   await admin.query('grant select, insert, update, delete on all tables in schema factory to ' + pg.runnerRole);
 
   const healthy = run(pg.runnerUrl);
-  check('with the schema applied and privileges granted, the node reports HEALTHY',
-    /HEALTHY — this node can claim work\./.test(healthy.out) && healthy.code === 0,
+  // (no supervisor runs in this harness: the links are healthy, and it says nothing here claims work - it said "can claim work")
+  check('with the schema applied and privileges granted, the node reports HEALTHY, and that no supervisor runs it here',
+    /HEALTHY — the plane is reachable and usable; start the node to claim work\./.test(healthy.out) && /no supervisor runs this node here/.test(healthy.out) && healthy.code === 0,
     healthy.out.trim().slice(-400));
   check('it reports each link separately: connection, superuser status, schema, queue, registration',
     /connected as/.test(healthy.out) && /NOT a superuser/.test(healthy.out)

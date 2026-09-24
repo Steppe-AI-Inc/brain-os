@@ -44,6 +44,7 @@ const MUTANTS = [
   { id: 'N10', suite: NT, what: 'the handler acts on malformed arguments', edits: [['scripts/factory-runner/handlers/factory-acceptance.mjs', '  if (bad) return {', '  if (false) return {']] },
   { id: 'N10', suite: NT, what: 'a data exception inside a run is retried forever', label: 'N10D', edits: [[NODE, '      if (/^22/.test(code)) {', '      if (false) {']] },
   { id: 'N11', suite: NT, what: 'a busy claim lock is silent', edits: [[NODE, '    noteBusy();\n', '']] },
+  { id: 'N12', suite: NT, what: 'a failed run can be recorded as verified', edits: [[CLAIM, "        where run_id = $1 and (status = 'done' or run_id = $2 or authoring_node_id = $3)\n        returning run_id, authoring_node_id, verification_node_id", "        where run_id = $1\n        returning run_id, authoring_node_id, verification_node_id"]] },
   { id: 'R', suite: ACC, what: 'a close that is never answered hangs the worker', edits: [[DB, 'export async function write(sql, params = []) {\n  assertAllowed(sql);\n  const client = await connect();\n  try { return await client.query(sql, params); } finally { await close(client); }', 'export async function write(sql, params = []) {\n  assertAllowed(sql);\n  const client = await connect();\n  try { return await client.query(sql, params); } finally { await client.end(); }']] },
   { id: 'S', suite: ACC, what: 'a repeated or NULL surface starves the plane', edits: [
     [CLAIM, "      if ((wo.owned_surface || []).some((s) => typeof s !== 'string' || !s.trim())) {", '      if (false) {'],
