@@ -161,3 +161,20 @@ test('a CA file that is not a certificate is refused, naming the file', () => {
   assert.match(r.note, /is not a certificate/);
 });
 
+
+test('importing the loader first does not freeze db.mjs without a URL (ensureRunnerEnv, then db.mjs, sees the URL)', async () => {
+  // runner-env.mjs once imported db.mjs (for the URL judge), and db.mjs captures FACTORY_RUNNER_PG_URL when it is first loaded:
+  // a harness that imported the loader, then called ensureRunnerEnv(), got a db.mjs with no URL (live-plane acceptance, 2026-09-24).
+  const { spawnSync } = await import('node:child_process');
+  const { fileURLToPath, pathToFileURL } = await import('node:url');
+  const here = join(fileURLToPath(import.meta.url), '..');
+  const dir = mkdtempSync(join(tmpdir(), 'runner-env-'));
+  try {
+    const url = 'postgresql://factory_runner:pw@127.0.0.1:54329/factory_control_plane';
+    writeFileSync(join(dir, 'runner.env'), 'FACTORY_RUNNER_PG_URL=' + url + '\n');
+    const probe = "const m=await import(process.argv[1]);m.ensureRunnerEnv(process.argv[3]);const db=await import(process.argv[2]);process.stdout.write(String(db.FACTORY_RUNNER_PG_URL===process.argv[4]));";
+    const env = { ...process.env }; delete env.FACTORY_RUNNER_PG_URL; delete env.FACTORY_RUNNER_ENV_FILE;
+    const r = spawnSync(process.execPath, ['--input-type=module', '-e', probe, pathToFileURL(join(here, 'runner-env.mjs')).href, pathToFileURL(join(here, 'db.mjs')).href, join(dir, 'runner.env'), url], { encoding: 'utf8', env });
+    assert.equal((r.stdout || '').trim(), 'true', (r.stdout || '') + (r.stderr || ''));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

@@ -17,7 +17,7 @@ import { X509Certificate } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
-import { assessUrl } from './db.mjs';
+import { assessUrl } from './url-judge.mjs'; // not db.mjs: importing db.mjs captures FACTORY_RUNNER_PG_URL too early
 
 export const DEFAULT_ENV_FILE = join(homedir(), '.brain-factory', 'runner.env');
 
