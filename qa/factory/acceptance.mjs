@@ -558,17 +558,23 @@ try {
     const savedT = { c: process.env.FACTORY_PG_CONNECT_TIMEOUT_MS, q: process.env.FACTORY_PG_QUERY_TIMEOUT_MS };
     process.env.FACTORY_RUNNER_PG_URL = relayUrl; process.env.FACTORY_PG_CONNECT_TIMEOUT_MS = '2000'; process.env.FACTORY_PG_QUERY_TIMEOUT_MS = '2000';
     const dbR = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/db.mjs')).href + '?relay=' + Date.now());
+    // THE ROW MUST FAIL, NOT HANG: without the timeouts these operations never settle, and the first version of this row hung the
+    // whole suite instead of going red (its own mutation check). Each is raced against a hard 12 s limit.
+    const HARD = 12000;
+    const bounded = (p) => Promise.race([p.then(() => 'settled', (e) => 'error: ' + String(e && e.message || e)), new Promise((r) => setTimeout(() => r('HUNG'), HARD))]);
     const before = await dbR.read('select 1 as ok');
     let midMs = -1, midErr = '';
-    await dbR.withClient(async (c) => {
+    const mid = await bounded(dbR.withClient(async (c) => {
       await c.query('select 1');
       frozen = true;
       const t = Date.now();
       try { await c.query('select 2'); } catch (e) { midErr = String(e && e.message || e); }
       midMs = Date.now() - t;
-    }).catch(() => { /* the client end may fail on a frozen socket */ });
+    }).catch(() => { /* the client end may fail on a frozen socket */ }));
+    if (mid === 'HUNG') { midErr = ''; midMs = HARD; }
+    frozen = true;
     let conMs = -1, conErr = '';
-    { const t = Date.now(); try { await dbR.read('select 3'); } catch (e) { conErr = String(e && e.message || e); } conMs = Date.now() - t; }
+    { const t = Date.now(); const r = await bounded(dbR.read('select 3').then(() => {}, (e) => { conErr = String(e && e.message || e); })); conMs = r === 'HUNG' ? HARD : Date.now() - t; }
     frozen = false;
     for (const [c, u] of pairs) { try { c.destroy(); u.destroy(); } catch { /* gone */ } }
     relay.close();
