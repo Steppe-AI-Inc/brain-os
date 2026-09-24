@@ -19,7 +19,7 @@
 //      version the TLS semantics in TWO_MACHINE_CONTROL_PLANE.md were measured on (a bump must re-run tls_plane_acceptance)
 //   K5 every locked package with an install script has a pinned allowScripts decision (the static form of --strict-allow-scripts)
 //   K6 the runtime closure (everything a `npm ci --omit=dev` node installs) runs no install scripts at all
-//   K7 every package fetched at run time by `npx --yes` under scripts/factory-runner/** names an exact version (an
+//   K7 every package fetched at run time (npx with or without --yes, npm exec / npm x, quoted or not) by `npx --yes` under scripts/factory-runner/** names an exact version (an
 //      "@latest" is an undeclared, unlocked dependency the lock cannot see)
 // FRESH CLONE (HEAD cloned into a temp dir; nothing from this checkout's node_modules)
 //   F1 `npm ci --omit=dev --strict-allow-scripts` succeeds - the runtime-only install a node needs
@@ -27,21 +27,29 @@
 //      loads the package's own dependencies too), no dev package present
 //   F3 node.mjs health from that clone reaches a real PostgreSQL through `pg` and reports HEALTHY
 //   F4 the supervisor from that clone, on a node identity nothing else registered, starts a worker that goes ALIVE on the plane
-//      as ITS role with a heartbeat after the supervisor started and no restart, and --stop ends it (exit 0)
-//   F5 with a TRANSITIVE driver package (pg-protocol) removed, and then with `pg` itself removed, every entry point refuses by
+//      as ITS role with a heartbeat after the supervisor started - and STAYS up for 20 s (same worker, no restart, no exit, the
+//      heartbeat advancing) - and --stop ends it (exit 0)
+//   F5 with a DAMAGED package (pg-protocol's files gone, its package.json kept), with a TRANSITIVE driver package (pg-protocol)
+//      removed, and then with `pg` itself removed, every entry point refuses by
 //      name: the supervisor (exit 5, state dependencies_missing, no worker started), node health (the dependency, not the
 //      connection), node.mjs start and node.mjs status (exit 5)
 //   F6 (Windows) install-autostart.ps1 -Preflight refuses on the broken clone, refuses an env file whose CA exists nowhere
 //      here, and passes on the repaired one; from the clone, install, -Stop and -Uninstall all refuse (exit 3) to act on a task
-//      that belongs to another checkout; the live task is untouched throughout
+//      that belongs to another checkout, and -Status names that owner; a SCRATCH task (-TaskName, never the live one) goes through
+//      the Work-PC cycle: install -Role verifier -Start (supervisor confirmed), -Verify, -Stop, -Start alone (still verifier,
+//      nothing re-installed), a hand-started supervisor stopped by a re-install whose task supervisor is confirmed, -Uninstall;
+//      the live task is untouched throughout
 //   F7 bootstrap-node.sh on a SECOND fresh clone with no node_modules and no .factory installs from the lock and ends
 //      BOOTSTRAPPED against the plane - the Work-PC path, end to end
 //   F8 the full `npm ci --strict-allow-scripts` gives the acceptance harnesses everything: every qa/factory import resolves
 //      and embedded-postgres starts and stops a server from the clone's own install
 //   F9 the accessor and runner-env regression tests pass inside the clone (they include a BOM'd env file and a missing CA)
-//   F10 a runner.env whose CA file exists nowhere on this machine - the Work PC with runner.env copied and the CA forgotten - is
-//      refused by the supervisor (exit 2, no worker started) and by bootstrap-node.sh (nothing registered), instead of a
-//      worker that fails every connect and backs off forever
+//   F10 every runner.env the worker would refuse or fail on - a CA that exists nowhere here (the Work PC with the CA forgotten), a
+//      key=value string, the superuser, a CA file that is not a certificate - is refused by the supervisor (exit 2, no worker
+//      started), and the missing CA by bootstrap-node.sh (nothing registered), instead of a worker that fails every connect and
+//      backs off forever
+//   F11 stale pids after a reboot: a pid file and a status file naming OTHER live processes (reused numbers) neither stop the
+//      supervisor from starting nor get those processes killed
 // F1 and F8 also require the committed lock to be byte-for-byte unchanged by the install (npm 10's `npm install` rewrites it).
 import { spawn, spawnSync, execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync, mkdirSync, statfsSync } from 'node:fs';
@@ -106,29 +114,51 @@ function specifiersOf(source) {
     return x.type === 'CallExpression' && ((x.callee.type === 'Identifier' && x.callee.name === 'pathToFileURL') || (x.callee.type === 'MemberExpression' && x.callee.property && x.callee.property.name === 'pathToFileURL'));
   };
   const nonConstant = (n) => { if (!isFileLoad(n)) specs.push({ dynamic: source.slice(n.start, n.end).slice(0, 80) }); };
-  // Functions made by createRequire(...) load packages exactly like require - an alias must not hide a load (verification
-  // 2026-09-24: 'const load = createRequire(import.meta.url); load("left-pad")' passed K3).
+  // Functions made by createRequire(...) load packages exactly like require - an alias must not hide a load. The first version
+  // knew only a callee literally named createRequire and a direct 'const x = createRequire(...)' (verification 2026-09-24,
+  // rounds 1 and 2). Now: createRequire under any local name (a renamed import, a destructured property), every alias of a
+  // require function to a fixpoint (y = x), loads through .call/.apply and .resolve, and any OTHER use of an alias (passed on,
+  // stored) is reported - its loads cannot be followed. Package names inside eval strings (node -e "...") are NOT scanned:
+  // a registered, bounded limitation (ledger 217).
+  const walkAll = (node, fn, parent = null) => {
+    if (!node || typeof node.type !== 'string') return;
+    fn(node, parent);
+    for (const key of Object.keys(node)) { const v = node[key]; if (Array.isArray(v)) v.forEach((c) => walkAll(c, fn, node)); else if (v && typeof v === 'object' && typeof v.type === 'string') walkAll(v, fn, node); }
+  };
+  const createNames = new Set(['createRequire']);
+  walkAll(ast, (n) => {
+    if (n.type === 'ImportSpecifier' && n.imported && (n.imported.name || n.imported.value) === 'createRequire') createNames.add(n.local.name);
+    if (n.type === 'Property' && n.key && (n.key.name || n.key.value) === 'createRequire' && n.value && n.value.type === 'Identifier') createNames.add(n.value.name);
+  });
+  const isCreateRequire = (n) => n && n.type === 'CallExpression' && ((n.callee.type === 'Identifier' && createNames.has(n.callee.name)) || (n.callee.type === 'MemberExpression' && n.callee.property && n.callee.property.name === 'createRequire'));
   const requireNames = new Set(['require']);
-  const isCreateRequire = (n) => n && n.type === 'CallExpression' && ((n.callee.type === 'Identifier' && n.callee.name === 'createRequire') || (n.callee.type === 'MemberExpression' && n.callee.property && n.callee.property.name === 'createRequire'));
-  const collectAliases = (node) => {
-    if (!node || typeof node.type !== 'string') return;
-    if (node.type === 'VariableDeclarator' && node.id.type === 'Identifier' && isCreateRequire(node.init)) requireNames.add(node.id.name);
-    if (node.type === 'AssignmentExpression' && node.left.type === 'Identifier' && isCreateRequire(node.right)) requireNames.add(node.left.name);
-    for (const key of Object.keys(node)) { const v = node[key]; if (Array.isArray(v)) v.forEach(collectAliases); else if (v && typeof v === 'object' && typeof v.type === 'string') collectAliases(v); }
-  };
-  collectAliases(ast);
-  const visit = (node) => {
-    if (!node || typeof node.type !== 'string') return;
-    if ((node.type === 'ImportDeclaration' || node.type === 'ExportAllDeclaration' || node.type === 'ExportNamedDeclaration') && node.source) specs.push(node.source.value);
-    else if (node.type === 'ImportExpression') { const c = constant(node.source); if (c !== null) specs.push(c); else nonConstant(node.source); }
-    else if (node.type === 'CallExpression' && node.arguments.length && ((node.callee.type === 'Identifier' && requireNames.has(node.callee.name)) || isCreateRequire(node.callee))) { const c = constant(node.arguments[0]); if (c !== null) specs.push(c); else nonConstant(node.arguments[0]); }
-    for (const key of Object.keys(node)) {
-      if (key === 'loc' || key === 'range') continue;
-      const v = node[key];
-      if (Array.isArray(v)) v.forEach(visit); else if (v && typeof v === 'object' && typeof v.type === 'string') visit(v);
+  for (let grew = true; grew;) {
+    grew = false;
+    walkAll(ast, (n) => {
+      const bind = (id, init) => { if (id && id.type === 'Identifier' && init && (isCreateRequire(init) || (init.type === 'Identifier' && requireNames.has(init.name))) && !requireNames.has(id.name)) { requireNames.add(id.name); grew = true; } };
+      if (n.type === 'VariableDeclarator') bind(n.id, n.init);
+      if (n.type === 'AssignmentExpression' && n.operator === '=') bind(n.left, n.right);
+    });
+  }
+  const loadArg = (a) => { if (!a) return; const c = constant(a); if (c !== null) specs.push(c); else nonConstant(a); };
+  walkAll(ast, (n, parent) => {
+    if ((n.type === 'ImportDeclaration' || n.type === 'ExportAllDeclaration' || n.type === 'ExportNamedDeclaration') && n.source) specs.push(n.source.value);
+    else if (n.type === 'ImportExpression') loadArg(n.source);
+    else if (n.type === 'CallExpression') {
+      const cal = n.callee;
+      if ((cal.type === 'Identifier' && requireNames.has(cal.name)) || isCreateRequire(cal)) loadArg(n.arguments[0]);
+      else if (cal.type === 'MemberExpression' && cal.object && cal.object.type === 'Identifier' && requireNames.has(cal.object.name) && cal.property) {
+        const p = cal.property.name;
+        if (p === 'call') loadArg(n.arguments[1]);
+        else if (p === 'apply') { const arr = n.arguments[1]; if (arr && arr.type === 'ArrayExpression') loadArg(arr.elements[0]); else specs.push({ dynamic: cal.object.name + '.apply with arguments the scan cannot read' }); }
+        else if (p === 'resolve') loadArg(n.arguments[0]);
+      }
+    } else if (n.type === 'Identifier' && n.name !== 'require' && requireNames.has(n.name) && parent) {
+      const followed = (parent.type === 'CallExpression' && parent.callee === n) || (parent.type === 'MemberExpression' && parent.object === n)
+        || (parent.type === 'VariableDeclarator' && (parent.id === n || parent.init === n)) || (parent.type === 'AssignmentExpression' && (parent.left === n || parent.right === n));
+      if (!followed) specs.push({ dynamic: 'the require function ' + n.name + ' is passed on or stored, so its loads cannot be followed' });
     }
-  };
-  visit(ast);
+  });
   return specs;
 }
 const unparsed = [];
@@ -216,9 +246,34 @@ const harnessImports = scanImports(ROOT, 'qa/factory');
 { // K7
   const found = [], bad = [];
   const walk = (d) => { for (const e of readdirSync(d, { withFileTypes: true })) { const p = join(d, e.name); if (e.isDirectory()) { if (e.name !== 'node_modules') walk(p); continue; } if (!/\.(sh|ps1|mjs|js|cjs|cmd|bat)$/.test(e.name)) continue;
-    readFileSync(p, 'utf8').split(/\r?\n/).forEach((line, i) => { if (/^\s*(#|\/\/|\*)/.test(line)) return; for (const m of line.matchAll(/\bnpx\s+(?:--yes|-y)\s+((?:@[\w.-]+\/)?[\w.-]+)(?:@(\S+))?/g)) { const at = relative(ROOT, p).split(sep).join('/') + ':' + (i + 1); found.push(m[1] + '@' + (m[2] || '(none)') + ' ' + at); if (!m[2] || !/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/.test(m[2])) bad.push(m[1] + (m[2] ? '@' + m[2] : ' (no version)') + ' at ' + at); } }); } };
+    // npx with or without --yes (npm treats a non-TTY npx as --yes), npm exec / npm x, any flags, a quoted or bare spec. The first
+    // version matched only 'npx --yes pkg' unquoted (verification 2026-09-24, round 2). Shell and PowerShell files are scanned
+    // line by line (comments skipped; a permission pattern such as 'Bash(npx supabase ...:*)' is not an invocation). JS files
+    // are PARSED: only a command string (one that begins with npx / npm exec) or a spawn('npx', [...]) argument list counts, so
+    // prose that mentions npx in a string is not an invocation.
+    const at = (i) => relative(ROOT, p).split(sep).join('/') + (i == null ? '' : ':' + (i + 1));
+    const judgeCmd = (cmd, where) => { for (const m of cmd.matchAll(/(?<!Bash\()\b(?:npx|npm\s+(?:exec|x))((?:\s+-{1,2}[\w-]+(?:=\S+)?)*)\s+(['"]?)((?:@[\w.-]+\/)?[\w.-]+)(?:@([^\s'"]+))?\2/g)) { found.push(m[3] + '@' + (m[4] || '(none)') + ' ' + where); if (!m[4] || !/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/.test(m[4])) bad.push(m[3] + (m[4] ? '@' + m[4] : ' (no version)') + ' at ' + where); } };
+    const text = readFileSync(p, 'utf8');
+    if (/\.(sh|ps1|cmd|bat)$/.test(e.name)) text.split(/\r?\n/).forEach((line, i) => { if (!/^\s*(#|::|rem\s)/i.test(line)) judgeCmd(line, at(i)); });
+    else {
+      let ast = null; for (const sourceType of ['module', 'script']) { try { ast = parseJs(text, { ecmaVersion: 'latest', sourceType, allowHashBang: true, allowAwaitOutsideFunction: true, allowReturnOutsideFunction: true }); break; } catch { /* try the other */ } }
+      if (!ast) { bad.push('does not parse: ' + at()); return; }
+      const lineOf = (pos) => text.slice(0, pos).split('\n').length - 1;
+      const str = (n) => (n && n.type === 'Literal' && typeof n.value === 'string') ? n.value : (n && n.type === 'TemplateLiteral' ? n.quasis.map((q) => q.value.cooked).join(' <expr> ') : null);
+      const visit = (n) => {
+        if (!n || typeof n.type !== 'string') return;
+        const v = str(n);
+        if (v !== null && /^\s*(npx|npm\s+(exec|x))\b/.test(v)) judgeCmd(v, at(lineOf(n.start)));
+        if (n.type === 'CallExpression' && n.arguments.length >= 2 && /^(npx|npm)(\.cmd)?$/.test(str(n.arguments[0]) || '') && n.arguments[1].type === 'ArrayExpression') {
+          const cmd = (str(n.arguments[0]) || '').replace(/\.cmd$/, '') + ' ' + n.arguments[1].elements.map((x) => str(x) === null ? '<expr>' : str(x)).join(' ');
+          if (/^(npx|npm\s+(exec|x))\b/.test(cmd)) judgeCmd(cmd, at(lineOf(n.start)));
+        }
+        for (const k of Object.keys(n)) { const c = n[k]; if (Array.isArray(c)) c.forEach(visit); else if (c && typeof c === 'object' && typeof c.type === 'string') visit(c); }
+      };
+      visit(ast);
+    } } };
   walk(join(ROOT, 'scripts/factory-runner'));
-  check('K7 every package fetched at run time by npx --yes under scripts/factory-runner names an exact version (' + (found.join(', ') || 'none') + ')', bad.length === 0, 'not pinned: ' + bad.join(', '));
+  check('K7 every package fetched at run time by npx / npm exec under scripts/factory-runner names an exact version (' + (found.join(', ') || 'none') + ')', bad.length === 0, 'not pinned: ' + bad.join(', '));
 }
 
 // ================================================================= FRESH CLONE ============================================
@@ -231,6 +286,7 @@ if (!STATIC_ONLY) {
   const liveTaskBefore = isWin ? run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName 'BrainOS Factory Node' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).WorkingDirectory + '|' + ($t.Actions|Select-Object -First 1).Arguments + '|' + $t.Settings.Enabled}else{'NONE'}"], ROOT).out.trim() : 'n/a';
   const taskState = () => run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName 'BrainOS Factory Node' -ErrorAction SilentlyContinue; if($t){$t.State.ToString()}else{'NONE'}"], ROOT).out.trim();
   const liveStateBefore = isWin ? taskState() : 'n/a';
+  const scratchTask = 'BrainOS Factory Node TEST-' + randomUUID().slice(0, 8);
   const liveTaskXml = isWin && liveTaskBefore !== 'NONE' ? run('powershell', ['-NoProfile', '-Command', "Export-ScheduledTask -TaskName 'BrainOS Factory Node'"], ROOT).out : null;
   try {
     // ENOUGH DISK FIRST. Two clones plus two installs; running out mid-run produces "unable to write file" noise that reads like a
@@ -306,9 +362,29 @@ if (!STATIC_ONLY) {
       }
       await sleep(2000);
     }
+    // ...and it must STAY up: one instant of ALIVE also passed a worker that died a few seconds after every start (verification
+    // 2026-09-24, round 2). For 20 s - longer than the first backoff plus several heartbeats - the supervisor keeps the same
+    // worker, state running, no restart, no exit, and the heartbeat advances.
+    let stayed = false;
+    if (alive) {
+      const first = existsSync(join(stateA4, 'node-status.json')) ? readJson(join(stateA4, 'node-status.json')) : {};
+      const beats = new Set(); let steady = true; const tS = Date.now();
+      while (Date.now() - tS < 20000) {
+        await sleep(2500);
+        const s = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node.mjs'), 'status', '--json'], cloneA, nodeEnvA4);
+        const js = (s.out.match(/^\{.*\}$/m) || [null])[0]; const st = js ? JSON.parse(js) : {};
+        const supSt = existsSync(join(stateA4, 'node-status.json')) ? readJson(join(stateA4, 'node-status.json')) : {};
+        if (st.lastHeartbeatAt) beats.add(String(st.lastHeartbeatAt));
+        if (!(st.state === 'ALIVE' && supSt.state === 'running' && supSt.restarts === 0 && !supSt.lastExit && supSt.childPid === first.childPid)) {
+          steady = false; why4 = 'did not stay up: status ' + st.state + ', supervisor ' + JSON.stringify({ state: supSt.state, restarts: supSt.restarts, lastExit: supSt.lastExit, childPid: supSt.childPid, firstChild: first.childPid }); break;
+        }
+      }
+      stayed = steady && beats.size >= 3;
+      if (steady && !stayed) why4 = 'the heartbeat did not advance (' + beats.size + ' distinct heartbeats in 20 s)';
+    }
     run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--stop'], cloneA, nodeEnvA4);
     const supExit = await new Promise((r) => { const t = setTimeout(() => r('timeout'), 25000); sup.on('exit', (c) => { clearTimeout(t); r(c); }); });
-    check('F4 the supervisor from the runtime-only clone, on a fresh node identity, starts a worker that goes ALIVE as role verifier with its own heartbeat and no restart, and --stop ends it (exit ' + supExit + ')', !!alive && supExit === 0, why4 + '\n' + supOut);
+    check('F4 the supervisor from the runtime-only clone, on a fresh node identity, starts a worker that goes ALIVE as role verifier with its own heartbeat, STAYS up 20 s (same worker, no restart, heartbeat advancing), and --stop ends it (exit ' + supExit + ')', !!alive && stayed && supExit === 0, why4 + '\n' + supOut);
 
     // F5 - first a TRANSITIVE package (pg-protocol: pg loads it, package.json does not name it - the first dependency check
     // missed exactly this and the supervisor crash-looped), then pg itself. Every entry point must refuse by name.
@@ -325,12 +401,16 @@ if (!STATIC_ONLY) {
       return { ok, text: label + ': supervisor exit ' + sp.rc + ' state ' + st.state + '; health exit ' + h.rc + '; start exit ' + ns.rc + '; status exit ' + nt.rc,
         detail: label + '\n' + sp.out + '\n--- health\n' + h.out + '\n--- start\n' + ns.out + '\n--- status\n' + nt.out };
     };
+    // a DAMAGED install: pg-protocol's package.json at the locked version, its code gone - every metadata check passes, the worker
+    // dies on "Cannot find module" (verification 2026-09-24, round 2); only loading the package finds it
+    rmSync(join(cloneA, 'node_modules', 'pg-protocol', 'dist', 'index.js'), { force: true });
+    const f5x = refusals('pg-protocol/dist/index.js removed, its package.json kept (damaged)');
     rmSync(join(cloneA, 'node_modules', 'pg-protocol'), { recursive: true, force: true });
     const f5t = refusals('pg-protocol removed (transitive)');
     rmSync(join(cloneA, 'node_modules', 'pg'), { recursive: true, force: true });
     const f5d = refusals('pg removed');
-    check('F5 every entry point refuses by name with a transitive driver package missing and with pg missing (' + f5t.text + ' | ' + f5d.text + ')',
-      f5t.ok && f5d.ok, f5t.detail + '\n=====\n' + f5d.detail);
+    check('F5 every entry point refuses by name with a damaged package, a transitive driver package missing, and pg missing (' + f5x.text + ' | ' + f5t.text + ' | ' + f5d.text + ')',
+      f5x.ok && f5t.ok && f5d.ok, f5x.detail + '\n=====\n' + f5t.detail + '\n=====\n' + f5d.detail);
 
     // F6
     if (isWin && want('F6')) {
@@ -342,12 +422,44 @@ if (!STATIC_ONLY) {
       const noCa = ps(['-Preflight', '-EnvFile', noCaEnv]);
       let guard = { rc: 'skipped', out: 'no live task on this machine; the other-checkout guard is not exercised (an install here would create one)' }, stopGuard = guard, uninstallGuard = guard;
       if (liveTaskBefore !== 'NONE' && !liveTaskBefore.startsWith(cloneA)) { guard = ps(['-Role', 'verifier', '-EnvFile', envFile]); stopGuard = ps(['-Stop']); uninstallGuard = ps(['-Uninstall']); }
+      let statusOther = { rc: 'skipped', out: '' };
+      if (liveTaskBefore !== 'NONE' && !liveTaskBefore.startsWith(cloneA)) statusOther = ps(['-Status']);
+      // THE WORK-PC CYCLE on a SCRATCH task (never the live one): install as verifier and start (the task's supervisor confirmed),
+      // -Verify, -Stop, -Start alone (must stay verifier and re-install nothing - the documented -Stop/-Start used to re-register
+      // a verifier as generic), then a hand-started supervisor that a re-install must stop and replace with a confirmed task
+      // supervisor (it used to make the task's supervisor exit 3 and leave the node down), then -Uninstall.
+      const psT = (args) => ps([...args, '-TaskName', scratchTask]);
+      const taskArgsOf = () => run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName '" + scratchTask + "' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).Arguments}else{'NONE'}"], ROOT).out.trim();
+      const cyc = {};
+      cyc.install = psT(['-Role', 'verifier', '-EnvFile', envFile, '-LogDir', join(work, 'logs-task'), '-Start']);
+      cyc.verify = psT(['-Verify']);
+      cyc.stop = psT(['-Stop']);
+      cyc.start = psT(['-Start']);
+      cyc.argsAfterStart = taskArgsOf();
+      cyc.uninstall1 = psT(['-Uninstall']);
+      const hand = spawn(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--runner-env', envFile, '--role', 'verifier', '--log-dir', join(work, 'logs-hand')], { cwd: cloneA, env: { ...process.env, ...cleanEnv }, stdio: 'ignore', windowsHide: true });
+      started.push(hand);
+      for (let i = 0; i < 20 && !existsSync(join(cloneA, '.factory', 'node-supervisor.pid')); i++) await sleep(500);
+      await sleep(1500);
+      cyc.reinstall = psT(['-Role', 'verifier', '-EnvFile', envFile, '-LogDir', join(work, 'logs-task'), '-Start']);
+      const handGone = await new Promise((r) => { if (hand.exitCode !== null) return r(true); const t = setTimeout(() => r(false), 15000); hand.on('exit', () => { clearTimeout(t); r(true); }); });
+      cyc.uninstall = psT(['-Uninstall']);
+      cyc.argsAfterUninstall = taskArgsOf();
+      const cycleOk = cyc.install.rc === 0 && /started: supervisor pid \d+/.test(cyc.install.out) && /role verifier/.test(cyc.install.out)
+        && cyc.verify.rc === 0 && /OK/.test(cyc.verify.out)
+        && cyc.stop.rc === 0
+        && cyc.start.rc === 0 && /nothing re-installed/.test(cyc.start.out) && /started: supervisor pid \d+/.test(cyc.start.out) && /--role verifier/.test(cyc.argsAfterStart)
+        && cyc.uninstall1.rc === 0
+        && cyc.reinstall.rc === 0 && /started: supervisor pid \d+/.test(cyc.reinstall.out) && !(cyc.reinstall.out.match(/started: supervisor pid (\d+)/) || [])[1] !== String(hand.pid) && handGone
+        && cyc.uninstall.rc === 0 && cyc.argsAfterUninstall === 'NONE';
       const liveTaskAfter = run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName 'BrainOS Factory Node' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).WorkingDirectory + '|' + ($t.Actions|Select-Object -First 1).Arguments + '|' + $t.Settings.Enabled}else{'NONE'}"], ROOT).out.trim();
       const refused = (g) => g.rc === 'skipped' || (g.rc === 3 && /belongs to another checkout/.test(g.out));
-      const guardOk = refused(guard) && refused(stopGuard) && refused(uninstallGuard);
-      check('F6 install-autostart.ps1: -Preflight refuses the broken clone (exit ' + broken.rc + ') and a missing CA (exit ' + noCa.rc + ') and passes the repaired one (exit ' + fixed.rc + '); from the clone install/-Stop/-Uninstall refuse another checkout\'s task (' + guard.rc + '/' + stopGuard.rc + '/' + uninstallGuard.rc + '); the live task is untouched',
-        broken.rc === 1 && /PREFLIGHT FAILED/.test(broken.out) && /npm ci/.test(broken.out) && noCa.rc === 1 && /CA file is missing/.test(noCa.out) && fixed.rc === 0 && /PREFLIGHT OK/.test(fixed.out) && guardOk && liveTaskAfter === liveTaskBefore,
-        'broken: ' + broken.out + '\nno CA: ' + noCa.out + '\nfixed: ' + fixed.out + '\nguard: ' + guard.out + '\nstop: ' + stopGuard.out + '\nuninstall: ' + uninstallGuard.out + '\ntask before: ' + liveTaskBefore + '\ntask after: ' + liveTaskAfter);
+      const guardOk = refused(guard) && refused(stopGuard) && refused(uninstallGuard) && (statusOther.rc === 'skipped' || /ANOTHER checkout/.test(statusOther.out));
+      check('F6 install-autostart.ps1: -Preflight refuses the broken clone (exit ' + broken.rc + ') and a missing CA (exit ' + noCa.rc + ') and passes the repaired one (exit ' + fixed.rc + '); from the clone install/-Stop/-Uninstall refuse another checkout\'s task (' + guard.rc + '/' + stopGuard.rc + '/' + uninstallGuard.rc + ') and -Status names its owner; the scratch-task Work-PC cycle (install+start, -Verify, -Stop, -Start still verifier, a hand-started supervisor replaced, -Uninstall) ' + (cycleOk ? 'holds' : 'FAILS') + '; the live task is untouched',
+        broken.rc === 1 && /PREFLIGHT FAILED/.test(broken.out) && /npm ci/.test(broken.out) && noCa.rc === 1 && /copy the CA file/.test(noCa.out) && fixed.rc === 0 && /PREFLIGHT OK/.test(fixed.out) && guardOk && cycleOk && liveTaskAfter === liveTaskBefore,
+        'broken: ' + broken.out + '\nno CA: ' + noCa.out + '\nfixed: ' + fixed.out + '\nguard: ' + guard.out + '\nstop: ' + stopGuard.out + '\nuninstall: ' + uninstallGuard.out + '\nstatus: ' + statusOther.out
+        + '\n--- cycle ' + Object.entries(cyc).map(([k, v]) => k + ': ' + (typeof v === 'string' ? v : 'rc ' + v.rc + ' ' + v.out)).join('\n') + '\nhand-started supervisor pid ' + hand.pid + ' gone ' + handGone
+        + '\ntask before: ' + liveTaskBefore + '\ntask after: ' + liveTaskAfter);
     } else {
       run(NPM, ['ci', '--omit=dev', '--strict-allow-scripts'], cloneA, cleanEnv);
       if (!isWin) console.log('NOTE F6 is Windows-only (the scheduled-task installer); skipped on ' + process.platform);
@@ -386,17 +498,51 @@ if (!STATIC_ONLY) {
     // F10
     if (want('F10')) {
       const state10 = join(work, 'state-a10'); mkdirSync(state10, { recursive: true });
-      const sup10 = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--runner-env', noCaEnv, '--role', 'verifier', '--log-dir', join(work, 'logs-a10')], cloneA, { ...cleanEnv, FACTORY_STATE_DIR: state10 }, 30000);
+      const envs = { 'CA missing here': [noCaEnv, /copy the CA file/] };
+      const mk = (name, content) => { const f = join(work, 'env10', name, 'runner.env'); mkdirSync(dirname(f), { recursive: true }); writeFileSync(f, content); return f; };
+      const badCa = join(work, 'env10', 'bad-ca.crt'); mkdirSync(dirname(badCa), { recursive: true }); writeFileSync(badCa, 'this is not a certificate\n');
+      envs['a key=value string'] = [mk('kv', 'FACTORY_RUNNER_PG_URL=host=127.0.0.1 port=' + pg.port + ' user=' + pg.runnerRole + '\n'), /not a URL/];
+      envs['the superuser'] = [mk('super', 'FACTORY_RUNNER_PG_URL=' + pg.superUrl + '\n'), /superuser/];
+      envs['a CA file that is not a certificate'] = [mk('badca', 'FACTORY_RUNNER_PG_URL=' + pg.runnerUrl + '?sslmode=verify-full&sslrootcert=' + encodeURIComponent(badCa) + '\n'), /is not a certificate/];
+      const results = Object.entries(envs).map(([label, [f, why]]) => {
+        const r = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--runner-env', f, '--role', 'verifier', '--log-dir', join(work, 'logs-a10')], cloneA, { ...cleanEnv, FACTORY_STATE_DIR: state10 }, 30000);
+        return { label, rc: r.rc, ok: r.rc === 2 && /REFUSED/.test(r.out) && why.test(r.out) && !/node started/.test(r.out), out: r.out };
+      });
       let boot10 = { rc: 'skipped', out: 'bash not available' };
       if (process.platform === 'win32' || existsSync('/bin/bash')) boot10 = run('bash', ['scripts/factory-runner/bootstrap-node.sh', '--role', 'verifier', '--env-file', noCaEnv], cloneA, { ...cleanEnv, FACTORY_STATE_DIR: state10 }, 120000);
       const bootOk = boot10.rc === 'skipped' || (boot10.rc === 2 && /copy the CA file/.test(boot10.out) && !/BOOTSTRAPPED/.test(boot10.out));
-      check('F10 a runner.env whose CA exists nowhere on this machine is refused by the supervisor (exit ' + sup10.rc + ', no worker) and by bootstrap-node.sh (exit ' + boot10.rc + ', nothing registered)',
-        sup10.rc === 2 && /REFUSED/.test(sup10.out) && /copy the CA file/.test(sup10.out) && !/node started/.test(sup10.out) && bootOk,
-        'supervisor: ' + sup10.out + '\n--- bootstrap\n' + boot10.out);
+      check('F10 every env file the worker would refuse is refused by the supervisor before a worker starts (' + results.map((r) => r.label + ': exit ' + r.rc).join('; ') + ') and the missing CA by bootstrap-node.sh (exit ' + boot10.rc + ')',
+        results.every((r) => r.ok) && bootOk,
+        results.map((r) => r.label + ': ' + r.out).join('\n--- ') + '\n--- bootstrap\n' + boot10.out);
+    }
+
+    // F11
+    if (want('F11')) {
+      // after a reboot the pid file and the status file name numbers Windows has handed to other processes: two bystanders hold
+      // them here. The supervisor must start anyway and must not kill either (it did both before 2026-09-24, round 2).
+      const s11 = join(work, 'state-a11'); mkdirSync(s11, { recursive: true });
+      const bystander = () => spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore', windowsHide: true });
+      const b1 = bystander(), b2 = bystander(); started.push(b1, b2);
+      await sleep(1000);
+      writeFileSync(join(s11, 'node-supervisor.pid'), String(b1.pid));
+      writeFileSync(join(s11, 'node-status.json'), JSON.stringify({ supervisorPid: b1.pid, childPid: b2.pid, state: 'running', restarts: 0 }));
+      let out11 = '';
+      const sup11 = spawn(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--runner-env', envFile, '--role', 'verifier', '--log-dir', join(work, 'logs-a11')], { cwd: cloneA, env: { ...process.env, ...nodeEnvA, FACTORY_STATE_DIR: s11, FACTORY_RUNNER_PG_URL: '' }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+      started.push(sup11); sup11.stdout.on('data', (d) => { out11 += d; }); sup11.stderr.on('data', (d) => { out11 += d; });
+      let running11 = false;
+      for (let i = 0; i < 40 && !running11; i++) { await sleep(1000); const st = existsSync(join(s11, 'node-status.json')) ? readJson(join(s11, 'node-status.json')) : {}; running11 = st.supervisorPid === sup11.pid && st.state === 'running' && st.childPid && st.childPid !== b2.pid; }
+      const alive = (p) => { try { process.kill(p, 0); return true; } catch { return false; } };
+      const bystandersAlive = alive(b1.pid) && alive(b2.pid) && b1.exitCode === null && b2.exitCode === null;
+      run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--stop'], cloneA, { ...nodeEnvA, FACTORY_STATE_DIR: s11 });
+      const exit11 = await new Promise((r) => { if (sup11.exitCode !== null) return r(sup11.exitCode); const t = setTimeout(() => r('timeout'), 25000); sup11.on('exit', (c) => { clearTimeout(t); r(c); }); });
+      check('F11 stale pids naming other live processes: the supervisor starts its own worker (' + running11 + '), both bystanders are alive afterwards (' + bystandersAlive + '), the stale pids are logged as such, and --stop ends it (exit ' + exit11 + ')',
+        running11 && bystandersAlive && /stale/.test(out11) && exit11 === 0, out11);
+      for (const b of [b1, b2]) { try { b.kill(); } catch { /* gone */ } }
     }
   } catch (e) {
     check('F0 fresh-clone setup (free disk, clones at HEAD, disposable plane)', false, e && e.stack || e);
   } finally {
+    if (isWin) run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName '" + scratchTask + "' -ErrorAction SilentlyContinue; if($t){ Stop-ScheduledTask -TaskName '" + scratchTask + "' -ErrorAction SilentlyContinue; Unregister-ScheduledTask -TaskName '" + scratchTask + "' -Confirm:$false }"], ROOT);
     for (const c of started) { try { if (c.exitCode === null) c.kill(); } catch { /* gone */ } }
     if (isWin) { // any process still running from the temp clones (a worker a failed row left behind) is ended
       run('powershell', ['-NoProfile', '-Command', "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*" + work.replace(/'/g, "''") + "*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"], ROOT);

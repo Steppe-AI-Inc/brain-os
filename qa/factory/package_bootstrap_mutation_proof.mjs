@@ -48,7 +48,11 @@ const results = [];
 {
   const need = [['scripts/factory-runner/deps.mjs', 'const entries = Object.entries(lock.packages).filter('], ['scripts/factory-runner/node.mjs', "  const cmd = process.argv[2] || 'start';"],
     ['scripts/factory-runner/verify-deployed-bytes.sh', 'npx --yes supabase@2.117.0 functions download'], ['scripts/factory-runner/node-supervisor.mjs', '  if (deps.ok) return;'],
-    ['scripts/factory-runner/node-supervisor.mjs', 'if (loaded.caMissing) {'],
+    ['scripts/factory-runner/node-supervisor.mjs', 'if (!loaded.usable) {'], ['scripts/factory-runner/node-supervisor.mjs', '    if (isOurWorker(prev.childPid)) {'],
+    ['scripts/factory-runner/deps.mjs', 'if (load && lockPresent && rows.every'],
+    ['scripts/factory-runner/install-autostart.ps1', "if ($Start -and -not $RoleGiven -and -not $EnvGiven -and $task -and -not (Test-OtherCheckout $owner)) {"],
+    ['scripts/factory-runner/install-autostart.ps1', "if (-not $RoleGiven -and (Get-TaskArg $task 'role')) {"],
+    ['scripts/factory-runner/install-autostart.ps1', "foreach ($d in @($Root) + @(if ($owner -and (Test-OtherCheckout $owner)) { $owner })) {"],
     ['scripts/factory-runner/bootstrap-node.sh', 'NOTE_FILE="$(mktemp 2>/dev/null || echo "$' + '{TMPDIR:-/tmp}/factory-env-note.$$")"']];
   const missing = need.filter(([f, s]) => readFileSync(join(ROOT, f), 'utf8').split('\r\n').join('\n').split(s).length !== 2);
   if (missing.length) { console.log('MUTATION ANCHORS MISSING - the proof would test nothing: ' + missing.map(([f, s]) => f + ': ' + s).join(' | ')); process.exit(2); }
@@ -90,27 +94,43 @@ try {
     expectRed('M10', 'a runtime file loads a package whose name is only known at run time (cannot be checked)', d, ['K3'], ['--static']); }
   { const d = clone('m11'); edit(d, 'scripts/factory-runner/verify-deployed-bytes.sh', (s) => s.replace('npx --yes supabase@2.117.0 functions download', 'npx --yes supabase@latest functions download')); commitAll(d, 'mutant: npx @latest');
     expectRed('M11', 'a script fetches supabase@latest at run time (unpinned, outside the lock)', d, ['K7'], ['--static']); }
+  { const d = clone('m12'); edit(d, 'scripts/factory-runner/deps.mjs', (s) => "import { createRequire as mk } from 'node:module';\nconst q = mk(import.meta.url);\nconst q2 = q;\nexport const lp = () => q2.call(null, 'left-pad');\n" + s); commitAll(d, 'mutant: renamed createRequire, an alias of the alias, .call');
+    expectRed('M12', 'an undeclared load through a RENAMED createRequire import, an alias of the alias and .call', d, ['K3'], ['--static']); }
+  { const d = clone('m13'); edit(d, 'scripts/factory-runner/verify-deployed-bytes.sh', (s) => s.replace('npx --yes supabase@2.117.0 functions download', 'npx "supabase@latest" functions download')); commitAll(d, 'mutant: quoted unpinned npx without --yes');
+    expectRed('M13', 'a quoted, unpinned npx fetch without --yes (non-TTY npx fetches anyway)', d, ['K7'], ['--static']); }
+  { const d = clone('m14'); edit(d, 'scripts/factory-runner/deps.mjs', (s) => "import { spawnSync as sx } from 'node:child_process';\nexport const fetchIt = () => sx('npx', ['--yes', 'cowsay']);\n" + s); commitAll(d, 'mutant: spawn npx from JS');
+    expectRed('M14', 'a JS file spawns npx with an unpinned package', d, ['K7'], ['--static']); }
 
   if (FRESH) {
     { const d = clone('original', ORIGINAL_DEFECT);
       expectRed('F-ORIG', 'the ORIGINAL defect: published commit ' + ORIGINAL_DEFECT.slice(0, 8) + ' (no package-lock.json, pg undeclared)', d, ['K1', 'K2', 'K3', 'F1', 'F2', 'F3', 'F4', 'F5', 'F7'], ['--skip', 'F6']); }
     { const d = clone('f5'); edit(d, 'scripts/factory-runner/node-supervisor.mjs', (s) => s.replace('  if (deps.ok) return;', '  return;')); commitAll(d, 'mutant: supervisor never refuses');
-      expectRed('F-SUP', 'the supervisor starts a worker whatever the dependency check says (the crash loop)', d, ['F5'], ['--skip', 'F6,F7,F8,F9']); }
-    { const d = clone('fclosure'); edit(d, 'scripts/factory-runner/deps.mjs', (s) => s.replace('const entries = Object.entries(lock.packages).filter(', 'const entries = [].filter(')); commitAll(d, 'mutant: dependency check reads only the manifest');
-      expectRed('F-CLOSURE', 'the dependency check covers only the packages package.json names (pg-protocol missing reads as ready)', d, ['F5'], ['--skip', 'F6,F7,F8,F9']); }
-    { const d = clone('fca'); edit(d, 'scripts/factory-runner/node-supervisor.mjs', (s) => s.replace('if (loaded.caMissing) {', 'if (false) {')); commitAll(d, 'mutant: supervisor ignores a missing CA');
-      expectRed('F-CA', 'the supervisor starts a worker on a URL whose CA file exists nowhere here (the Work-PC crash loop)', d, ['F10'], ['--skip', 'F6,F7,F8,F9']); }
+      expectRed('F-SUP', 'the supervisor starts a worker whatever the dependency check says (the crash loop)', d, ['F5'], ['--skip', 'F6,F7,F8,F9,F10,F11']); }
+    { const d = clone('fclosure'); edit(d, 'scripts/factory-runner/deps.mjs', (s) => s.replace('const entries = Object.entries(lock.packages).filter(', 'const entries = [].filter(').replace('if (load && lockPresent && rows.every', 'if (false && load && lockPresent && rows.every')); commitAll(d, 'mutant: dependency check reads only the manifest');
+      expectRed('F-CLOSURE', 'the dependency check covers only the packages package.json names (pg-protocol missing reads as ready)', d, ['F5'], ['--skip', 'F6,F7,F8,F9,F10,F11']); }
+    { const d = clone('fdamaged'); edit(d, 'scripts/factory-runner/deps.mjs', (s) => s.replace('if (load && lockPresent && rows.every', 'if (false && load && lockPresent && rows.every')); commitAll(d, 'mutant: dependency check reads metadata only');
+      expectRed('F-DAMAGED', 'the dependency check trusts package.json versions and never loads the packages (a damaged install reads as ready)', d, ['F5'], ['--skip', 'F6,F7,F8,F9,F10,F11']); }
+    { const d = clone('fca'); edit(d, 'scripts/factory-runner/node-supervisor.mjs', (s) => s.replace('if (!loaded.usable) {', 'if (!loaded.url) {')); commitAll(d, 'mutant: supervisor refuses only a missing URL');
+      expectRed('F-CA', 'the supervisor starts a worker on anything that is a URL (missing CA, superuser, bad CA - the Work-PC crash loops)', d, ['F10'], ['--skip', 'F6,F7,F8,F9,F11']); }
     { const d = clone('fdie'); edit(d, 'scripts/factory-runner/node.mjs', (s) => s.replace("  const cmd = process.argv[2] || 'start';", "  const cmd = process.argv[2] || 'start';\n  if (cmd === 'start') process.exit(1);")); commitAll(d, 'mutant: the worker dies on every start');
-      expectRed('F-DIE', 'the supervised worker exits on every start (the row must not read ALIVE from another registration)', d, ['F4'], ['--skip', 'F6,F7,F8,F9']); }
+      expectRed('F-DIE', 'the supervised worker exits on every start (the row must not read ALIVE from another registration)', d, ['F4'], ['--skip', 'F6,F7,F8,F9,F10,F11']); }
+    { const d = clone('flate'); edit(d, 'scripts/factory-runner/node.mjs', (s) => s.replace("  const cmd = process.argv[2] || 'start';", "  const cmd = process.argv[2] || 'start';\n  if (cmd === 'start') setTimeout(() => process.exit(1), 6000);")); commitAll(d, 'mutant: the worker dies a few seconds after every start');
+      expectRed('F-LATE', 'the supervised worker dies six seconds after every start (one instant of ALIVE must not pass)', d, ['F4'], ['--skip', 'F6,F7,F8,F9,F10,F11']); }
+    { const d = clone('fstale'); edit(d, 'scripts/factory-runner/node-supervisor.mjs', (s) => s.replace('    if (isOurWorker(prev.childPid)) {', '    if (true) {')); commitAll(d, 'mutant: the supervisor kills whatever holds the recorded worker pid');
+      expectRed('F-STALE', 'the supervisor kills whatever process now holds the worker pid recorded before a reboot', d, ['F11'], ['--skip', 'F6,F7,F8,F9,F10']); }
+    { const d = clone('frole'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("if ($Start -and -not $RoleGiven -and -not $EnvGiven -and $task -and -not (Test-OtherCheckout $owner)) {", 'if ($false) {').replace("if (-not $RoleGiven -and (Get-TaskArg $task 'role')) {", 'if ($false) {')); commitAll(d, 'mutant: -Start re-installs with the default role');
+      expectRed('F-ROLE', 'the documented -Stop / -Start re-registers the verifier as generic', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11']); }
+    { const d = clone('fhand'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("foreach ($d in @($Root) + @(if ($owner -and (Test-OtherCheckout $owner)) { $owner })) {", 'foreach ($d in @(if ($task) { if ($owner) { $owner } else { $Root } })) {')); commitAll(d, 'mutant: install leaves a hand-started supervisor running');
+      expectRed('F-HAND', 'installing while a hand-started supervisor runs leaves the task supervisor refused (exit 3) and the node down', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11']); }
     { const d = clone('f7'); edit(d, 'scripts/factory-runner/bootstrap-node.sh', (s) => s.replace('NOTE_FILE="$(mktemp 2>/dev/null || echo "${TMPDIR:-/tmp}/factory-env-note.$$")"', 'NOTE_FILE="$ROOT/.factory/.env-note"')); commitAll(d, 'mutant: bootstrap redirects into .factory');
-      expectRed('F-BOOT', 'the bootstrap writes into a .factory/ a fresh clone does not have', d, ['F7'], ['--skip', 'F6,F8,F9']); }
+      expectRed('F-BOOT', 'the bootstrap writes into a .factory/ a fresh clone does not have', d, ['F7'], ['--skip', 'F6,F8,F9,F10,F11']); }
     { const d = clone('f8'); editJson(d, 'package.json', (p) => { delete p.allowScripts['@embedded-postgres/windows-x64@18.4.0-beta.17']; delete p.allowScripts['@embedded-postgres/linux-x64@18.4.0-beta.17']; delete p.allowScripts['@embedded-postgres/darwin-arm64@18.4.0-beta.17']; return p; }); commitAll(d, 'mutant: postgres binary script unreviewed');
-      expectRed('F-STRICT', 'the embedded-postgres binaries lose their install-script approval (strict npm ci must refuse)', d, ['K5', 'F8'], ['--skip', 'F6,F7,F9']); }
+      expectRed('F-STRICT', 'the embedded-postgres binaries lose their install-script approval (strict npm ci must refuse)', d, ['K5', 'F8'], ['--skip', 'F6,F7,F9,F10,F11']); }
   }
 } finally {
   try { rmSync(work, { recursive: true, force: true }); } catch { /* windows lock */ }
 }
 const killed = results.filter((r) => r.killed).length;
 console.log('');
-console.log('package_bootstrap_mutation_proof: ' + killed + ' of ' + results.length + ' (control green + mutants killed)' + (FRESH ? '' : '  (static mutants only; --fresh adds the original defect and six fresh-clone mutants)'));
+console.log('package_bootstrap_mutation_proof: ' + killed + ' of ' + results.length + ' (control green + mutants killed)' + (FRESH ? '' : '  (static mutants only; --fresh adds the original defect and eleven fresh-clone mutants)'));
 process.exit(killed === results.length ? 0 : 1);
