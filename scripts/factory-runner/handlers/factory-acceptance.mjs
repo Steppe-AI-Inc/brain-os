@@ -21,13 +21,20 @@ import { hostname } from 'node:os';
 import * as db from '../db.mjs';
 import { recordVerification } from '../claim.mjs';
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// a sleep the run's abort signal ends (the node aborts a run whose lease it cannot keep)
+const sleep = (ms, signal) => new Promise((resolve, reject) => {
+  if (signal && signal.aborted) return reject(signal.reason || new Error('aborted'));
+  const t = setTimeout(() => { if (signal) signal.removeEventListener('abort', onAbort); resolve(); }, ms);
+  const onAbort = () => { clearTimeout(t); reject(signal.reason || new Error('aborted')); };
+  if (signal) signal.addEventListener('abort', onAbort, { once: true });
+});
 
 // The instructions this handler carries out. Stated in every checkpoint, so a seeder newer than this worker can see which it ran.
 export const HANDLER_VERSION = 'factory-acceptance/2';
 export const ACTIONS = ['hold', 'die', 'verify', 'complete'];
 
-export async function factoryAcceptance({ run, workOrder, checkpoint, nodeId, log = () => {} }) {
+// head: the commit this node runs (stamped in every checkpoint - the evidence names the code that produced it). signal: aborts a hold.
+export async function factoryAcceptance({ run, workOrder, checkpoint, nodeId, log = () => {}, head = null, signal = null }) {
   const host = hostname();
   // DONE ONLY FOR AN INSTRUCTION ACTUALLY CARRIED OUT. A handoff that did not parse became {} and any action other than
   // hold/die/verify fell through to 'complete' - 'verify-v2', 'Verify' and 'hold 30 seconds' were all reported done within a
@@ -51,13 +58,13 @@ export async function factoryAcceptance({ run, workOrder, checkpoint, nodeId, lo
     : p.action === 'verify' && !(typeof p.authoringRunId === 'string' && UUID.test(p.authoringRunId)) ? 'verify needs "authoringRunId": a run id (uuid)'
     : null;
   if (bad) return { status: 'failed', terminationReason: 'factory_acceptance_bad_argument', summary: bad + ' (got ' + JSON.stringify(p).slice(0, 120) + ') - nothing was done on ' + host };
-  const base = { hostname: host, nodeId, action: p.action, title: workOrder.title, handler: HANDLER_VERSION };
+  const base = { hostname: host, nodeId, action: p.action, title: workOrder.title, handler: HANDLER_VERSION, head };
 
   if (p.action === 'hold') {
     const seconds = p.seconds;
     await checkpoint('handlers/factory-acceptance.mjs', 'wave', { ...base, seconds });
     log('holding ' + String(run.work_order_id).slice(0, 8) + ' for ' + seconds + ' s');
-    await sleep(seconds * 1000);
+    await sleep(seconds * 1000, signal);
     return { status: 'done', terminationReason: 'factory_acceptance_hold', summary: 'held ' + seconds + ' s on ' + host + ' by ' + nodeId };
   }
 
@@ -67,7 +74,7 @@ export async function factoryAcceptance({ run, workOrder, checkpoint, nodeId, lo
       // phase 1: this node was named to die. Hand the work order to the takeover node, make the lease lapse in seconds
       // rather than minutes, checkpoint, and crash the worker. The supervisor restarts this node; the takeover node claims.
       await checkpoint('handlers/factory-acceptance.mjs', 'phase-1-hold', { ...base, phase: 1, lease: 10, takeoverNode: p.takeoverNode });
-      if (p.takeoverNode) await db.write('update factory.work_orders set requires_capabilities = $2::text[], updated_at = now() where work_order_id = $1', [run.work_order_id, ['factory_acceptance', 'node:' + p.takeoverNode]]);
+      if (p.takeoverNode) await db.write('update factory.work_orders set requires_capabilities = $2::text[], updated_at = now() where work_order_id = $1', [run.work_order_id, ['factory_acceptance', 'handler:' + HANDLER_VERSION, 'node:' + p.takeoverNode]]);
       await db.write("update factory.agent_runs set lease_expires_at = now() + interval '10 seconds' where run_id = $1", [run.run_id]);
       await db.write("update factory.surface_locks set lease_expires_at = now() + interval '10 seconds' where run_id = $1", [run.run_id]);
       log('DYING on purpose for ' + String(run.work_order_id).slice(0, 8) + ' (factory_acceptance die); the lease lapses in 10 s; the supervisor restarts this worker');

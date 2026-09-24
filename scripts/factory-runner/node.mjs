@@ -35,6 +35,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as db from './db.mjs';
 import { registerNode, claimWork, heartbeat, checkpoint, completeRun, DEFAULT_LEASE_SECONDS } from './claim.mjs';
+import { HANDLER_VERSION } from './handlers/factory-acceptance.mjs';
 
 // An error in words: a connection to a host with several addresses fails with an AggregateError whose message is EMPTY -
 // its causes are in .errors ("UNREACHABLE - AggregateError" named nothing; verification 2026-09-24, round 3).
@@ -177,6 +178,11 @@ export function capabilities() {
   // can be addressed to one node (the takeover half of a failover). Still checkable answers, not a typed list.
   caps.push('factory_acceptance');
   caps.push('node:' + nodeId());
+  // THE COMMIT THIS NODE RUNS AND THE ACCEPTANCE HANDLER IT CARRIES, as facts a work order can require. Nothing recorded which
+  // commit a node ran: a Work PC on an older checkout passed the two-machine acceptance, and completed an action its handler did
+  // not know (final verification 2026-09-24). Uncommitted changes to tracked files are said as 'dirty'.
+  try { caps.push('head:' + git(['rev-parse', 'HEAD'])); if (git(['status', '--porcelain', '--untracked-files=no']).length) caps.push('dirty'); } catch { /* not a checkout */ }
+  caps.push('handler:' + HANDLER_VERSION);
   return caps;
 }
 
@@ -222,22 +228,31 @@ export function ensureWorktree({ runId, baseCommit, branch }) {
   return { path, branch: wtBranch, recovered: false, head: git(['rev-parse', 'HEAD'], path) };
 }
 
-/** 8. Renew the lease on a timer for as long as the work is running (the heartbeat also stamps the node record - claim.mjs). */
+/** 8. Renew the lease on a timer for as long as the work is running (the heartbeat also stamps the node record - claim.mjs).
+ *  Returns { stop, signal }: the signal ABORTS the run when its lease cannot be kept (see below). */
 export function startHeartbeat({ runId, id, leaseSeconds = DEFAULT_LEASE_SECONDS }) {
   const everyMs = Math.max(5000, Math.floor((leaseSeconds * 1000) / 3));
-  let lost = false, stopped = false;
+  let lost = false, stopped = false, lastOk = Date.now();
+  const ac = new AbortController();
+  const say = (m) => console.log('[' + String(id).slice(0, 13) + '] run ' + String(runId).slice(0, 8) + ' ' + m);
+  const abort = (why) => { if (!ac.signal.aborted && !stopped) { say('ABORTED: ' + why); ac.abort(new Error('run aborted: ' + why)); } };
   const timer = setInterval(() => {
     if (stopped) return;
     heartbeat({ runId, nodeId: id, leaseSeconds })
       // a lost lease is said once; the completion fence (claim.mjs completeRun) keeps this run's result off the work order
       // (never said of a run this node has already finished - its beat may land after the completion)
-      .then((ok) => { if (!ok && !lost && !stopped) { lost = true; console.log('[' + String(id).slice(0, 13) + '] run ' + String(runId).slice(0, 8) + ' LOST its lease (taken over by another node); its result will not complete the work order'); } })
-      .catch(() => { /* the lease will expire; that is the design */ });
+      .then((ok) => { if (stopped) return; if (ok) { lastOk = Date.now(); return; } if (!lost) { lost = true; say('LOST its lease (taken over by another node); its result will not complete the work order'); abort('its lease was taken over by another node'); } })
+      .catch(() => { /* a failed renewal: the guard below decides */ });
     // ...and the role, while busy too (a long run no longer leaves a demotion standing until it ends)
     nodeBeat(id).then((b) => { if (b.found && b.was !== nodeRole()) console.log('[' + String(id).slice(0, 13) + '] the plane held role ' + b.was + ' for this node - re-asserted ' + nodeRole()); }, () => { /* the next beat */ });
   }, everyMs);
-  if (typeof timer.unref === 'function') timer.unref();
-  return () => { stopped = true; clearInterval(timer); };
+  // A RUN THAT CANNOT RENEW ITS LEASE STOPS BEFORE THE LEASE CAN LAPSE. A node cut off from the plane kept working after its lease
+  // lapsed and another node had taken the surface: two machines worked one surface at once, and the work ran twice (final
+  // verification 2026-09-24). With no renewal for two thirds of the lease the run is aborted - the work stays recoverable (its
+  // checkpoints), the surface is left before anyone else can take it.
+  const guard = setInterval(() => { if (!stopped && Date.now() - lastOk > (leaseSeconds * 1000 * 2) / 3) abort('no lease renewal for ' + Math.round((Date.now() - lastOk) / 1000) + ' s (lease ' + leaseSeconds + ' s) - stopped before the lease can lapse and another node takes its surface'); }, 1000);
+  for (const t of [timer, guard]) if (typeof t.unref === 'function') t.unref();
+  return { stop: () => { stopped = true; clearInterval(timer); clearInterval(guard); }, signal: ac.signal };
 }
 
 /**
@@ -260,7 +275,7 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
   const log = (m) => console.log('[' + id.slice(0, 13) + '] ' + m);
   // registered WITHOUT liveness: the node reads ALIVE only once it has completed a claim cycle (below). A worker that registered
   // and then failed every claim read ALIVE while it crash-looped (final verification 2026-09-24).
-  const register = () => registerNode({ nodeId: id, capabilities: caps, securityRole: nodeRole(), platform: process.platform + ' ' + hostname(), agentVersion: process.version, stamp: false });
+  const register = () => registerNode({ nodeId: id, capabilities: caps, securityRole: nodeRole(), platform: process.platform + ' ' + hostname(), agentVersion: process.version + ' ' + String(repo.head).slice(0, 12) + (caps.includes('dirty') ? '+dirty' : ''), stamp: false });
   await retryTransient(register, 'registration', log);
   log('security role ' + nodeRole() + ' (FACTORY_NODE_ROLE); host ' + hostname());
   log('registered; capabilities ' + JSON.stringify(caps) + '; head ' + String(repo.head).slice(0, 8));
@@ -304,7 +319,7 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
   };
   let ready = false;
   for (let i = 0; i < maxIterations; i++) {
-    const run = await retryTransient(() => claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel, workTypes }), 'claim', log);
+    const run = await retryTransient(() => claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel, workTypes, baseCommit: repo.head }), 'claim', log);
     noteAdmission();
     noteBusy();
     // READY = ONE COMPLETED CLAIM CYCLE. Only now is liveness stamped, and the line below is what the supervisor resets its
@@ -329,7 +344,8 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
     }
     claimed++;
     log('claimed work order ' + String(run.work_order_id).slice(0, 8) + ' as run ' + String(run.run_id).slice(0, 8));
-    const stopBeat = startHeartbeat({ runId: run.run_id, id, leaseSeconds });
+    const hb = startHeartbeat({ runId: run.run_id, id, leaseSeconds });
+    const stopBeat = hb.stop;
     try {
       // The work order itself: its type decides whether a checkout is needed. A factory_acceptance work order has no code
       // to check out, and the 2026-09-22 acceptances left twelve full worktrees behind before this distinction existed.
@@ -344,9 +360,11 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
           [run.run_id, wt.path, wt.branch, repo.head]);
       }
 
-      const result = await runWork({ run, workOrder: woRow, worktree: wt, nodeId: id, log,
+      const result = await runWork({ run, workOrder: woRow, worktree: wt, nodeId: id, log, head: repo.head, signal: hb.signal,
         checkpoint: (location, scenario, payload) =>
           checkpoint({ runId: run.run_id, workOrderId: run.work_order_id, location, scenario, payload, nodeId: id }) });
+      // an aborted run (its lease could not be kept) is not reported, whatever its worker returned
+      if (hb.signal.aborted) throw hb.signal.reason || new Error('run aborted');
 
       // THE TERMINAL CONDITION COMES FROM THE WORKER, and where the worker reports none the fallback NAMES
       // THAT ABSENCE rather than claiming a clean finish. completeRun requires the field; defaulting it to
@@ -377,7 +395,9 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
       // that is not a uuid was re-claimed and re-thrown every lease period, holding its dependents forever (final verification
       // 2026-09-24). That run fails, by name, and its work order with it.
       const code = String((e && e.code) || '');
-      if (/^22/.test(code)) {
+      if (hb.signal.aborted) {
+        log('run ' + String(run.run_id).slice(0, 8) + ' not completed: it was aborted (' + errText(hb.signal.reason || e).slice(0, 140) + '); its lease is left to expire - the work is recoverable');
+      } else if (/^22/.test(code)) {
         try {
           await completeRun({ runId: run.run_id, nodeId: id, status: 'failed', terminationReason: 'data_exception_' + code, summary: errText(e).slice(0, 300) });
           log('FAILED run ' + String(run.run_id).slice(0, 8) + ' (data exception ' + code + ': ' + errText(e).slice(0, 120) + ') - the same input fails every time; its work order is failed');
@@ -511,10 +531,11 @@ export async function health() {
     const role = held ? held.security_role : (stated || "generic");
     // ...nor whether it is alive: only a working node stamps liveness (a check on a PC whose node was dead made it read ALIVE for
     // three minutes - final verification 2026-09-24)
+    // ...nor what it runs: an existing record is the running worker's (its commit and handler version) and is left as it is
     await registerNode({ nodeId: nodeId(), capabilities: capabilities(), securityRole: role,
-      platform: process.platform + ' ' + hostname(), agentVersion: process.version, stamp: false });
+      platform: process.platform + ' ' + hostname(), agentVersion: process.version, stamp: false, onlyIfAbsent: true });
     const n = await db.read("select count(*)::int n from factory.nodes");
-    say(true, (held ? "refreshed its registration, role " + role + " kept as the plane holds it" : "registered itself as " + role)
+    say(true, (held ? "left its record as the running worker wrote it, role " + role + " kept as the plane holds it" : "registered itself as " + role)
       + " (" + n.rows[0].n + " node(s) known to this control plane)");
     if (held && stated && stated !== held.security_role) lines.push("  note FACTORY_NODE_ROLE here says " + stated + " but the plane holds "
       + held.security_role + " for this node - a health check does not change a role (install-autostart.ps1 -Role " + stated + " does)");
@@ -687,9 +708,9 @@ if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
     // with the fix instead of an uncaught stack; the supervisor provides the URL from the env file, a bare shell does not
     try {
     await nodeStart({
-      runWork: async ({ run, workOrder, checkpoint: cp, nodeId: nid, log: l }) => {
+      runWork: async ({ run, workOrder, checkpoint: cp, nodeId: nid, log: l, head, signal }) => {
         // The Factory's own acceptance work is the one thing the generic bootstrap runs itself (handlers/factory-acceptance.mjs).
-        if (workOrder && workOrder.work_type === 'factory_acceptance') return factoryAcceptance({ run, workOrder, checkpoint: cp, nodeId: nid, log: l });
+        if (workOrder && workOrder.work_type === 'factory_acceptance') return factoryAcceptance({ run, workOrder, checkpoint: cp, nodeId: nid, log: l, head, signal });
         if (workOrder && workOrder.work_type === 'bootstrap_probe') {
           await cp('qa/verification/CHECKPOINT.md', 'bootstrap_probe');
           return { status: 'done', terminationReason: 'bootstrap_probe_completed', summary: 'bootstrap probe ' + run.work_order_id + ' claimed and completed; a probe does no work by definition' };
@@ -700,6 +721,8 @@ if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
       },
       once: process.argv.includes('--once'),
       workTypes: HANDLED_WORK_TYPES,
+      // the lease length (default 120 s); shorter only for the acceptance that proves a cut-off run stops before its lease lapses
+      leaseSeconds: Number(process.env.FACTORY_LEASE_SECONDS) > 0 ? Number(process.env.FACTORY_LEASE_SECONDS) : DEFAULT_LEASE_SECONDS,
     });
     } catch (e) {
       // anything else (a password refused, a certificate, a host that does not answer) is ONE line naming it, then exit 1: the

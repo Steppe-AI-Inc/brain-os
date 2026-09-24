@@ -180,6 +180,13 @@ orders (`scripts/factory-runner/handlers/factory-acceptance.mjs`: hold, die-and-
 | S3 scheduling | three work orders held 25 s each, two on one surface | the pair never overlapped; the free one completed |
 | S4 verifier independence | a verifier-role work order makes the work worker record a verification of a run the home node completed | verifier node ≠ authoring node on the run row |
 
+**Both machines run exactly the commit under acceptance.** Each node records the commit it runs (`head:<sha>`, and `dirty` for
+uncommitted changes to tracked files) and its acceptance handler (`handler:factory-acceptance/2`) as capabilities, and stamps the
+commit on every run it claims (`base_commit`) and in every acceptance checkpoint. `two_machine_real.mjs run [--sha <commit>]` (default:
+this checkout's HEAD) REFUSES, seeding nothing, unless both nodes run exactly that commit, clean, with that handler - a Work PC on
+an older checkout passed it before (final verification 2026-09-24) - and seeds work only that handler can claim. The composer's
+milestone rows 2 and 4 count only evidence recorded at that commit.
+
 A worker completes only an instruction it carried out: an action its checkout does not know (a newer seeder, a typo, a wrong
 case) or a handoff that is not a JSON object FAILS the run and its work order by name (`factory_acceptance_unknown_action`,
 `factory_acceptance_bad_handoff`), and a dependent is never released; the checkpoints carry the handler version.
@@ -253,6 +260,11 @@ order): all or nothing.
   the worker running NOW, not from its predecessor.
 - *One worker per node identity.* A worker holds a lock for its state dir; a second one, or a bare `node.mjs start` beside a
   supervisor, does not start (exit 4).
+- *A run that cannot keep its lease stops before it lapses.* With no lease renewal for two thirds of the lease (the node cut off
+  from the plane), or with the lease taken over, the run is aborted - its work stays recoverable from its checkpoints - so another
+  node takes the surface only after it stopped (a cut-off node kept working and two machines worked one surface). An abandoned run
+  keeps the node that ran it and its last heartbeat, so an overlap would be visible; `two_machine_real` S3 compares every
+  execution, abandoned ones included.
 - *Nothing waits forever on the plane.* A connection close is bounded too (5 s, then the socket is destroyed): a close the other side
   never answered left a worker hung after a successful statement while its heartbeat kept it looking healthy.
 - *A malformed work order is declined, not retried.* A NULL or empty surface is declined by name and the next work order taken (it

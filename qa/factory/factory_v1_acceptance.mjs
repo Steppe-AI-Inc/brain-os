@@ -76,17 +76,22 @@ if (LOCAL_ONLY || !process.env.FACTORY_RUNNER_PG_URL) {
 } else {
   try {
     const db = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/db.mjs')).href);
+    // THE COMMIT UNDER ACCEPTANCE (--sha, or this checkout's HEAD): the two-machine evidence counts only when both nodes that recorded it
+    // ran exactly this commit - evidence from a Work node on another checkout certified these rows (final verification 2026-09-24)
+    const { execFileSync } = await import('node:child_process');
+    const shaArg = process.argv.indexOf('--sha');
+    const SHA = shaArg > -1 && process.argv[shaArg + 1] ? process.argv[shaArg + 1] : execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim();
     const hosts = (await db.read("select distinct split_part(platform, ' ', 2) h from factory.nodes where platform like '% %' and last_heartbeat_at > now() - interval '7 days'")).rows.map((x) => x.h).filter(Boolean);
     row('1', 'machines registered on the shared plane in 7 days: ' + hosts.join(', '), hosts.length >= 2, hosts.length < 2 ? 'only ' + hosts.join(', ') + ' - bootstrap the other PC (§C/§D)' : '', hosts.length < 2);
-    const fo = (await db.read("select c1.payload->>'hostname' h1, c2.payload->>'hostname' h2 from factory.checkpoints c1 join factory.checkpoints c2 on c1.work_order_id = c2.work_order_id where c1.scenario = 'phase-1-hold' and c2.scenario = 'phase-2-takeover'")).rows;
+    const fo = (await db.read("select c1.payload->>'hostname' h1, c2.payload->>'hostname' h2 from factory.checkpoints c1 join factory.checkpoints c2 on c1.work_order_id = c2.work_order_id where c1.scenario = 'phase-1-hold' and c2.scenario = 'phase-2-takeover' and c1.payload->>'head' = $1 and c2.payload->>'head' = $1", [SHA])).rows;
     const pairs = fo.filter((p) => p.h1 && p.h2 && p.h1 !== p.h2);
     const both = new Set(pairs.map((p) => p.h1 + '>' + p.h2));
-    row('2', 'real two-machine failover recorded on the plane: ' + [...both].join(', '), pairs.length >= 1, pairs.length ? '' : 'run two_machine_failover.mjs hold on one PC and takeover on the other (§E)', pairs.length < 1);
+    row('2', 'real two-machine failover recorded on the plane by nodes running ' + SHA.slice(0, 12) + ': ' + [...both].join(', '), pairs.length >= 1, pairs.length ? '' : 'with both PCs on exactly this commit, run qa/factory/two_machine_real.mjs run on the Home PC (§I)', pairs.length < 1);
     row('2', 'failover in BOTH directions', both.size >= 2, both.size >= 2 ? '' : 'run §E the other way round too', both.size < 2);
     const three = (await db.read("select count(distinct split_part(n.platform, ' ', 2))::int m from factory.agent_runs r join factory.nodes n on n.node_id = r.node_id where r.status = 'done' and r.finished_at > now() - interval '7 days'")).rows[0].m;
     row('3', 'completed runs from ' + three + ' distinct machine(s) in 7 days (three-node scheduling needs 3)', three >= 3, three < 3 ? 'run two_machine_scheduling.mjs: seed, then wave on each machine, then verify (§G)' : '', three < 3);
-    const ver = (await db.read("select count(*)::int n from factory.agent_runs a join factory.nodes na on na.node_id = a.authoring_node_id join factory.nodes nv on nv.node_id = a.verification_node_id where a.verification_run_id is not null and a.status = 'done' and split_part(na.platform, ' ', 2) <> split_part(nv.platform, ' ', 2)")).rows[0].n;
-    row('4', 'verifications recorded by a DIFFERENT machine than the author: ' + ver, ver >= 1, ver < 1 ? 'the verifier wave of two_machine_scheduling.mjs on the Work PC records it (§G)' : '', ver < 1);
+    const ver = (await db.read("select count(*)::int n from factory.agent_runs a join factory.agent_runs v on v.run_id = a.verification_run_id join factory.nodes na on na.node_id = a.authoring_node_id join factory.nodes nv on nv.node_id = a.verification_node_id where a.status = 'done' and a.base_commit = $1 and v.base_commit = $1 and split_part(na.platform, ' ', 2) <> split_part(nv.platform, ' ', 2)", [SHA])).rows[0].n;
+    row('4', 'verifications of done runs recorded by a DIFFERENT machine than the author, both running ' + SHA.slice(0, 12) + ': ' + ver, ver >= 1, ver < 1 ? 'two_machine_real.mjs run records it (S4, §I), with both PCs on exactly this commit' : '', ver < 1);
   } catch (e) { row('1-4', 'reading the shared plane', false, String(e.message).slice(0, 200)); }
 }
 

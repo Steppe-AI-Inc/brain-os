@@ -23,6 +23,12 @@
 //   N9 one worker per node identity: a second worker on the same state dir does not start, nor a bare one beside a supervisor
 //   N10 a malformed argument fails its run by name, and a data exception inside a run is terminal (both were retried forever)
 //   N11 a plane-wide claim lock held past the lock timeout is said in the worker's log and its status (it idled ALIVE, silent)
+//   N13 a run whose lease cannot be renewed (the node cut off from the plane) is ABORTED before the lease lapses, so another node
+//      takes its surface only after it stopped; the abandoned run keeps the node that ran it (it kept working, and was erased)
+//   N14 a node records the commit it runs and its acceptance handler (capabilities head:<sha>, handler:...; agent_version), and a
+//      health check never overwrites the running worker's record
+//   N15 two_machine_real.mjs refuses a node on another or an unrecorded commit, and seeds nothing (a Work PC on an older checkout
+//      passed the two-machine acceptance)
 //   N12 only a finished, successful run can be verified: a verify of a FAILED run is refused by name and writes nothing (it was
 //      recorded as verified and reported 'completed_with_verdict'); a done run authored elsewhere is still verified
 import { startLocalPg } from './local_pg.mjs';
@@ -92,6 +98,7 @@ const runStart = (state) => new Promise((r) => {
 const statusOf = (state) => { const r = spawnSync(process.execPath, [NODE, 'status', '--json'], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, FACTORY_RUNNER_PG_URL: pg.runnerUrl, FACTORY_STATE_DIR: state } }); return (r.stdout || '') + (r.stderr || ''); };
 const ageSecOf = async (id) => Number((await admin.query('select extract(epoch from now() - last_heartbeat_at) s from factory.nodes where node_id = $1', [id])).rows[0].s);
 const envFile = join(WORK, 'runner.env'); writeFileSync(envFile, 'FACTORY_RUNNER_PG_URL=' + pg.runnerUrl + '\n');
+const registerOther = () => claim.registerNode({ nodeId: 'node-n13-other', capabilities: [], securityRole: 'generic', platform: 'test other-host' });
 const idOf = (state) => { try { return readFileSync(join(state, 'node-id'), 'utf8').trim(); } catch { return null; } };
 
 try {
@@ -139,6 +146,36 @@ try {
     const roleAfter = await roleOf(w1id);
     check('N9 one worker per node identity: a second worker on the same state dir does not start (exit ' + second.code + ') and the node stays verifier',
       second.code === 4 && /NOT STARTED - another worker already runs the node/.test(second.out) && roleAfter === 'verifier' && w1.exitCode === null, second.out.slice(-600));
+  }
+
+  // ---- N14. a node records the commit it runs; a health check leaves the worker's record alone ------------------------------------
+  const HEAD = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).stdout.trim();
+  {
+    const rec = (await admin.query('select capabilities, agent_version from factory.nodes where node_id = $1', [w1id])).rows[0];
+    const caps = rec.capabilities || [];
+    await admin.query("update factory.nodes set capabilities = capabilities || '[\"qa-marker\"]'::jsonb where node_id = $1", [w1id]);
+    const h = spawnSync(process.execPath, [NODE, 'health'], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, FACTORY_RUNNER_PG_URL: pg.runnerUrl, FACTORY_STATE_DIR: S1, FACTORY_NODE_ROLE: '' } });
+    const after = (await admin.query('select capabilities from factory.nodes where node_id = $1', [w1id])).rows[0].capabilities || [];
+    check('N14 a node records the commit it runs and its acceptance handler (' + (caps.find((c) => String(c).startsWith('head:')) || 'no head').slice(0, 17) + ', ' + (caps.find((c) => String(c).startsWith('handler:')) || 'no handler') + '), and a health check leaves the running worker\'s record alone',
+      caps.includes('head:' + HEAD) && caps.includes('handler:factory-acceptance/2') && String(rec.agent_version).includes(HEAD.slice(0, 12)) && h.status === 0 && after.includes('qa-marker') && after.includes('head:' + HEAD),
+      JSON.stringify({ caps, agent: rec.agent_version, after, health: h.status }) + '\n' + String(h.stdout).slice(-400));
+    await admin.query("update factory.nodes set capabilities = capabilities - 'qa-marker' where node_id = $1", [w1id]);
+  }
+
+  // ---- N15. the two-machine acceptance refuses a node on another commit -------------------------------------------------------------
+  {
+    const tmr = (work) => spawnSync(process.execPath, [join(ROOT, 'qa/factory/two_machine_real.mjs'), 'run', '--home', w1id, '--work', work], { cwd: ROOT, encoding: 'utf8', timeout: 60000, env: { ...process.env, FACTORY_RUNNER_PG_URL: pg.runnerUrl, FACTORY_STATE_DIR: S1 } });
+    await claim.registerNode({ nodeId: 'node-n15-unrecorded', capabilities: ['factory_acceptance', 'node:node-n15-unrecorded'], securityRole: 'verifier', platform: 'test other-host' });
+    await claim.registerNode({ nodeId: 'node-n15-older', capabilities: ['factory_acceptance', 'handler:factory-acceptance/2', 'head:' + '0'.repeat(40), 'node:node-n15-older'], securityRole: 'verifier', platform: 'test other-host' });
+    // this row is about the WORK node: the home node is presented clean (a worker started from an uncommitted tree is 'dirty', and is
+    // itself refused - correctly - before the work node is looked at)
+    await admin.query("update factory.nodes set capabilities = capabilities - 'dirty' where node_id = $1", [w1id]);
+    const r1 = tmr('node-n15-unrecorded'), r2 = tmr('node-n15-older');
+    const seeded = (await admin.query("select count(*)::int n from factory.work_orders where title like 'TMR-%'")).rows[0].n;
+    check('N15 the two-machine acceptance refuses a Work node on an unrecorded commit (exit ' + r1.status + ') or another commit (exit ' + r2.status + '), naming it, and seeds nothing (' + seeded + ' work orders)',
+      r1.status === 1 && /REFUSED - the work node node-n15-unrecorded.* runs an unrecorded commit/.test(r1.stdout) && r2.status === 1 && /REFUSED - the work node node-n15-older.* runs 0{40}/.test(r2.stdout) && seeded === 0,
+      (r1.stdout + r1.stderr).slice(-500) + '\n---\n' + (r2.stdout + r2.stderr).slice(-500));
+    await admin.query("update factory.nodes set last_heartbeat_at = now() - interval '1 day' where node_id like 'node-n15-%'");
   }
 
   // ---- N3. the acceptance handler completes only what it carried out ----------------------------------------------------------
@@ -301,6 +338,49 @@ try {
       !!settled && rv === 'failed:factory_acceptance_bad_argument' && rh === 'failed:factory_acceptance_bad_argument' && rd === 'failed:data_exception_22P02'
         && (await woStatus(v)) === 'failed' && (await woStatus(h)) === 'failed' && (await woStatus(d)) === 'failed',
       JSON.stringify({ rv, rh, rd }) + '\n' + w1.out.slice(-800));
+  }
+
+  // ---- N13. a run whose lease cannot be renewed stops before the lease lapses ---------------------------------------------------
+  {
+    const net = await import('node:net');
+    let hole = false; const socks = [];
+    const relay = net.createServer((c) => {
+      c.on('error', () => {}); socks.push(c);
+      if (hole) return; // held: nothing is forwarded, the client's connect times out
+      const u = net.connect(pg.port, '127.0.0.1'); u.on('error', () => {}); socks.push(u);
+      c.on('data', (d) => { if (!hole) u.write(d); }); u.on('data', (d) => { if (!hole) c.write(d); });
+      c.on('close', () => u.destroy()); u.on('close', () => c.destroy());
+    });
+    await new Promise((r) => relay.listen(0, '127.0.0.1', r));
+    const relayUrl = pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + relay.address().port + '/');
+    const S5 = join(WORK, 'state-w3');
+    const w3 = spawnWorker({ state: S5, role: 'generic', url: relayUrl, extra: { FACTORY_LEASE_SECONDS: '15', FACTORY_PG_CONNECT_TIMEOUT_MS: '3000', FACTORY_PG_QUERY_TIMEOUT_MS: '4000', FACTORY_PG_CLOSE_TIMEOUT_MS: '1000' } });
+    await waitFor(async () => /\] ready: first claim cycle completed/.test(w3.out), 30000);
+    const w3id = idOf(S5);
+    const surface = 'qa/nodetruth/n13-shared';
+    const a = await seed('N13 held by the cut-off node', { type: 'factory_acceptance', handoff: JSON.stringify({ action: 'hold', seconds: 60 }), caps: ['factory_acceptance', 'node:' + w3id], surface });
+    await waitFor(async () => /holding [0-9a-f]{8} for 60 s/.test(w3.out), 30000, 200);
+    const runA = (await runsOf(a))[0];
+    hole = true; for (const x of socks) { try { x.destroy(); } catch { /* gone */ } }
+    let abortedAt = 0;
+    const b = await seed('N13 the same surface, another node', { type: 'qa_n13', surface });
+    await registerOther();
+    let taken = null, takenAt = 0;
+    const until = Date.now() + 40000;
+    while (Date.now() < until && !taken) {
+      if (!abortedAt && /ABORTED: no lease renewal for \d+ s/.test(w3.out)) abortedAt = Date.now();
+      taken = await claim.claimWork({ nodeId: 'node-n13-other', leaseSeconds: 60, onlyWorkOrderId: b });
+      if (taken) takenAt = Date.now(); else await sleep(250);
+    }
+    if (!abortedAt && /ABORTED: no lease renewal for \d+ s/.test(w3.out)) abortedAt = Date.now() + 1; // said only after the takeover
+    const runAafter = (await admin.query('select status, node_id from factory.agent_runs where run_id = $1', [runA.run_id])).rows[0];
+    hole = false;
+    try { w3.kill(); } catch { /* gone */ }
+    relay.close(); for (const x of socks) { try { x.destroy(); } catch { /* gone */ } }
+    if (taken) await claim.completeRun({ runId: taken.run_id, nodeId: 'node-n13-other', status: 'done', terminationReason: 'completed' });
+    check('N13 a run whose lease cannot be renewed is aborted before the lease lapses (' + (abortedAt ? Math.round((takenAt - abortedAt) / 1000) + ' s before' : 'NOT aborted before') + ' another node took its surface), and the abandoned run keeps the node that ran it (' + (runAafter && runAafter.node_id === w3id ? 'kept' : 'lost') + ')',
+      !!taken && abortedAt > 0 && abortedAt < takenAt && runAafter && runAafter.status === 'queued' && runAafter.node_id === w3id && !/completed run/.test(w3.out.split('holding')[1] || ''),
+      JSON.stringify({ taken: !!taken, abortedAt, takenAt, runAafter }) + '\n' + w3.out.slice(-900));
   }
 
   // ---- N12. only a finished, successful run can be verified ---------------------------------------------------------------------

@@ -29,6 +29,16 @@
   walked the backoff to 5 min -> retried in the worker, backoff reset on registration; `-Status` ALIVE during a backoff -> NOT
   RUNNING; a bare `%` made pg corrupt the CA path -> refused by the judge; `-Start -WatchdogMinutes/-LogDir` ignored -> re-installs.
   New suite `qa/factory/node_truth_acceptance.mjs` (N1-N7) and `qa/factory/acceptance_mutation_proof.mjs` (rows M-Q, N1-N7).
+- **The final verification of `340da680`** (wf_9c46743b-d83; every agent reported inspecting exactly `340da680`) confirmed
+  defects, every serious one reproduced by a refuter, so `340da680` was NOT certified and NOT pushed: [high] a claim-failing
+  worker crash-looped every 6 s while reading ALIVE; [high] an unbounded connection close hung a worker that still looked healthy;
+  [high] nothing recorded which commit a node ran (a Work PC on an older checkout passed the two-machine acceptance); [medium] health
+  checks made a dead node read ALIVE; [medium] a verify of a FAILED run was recorded as verified; [medium] a node cut off from the
+  plane kept working after its lease lapsed (two machines on one surface); and lows (claim-lock busy silent, NULL/repeated surfaces,
+  bootstrap without --role, two workers per node id, stale 'was' role, handler arguments, class-22 retries, -Status -EnvFile ran the
+  owner's code, the provisioner's port). All fixed with rows and mutants (acceptance R, S, G3; node_truth N8-N15, N9b). Registered,
+  bounded: a node refusing admission reads ALIVE to the Home PC; no attempt ceiling for runs that keep throwing; RS-C* read other
+  worktrees. The protocol then runs again from step 2 on the new HEAD.
 - **Live state**: plane `npvhuoozkbexddnvkqsj` healthy; Home node `node-4d4a74dd` generic under the task (conhost --headless,
   control pipe, watchdog), to be restarted on the frozen SHA (APPLIED). Local plane on 54329. Backups:
   `C:\Users\Dell\dev\backups\factory-cp-2026-09-24-*.bundle`.

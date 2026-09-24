@@ -76,19 +76,25 @@ export async function recordVerification({ authoringRunId, verificationRunId }) 
  * PC whose node was dead made it read ALIVE for three minutes, and a worker that registered and then failed every claim read
  * ALIVE while it crash-looped (final verification 2026-09-24). Liveness is stamped only by what a working node does - its beat
  * after a completed claim cycle and its run heartbeat. An unstamped new record starts at the epoch: it reads STALE, "never beaten". */
-export async function registerNode({ nodeId, capabilities = [], securityRole = 'generic', platform = '', agentVersion = '', stamp = true }) {
+//
+// onlyIfAbsent: true WRITES NOTHING OVER AN EXISTING RECORD - what a check uses. The running worker's record (its role, and the
+// commit and handler version in its capabilities) is the worker's: a check run from the same checkout after it was updated
+// would have written the NEW commit over a worker still running the old one (final verification 2026-09-24). The no-op
+// update still exercises the write privilege. Returns { nodeId, inserted }.
+export async function registerNode({ nodeId, capabilities = [], securityRole = 'generic', platform = '', agentVersion = '', stamp = true, onlyIfAbsent = false }) {
   if (!nodeId) throw new Error('registerNode requires a nodeId');
-  await db.write(
+  const r = await db.write(
     `insert into factory.nodes (node_id, capabilities, security_role, platform, agent_version, last_heartbeat_at)
      values ($1, $2::jsonb, $3, $4, $5, case when $6::boolean then now() else to_timestamp(0) end)
      on conflict (node_id) do update
-       set capabilities = excluded.capabilities,
-           security_role = excluded.security_role,
-           platform = excluded.platform,
-           agent_version = excluded.agent_version,
-           last_heartbeat_at = case when $6::boolean then now() else factory.nodes.last_heartbeat_at end`,
-    [nodeId, JSON.stringify(capabilities), securityRole, platform, agentVersion, stamp !== false]);
-  return nodeId;
+       set capabilities = case when $7::boolean then factory.nodes.capabilities else excluded.capabilities end,
+           security_role = case when $7::boolean then factory.nodes.security_role else excluded.security_role end,
+           platform = case when $7::boolean then factory.nodes.platform else excluded.platform end,
+           agent_version = case when $7::boolean then factory.nodes.agent_version else excluded.agent_version end,
+           last_heartbeat_at = case when $6::boolean and not $7::boolean then now() else factory.nodes.last_heartbeat_at end
+     returning (xmax = 0) as inserted`,
+    [nodeId, JSON.stringify(capabilities), securityRole, platform, agentVersion, stamp !== false, onlyIfAbsent === true]);
+  return { nodeId, inserted: !!(r.rows[0] && r.rows[0].inserted) };
 }
 
 /**
@@ -109,8 +115,11 @@ export async function registerNode({ nodeId, capabilities = [], securityRole = '
 export const claimSessionSql = () => 'begin; set local lock_timeout = ' + Math.round(db.pgTimeoutMs('FACTORY_PG_LOCK_TIMEOUT_MS', 15000))
   + '; set local idle_in_transaction_session_timeout = ' + Math.round(db.pgTimeoutMs('FACTORY_PG_IDLE_TX_TIMEOUT_MS', 30000));
 
+// baseCommit: the commit the claiming node runs, written on the run in the same insert - evidence is then tied to a commit
+// (nothing recorded which commit a node ran; a Work PC on an older checkout passed the two-machine acceptance - final
+// verification 2026-09-24).
 export async function claimWork({ nodeId, leaseSeconds = DEFAULT_LEASE_SECONDS, capabilities = null,
-  requestedProvider = null, requestedModel = null, reasoningEffort = null, onlyWorkOrderId = null, workTypes = null }) {
+  requestedProvider = null, requestedModel = null, reasoningEffort = null, onlyWorkOrderId = null, workTypes = null, baseCommit = null }) {
   if (!nodeId) throw new Error('claimWork requires a nodeId');
   const lease = Number(leaseSeconds) > 0 ? Number(leaseSeconds) : DEFAULT_LEASE_SECONDS;
   // ADMISSION CONTROL (Factory V1 milestone 5): a machine that is out of memory or saturated does not claim. The
@@ -123,13 +132,13 @@ export async function claimWork({ nodeId, leaseSeconds = DEFAULT_LEASE_SECONDS, 
   // One transaction, opened by claimInTransaction below: the select locks the row and the surface
   // insert either succeeds for every surface this work order owns or aborts the claim. There is no
   // moment in between where the row is ours and the surface is not.
-  return claimInTransaction({ nodeId, lease, capabilities, requestedProvider, requestedModel, reasoningEffort, onlyWorkOrderId, workTypes });
+  return claimInTransaction({ nodeId, lease, capabilities, requestedProvider, requestedModel, reasoningEffort, onlyWorkOrderId, workTypes, baseCommit });
 }
 
 // db.transaction() runs a fixed list of statements, which cannot express "read a row then decide". The
 // claim needs a live client, so it borrows the same connection rules by going through db.withClient().
 async function claimInTransaction({ nodeId, lease, capabilities,
-  requestedProvider = null, requestedModel = null, reasoningEffort = null, onlyWorkOrderId = null, workTypes = null }) {
+  requestedProvider = null, requestedModel = null, reasoningEffort = null, onlyWorkOrderId = null, workTypes = null, baseCommit = null }) {
   return db.withClient(async (client) => {
     // A CLAIM CANNOT HOLD THE PLANE. A node that lost its connection inside this transaction held the plane-wide claim lock
     // until the server noticed the dead session, and every other node's claims waited with it (verification 2026-09-24,
@@ -158,7 +167,9 @@ async function claimInTransaction({ nodeId, lease, capabilities,
       // writes are one statement so that no reader can see a queued run whose work order still says claimed.
       const expired = await client.query(
         `update factory.agent_runs
-            set status = 'queued', node_id = null, lease_expires_at = null,
+            -- node_id is KEPT: which node ran an abandoned execution, and until when (its last heartbeat), stays on the plane (it
+            -- was erased, so an overlap on a surface could not be seen afterwards - final verification 2026-09-24)
+            set status = 'queued', lease_expires_at = null,
                 attempt_count = attempt_count + 1, updated_at = now()
           where status = 'in_progress' and lease_expires_at is not null and lease_expires_at < now()
           returning work_order_id`);
@@ -298,11 +309,11 @@ async function claimInTransaction({ nodeId, lease, capabilities,
       const run = await client.query(
         `insert into factory.agent_runs
            (work_order_id, node_id, status, lease_expires_at, last_heartbeat_at, started_at, authoring_node_id,
-            requested_provider, requested_model, reasoning_effort)
-         values ($1, $2, 'in_progress', now() + ($3 || ' seconds')::interval, now(), now(), $2, $4, $5, $6)
+            requested_provider, requested_model, reasoning_effort, base_commit)
+         values ($1, $2, 'in_progress', now() + ($3 || ' seconds')::interval, now(), now(), $2, $4, $5, $6, $7)
          returning run_id, work_order_id, node_id, attempt_count, lease_expires_at,
                    requested_provider, requested_model`,
-        [wo.work_order_id, nodeId, String(lease), requestedProvider, requestedModel, reasoningEffort]);
+        [wo.work_order_id, nodeId, String(lease), requestedProvider, requestedModel, reasoningEffort, baseCommit]);
       const runId = run.rows[0].run_id;
       // A RUN IS ITS OWN AUTHOR (Factory V1 milestone 4, found by shared_control_plane_acceptance CP-11). The schema's
       // `verification_is_independent` compares verification_run_id with authoring_run_id, and the claim wrote the

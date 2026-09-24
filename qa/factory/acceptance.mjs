@@ -115,6 +115,9 @@ try {
   const attempts = await admin.query('select attempt_count from factory.agent_runs where run_id = $1', [runA.run_id]);
   check('G2 the abandoned run is returned to queued and its attempt_count incremented',
     attempts.rows[0].attempt_count === 2, JSON.stringify(attempts.rows[0]));
+  // ...and it keeps the node that ran it: the plane used to erase it, so an overlap on a surface could not be seen afterwards
+  const keptNode = (await admin.query('select node_id from factory.agent_runs where run_id = $1', [runA.run_id])).rows[0].node_id;
+  check('G3 the abandoned run keeps the node that ran it (' + keptNode + ')', keptNode === 'node-alpha', String(keptNode));
 
   // ---- the heartbeat is what holds a claim ----------------------------------------------------------
   const beat = await claim.heartbeat({ runId: recovered.run_id, nodeId: 'node-beta', leaseSeconds: 60 });
