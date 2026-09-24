@@ -2,8 +2,9 @@
 // THE NODE SUPERVISOR - what keeps a Factory node running across crashes and reboots without a founder at the keyboard.
 //
 //   node scripts/factory-runner/node-supervisor.mjs [--runner-env <p>] [--role generic|verifier|release_broker] [--log-dir <d>]
-//   node scripts/factory-runner/node-supervisor.mjs --stop        ask a running supervisor (same checkout) to stop cleanly
-//   node scripts/factory-runner/node-supervisor.mjs --status      print .factory/node-status.json and exit
+//   node scripts/factory-runner/node-supervisor.mjs --whois       is a supervisor running for this state dir? (JSON; exit 0/1)
+//   node scripts/factory-runner/node-supervisor.mjs --stop        ask it to stop cleanly (its worker with it)
+//   node scripts/factory-runner/node-supervisor.mjs --status      print .factory/node-status.json - and STALE when it lies
 //
 // --runner-env, not --env-file: Node itself scans the whole command line for --env-file (arguments after the script included)
 // and exits 9 when the file is missing, before this script runs - no named refusal, no log line (verification 2026-09-24).
@@ -12,19 +13,24 @@
 // It reads FACTORY_RUNNER_PG_URL from the env file (default %USERPROFILE%/.brain-factory/runner.env, the file
 // provision-control-plane.mjs --write-env produced), never prints it, and runs `node.mjs start` as a child process. When
 // the child exits for any reason it is restarted with bounded backoff (5 s doubling to 5 min; a child that lived ten
-// minutes resets the backoff). It stops only when asked: a `.factory/node.stop` file, --stop, SIGINT or SIGTERM.
-// One instance per checkout (pid file). Everything it knows is in .factory/node-status.json for `status` and for the
-// reboot-recovery acceptance; the child's output goes to a daily log under the log dir (14 days kept).
+// minutes resets the backoff). It stops only when asked: --stop (over its control pipe), a `.factory/node.stop` file,
+// SIGINT/SIGTERM/SIGHUP, or - when the scheduled task launched it through a headless console host - that host exiting.
+//
+// ONE SUPERVISOR PER STATE DIR, BY LOCK. It holds an exclusive control pipe named from its state dir (proc.mjs) for its whole
+// life; a second supervisor cannot, and exits 3. The pid file is kept for people to read, never trusted: after a reboot its
+// number belongs to someone else, and a path spelling (relative, junction, non-ASCII) cannot prove who a process is
+// (verification 2026-09-24, rounds 2 and 3). The worker carries this supervisor's instance token on its command line, which is
+// how an orphaned worker is recognised after a supervisor crash.
+//
+// Every refusal leaves a trace a person can find: a log line and the status file (state + reason) - the task's console is
+// headless and its exit code is not passed through.
 //
 // Exit codes: 0 stopped when asked; 2 bad arguments, an env file the shared judge (runner-env.mjs) does not pass - missing,
-// not a URL, a URL the accessor refuses, a CA file missing here or not a certificate - or a worker that REFUSED its
-// configuration (exit 2 with "REFUSED", which no restart can fix); 3 another supervisor already runs for this
-// checkout; 5 the runtime dependencies are not installed at their locked versions (deps.mjs) - `npm ci` fixes it, and the
-// supervisor never starts or restarts a worker that could not load its driver.
-//
-// The scheduled task install-autostart.ps1 registers is what launches this at logon and at boot; the supervisor is what
-// makes "PROCESS LIFETIME != NODE LIFETIME" true between reboots as well as within one session.
+// not a URL, a URL the accessor refuses, a CA file missing here, not PEM or not a certificate - or a worker that REFUSED its
+// configuration (exit 2 with "REFUSED", which no restart can fix); 3 another supervisor already runs for this state dir;
+// 5 the runtime dependencies are not installed at their locked versions or do not load (deps.mjs) - `npm ci` fixes it.
 import { spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -44,86 +50,103 @@ const ROLE = opt('--role', process.env.FACTORY_NODE_ROLE || 'generic');
 const LOG_DIR = resolve(opt('--log-dir', join(homedir(), '.brain-factory', 'logs')));
 const MIN_BACKOFF_MS = 5000, MAX_BACKOFF_MS = 300000, HEALTHY_RUN_MS = 10 * 60000;
 
-// A recorded pid is trusted only when that process's command line says it is this checkout's supervisor / worker (proc.mjs):
-// after a reboot the numbers in these files belong to whatever process Windows handed them to.
-const { isAlive, isScriptProcess } = await import('./proc.mjs');
-const SUPERVISOR_SCRIPT = join(HERE, 'node-supervisor.mjs');
-const WORKER_SCRIPT = join(HERE, 'node.mjs');
-const isOurSupervisor = (pid) => isScriptProcess(pid, SUPERVISOR_SCRIPT);
-const isOurWorker = (pid) => isScriptProcess(pid, WORKER_SCRIPT, ['start']);
+const { isAlive, isScriptProcess, commandLineOf, askSupervisor, holdControlPipe } = await import('./proc.mjs');
 const readStatus = () => { try { return JSON.parse(readFileSync(STATUS_FILE, 'utf8')); } catch { return null; } };
-const writeStatus = (s) => { mkdirSync(STATE_DIR, { recursive: true }); writeFileSync(STATUS_FILE, JSON.stringify(s, null, 2)); };
+const writeStatus = (s) => { try { mkdirSync(STATE_DIR, { recursive: true }); writeFileSync(STATUS_FILE, JSON.stringify(s, null, 2)); } catch { /* disk */ } };
+// the console may be gone (a headless host that exited, a closed terminal): writing to it must never be what kills the node
+process.stdout.on('error', () => { /* no console */ });
+process.stderr.on('error', () => { /* no console */ });
+const out = (s) => { try { process.stdout.write(s); } catch { /* no console */ } };
 
+// ---- the read-only / control commands ---------------------------------------------------------------------------------------
+if (has('--whois')) {
+  const info = await askSupervisor(STATE_DIR, 'whois');
+  out(JSON.stringify(info ? { running: true, ...info } : { running: false, stateDir: STATE_DIR }) + '\n');
+  process.exit(info ? 0 : 1);
+}
 if (has('--status')) {
   const s = readStatus();
-  console.log(s ? JSON.stringify(s, null, 2) : 'no status file (' + STATUS_FILE + ')');
-  // a status file is a record, not a fact: 'running' with a supervisor that is not running is said to be STALE
-  if (s && ['starting', 'running', 'backoff'].includes(s.state) && !isOurSupervisor(s.supervisorPid)) console.log('STALE: the recorded supervisor (pid ' + s.supervisorPid + ') is not running - the node is down');
+  const info = await askSupervisor(STATE_DIR, 'whois');
+  out((s ? JSON.stringify(s, null, 2) : 'no status file (' + STATUS_FILE + ')') + '\n');
+  // a status file is a record, not a fact: 'running' with no supervisor answering is said to be STALE
+  if (s && ['starting', 'running', 'backoff'].includes(s.state) && !info) out('STALE: the recorded supervisor (pid ' + s.supervisorPid + ') is not running - the node is down\n');
+  if (info) out('running: supervisor pid ' + info.pid + ', state ' + info.state + ', worker ' + info.childPid + ', role ' + info.role + '\n');
   process.exit(s ? 0 : 1);
 }
 if (has('--stop')) {
-  mkdirSync(STATE_DIR, { recursive: true });
-  writeFileSync(STOP_FILE, String(Date.now()));
-  const pid = existsSync(PID_FILE) ? Number(readFileSync(PID_FILE, 'utf8')) : 0;
-  console.log(pid && isOurSupervisor(pid) ? 'stop requested; supervisor ' + pid + ' will end its child and exit' : 'stop requested; no supervisor of this checkout is running (pid file ' + (pid ? pid + ' is stale' : 'absent') + ')');
+  const info = await askSupervisor(STATE_DIR, 'stop');
+  // the stop file too: a supervisor from before the control pipe watches only that
+  try { mkdirSync(STATE_DIR, { recursive: true }); writeFileSync(STOP_FILE, String(Date.now())); } catch { /* read-only */ }
+  out((info ? 'stop requested; supervisor ' + info.pid + ' will end its worker and exit' : 'stop requested; no supervisor is running for ' + STATE_DIR) + '\n');
   process.exit(0);
 }
 
-if (!['generic', 'verifier', 'release_broker'].includes(ROLE)) { console.log('role must be generic | verifier | release_broker'); process.exit(2); }
-// The env file is read through the shared loader, which resolves the CA path for THIS machine (the recorded path is the
-// provisioning machine's; a copied file on the Work PC points at a CA that lives somewhere else there).
-const { loadRunnerUrl } = await import('./runner-env.mjs');
-const loaded = loadRunnerUrl(ENV_FILE);
-// Anything the worker would refuse or fail on at connect time is refused HERE, by name, before a worker is started: a worker
-// started on it fails every connect and the supervisor backs off forever (runner-env.mjs is the one judge for every gate).
-if (!loaded.usable) { console.log('REFUSED - ' + loaded.note); process.exit(2); }
-const RUNNER_URL = loaded.url;
-const ENV_NOTE = loaded.note;
-
-// one instance per checkout
+// ---- a trace for every refusal: the log and the status file, before anything can exit ---------------------------------------
 mkdirSync(STATE_DIR, { recursive: true });
-const staleNotes = [];
-if (existsSync(PID_FILE)) {
-  const old = Number(readFileSync(PID_FILE, 'utf8'));
-  if (old && old !== process.pid && isOurSupervisor(old)) { console.log('a supervisor is already running for this checkout (pid ' + old + '); nothing to do'); process.exit(3); }
-  if (old && old !== process.pid && isAlive(old)) staleNotes.push('stale pid file named pid ' + old + ', which is not this checkout\'s supervisor (a reused pid); ignored');
-}
-writeFileSync(PID_FILE, String(process.pid));
-if (existsSync(STOP_FILE)) unlinkSync(STOP_FILE); // a stale stop request from before does not stop a fresh start
-mkdirSync(LOG_DIR, { recursive: true });
-
-// NOTHING SECRET REACHES A LOG. The child prints host, database and role, never the URL - but a driver error could quote a
-// connection string, so every line written here has the credential's password and the whole URL scrubbed first.
-const secrets = (() => { try { const u = new URL(RUNNER_URL); return [RUNNER_URL, decodeURIComponent(u.password), u.password].filter((x) => x && x.length >= 6); } catch { return [RUNNER_URL]; } })();
+try { mkdirSync(LOG_DIR, { recursive: true }); } catch { /* logged to stdout only */ }
+let secrets = [];
 const scrub = (s) => secrets.reduce((acc, sec) => acc.split(sec).join('<redacted>'), String(s));
 const logName = () => join(LOG_DIR, 'node-' + new Date().toISOString().slice(0, 10) + '.log');
-const log = (m) => { const l = new Date().toISOString() + ' [supervisor ' + process.pid + '] ' + scrub(m) + '\n'; try { writeFileSync(logName(), l, { flag: 'a' }); } catch { /* disk */ } process.stdout.write(l); };
+const log = (m) => { const l = new Date().toISOString() + ' [supervisor ' + process.pid + '] ' + scrub(m) + '\n'; try { writeFileSync(logName(), l, { flag: 'a' }); } catch { /* disk */ } out(l); };
+const refuse = (code, state, why) => {
+  log('REFUSED - ' + why + ' - the supervisor exits (' + code + ')');
+  if (state) writeStatus({ supervisorPid: process.pid, role: ROLE, envFile: ENV_FILE, logDir: LOG_DIR, stateDir: STATE_DIR, startedAt: new Date().toISOString(), stoppedAt: new Date().toISOString(), childPid: null, state, refusal: scrub(why).slice(0, 400) });
+  process.exit(code);
+};
 
-// EXACTLY ONE WORKER PER NODE IDENTITY. A supervisor that crashed leaves its child running; a new supervisor that simply
-// spawned another would put the same node id on the plane twice, and two workers with one identity is how a lease looks
-// held by a process that has stopped heartbeating it. The orphan is ended first (the lease and checkpoint model absorbs a
-// killed worker; it does not absorb two of them).
-for (const n of staleNotes) log(n);
+if (!['generic', 'verifier', 'release_broker'].includes(ROLE)) refuse(2, 'refused', 'role must be generic | verifier | release_broker, not ' + ROLE);
+
+// ---- one supervisor per state dir, by lock ----------------------------------------------------------------------------------
+const INSTANCE = randomUUID();
+let status = null, child = null, stopping = false;
+const shutdown = (why) => { if (stopping) return; stopping = true; log('stopping: ' + why); if (child && child.exitCode === null) { try { child.kill(); } catch { /* gone */ } } };
+const held = await holdControlPipe(STATE_DIR,
+  () => ({ pid: process.pid, instance: INSTANCE, root: ROOT, stateDir: STATE_DIR, role: ROLE, envFile: ENV_FILE, logDir: LOG_DIR,
+    state: status ? status.state : 'starting', childPid: status ? status.childPid : null, restarts: status ? status.restarts : 0, startedAt: status ? status.startedAt : null }),
+  () => shutdown('stop requested over the control pipe'));
+if (!held.held) {
+  const other = await askSupervisor(STATE_DIR, 'whois');
+  // not refuse(): the status file belongs to the supervisor that IS running
+  log('a supervisor is already running for ' + STATE_DIR + (other ? ' (pid ' + other.pid + ', role ' + other.role + ')' : ' (' + held.error + ')') + '; nothing to do - exits (3)');
+  process.exit(3);
+}
+
+// ---- the env file, judged by the one judge every gate uses ------------------------------------------------------------------
+// It resolves the CA path for THIS machine (the recorded path is the provisioning machine's). Anything the worker would refuse
+// or fail on at connect time is refused HERE, by name, before a worker is started.
+const { loadRunnerUrl } = await import('./runner-env.mjs');
+const loaded = loadRunnerUrl(ENV_FILE);
+if (!loaded.usable) refuse(2, 'refused', loaded.note);
+const RUNNER_URL = loaded.url;
+// NOTHING SECRET REACHES A LOG. The child prints host, database and role, never the URL - but a driver error could quote a
+// connection string, so every line written here has the credential's password and the whole URL scrubbed first.
+secrets = (() => { try { const u = new URL(RUNNER_URL); return [RUNNER_URL, decodeURIComponent(u.password), u.password].filter((x) => x && x.length >= 6); } catch { return [RUNNER_URL]; } })();
+
+// ---- exactly one worker per node identity -----------------------------------------------------------------------------------
+// A supervisor that crashed leaves its worker running. That worker is recognised by the instance token its supervisor put on its
+// command line - never by a bare pid, which after a reboot belongs to whatever process Windows handed it to.
 {
   const prev = readStatus();
   if (prev && prev.childPid && prev.childPid !== process.pid && isAlive(prev.childPid)) {
-    if (isOurWorker(prev.childPid)) {
+    const ours = prev.instance ? isScriptProcess(prev.childPid, null, ['node.mjs', prev.instance]) : isScriptProcess(prev.childPid, join(HERE, 'node.mjs'), ['start']);
+    if (ours) {
       try { process.kill(prev.childPid); } catch { /* raced */ }
       const t0 = Date.now(); while (isAlive(prev.childPid) && Date.now() - t0 < 5000) { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200); }
       log('orphaned node (pid ' + prev.childPid + ') from a previous supervisor ended before starting a new one');
     } else log('stale worker pid ' + prev.childPid + ' in the status file belongs to another process (a reused pid); not touched');
   }
+  if (prev && prev.supervisorPid && prev.supervisorPid !== process.pid && isAlive(prev.supervisorPid) && ['starting', 'running', 'backoff'].includes(prev.state)) log('stale pid ' + prev.supervisorPid + ' in the status file is not a supervisor of this state dir (the control pipe was free); ignored');
 }
+writeFileSync(PID_FILE, String(process.pid)); // for people to read; never trusted
+if (existsSync(STOP_FILE)) unlinkSync(STOP_FILE); // a stale stop request from before does not stop a fresh start
 const rotate = () => { try { const keep = 14; const files = readdirSync(LOG_DIR).filter((f) => /^node-\d{4}-\d{2}-\d{2}\.log$/.test(f)).sort(); for (const f of files.slice(0, Math.max(0, files.length - keep))) rmSync(join(LOG_DIR, f), { force: true }); } catch { /* best effort */ } };
 
-const status = { supervisorPid: process.pid, role: ROLE, envFile: ENV_FILE, logDir: LOG_DIR, stateDir: STATE_DIR, startedAt: new Date().toISOString(), childPid: null, childStartedAt: null, restarts: 0, consecutiveFailures: 0, lastExit: null, state: 'starting' };
+status = { supervisorPid: process.pid, instance: INSTANCE, role: ROLE, envFile: ENV_FILE, logDir: LOG_DIR, stateDir: STATE_DIR, startedAt: new Date().toISOString(), childPid: null, childStartedAt: null, restarts: 0, consecutiveFailures: 0, lastExit: null, state: 'starting' };
 writeStatus(status);
-log('supervisor started; role ' + ROLE + '; env file ' + ENV_FILE + ' (URL not printed; ' + ENV_NOTE + '); state dir ' + STATE_DIR);
+log('supervisor started; role ' + ROLE + '; env file ' + ENV_FILE + ' (URL not printed; ' + loaded.note + '); state dir ' + STATE_DIR);
 
-// A WORKER THAT CANNOT LOAD ITS DRIVER IS NOT RESTARTED, IT IS REFUSED BY NAME. Before 2026-09-24 a checkout without `pg`
-// (a fresh clone of a branch with no package-lock.json) started a worker that died on ERR_MODULE_NOT_FOUND within a second,
-// and the supervisor backed off and tried again forever - a crash loop whose only trace was a stack in the log. The check is
-// repeated before every restart, because node_modules can be removed under a running supervisor (npm ci does exactly that).
+// A WORKER THAT CANNOT LOAD ITS DRIVER IS NOT RESTARTED, IT IS REFUSED BY NAME. The check is repeated before every restart,
+// because node_modules can be removed or damaged under a running supervisor (npm ci does exactly that).
 const { checkDependencies, describe: describeDeps } = await import('./deps.mjs');
 const EXIT_DEPENDENCIES_MISSING = 5;
 const refuseIfDependenciesMissing = () => {
@@ -138,21 +161,26 @@ const refuseIfDependenciesMissing = () => {
 refuseIfDependenciesMissing();
 log(status.dependencies);
 
-let child = null, stopping = false;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const stopRequested = () => stopping || existsSync(STOP_FILE);
-const shutdown = (why) => { if (stopping) return; stopping = true; log('stopping: ' + why); if (child && child.exitCode === null) { try { child.kill(); } catch { /* gone */ } } };
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
-// a closed console (CTRL_CLOSE_EVENT arrives as SIGHUP on Windows) ends the supervisor with a truthful 'stopped' state, not a
-// status file that still says 'running' with dead pids
+// a closed console (CTRL_CLOSE_EVENT arrives as SIGHUP on Windows) ends the supervisor with a truthful 'stopped' state
 process.on('SIGHUP', () => shutdown('the console was closed (SIGHUP)'));
+// STOPPING THE TASK STOPS THE NODE. Under the scheduled task the supervisor's parent is a headless console host; Stop-ScheduledTask
+// kills that host and nothing else, and the supervisor used to run on unmanaged until a write to the vanished console crashed it
+// (verification round 3). When the parent is that host, its exit is a stop request.
+if (process.platform === 'win32' && /conhost(\.exe)?"?\s+--headless/i.test(commandLineOf(process.ppid) || '')) {
+  const host = process.ppid;
+  log('launched by the scheduled task through a headless console host (pid ' + host + '); its exit stops this supervisor');
+  setInterval(() => { if (!isAlive(host)) shutdown('the scheduled task was stopped (its console host ' + host + ' exited)'); }, 2000).unref();
+}
 
 while (!stopRequested()) {
   rotate();
   refuseIfDependenciesMissing();
   const started = Date.now();
-  child = spawn(process.execPath, [join(HERE, 'node.mjs'), 'start'], {
+  child = spawn(process.execPath, [join(HERE, 'node.mjs'), 'start', '--supervisor-instance', INSTANCE], {
     cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true,
     env: { ...process.env, FACTORY_RUNNER_PG_URL: RUNNER_URL, FACTORY_NODE_ROLE: ROLE, FACTORY_STATE_DIR: STATE_DIR },
   });

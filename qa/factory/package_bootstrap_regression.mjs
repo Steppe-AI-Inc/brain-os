@@ -54,6 +54,9 @@
 //      queued with no run and its dependent stays blocked, while a bootstrap_probe is claimed and completed as a probe (the
 //      default bootstrap used to report every work order done within a second, unblocking release work nobody verified)
 //   F13 a node the admission gate refuses says so - in its log and in node.mjs status - instead of reading ALIVE and never claiming
+//   F14 one supervisor per state dir WHATEVER THE PATH SPELLING: launched through a relative path, a second one launched through a
+//      junction with a non-ASCII name is refused (exit 3); --whois and --status through the junction see the first running; --stop
+//      through the junction stops it (identity by a path spelling let two supervisors share one node id - verification round 3)
 // F1 and F8 also require the committed lock to be byte-for-byte unchanged by the install (npm 10's `npm install` rewrites it).
 import { spawn, spawnSync, execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync, mkdirSync, statfsSync } from 'node:fs';
@@ -457,13 +460,37 @@ if (!STATIC_ONLY) {
       cyc.verifyStopped = psT(['-Verify']);
       cyc.start = psT(['-Start']);
       cyc.argsAfterStart = taskArgsOf();
+      const whois = () => { const w = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--whois'], cloneA, cleanEnv); try { return JSON.parse(w.out.trim().split(/\r?\n/).pop()); } catch { return { running: false }; } };
+      const handStart = async (role, logName) => {
+        const h = spawn(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--runner-env', envFile, '--role', role, '--log-dir', join(work, logName)], { cwd: cloneA, env: { ...process.env, ...cleanEnv }, stdio: 'ignore', windowsHide: true });
+        started.push(h);
+        for (let i = 0; i < 30; i++) { await sleep(500); const w = whois(); if (w.running && w.pid === h.pid) break; }
+        return h;
+      };
+      const gone = (h) => new Promise((r) => { if (h.exitCode !== null) return r(true); const t = setTimeout(() => r(false), 20000); h.on('exit', () => { clearTimeout(t); r(true); }); });
+      // a hand-started GENERIC supervisor while the task is stopped: -Start alone must not call that "running" - it stops it and the
+      // task's own verifier supervisor takes over (verification round 3)
+      psT(['-Stop']);
+      const handGeneric = await handStart('generic', 'logs-hand-generic');
+      cyc.startOverHand = psT(['-Start']);
+      cyc.handGenericGone = await gone(handGeneric);
+      // Stop-ScheduledTask straight (what Task Scheduler's own Stop does) kills only the headless console host: the supervisor
+      // must notice and stop with a truthful state, not run on unmanaged (verification round 3)
+      run('powershell', ['-NoProfile', '-Command', "Stop-ScheduledTask -TaskName '" + scratchTask + "'"], ROOT);
+      let rawStopped = false;
+      for (let i = 0; i < 20 && !rawStopped; i++) { await sleep(1000); rawStopped = !whois().running; }
+      const stAfterRaw = existsSync(join(cloneA, '.factory', 'node-status.json')) ? readJson(join(cloneA, '.factory', 'node-status.json')) : {};
+      cyc.rawStop = 'supervisor stopped ' + rawStopped + ', recorded state ' + stAfterRaw.state;
+      // a re-install without -LogDir keeps the task's log dir
+      cyc.reinstallKeep = psT(['-Role', 'verifier', '-EnvFile', envFile]);
+      cyc.argsAfterKeep = taskArgsOf();
       cyc.uninstall1 = psT(['-Uninstall']);
-      const hand = spawn(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--runner-env', envFile, '--role', 'verifier', '--log-dir', join(work, 'logs-hand')], { cwd: cloneA, env: { ...process.env, ...cleanEnv }, stdio: 'ignore', windowsHide: true });
-      started.push(hand);
-      for (let i = 0; i < 20 && !existsSync(join(cloneA, '.factory', 'node-supervisor.pid')); i++) await sleep(500);
-      await sleep(1500);
-      cyc.reinstall = psT(['-Role', 'verifier', '-EnvFile', envFile, '-LogDir', join(work, 'logs-task'), '-Start']);
-      const handGone = await new Promise((r) => { if (hand.exitCode !== null) return r(true); const t = setTimeout(() => r(false), 15000); hand.on('exit', () => { clearTimeout(t); r(true); }); });
+      // a hand-started supervisor with NO task, then an install with a RELATIVE -EnvFile (resolved against the caller's directory,
+      // registered absolute - it used to be registered verbatim and the task's supervisor looked for it in the checkout)
+      const hand = await handStart('verifier', 'logs-hand');
+      cyc.reinstall = psT(['-Role', 'verifier', '-EnvFile', relative(cloneA, envFile), '-LogDir', join(work, 'logs-task'), '-Start']);
+      const handGone = await gone(hand);
+      cyc.argsAfterReinstall = taskArgsOf();
       cyc.uninstall = psT(['-Uninstall']);
       cyc.argsAfterUninstall = taskArgsOf();
       const cycleOk = cyc.install.rc === 0 && /started: supervisor pid \d+/.test(cyc.install.out) && /role verifier/.test(cyc.install.out)
@@ -471,8 +498,12 @@ if (!STATIC_ONLY) {
         && (Number(String(os.release()).split('.')[2] || 0) < 17763 || /\\conhost\.exe$/i.test(cyc.execute))
         && cyc.stop.rc === 0 && cyc.verifyStopped.rc === 1 && /not running a supervisor/.test(cyc.verifyStopped.out)
         && cyc.start.rc === 0 && /nothing re-installed/.test(cyc.start.out) && /started: supervisor pid \d+/.test(cyc.start.out) && /--role verifier/.test(cyc.argsAfterStart)
+        && cyc.startOverHand.rc === 0 && /stopping it so the task's own supervisor takes over/.test(cyc.startOverHand.out) && /started: supervisor pid \d+, worker pid \d+, role verifier/.test(cyc.startOverHand.out) && cyc.handGenericGone
+        && /supervisor stopped true, recorded state stopped/.test(cyc.rawStop)
+        && cyc.reinstallKeep.rc === 0 && /--log-dir /.test(cyc.argsAfterKeep) && /--role verifier/.test(cyc.argsAfterKeep)
         && cyc.uninstall1.rc === 0
-        && cyc.reinstall.rc === 0 && /started: supervisor pid \d+/.test(cyc.reinstall.out) && !(cyc.reinstall.out.match(/started: supervisor pid (\d+)/) || [])[1] !== String(hand.pid) && handGone
+        && cyc.reinstall.rc === 0 && /started: supervisor pid \d+/.test(cyc.reinstall.out) && (cyc.reinstall.out.match(/started: supervisor pid (\d+)/) || [])[1] !== String(hand.pid) && handGone
+        && cyc.argsAfterReinstall.includes('--runner-env "' + envFile + '"')
         && cyc.uninstall.rc === 0 && cyc.argsAfterUninstall === 'NONE';
       const liveTaskAfter = run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName 'BrainOS Factory Node' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).WorkingDirectory + '|' + ($t.Actions|Select-Object -First 1).Arguments + '|' + $t.Settings.Enabled}else{'NONE'}"], ROOT).out.trim();
       const refused = (g) => g.rc === 'skipped' || (g.rc === 3 && /belongs to another checkout/.test(g.out));
@@ -525,6 +556,9 @@ if (!STATIC_ONLY) {
       const badCa = join(work, 'env10', 'bad-ca.crt'); mkdirSync(dirname(badCa), { recursive: true }); writeFileSync(badCa, 'this is not a certificate\n');
       envs['a key=value string'] = [mk('kv', 'FACTORY_RUNNER_PG_URL=host=127.0.0.1 port=' + pg.port + ' user=' + pg.runnerRole + '\n'), /not a URL/];
       envs['the superuser'] = [mk('super', 'FACTORY_RUNNER_PG_URL=' + pg.superUrl + '\n'), /superuser/];
+      const pemCa = readFileSync(join(ROOT, 'scripts/factory-runner/runner-env.regression.test.mjs'), 'utf8').match(/'-----BEGIN CERTIFICATE-----',([\s\S]*?)'-----END CERTIFICATE-----'/);
+      const derCa = join(work, 'env10', 'der-ca.cer'); writeFileSync(derCa, Buffer.from((pemCa ? pemCa[1] : '').replace(/[',\s]/g, ''), 'base64'));
+      envs['a DER CA (the Windows export default; pg reads PEM)'] = [mk('der', 'FACTORY_RUNNER_PG_URL=' + pg.runnerUrl + '?sslmode=verify-full&sslrootcert=' + encodeURIComponent(derCa) + '\n'), /DER, not PEM/];
       envs['a CA file that is not a certificate'] = [mk('badca', 'FACTORY_RUNNER_PG_URL=' + pg.runnerUrl + '?sslmode=verify-full&sslrootcert=' + encodeURIComponent(badCa) + '\n'), /is not a certificate/];
       const results = Object.entries(envs).map(([label, [f, why]]) => {
         const r = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--runner-env', f, '--role', 'verifier', '--log-dir', join(work, 'logs-a10')], cloneA, { ...cleanEnv, FACTORY_STATE_DIR: state10 }, 30000);
@@ -570,6 +604,30 @@ if (!STATIC_ONLY) {
       const st13 = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node.mjs'), 'status'], cloneA, env13, 60000);
       check('F13 a node the admission gate refuses says so: its log names the refusal and status prints NOT CLAIMING (start exit ' + once.rc + ', status exit ' + st13.rc + ')',
         once.rc === 0 && /admission REFUSED/.test(once.out) && /FACTORY_MIN_FREE_MB/.test(once.out) && /NOT CLAIMING/.test(st13.out), once.out + '\n--- status\n' + st13.out);
+    }
+
+    // F14
+    if (want('F14')) {
+      // the checkout reached two ways: the real path (launched RELATIVE, from its own directory) and a junction whose name is not
+      // ASCII (a Cyrillic Windows user name is the realistic case). The default state dir, so the spelling is all that differs.
+      const junction = join(work, 'jct-\u043a\u043b\u043e\u043d');
+      if (isWin) run('powershell', ['-NoProfile', '-Command', "New-Item -ItemType Junction -Path '" + junction + "' -Target '" + cloneA + "' | Out-Null"], ROOT);
+      else run('ln', ['-s', cloneA, junction], ROOT);
+      const env14 = { ...process.env, ...cleanEnv };
+      let outA = '';
+      const supA = spawn(process.execPath, ['./node-supervisor.mjs', '--runner-env', envFile, '--role', 'verifier', '--log-dir', join(work, 'logs-a14')], { cwd: join(cloneA, 'scripts', 'factory-runner'), env: env14, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+      started.push(supA); supA.stdout.on('data', (d) => { outA += d; }); supA.stderr.on('data', (d) => { outA += d; });
+      const viaJ = (args, t = 60000) => run(process.execPath, [join(junction, 'scripts', 'factory-runner', 'node-supervisor.mjs'), ...args], join(junction), cleanEnv, t);
+      let upA = false;
+      for (let i = 0; i < 30 && !upA; i++) { await sleep(1000); const w = viaJ(['--whois']); try { const o = JSON.parse(w.out.trim().split(/\r?\n/).pop()); upA = o.running && o.pid === supA.pid && o.state === 'running'; } catch { /* not yet */ } }
+      const second = viaJ(['--runner-env', envFile, '--role', 'verifier', '--log-dir', join(work, 'logs-b14')], 60000);
+      const st14 = viaJ(['--status']);
+      const stop14 = viaJ(['--stop']);
+      const exitA = await new Promise((r) => { if (supA.exitCode !== null) return r(supA.exitCode); const t = setTimeout(() => r('timeout'), 25000); supA.on('exit', (c) => { clearTimeout(t); r(c); }); });
+      check('F14 one supervisor per state dir whatever the path spelling: the relative-launched one is seen running through a non-ASCII junction (' + upA + '), a second one through the junction is refused (exit ' + second.rc + '), --status there is not STALE, and --stop there stops the first (exit ' + exitA + ')',
+        upA && second.rc === 3 && /already running/.test(second.out) && !/STALE/.test(st14.out) && /running: supervisor pid/.test(st14.out) && /stop requested; supervisor \d+/.test(stop14.out) && exitA === 0,
+        'second: ' + second.out + '\n--- status via junction\n' + st14.out + '\n--- stop\n' + stop14.out + '\n--- first\n' + outA);
+      if (isWin) run('powershell', ['-NoProfile', '-Command', "(Get-Item -LiteralPath '" + junction + "').Delete()"], ROOT); else rmSync(junction, { force: true });
     }
   } catch (e) {
     check('F0 fresh-clone setup (free disk, clones at HEAD, disposable plane)', false, e && e.stack || e);

@@ -497,7 +497,8 @@ if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
   // --runner-env <file>: read the URL from that env file, through the same judge the supervisor uses. Explicit only: the
   // default file is never read implicitly, so a harness that blanks FACTORY_RUNNER_PG_URL can never reach the live plane.
   const reIdx = process.argv.indexOf('--runner-env');
-  if (reIdx > -1 && process.argv[reIdx + 1] && !process.env.FACTORY_RUNNER_PG_URL) {
+  // (it takes precedence over a URL already in this shell: asked about a file, the answer must be about that file)
+  if (reIdx > -1 && process.argv[reIdx + 1]) {
     const { loadRunnerUrl } = await import('./runner-env.mjs');
     const r = loadRunnerUrl(process.argv[reIdx + 1]);
     if (!r.usable) { console.log('REFUSED — ' + r.note); process.exit(2); }

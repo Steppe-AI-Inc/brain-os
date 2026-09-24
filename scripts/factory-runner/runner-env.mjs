@@ -76,7 +76,14 @@ export function loadRunnerUrl(explicit = null) {
   const why = assessUrl(r.url);
   if (why) return { url: r.url, usable: false, envFile, note: 'REFUSED by the accessor: ' + why, caMissing: false };
   if (r.ca) {
-    try { new X509Certificate(readFileSync(r.ca)); } catch (e) {
+    // judged the way pg consumes it: pg hands the file's TEXT to TLS as PEM. A DER file (the Windows certificate export default)
+    // parses as a certificate but fails every TLS handshake - it passed this check and crash-looped (verification round 3).
+    const text = readFileSync(r.ca, 'latin1');
+    if (!/-----BEGIN CERTIFICATE-----/.test(text)) {
+      let der = false; try { new X509Certificate(readFileSync(r.ca)); der = true; } catch { /* not a certificate at all */ }
+      return { url: r.url, usable: false, envFile, note: 'the CA file ' + r.ca + (der ? ' is DER, not PEM - convert it: openssl x509 -inform DER -in <file> -out <file>.pem, or copy the original .crt' : ' is not a certificate') + ' - copy the real CA file', caMissing: false };
+    }
+    try { new X509Certificate(text); } catch (e) {
       return { url: r.url, usable: false, envFile, note: 'the CA file ' + r.ca + ' is not a certificate (' + String(e && e.message || e).slice(0, 80) + ') - copy the real CA file', caMissing: false };
     }
   }

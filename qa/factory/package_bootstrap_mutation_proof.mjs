@@ -48,10 +48,15 @@ const results = [];
 {
   const need = [['scripts/factory-runner/deps.mjs', 'const entries = Object.entries(lock.packages).filter('], ['scripts/factory-runner/node.mjs', "  const cmd = process.argv[2] || 'start';"],
     ['scripts/factory-runner/verify-deployed-bytes.sh', 'npx --yes supabase@2.117.0 functions download'], ['scripts/factory-runner/node-supervisor.mjs', '  if (deps.ok) return;'],
-    ['scripts/factory-runner/node-supervisor.mjs', 'if (!loaded.usable) {'], ['scripts/factory-runner/node-supervisor.mjs', '    if (isOurWorker(prev.childPid)) {'],
+    ['scripts/factory-runner/node-supervisor.mjs', "if (!loaded.usable) refuse(2, 'refused', loaded.note);"], ['scripts/factory-runner/node-supervisor.mjs', '    if (ours) {'],
     ['scripts/factory-runner/deps.mjs', 'if (load && lockPresent && rows.every'],
     ['scripts/factory-runner/node.mjs', '      workTypes: HANDLED_WORK_TYPES,'], ['scripts/factory-runner/node.mjs', '    noteAdmission();'],
     ['scripts/factory-runner/install-autostart.ps1', '$headless = (Test-Path -LiteralPath $conhost)'],
+    ['scripts/factory-runner/node-supervisor.mjs', 'if (!held.held) {'], ['scripts/factory-runner/runner-env.mjs', "if (!/-----BEGIN CERTIFICATE-----/.test(text)) {"],
+    ['scripts/factory-runner/runner-env.mjs', 'try { new X509Certificate(text); } catch (e) {'], ['scripts/factory-runner/install-autostart.ps1', '$EnvFile = Get-FullPath $EnvFile'],
+    ['scripts/factory-runner/install-autostart.ps1', "if ($sv -and $task.State -eq 'Running' -and $sv.role -eq $want) {"],
+    ['scripts/factory-runner/node-supervisor.mjs', "if (process.platform === 'win32' && /conhost(\\.exe)?\"?\\s+--headless/i.test(commandLineOf(process.ppid) || '')) {"],
+    ['scripts/factory-runner/install-autostart.ps1', "if (-not $LogGiven -and (Get-TaskArg $task 'logdir')) { $LogDir = Get-TaskArg $task 'logdir' }"],
     ['scripts/factory-runner/install-autostart.ps1', "if ($Start -and -not $RoleGiven -and -not $EnvGiven -and $task -and -not (Test-OtherCheckout $owner)) {"],
     ['scripts/factory-runner/install-autostart.ps1', "if (-not $RoleGiven -and (Get-TaskArg $task 'role')) {"],
     ['scripts/factory-runner/install-autostart.ps1', "foreach ($d in @($Root) + @(if ($owner -and (Test-OtherCheckout $owner)) { $owner })) {"],
@@ -112,18 +117,30 @@ try {
       expectRed('F-CLOSURE', 'the dependency check covers only the packages package.json names (pg-protocol missing reads as ready)', d, ['F5'], ['--skip', 'F6,F7,F8,F9,F10,F11']); }
     { const d = clone('fdamaged'); edit(d, 'scripts/factory-runner/deps.mjs', (s) => s.replace('if (load && lockPresent && rows.every', 'if (false && load && lockPresent && rows.every')); commitAll(d, 'mutant: dependency check reads metadata only');
       expectRed('F-DAMAGED', 'the dependency check trusts package.json versions and never loads the packages (a damaged install reads as ready)', d, ['F5'], ['--skip', 'F6,F7,F8,F9,F10,F11']); }
-    { const d = clone('fca'); edit(d, 'scripts/factory-runner/node-supervisor.mjs', (s) => s.replace('if (!loaded.usable) {', 'if (!loaded.url) {')); commitAll(d, 'mutant: supervisor refuses only a missing URL');
+    { const d = clone('fca'); edit(d, 'scripts/factory-runner/node-supervisor.mjs', (s) => s.replace("if (!loaded.usable) refuse(2, 'refused', loaded.note);", "if (!loaded.url) refuse(2, 'refused', loaded.note);")); commitAll(d, 'mutant: supervisor refuses only a missing URL');
       expectRed('F-CA', 'the supervisor starts a worker on anything that is a URL (missing CA, superuser, bad CA - the Work-PC crash loops)', d, ['F10'], ['--skip', 'F6,F7,F8,F9,F11']); }
     { const d = clone('fdie'); edit(d, 'scripts/factory-runner/node.mjs', (s) => s.replace("  const cmd = process.argv[2] || 'start';", "  const cmd = process.argv[2] || 'start';\n  if (cmd === 'start') process.exit(1);")); commitAll(d, 'mutant: the worker dies on every start');
       expectRed('F-DIE', 'the supervised worker exits on every start (the row must not read ALIVE from another registration)', d, ['F4'], ['--skip', 'F6,F7,F8,F9,F10,F11']); }
     { const d = clone('flate'); edit(d, 'scripts/factory-runner/node.mjs', (s) => s.replace("  const cmd = process.argv[2] || 'start';", "  const cmd = process.argv[2] || 'start';\n  if (cmd === 'start') setTimeout(() => process.exit(1), 6000);")); commitAll(d, 'mutant: the worker dies a few seconds after every start');
       expectRed('F-LATE', 'the supervised worker dies six seconds after every start (one instant of ALIVE must not pass)', d, ['F4'], ['--skip', 'F6,F7,F8,F9,F10,F11']); }
-    { const d = clone('fstale'); edit(d, 'scripts/factory-runner/node-supervisor.mjs', (s) => s.replace('    if (isOurWorker(prev.childPid)) {', '    if (true) {')); commitAll(d, 'mutant: the supervisor kills whatever holds the recorded worker pid');
+    { const d = clone('fstale'); edit(d, 'scripts/factory-runner/node-supervisor.mjs', (s) => s.replace('    if (ours) {', '    if (true) {')); commitAll(d, 'mutant: the supervisor kills whatever holds the recorded worker pid');
       expectRed('F-STALE', 'the supervisor kills whatever process now holds the worker pid recorded before a reboot', d, ['F11'], ['--skip', 'F6,F7,F8,F9,F10']); }
     { const d = clone('fclaimall'); edit(d, 'scripts/factory-runner/node.mjs', (s) => s.replace('      workTypes: HANDLED_WORK_TYPES,', '      workTypes: null,')); commitAll(d, 'mutant: the CLI node claims every work type');
       expectRed('F-CLAIMALL', 'the CLI node claims work it has no worker for (verifier-gated development work)', d, ['F12'], ['--skip', 'F6,F7,F8,F9,F10,F11,F13']); }
     { const d = clone('fsilent'); edit(d, 'scripts/factory-runner/node.mjs', (s) => s.replace('    noteAdmission();', '')); commitAll(d, 'mutant: an admission refusal is silent');
       expectRed('F-SILENT', 'a node refused by the admission gate reads ALIVE and says nothing', d, ['F13'], ['--skip', 'F6,F7,F8,F9,F10,F11']); }
+    { const d = clone('fspell'); edit(d, 'scripts/factory-runner/node-supervisor.mjs', (s) => s.replace('if (!held.held) {', 'if (false) {')); commitAll(d, 'mutant: a second supervisor runs beside the first');
+      expectRed('F-SPELL', 'a second supervisor of the same state dir runs (identity by path spelling: two workers, one node id)', d, ['F14'], ['--skip', 'F6,F7,F8,F9,F10,F11,F12,F13']); }
+    { const d = clone('fder'); edit(d, 'scripts/factory-runner/runner-env.mjs', (s) => s.replace("if (!/-----BEGIN CERTIFICATE-----/.test(text)) {", 'if (false) {').replace('try { new X509Certificate(text); } catch (e) {', 'try { new X509Certificate(readFileSync(r.ca)); } catch (e) {')); commitAll(d, 'mutant: a DER CA passes the judge');
+      expectRed('F-DER', 'a DER CA passes the judge and the worker fails every TLS handshake', d, ['F10'], ['--skip', 'F6,F7,F8,F9,F11,F12,F13,F14']); }
+    { const d = clone('fparent'); edit(d, 'scripts/factory-runner/node-supervisor.mjs', (s) => s.replace("if (process.platform === 'win32' && /conhost(\\.exe)?\"?\\s+--headless/i.test(commandLineOf(process.ppid) || '')) {", 'if (false) {')); commitAll(d, 'mutant: stopping the task leaves the supervisor running');
+      expectRed('F-PARENT', 'Stop-ScheduledTask kills only the console host and the supervisor runs on unmanaged', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11,F12,F13,F14']); }
+    { const d = clone('fstartany'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("if ($sv -and $task.State -eq 'Running' -and $sv.role -eq $want) {", 'if ($sv) {')); commitAll(d, 'mutant: -Start calls any supervisor running');
+      expectRed('F-STARTANY', '-Start alone reports a hand-started generic supervisor as the task running', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11,F12,F13,F14']); }
+    { const d = clone('frelenv'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace('$EnvFile = Get-FullPath $EnvFile', '$EnvFile = $EnvFile')); commitAll(d, 'mutant: a relative -EnvFile is registered verbatim');
+      expectRed('F-RELENV', 'a relative -EnvFile is registered verbatim and the task looks for it in the checkout', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11,F12,F13,F14']); }
+    { const d = clone('flogdir'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("if (-not $LogGiven -and (Get-TaskArg $task 'logdir')) { $LogDir = Get-TaskArg $task 'logdir' }", '')); commitAll(d, 'mutant: a re-install drops the log dir');
+      expectRed('F-LOGDIR', 'a re-install without -LogDir drops the task\'s log dir', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11,F12,F13,F14']); }
     { const d = clone('frole'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("if ($Start -and -not $RoleGiven -and -not $EnvGiven -and $task -and -not (Test-OtherCheckout $owner)) {", 'if ($false) {').replace("if (-not $RoleGiven -and (Get-TaskArg $task 'role')) {", 'if ($false) {')); commitAll(d, 'mutant: -Start re-installs with the default role');
       expectRed('F-ROLE', 'the documented -Stop / -Start re-registers the verifier as generic', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11']); }
     { const d = clone('fhand'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("foreach ($d in @($Root) + @(if ($owner -and (Test-OtherCheckout $owner)) { $owner })) {", 'foreach ($d in @(if ($task) { if ($owner) { $owner } else { $Root } })) {')); commitAll(d, 'mutant: install leaves a hand-started supervisor running');
@@ -140,5 +157,5 @@ try {
 }
 const killed = results.filter((r) => r.killed).length;
 console.log('');
-console.log('package_bootstrap_mutation_proof: ' + killed + ' of ' + results.length + ' (control green + mutants killed)' + (FRESH ? '' : '  (static mutants only; --fresh adds the original defect and fourteen fresh-clone mutants)'));
+console.log('package_bootstrap_mutation_proof: ' + killed + ' of ' + results.length + ' (control green + mutants killed)' + (FRESH ? '' : '  (static mutants only; --fresh adds the original defect and twenty fresh-clone mutants)'));
 process.exit(killed === results.length ? 0 : 1);

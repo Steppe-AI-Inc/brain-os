@@ -148,6 +148,13 @@ test('plaintext across a network is refused', () => {
   assert.match(r.note, /over a network/);
 });
 
+test('a DER-encoded CA (the Windows export default) is refused naming the conversion - pg reads the file as PEM text', () => {
+  const der = Buffer.from(TEST_CA.replace(/-----[A-Z ]+-----/g, '').replace(/\s+/g, ''), 'base64');
+  const r = judge((d) => 'FACTORY_RUNNER_PG_URL=' + GOOD(d) + '\n', { 'ca.crt': der });
+  assert.equal(r.usable, false);
+  assert.match(r.note, /DER, not PEM/);
+});
+
 test('a CA file that is not a certificate is refused, naming the file', () => {
   const r = judge((d) => 'FACTORY_RUNNER_PG_URL=' + GOOD(d) + '\n', { 'ca.crt': 'this is not a certificate\n' });
   assert.equal(r.usable, false);

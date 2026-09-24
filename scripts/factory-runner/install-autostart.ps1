@@ -27,8 +27,13 @@
 # Exit codes: 0 done; 1 check failed (-Preflight/-Verify); 2 install refused by the preflight; 3 the task belongs to another
 # checkout; 4 a supervisor that had to stop did not stop within 20 s; 5 the task was started but no supervisor is running.
 #
-# A recorded pid is trusted only when that process's command line is the owning checkout's node-supervisor.mjs: after a reboot
-# the pid file names whatever process Windows handed that number to (verification 2026-09-24).
+# WHO IS RUNNING is asked of the supervisor itself: node-supervisor.mjs --whois talks to the control pipe each supervisor holds
+# for its state dir (proc.mjs). A pid file is never trusted - after a reboot its number belongs to someone else - and a command
+# line cannot prove identity either (a relative path, a junction, a non-ASCII folder; verification 2026-09-24, rounds 2-3).
+# A supervisor from before the control pipe is still recognised the old way, by its pid file and command line, so a node can be
+# migrated in place.
+#
+# Relative -EnvFile / -LogDir are resolved against the caller's directory before anything uses them (the task runs elsewhere).
 #
 # The task runs as this user (S4U when elevated: no stored password, no window; otherwise interactive logon), unlimited
 # execution time, restart on failure every minute, one instance at a time, and it may start on battery. It needs no elevation.
@@ -43,6 +48,13 @@ param(
 $ErrorActionPreference = 'Stop'
 $RoleGiven = $PSBoundParameters.ContainsKey('Role')
 $EnvGiven = $PSBoundParameters.ContainsKey('EnvFile')
+$LogGiven = $PSBoundParameters.ContainsKey('LogDir') -and $LogDir
+# a relative path means the caller's directory - the task's supervisor runs in the checkout, where it would mean something else
+function Get-FullPath($p) { if (-not $p) { return $p }; if (-not [IO.Path]::IsPathRooted($p)) { $p = Join-Path (Get-Location).Path $p }; return [IO.Path]::GetFullPath($p) }
+$EnvFile = Get-FullPath $EnvFile
+if ($LogDir) { $LogDir = Get-FullPath $LogDir }
+# the task's supervisor uses <checkout>\.factory; every question asked here must be asked about that same state dir
+Remove-Item Env:FACTORY_STATE_DIR -ErrorAction SilentlyContinue
 # -LiteralPath everywhere a path is resolved or tested: '[' and ']' are legal in a Windows path and are wildcards to PowerShell
 $Root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
 $Supervisor = Join-Path $Root 'scripts\factory-runner\node-supervisor.mjs'
@@ -56,6 +68,7 @@ function Get-TaskArg($t, $name) {
   if (-not $t) { return $null }
   $a = ($t.Actions | Select-Object -First 1).Arguments
   if ($name -eq 'role') { if ($a -match '--role (\w+)') { return $Matches[1] } return $null }
+  if ($name -eq 'logdir') { if ($a -match '--log-dir "([^"]+)"') { return $Matches[1] } return $null }
   if ($a -match '--runner-env "([^"]+)"') { return $Matches[1] }
   if ($a -match '--env-file "([^"]+)"') { return $Matches[1] }
   return $null
@@ -75,50 +88,62 @@ function Deny-OtherCheckout($what) {
   exit 3
 }
 
-# ---- the supervisor of a checkout, identity-checked --------------------------------------------------------------------------
-# The pid in <dir>\.factory\node-supervisor.pid, only when that process's command line runs <dir>'s node-supervisor.mjs.
-function Get-SupervisorPid($dir) {
+# ---- the supervisor of a checkout, ASKED ------------------------------------------------------------------------------------
+# Its own answer over the control pipe (node-supervisor.mjs --whois): pid, role, state, worker - or $null when none is running.
+function Get-SupervisorInfo($dir) {
+  $sup = Join-Path $dir 'scripts\factory-runner\node-supervisor.mjs'
+  if (-not (Test-Path -LiteralPath $sup)) { return $null }
+  $prev = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+  $j = $null; try { $j = & $NodeExe $sup --whois 2>$null } catch { $j = $null }
+  $ErrorActionPreference = $prev
+  if ($j) { try { $o = ($j | Select-Object -Last 1) | ConvertFrom-Json; if ($o.running) { return $o } } catch { } }
+  # a supervisor from before the control pipe answers no whois: recognised the old way (pid file + command line), for migration
   $pidFile = Join-Path $dir '.factory\node-supervisor.pid'
-  if (-not (Test-Path -LiteralPath $pidFile)) { return $null }
-  $p = 0; try { $p = [int]((Get-Content -LiteralPath $pidFile -Raw).Trim()) } catch { return $null }
-  if (-not $p) { return $null }
-  $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$p" -ErrorAction SilentlyContinue
-  if (-not $proc -or -not $proc.CommandLine) { return $null }
-  $want = (Join-Path $dir 'scripts\factory-runner\node-supervisor.mjs').Replace('/', '\').ToLower()
-  if ($proc.CommandLine.Replace('/', '\').ToLower().Contains($want)) { return $p }
+  if (Test-Path -LiteralPath $pidFile) {
+    $p = 0; try { $p = [int]((Get-Content -LiteralPath $pidFile -Raw).Trim()) } catch { }
+    if ($p) {
+      $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$p" -ErrorAction SilentlyContinue
+      $want = (Join-Path $dir 'scripts\factory-runner\node-supervisor.mjs').Replace('/', '\').ToLower()
+      if ($proc -and $proc.CommandLine -and $proc.CommandLine.Replace('/', '\').ToLower().Contains($want)) { return [pscustomobject]@{ running = $true; pid = $p; role = $null; state = 'running'; childPid = $null; legacy = $true } }
+    }
+  }
   return $null
 }
-# Ask the supervisor of checkout $dir to stop and wait for it; $true when no supervisor of that checkout is alive afterwards.
-# A pid file whose pid is not that checkout's supervisor is stale: it is removed, and nothing is stopped or killed.
+function Get-SupervisorPid($dir) { $i = Get-SupervisorInfo $dir; if ($i) { return $i.pid }; return $null }
+# Ask the supervisor of checkout $dir to stop and wait for it; $true when none is running afterwards. A pid file no supervisor
+# answers for is stale: it is removed, and nothing is stopped or killed.
 function Stop-CheckoutSupervisor($dir) {
   $pidFile = Join-Path $dir '.factory\node-supervisor.pid'
-  $p = Get-SupervisorPid $dir
-  if (-not $p) {
-    if (Test-Path -LiteralPath $pidFile) { Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue; "note: removed a stale pid file under $dir (its pid is not that checkout's supervisor)" }
+  $i = Get-SupervisorInfo $dir
+  if (-not $i) {
+    if (Test-Path -LiteralPath $pidFile) { Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue; "note: removed a stale pid file under $dir (no supervisor answers for it)" }
     return $true
   }
   $sup = Join-Path $dir 'scripts\factory-runner\node-supervisor.mjs'
-  if (Test-Path -LiteralPath $sup) { & $NodeExe $sup --stop | Out-Null }
-  else { [IO.Directory]::CreateDirectory((Join-Path $dir '.factory')) | Out-Null; [IO.File]::WriteAllText((Join-Path $dir '.factory\node.stop'), 'stop') }
+  & $NodeExe $sup --stop | Out-Null   # the control pipe, and the stop file a pre-pipe supervisor watches
   $deadline = (Get-Date).AddSeconds(20)
-  while ((Get-Date) -lt $deadline) { if (-not (Get-Process -Id $p -ErrorAction SilentlyContinue)) { return $true }; Start-Sleep -Milliseconds 500 }
-  return (-not (Get-Process -Id $p -ErrorAction SilentlyContinue))
+  while ((Get-Date) -lt $deadline) { if (-not (Get-Process -Id $i.pid -ErrorAction SilentlyContinue)) { return $true }; Start-Sleep -Milliseconds 500 }
+  return (-not (Get-Process -Id $i.pid -ErrorAction SilentlyContinue))
 }
 function Read-SupervisorStatus($dir) { $f = Join-Path $dir '.factory\node-status.json'; if (Test-Path -LiteralPath $f) { try { return (Get-Content -LiteralPath $f -Raw | ConvertFrom-Json) } catch { } }; return $null }
 # After Start-ScheduledTask: the task's supervisor must be running (identity-checked) with its worker, not merely "task Running"
-function Confirm-TaskSupervisor($dir) {
+# The task's exit code says nothing (a headless console host returns 0 whatever the supervisor did), so the supervisor is ASKED,
+# and a status record older than this start is not taken for the cause.
+function Confirm-TaskSupervisor($dir, $since) {
   $deadline = (Get-Date).AddSeconds(30)
+  $fresh = { param($st) $st -and $st.stoppedAt -and ([datetime]$st.stoppedAt -ge $since.AddSeconds(-1)) }
   while ((Get-Date) -lt $deadline) {
     Start-Sleep -Seconds 2
-    $p = Get-SupervisorPid $dir
+    $i = Get-SupervisorInfo $dir
+    if ($i -and $i.state -eq 'running') { return "started: supervisor pid $($i.pid), worker pid $($i.childPid), role $($i.role)" }
     $st = Read-SupervisorStatus $dir
-    if ($p -and $st -and ($st.supervisorPid -eq $p) -and ($st.state -eq 'running')) { return "started: supervisor pid $p, worker pid $($st.childPid), role $($st.role)" }
-    if (-not $p -and $st -and ($st.state -in @('refused', 'dependencies_missing'))) { break }
+    if (-not $i -and (& $fresh $st) -and ($st.state -in @('refused', 'dependencies_missing'))) { break }
   }
-  $info = Get-ScheduledTaskInfo -TaskName $TaskName
   $st = Read-SupervisorStatus $dir
-  "FAIL the task was started but no supervisor of $dir is running (task result 0x$('{0:X}' -f $info.LastTaskResult); supervisor state $(if ($st) { $st.state } else { 'none' })$(if ($st -and $st.refusal) { ': ' + $st.refusal } elseif ($st -and $st.dependencies -and $st.state -eq 'dependencies_missing') { ': ' + $st.dependencies } else { '' }))"
-  "     the supervisor's log: $(if ($LogDir) { $LogDir } else { "$env:USERPROFILE\.brain-factory\logs" })\node-$((Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')).log"
+  $why = if ((& $fresh $st) -and $st.refusal) { $st.state + ': ' + $st.refusal } elseif ((& $fresh $st) -and $st.dependencies -and $st.state -eq 'dependencies_missing') { $st.state + ': ' + $st.dependencies } else { 'no supervisor answered and it recorded no reason' }
+  $ld = Get-TaskArg (Get-FactoryTask) 'logdir'; if (-not $ld) { $ld = "$env:USERPROFILE\.brain-factory\logs" }
+  "FAIL the task was started but no supervisor of $dir is running ($why)"
+  "     the supervisor's log: $ld\node-$((Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')).log"
   exit 5
 }
 
@@ -165,15 +190,15 @@ if ($Status) {
   } else { "task      $TaskName  NOT INSTALLED" }
   "supervisor"
   $st = Read-SupervisorStatus $dir
-  if ($st) {
-    $live = Get-SupervisorPid $dir
-    ($st | ConvertTo-Json -Depth 4)
-    if (-not $live -and ($st.state -in @('starting', 'running', 'backoff'))) { "STALE     the recorded supervisor (pid $($st.supervisorPid)) is not running - the node is DOWN; install-autostart.ps1 -Start$taskHint" }
-  } else { "no status file ($(Join-Path $dir '.factory\node-status.json'))" }
+  $live = Get-SupervisorInfo $dir
+  if ($st) { ($st | ConvertTo-Json -Depth 4) } else { "no status file ($(Join-Path $dir '.factory\node-status.json'))" }
+  if ($live) { "running   supervisor pid $($live.pid), state $($live.state), worker $($live.childPid), role $($live.role)$(if ($task -and $task.State -ne 'Running') { ' - NOT the task''s (the task is ' + $task.State + '); install-autostart.ps1 -Start' + $taskHint + ' hands it to the task' } else { '' })" }
+  elseif ($st -and ($st.state -in @('starting', 'running', 'backoff'))) { "STALE     the recorded supervisor (pid $($st.supervisorPid)) is not running - the node is DOWN; install-autostart.ps1 -Start$taskHint" }
   "deps      " + (& $NodeExe (Join-Path $dir 'scripts\factory-runner\deps.mjs') 2>&1 | Out-String).Trim()
   $envPath = if ($EnvGiven) { $EnvFile } elseif (Get-TaskArg $task 'env') { Get-TaskArg $task 'env' } else { $EnvFile }
   if (Test-Path -LiteralPath $envPath) {
-    # the node line through the task's own env file; the URL goes to node.mjs through the environment only, never printed
+    # the node line through the task's own env file - not a URL this shell happens to carry; never printed
+    Remove-Item Env:FACTORY_RUNNER_PG_URL -ErrorAction SilentlyContinue
     $nodeLine = & $NodeExe (Join-Path $dir 'scripts\factory-runner\node.mjs') status --runner-env $envPath 2>&1 | ForEach-Object { "$_" } | Select-Object -Last 1
     "node      $nodeLine"
   } else { "node      (no env file at $envPath - liveness not read)" }
@@ -199,16 +224,17 @@ if ($Verify) {
   $enabled = $task.Settings.Enabled -and ($task.State -ne 'Disabled')
   $triggers = ($task.Triggers | ForEach-Object { $_.CimClass.CimClassName }) -join ','
   $info = Get-ScheduledTaskInfo -TaskName $TaskName
-  $supPid = Get-SupervisorPid $Root
+  $sv = Get-SupervisorInfo $Root
+  $supPid = if ($sv) { $sv.pid } else { $null }
   $st = Read-SupervisorStatus $Root
-  $running = ($task.State -eq 'Running') -and $supPid -and $st -and ($st.state -eq 'running')
+  $running = ($task.State -eq 'Running') -and $sv -and ($sv.state -eq 'running') -and ($sv.role -eq (Get-TaskArg $task 'role'))
   "task      $TaskName"
   "state     $($task.State)  enabled=$enabled  role $(Get-TaskArg $task 'role')"
   "triggers  $triggers"
   "action    $($action.Execute) $($action.Arguments)"
   "workdir   $($action.WorkingDirectory)"
   "last run  $($info.LastRunTime)  result 0x$('{0:X}' -f $info.LastTaskResult)"
-  "running   supervisor $(if ($supPid) { 'pid ' + $supPid } else { 'NOT RUNNING' })$(if ($st) { ', state ' + $st.state + ', worker ' + $st.childPid + ', restarts ' + $st.restarts } else { '' })"
+  "running   supervisor $(if ($sv) { 'pid ' + $sv.pid + ', state ' + $sv.state + ', worker ' + $sv.childPid + ', role ' + $sv.role } else { 'NOT RUNNING' })$(if ($st) { ', restarts ' + $st.restarts } else { '' })"
   # the env file the TASK uses (its --runner-env / --env-file argument), not this invocation's default
   $envPath = if (Get-TaskArg $task 'env') { Get-TaskArg $task 'env' } else { $EnvFile }
   if (Test-Path -LiteralPath $envPath) { $acl = (Get-Acl -LiteralPath $envPath).Access | ForEach-Object { "$($_.IdentityReference):$($_.FileSystemRights)" }; "env ACL   $($acl -join '; ')" }
@@ -221,11 +247,21 @@ if ($Verify) {
 
 # ---- -Start ALONE on an installed task of this checkout: start it as it is (role and env file unchanged) ---------------------
 if ($Start -and -not $RoleGiven -and -not $EnvGiven -and $task -and -not (Test-OtherCheckout $owner)) {
-  $p = Get-SupervisorPid $Root
-  if ($p) { "already running: supervisor pid $p (task '$TaskName', role $(Get-TaskArg $task 'role'); nothing re-installed)"; exit 0 }
+  $want = Get-TaskArg $task 'role'
+  $sv = Get-SupervisorInfo $Root
+  if ($sv -and $task.State -eq 'Running' -and $sv.role -eq $want) { "already running: supervisor pid $($sv.pid) (task '$TaskName', role $($sv.role); nothing re-installed)"; exit 0 }
+  # a supervisor that is not the task's own - started by hand, or with another role - would hold the checkout while the task
+  # does not run; it is stopped so the task's supervisor takes over (verification round 3: -Start used to report it as running)
+  if ($sv) {
+    "a supervisor of this checkout runs $(if ($task.State -ne 'Running') { 'outside the task' } else { 'with role ' + $sv.role + ', not the task''s ' + $want }) (pid $($sv.pid)) - stopping it so the task's own supervisor takes over"
+    $s2 = Stop-CheckoutSupervisor $Root; $s2 | Where-Object { $_ -is [string] }
+    if ($s2[-1] -ne $true) { "REFUSED - that supervisor is still running 20 s after the stop request"; exit 4 }
+  }
+  if ((Get-FactoryTask).State -eq 'Running') { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue }
+  $since = Get-Date
   Start-ScheduledTask -TaskName $TaskName
-  "task '$TaskName' started as installed (role $(Get-TaskArg $task 'role'); nothing re-installed)"
-  Confirm-TaskSupervisor $Root
+  "task '$TaskName' started as installed (role $want; nothing re-installed)"
+  Confirm-TaskSupervisor $Root $since
   exit 0
 }
 
@@ -233,6 +269,7 @@ if ($Start -and -not $RoleGiven -and -not $EnvGiven -and $task -and -not (Test-O
 # On a re-install without -Role / -EnvFile the existing task's own values are kept.
 if (-not $RoleGiven -and (Get-TaskArg $task 'role')) { $Role = Get-TaskArg $task 'role'; "role      $Role (kept from the installed task; pass -Role to change it)" }
 if (-not $EnvGiven -and (Get-TaskArg $task 'env')) { $EnvFile = Get-TaskArg $task 'env' }
+if (-not $LogGiven -and (Get-TaskArg $task 'logdir')) { $LogDir = Get-TaskArg $task 'logdir' }
 $pre = Test-NodePreflight $EnvFile
 $pre | Where-Object { $_ -is [string] }
 if ($pre[-1] -ne $true) { "REFUSED - the preflight failed; no task was installed, changed or removed"; exit 2 }
@@ -293,12 +330,13 @@ if ($elevated) {
 "installed task '$TaskName' (logon type $logon; triggers $trig; role $Role; env file $EnvFile, contents not printed)"
 if (-not $elevated) {
   "note: the boot trigger needs one elevated run (a standard user may not register AtStartup). From an ADMINISTRATOR PowerShell, once:"
-  "      powershell -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Role $Role -Start$taskHint"
+  "      powershell -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Role $Role -Start$taskHint$(if ($LogDir) { ' -LogDir ' + [char]34 + $LogDir + [char]34 } else { '' })"
   "      Until then the node starts when this user logs on after a reboot."
 }
 if ($Start) {
+  $since = Get-Date
   Start-ScheduledTask -TaskName $TaskName
-  Confirm-TaskSupervisor $Root
+  Confirm-TaskSupervisor $Root $since
 }
 "verify:   powershell -ExecutionPolicy Bypass -File scripts\factory-runner\install-autostart.ps1 -Verify$taskHint"
 "status:   powershell -ExecutionPolicy Bypass -File scripts\factory-runner\install-autostart.ps1 -Status$taskHint   (reads the task's own env file)"
