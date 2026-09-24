@@ -13,8 +13,9 @@
 # -Status    task state, the supervisor's state file, the dependency check and the node's liveness on the plane
 # -Preflight check only - env file, the runner URL it yields, and the runtime dependencies at their locked versions - and
 #            exit 0/1 without touching any task (what the package regression drives)
-# -Verify    exit 0 only if the task exists, is enabled, its action is this checkout's supervisor, and the dependencies
-#            the supervisor needs are installed (a task that starts a supervisor which cannot load pg is not a working task)
+# -Verify    exit 0 only if the task exists, is enabled, its action is this checkout's supervisor, and the task's own env
+#            file and the dependencies pass the preflight (a task whose supervisor cannot load pg, or whose URL names a CA file
+#            missing on this machine, is not a working task)
 # -Uninstall remove the task after its supervisor stopped cleanly; refused (exit 3) for another checkout's task unless
 #            -ReplaceOtherCheckout, and (exit 4) if the supervisor does not stop
 # -ReplaceOtherCheckout  allow replacing, stopping or removing a task that points at a DIFFERENT checkout (refused by default:
@@ -139,11 +140,14 @@ if ($Verify) {
   "action    $($action.Execute) $($action.Arguments)"
   "workdir   $($action.WorkingDirectory)"
   "last run  $($info.LastRunTime)  result 0x$('{0:X}' -f $info.LastTaskResult)"
+  # the env file the TASK uses (its --env-file argument), not this invocation's default
+  if ($action.Arguments -match '--env-file "([^"]+)"') { $EnvFile = $Matches[1] }
   if (Test-Path $EnvFile) { $acl = (Get-Acl $EnvFile).Access | ForEach-Object { "$($_.IdentityReference):$($_.FileSystemRights)" }; "env ACL   $($acl -join '; ')" }
-  $depsLine = & $NodeExe $DepsCheck; $depsOk = ($LASTEXITCODE -eq 0)
-  "deps      $depsLine"
-  if ($okAction -and $enabled -and $depsOk) { "OK   the task exists, is enabled, starts this checkout's supervisor, and the dependencies it needs are installed"; exit 0 }
-  "FAIL " + $(if (-not $enabled) { 'the task is disabled' } elseif (-not $okAction) { 'the task action is not this checkout''s supervisor' } else { 'the runtime dependencies are not installed - run npm ci in ' + $Root }); exit 1
+  $pre = Test-NodePreflight
+  $pre | Where-Object { $_ -is [string] } | ForEach-Object { "preflight $_" }
+  $preOk = ($pre[-1] -eq $true)
+  if ($okAction -and $enabled -and $preOk) { "OK   the task exists, is enabled, starts this checkout's supervisor, and its env file, CA and dependencies pass the preflight"; exit 0 }
+  "FAIL " + $(if (-not $enabled) { 'the task is disabled' } elseif (-not $okAction) { 'the task action is not this checkout''s supervisor' } else { 'the preflight failed (the line marked FAIL above names the fix)' }); exit 1
 }
 
 # ---- install: preflight first, and nothing is touched unless it passes -------------------------------------------------
@@ -153,10 +157,17 @@ if ($pre[-1] -ne $true) { "REFUSED - the preflight failed; no task was installed
 if ((Test-OtherCheckout $owner) -and -not $ReplaceOtherCheckout) { Deny-OtherCheckout 'changed' }
 # THE CREDENTIAL FILE IS READABLE BY THIS USER ONLY. Node's 0o600 is ignored on Windows, so the ACL is set here: inheritance
 # removed, one explicit grant. -Verify reports the ACL so a widened one is visible.
-try { & icacls $EnvFile /inheritance:r /grant:r "$($env:USERNAME):(R,W)" | Out-Null; "env file ACL: inheritance removed, $env:USERNAME read/write only" } catch { "note: could not tighten the env file ACL: $($_.Exception.Message)" }
+# The grant names the full identity (DOMAIN\user or MACHINE\user), which always resolves; a bare $env:USERNAME may not. A native
+# command's failure does not throw in Windows PowerShell 5.1, so the exit code is read - the success line printed after an
+# icacls that changed nothing was a false statement about the credential file (verification 2026-09-24).
+$me = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+$aclOk = $false; $aclOut = ''
+# under ErrorActionPreference Stop, icacls's stderr redirected by 2>&1 is a terminating error in Windows PowerShell 5.1: caught here
+try { $aclOut = & icacls $EnvFile /inheritance:r /grant:r "$($me):(R,W)" 2>&1; $aclOk = ($LASTEXITCODE -eq 0) } catch { $aclOut = $_.Exception.Message }
+if ($aclOk) { "env file ACL: inheritance removed, $me read/write only" } else { "WARNING: the env file ACL was NOT tightened (icacls exit $LASTEXITCODE): $(($aclOut | Out-String).Trim()) - restrict $EnvFile to $me by hand" }
 $taskArgs = "`"$Supervisor`" --env-file `"$EnvFile`" --role $Role"
 $action = New-ScheduledTaskAction -Execute $NodeExe -Argument $taskArgs -WorkingDirectory $Root
-$triggers = @((New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME), (New-ScheduledTaskTrigger -AtStartup))
+$triggers = @((New-ScheduledTaskTrigger -AtLogOn -User $me), (New-ScheduledTaskTrigger -AtStartup))
 $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) `
   -MultipleInstances IgnoreNew -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -Hidden
 $existing = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
@@ -178,17 +189,17 @@ $elevated = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIde
 $logon = 'Interactive'; $trig = 'logon'
 if ($elevated) {
   try {
-    $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType S4U -RunLevel Limited
+    $principal = New-ScheduledTaskPrincipal -UserId $me -LogonType S4U -RunLevel Limited
     Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $triggers -Settings $settings -Principal $principal -Description 'Brain OS Factory node supervisor: rejoins the shared control plane at boot and logon' | Out-Null
     $logon = 'S4U'; $trig = 'boot+logon'
   } catch {
-    $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Limited
+    $principal = New-ScheduledTaskPrincipal -UserId $me -LogonType Interactive -RunLevel Limited
     Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $triggers -Settings $settings -Principal $principal -Description 'Brain OS Factory node supervisor: rejoins the shared control plane at boot and logon' | Out-Null
     $trig = 'boot+logon'
   }
 } else {
-  $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Limited
-  Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger @(New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME) -Settings $settings -Principal $principal -Description 'Brain OS Factory node supervisor: rejoins the shared control plane at logon' | Out-Null
+  $principal = New-ScheduledTaskPrincipal -UserId $me -LogonType Interactive -RunLevel Limited
+  Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger @(New-ScheduledTaskTrigger -AtLogOn -User $me) -Settings $settings -Principal $principal -Description 'Brain OS Factory node supervisor: rejoins the shared control plane at logon' | Out-Null
 }
 "installed task '$TaskName' (logon type $logon; triggers $trig; role $Role; env file $EnvFile, contents not printed)"
 if (-not $elevated) {
