@@ -5,10 +5,17 @@
 // ERR_MODULE_NOT_FOUND with nothing naming the cause. Every Factory entry point now asks this module first and refuses with
 // the fix spelled out instead of starting a worker that cannot run.
 //
-// The list is DERIVED from package.json `dependencies` (the runtime set; devDependencies are the acceptance harnesses), and
-// each is checked against the lock: installed, and at the locked version. Pure filesystem reads; no network, no import of the
-// packages themselves.
-import { existsSync, readFileSync } from 'node:fs';
+// WHAT IS CHECKED IS THE LOCKED CLOSURE, NOT THE MANIFEST. The first version compared only the packages package.json names
+// (`pg`) and so reported "ready" while `pg-protocol` - which pg loads - was missing; the supervisor then crash-looped exactly
+// as before (found by independent verification, 2026-09-24). Now every package-lock.json entry a runtime install contains
+// (not `dev`; with --dev, every entry) must be present at its locked version, with npm's own rules for optional packages:
+//   - an optional package built for another os/cpu/libc is not expected here and is skipped;
+//   - any other optional package may be absent (npm tolerates that), but when present it must be the locked version;
+//   - a PLATFORM FAMILY - a package that ships its binary as three or more platform-specific optional packages (esbuild,
+//     embedded-postgres, oxc-parser) - needs the member for this platform installed, and a family with no member for this
+//     platform is reported by name ("publishes no build for win32-arm64") instead of failing later when the binary is run.
+// Pure filesystem reads; no network, no import of the packages themselves.
+import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -16,43 +23,89 @@ export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 const readJson = (p) => { try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return null; } };
 
+let libcCache;
+const libc = () => {
+  if (libcCache !== undefined) return libcCache;
+  try { libcCache = process.platform !== 'linux' ? null : (process.report.getReport().header.glibcVersionRuntime ? 'glibc' : 'musl'); } catch { libcCache = null; }
+  return libcCache;
+};
+// npm's rule for os/cpu/libc lists: a "!x" entry excludes x; otherwise the value must be listed (no list: any)
+const allows = (list, value) => {
+  if (!Array.isArray(list) || list.length === 0) return true;
+  if (value == null) return false;
+  if (list.includes('!' + value)) return false;
+  const positive = list.filter((x) => !x.startsWith('!'));
+  return positive.length === 0 || positive.includes(value);
+};
+export const platformMatches = (entry, platform = process.platform, arch = process.arch) =>
+  allows(entry.os, platform) && allows(entry.cpu, arch) && (!entry.libc || (platform === 'linux' && allows(entry.libc, libc())));
+const nameOf = (lockPath) => { const parts = lockPath.split('node_modules/'); return parts[parts.length - 1]; };
+const constrained = (e) => !!(e && (e.os || e.cpu || e.libc));
+
 /**
  * @param {string} [root] the checkout to judge (default: the one this file lives in)
- * @param {{dev?: boolean}} [opts] dev: also require devDependencies (what the acceptance harnesses import)
- * @returns {{ok:boolean, root:string, lockPresent:boolean, rows:Array<{name:string, spec:string, kind:string, installed:string|null, locked:string|null, ok:boolean, why:string}>, fix:string}}
+ * @param {{dev?: boolean, platform?: string, arch?: string}} [opts] dev: the full install the acceptance harnesses need
+ * @returns {{ok:boolean, root:string, lockPresent:boolean, checked:number, rows:Array<{name:string, spec:string, kind:string, installed:string|null, locked:string|null, ok:boolean, why:string}>, problems:string[], fix:string}}
  */
-export function checkDependencies(root = ROOT, { dev = false } = {}) {
+export function checkDependencies(root = ROOT, { dev = false, platform = process.platform, arch = process.arch } = {}) {
   const pkg = readJson(join(root, 'package.json')) || {};
   const lock = readJson(join(root, 'package-lock.json'));
+  const lockPresent = !!(lock && lock.packages);
+  const installedVersion = (lockPath) => { const p = readJson(join(root, ...lockPath.split('/'), 'package.json')); return p ? p.version : null; };
+
+  // the declared packages, one row each (what describe() names)
   const wanted = [
     ...Object.entries(pkg.dependencies || {}).map(([name, spec]) => ({ name, spec, kind: 'runtime' })),
     ...(dev ? Object.entries(pkg.devDependencies || {}).map(([name, spec]) => ({ name, spec, kind: 'dev' })) : []),
   ];
   const rows = wanted.map(({ name, spec, kind }) => {
-    const installedPkg = readJson(join(root, 'node_modules', ...name.split('/'), 'package.json'));
-    const installed = installedPkg ? installedPkg.version : null;
-    const locked = lock && lock.packages && lock.packages['node_modules/' + name] ? lock.packages['node_modules/' + name].version : null;
+    const installed = installedVersion('node_modules/' + name);
+    const locked = lockPresent && lock.packages['node_modules/' + name] ? lock.packages['node_modules/' + name].version : null;
     let why = '';
     if (!installed) why = 'not installed';
     else if (locked && installed !== locked) why = 'installed ' + installed + ' but the lock says ' + locked;
-    else if (!locked && lock) why = 'not in package-lock.json';
+    else if (!locked && lockPresent) why = 'not in package-lock.json';
     return { name, spec, kind, installed, locked, ok: !why, why };
   });
-  const lockPresent = !!lock;
-  const ok = lockPresent && rows.every((r) => r.ok);
-  const fix = lockPresent ? 'run `npm ci` in ' + root : 'package-lock.json is missing in ' + root + ' - this checkout is not a Factory candidate (the committed lock is what npm ci installs)';
-  return { ok, root, lockPresent, rows, fix };
+
+  // the locked closure: every entry this install contains
+  const problems = [];
+  let checked = 0;
+  if (lockPresent) {
+    const entries = Object.entries(lock.packages).filter(([k, v]) => k.startsWith('node_modules/') && !v.link && (dev || (!v.dev && !v.devOptional)));
+    for (const [path, entry] of entries) {
+      if ((entry.optional || entry.devOptional) && constrained(entry) && !platformMatches(entry, platform, arch)) continue; // another platform's build
+      checked++;
+      const installed = installedVersion(path);
+      if (installed === null) { if (!entry.optional && !(dev && entry.devOptional)) problems.push(nameOf(path) + ' ' + entry.version + ' not installed' + (path.split('node_modules/').length > 2 ? ' (' + path + ')' : '')); }
+      else if (installed !== entry.version) problems.push(nameOf(path) + ' installed ' + installed + ' but the lock says ' + entry.version);
+    }
+    // platform families
+    for (const [path, entry] of entries) {
+      const members = Object.keys(entry.optionalDependencies || {}).map((n) => [n, lock.packages['node_modules/' + n]]).filter(([, e]) => constrained(e));
+      if (members.length < 3 || installedVersion(path) === null) continue;
+      const mine = members.filter(([, e]) => platformMatches(e, platform, arch));
+      if (mine.length === 0) problems.push(nameOf(path) + ' publishes no build for ' + platform + '-' + arch + ' (its platform packages: ' + members.map(([n]) => n.split('/').pop()).join(', ') + ')');
+      else if (!mine.some(([n]) => installedVersion('node_modules/' + n) !== null)) problems.push(nameOf(path) + ': its ' + platform + '-' + arch + ' build ' + mine.map(([n]) => n).join(' / ') + ' is not installed');
+    }
+  }
+  const ok = lockPresent && rows.every((r) => r.ok) && problems.length === 0;
+  const fix = !lockPresent ? 'package-lock.json is missing in ' + root + ' - this checkout is not a Factory candidate (the committed lock is what npm ci installs)'
+    : problems.some((p) => /publishes no build/.test(p)) ? 'this platform cannot run that package - use an x64 Node on this machine, or another machine'
+    : 'run `npm ci` in ' + root;
+  return { ok, root, lockPresent, checked, rows, problems, fix };
 }
 
 /** One line for logs and health: what is wrong, and the command that fixes it. */
 export function describe(report) {
-  if (report.ok) return 'runtime dependencies installed at their locked versions (' + report.rows.map((r) => r.name + ' ' + r.installed).join(', ') + ')';
-  const bad = report.rows.filter((r) => !r.ok).map((r) => r.name + ': ' + r.why);
-  return 'DEPENDENCIES NOT READY - ' + (report.lockPresent ? '' : 'no package-lock.json; ') + bad.join('; ') + ' - ' + report.fix;
+  if (report.ok) return 'runtime dependencies installed at their locked versions (' + report.rows.map((r) => r.name + ' ' + r.installed).join(', ') + '; ' + report.checked + ' locked packages checked)';
+  const bad = [...report.rows.filter((r) => !r.ok).map((r) => r.name + ': ' + r.why), ...report.problems.filter((p) => !report.rows.some((r) => !r.ok && p.startsWith(r.name + ' ')))];
+  const shown = bad.slice(0, 6).join('; ') + (bad.length > 6 ? '; and ' + (bad.length - 6) + ' more' : '');
+  return 'DEPENDENCIES NOT READY - ' + (report.lockPresent ? '' : 'no package-lock.json; ') + shown + ' - ' + report.fix;
 }
 
 // `node scripts/factory-runner/deps.mjs [--dev] [--json]` - exit 0 ready, 1 not (used by the installer and the bootstrap)
-if (process.argv[1] && /deps\.mjs$/.test(process.argv[1])) {
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const r = checkDependencies(ROOT, { dev: process.argv.includes('--dev') });
   console.log(describe(r));
   if (process.argv.includes('--json')) console.log(JSON.stringify(r));

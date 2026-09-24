@@ -29,23 +29,26 @@ export function resolveCaPath(url, { envFile = DEFAULT_ENV_FILE, exists = exists
   if (exists(ca)) return { url, note: 'sslrootcert exists as recorded' };
   const candidates = [join(dirname(envFile), basename(ca)), join(homedir(), '.brain-factory', basename(ca))];
   const local = candidates.find((p) => exists(p));
-  if (!local) return { url, note: 'sslrootcert ' + ca + ' does not exist here and no copy named ' + basename(ca) + ' was found beside the env file or under ~/.brain-factory - copy the CA file there' };
+  if (!local) return { url, caMissing: true, note: 'sslrootcert ' + ca + ' does not exist here and no copy named ' + basename(ca) + ' was found beside the env file or under ~/.brain-factory - copy the CA file there' };
   u.searchParams.set('sslrootcert', local);
   return { url: u.toString(), note: 'sslrootcert resolved to the local copy ' + local };
 }
 
 /**
  * Read FACTORY_RUNNER_PG_URL from the env file with the CA path resolved for this machine.
- * @returns {{url:string|null, envFile:string, note:string}}
+ * @returns {{url:string|null, envFile:string, note:string, caMissing:boolean}}
  */
 export function loadRunnerUrl(explicit = null) {
   const envFile = envFilePath(explicit);
   if (!existsSync(envFile)) return { url: null, envFile, note: 'env file not found: ' + envFile + ' (provision-control-plane.mjs --write-env writes it)' };
-  const line = readFileSync(envFile, 'utf8').split(/\r?\n/).find((l) => l.startsWith('FACTORY_RUNNER_PG_URL='));
+  // a leading byte-order mark (Windows PowerShell 5.1 adds one when a copied file is re-saved) is not part of the first line
+  const line = readFileSync(envFile, 'utf8').replace(/^\uFEFF/, '').split(/\r?\n/).find((l) => l.startsWith('FACTORY_RUNNER_PG_URL='));
   if (!line) return { url: null, envFile, note: envFile + ' has no FACTORY_RUNNER_PG_URL= line' };
   const raw = line.slice('FACTORY_RUNNER_PG_URL='.length).trim();
   const r = resolveCaPath(raw, { envFile });
-  return { url: r.url, envFile, note: r.note };
+  // caMissing: the URL names a CA file that exists nowhere on this machine - a verify-full connection would fail closed, so
+  // the preflight, the supervisor and the bootstrap refuse on it by name rather than start a worker that cannot connect
+  return { url: r.url, envFile, note: r.note, caMissing: !!r.caMissing };
 }
 
 /** Put the URL into process.env for this process when it is not already there. Returns the note. */

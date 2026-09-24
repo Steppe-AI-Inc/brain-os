@@ -12,7 +12,8 @@
 // One instance per checkout (pid file). Everything it knows is in .factory/node-status.json for `status` and for the
 // reboot-recovery acceptance; the child's output goes to a daily log under the log dir (14 days kept).
 //
-// Exit codes: 0 stopped when asked; 2 bad arguments or no usable env file; 3 another supervisor already runs for this
+// Exit codes: 0 stopped when asked; 2 bad arguments, no usable env file, or a CA file the URL names that exists nowhere on
+// this machine; 3 another supervisor already runs for this
 // checkout; 5 the runtime dependencies are not installed at their locked versions (deps.mjs) - `npm ci` fixes it, and the
 // supervisor never starts or restarts a worker that could not load its driver.
 //
@@ -57,6 +58,9 @@ if (!['generic', 'verifier', 'release_broker'].includes(ROLE)) { console.log('ro
 const { loadRunnerUrl } = await import('./runner-env.mjs');
 const loaded = loadRunnerUrl(ENV_FILE);
 if (!loaded.url) { console.log(loaded.note); process.exit(2); }
+// A URL whose CA file exists nowhere on this machine cannot make a verify-full connection; a worker started on it would fail
+// on every connect and back off forever. Refused here by name, like a missing env file.
+if (loaded.caMissing) { console.log('REFUSED - ' + loaded.note); process.exit(2); }
 const RUNNER_URL = loaded.url;
 const ENV_NOTE = loaded.note;
 

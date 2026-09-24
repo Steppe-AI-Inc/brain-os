@@ -468,6 +468,18 @@ export async function health() {
 }
 if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
   const cmd = process.argv[2] || 'start';
+  // THE COMMANDS THAT LOAD THE DRIVER REFUSE BY NAME WITHOUT IT. `start` and `status` import pg through db.mjs; with a
+  // dependency missing they used to end in a raw ERR_MODULE_NOT_FOUND stack (start) or a connection-worded UNREACHABLE
+  // (status). Same check, same exit code (5) as the supervisor; `health` reports it as its own row.
+  if (cmd === 'start' || cmd === 'status') {
+    const { checkDependencies, describe: describeDeps } = await import('./deps.mjs');
+    const deps = checkDependencies();
+    if (!deps.ok) {
+      if (cmd === 'status' && process.argv.includes('--json')) console.log(JSON.stringify({ state: 'DEPENDENCIES_MISSING', nodeId: nodeId(), error: describeDeps(deps) }));
+      console.log((cmd === 'status' ? 'DEPENDENCIES_MISSING — node ' + nodeId().slice(0, 13) + ' — ' : 'REFUSED — ') + describeDeps(deps));
+      process.exit(5);
+    }
+  }
   if (cmd === 'id') { console.log(nodeId()); }
   else if (cmd === 'health') { const r = await health(); process.exit(r.ok ? 0 : 1); }
   else if (cmd === 'capabilities') { console.log(JSON.stringify(capabilities(), null, 2)); }
@@ -481,6 +493,9 @@ if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
   }
   else if (cmd === 'start') {
     const { factoryAcceptance } = await import('./handlers/factory-acceptance.mjs');
+    // a refusal (no FACTORY_RUNNER_PG_URL, a superuser, the production project) is the designed answer, printed as one line
+    // with the fix instead of an uncaught stack; the supervisor provides the URL from the env file, a bare shell does not
+    try {
     await nodeStart({
       runWork: async ({ run, workOrder, checkpoint: cp, nodeId: nid, log: l }) => {
         // The Factory's own acceptance work is the one thing the generic bootstrap runs itself (handlers/factory-acceptance.mjs).
@@ -492,6 +507,12 @@ if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
       },
       once: process.argv.includes('--once'),
     });
+    } catch (e) {
+      if (!(e && e.name === 'FactoryDbRefusal')) throw e;
+      console.log(e.message);
+      console.log('(the supervisor reads the env file itself: node scripts/factory-runner/node-supervisor.mjs --env-file <runner.env> --role <role>)');
+      process.exit(2);
+    }
   } else {
     console.log('usage: node node.mjs [start [--once] | health | status [--json] | id | capabilities]');
     process.exit(2);

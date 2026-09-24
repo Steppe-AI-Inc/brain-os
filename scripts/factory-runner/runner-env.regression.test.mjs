@@ -25,9 +25,10 @@ test('a CA path from another machine is resolved to the copy beside the env file
   assert.equal(u.username, 'factory_runner.abc'); assert.equal(u.password, 'pw'); assert.equal(u.searchParams.get('sslmode'), 'verify-full');
 });
 
-test('a CA path that exists nowhere is left as is and the note says what to copy', () => {
+test('a CA path that exists nowhere is left as is, flagged caMissing, and the note says what to copy', () => {
   const r = resolveCaPath(URL_WITH('C:\\Users\\Dell\\.brain-factory\\ca.crt'), { envFile: 'C:\\Users\\Work\\.brain-factory\\runner.env', exists: () => false });
   assert.match(r.note, /copy the CA file/);
+  assert.equal(r.caMissing, true);
   assert.equal(new URL(r.url).searchParams.get('sslrootcert'), 'C:\\Users\\Dell\\.brain-factory\\ca.crt');
 });
 
@@ -45,5 +46,26 @@ test('loadRunnerUrl reads the file and resolves the CA beside it', () => {
     assert.equal(new URL(r.url).searchParams.get('sslrootcert'), join(dir, 'ca.crt'));
     const missing = loadRunnerUrl(join(dir, 'absent.env'));
     assert.equal(missing.url, null); assert.match(missing.note, /env file not found/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('an env file saved with a UTF-8 byte-order mark is read (Windows PowerShell 5.1 adds one on re-save)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'runner-env-'));
+  try {
+    writeFileSync(join(dir, 'runner.env'), '\uFEFFFACTORY_RUNNER_PG_URL=postgresql://factory_runner:pw@127.0.0.1:54329/factory_control_plane\r\n');
+    const r = loadRunnerUrl(join(dir, 'runner.env'));
+    assert.equal(r.url, 'postgresql://factory_runner:pw@127.0.0.1:54329/factory_control_plane');
+    assert.equal(r.caMissing, false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('loadRunnerUrl flags a CA that exists nowhere on this machine (the preflight and supervisor refuse on it)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'runner-env-'));
+  try {
+    writeFileSync(join(dir, 'runner.env'), 'FACTORY_RUNNER_PG_URL=' + URL_WITH('Z:\\nowhere\\no-such-ca-' + Date.now() + '.crt') + '\n');
+    const r = loadRunnerUrl(join(dir, 'runner.env'));
+    assert.ok(r.url);
+    assert.equal(r.caMissing, true);
+    assert.match(r.note, /copy the CA file/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
