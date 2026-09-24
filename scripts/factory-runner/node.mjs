@@ -181,8 +181,12 @@ export function ensureWorktree({ runId, baseCommit, branch }) {
 /** 8. Renew the lease on a timer for as long as the work is running. */
 export function startHeartbeat({ runId, id, leaseSeconds = DEFAULT_LEASE_SECONDS }) {
   const everyMs = Math.max(5000, Math.floor((leaseSeconds * 1000) / 3));
+  let lost = false;
   const timer = setInterval(() => {
-    heartbeat({ runId, nodeId: id, leaseSeconds }).catch(() => { /* the lease will expire; that is the design */ });
+    heartbeat({ runId, nodeId: id, leaseSeconds })
+      // a lost lease is said once; the completion fence (claim.mjs completeRun) keeps this run's result off the work order
+      .then((ok) => { if (!ok && !lost) { lost = true; console.log('[' + String(id).slice(0, 13) + '] run ' + String(runId).slice(0, 8) + ' LOST its lease (taken over by another node); its result will not complete the work order'); } })
+      .catch(() => { /* the lease will expire; that is the design */ });
   }, everyMs);
   if (typeof timer.unref === 'function') timer.unref();
   return () => clearInterval(timer);
@@ -266,7 +270,7 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
 
       const result = await runWork({ run, workOrder: woRow, worktree: wt, nodeId: id, log,
         checkpoint: (location, scenario, payload) =>
-          checkpoint({ runId: run.run_id, workOrderId: run.work_order_id, location, scenario, payload }) });
+          checkpoint({ runId: run.run_id, workOrderId: run.work_order_id, location, scenario, payload, nodeId: id }) });
 
       // THE TERMINAL CONDITION COMES FROM THE WORKER, and where the worker reports none the fallback NAMES
       // THAT ABSENCE rather than claiming a clean finish. completeRun requires the field; defaulting it to
@@ -274,8 +278,8 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
       // exists for. The 2026-08-24 failures were eight HTTP 200s whose bodies never terminated, and a runner
       // that writes 'completed' because its worker said nothing reproduces that defect in a new place.
       const finished = result && result.status === 'failed' ? 'failed' : 'done';
-      await completeRun({
-        runId: run.run_id, status: finished,
+      const fin = await completeRun({
+        runId: run.run_id, nodeId: id, status: finished,
         summary: result && result.summary, headCommit: result && result.headCommit,
         terminationReason: (result && result.terminationReason)
           || (finished === 'failed' ? 'worker_reported_failure_without_a_terminal_condition'
@@ -285,7 +289,8 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
         fallbackReason: result && result.fallbackReason,
         usage: result && result.usage,
       });
-      log('completed run ' + String(run.run_id).slice(0, 8));
+      if (fin && fin.superseded) log('run ' + String(run.run_id).slice(0, 8) + ' finished AFTER its lease was taken over - its result is not recorded as the work order\'s (the node that holds it completes it)');
+      else log('completed run ' + String(run.run_id).slice(0, 8));
     } catch (e) {
       // A thrown worker does NOT mark the run failed: it may be a transient provider error, and the lease
       // is the honest arbiter. Leaving it to expire lets any eligible node resume from the last checkpoint,

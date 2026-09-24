@@ -92,6 +92,11 @@ export async function registerNode({ nodeId, capabilities = [], securityRole = '
 // `workTypes` narrows the pick to the work types the caller can actually do. A node claims ONLY what it has a handler
 // for: the default bootstrap used to claim every work order and report it done - verifier-gated ones included - within a
 // second, unblocking dependent release work that nobody had verified (verification 2026-09-24, round 2).
+/** The claim transaction's opening: BEGIN plus its lock and idle limits (one round trip). Exported so the acceptance holds the
+ * claim lock EXACTLY the way a real claimer does when it proves a dead claimer cannot block the plane. */
+export const claimSessionSql = () => 'begin; set local lock_timeout = ' + Math.round(db.pgTimeoutMs('FACTORY_PG_LOCK_TIMEOUT_MS', 15000))
+  + '; set local idle_in_transaction_session_timeout = ' + Math.round(db.pgTimeoutMs('FACTORY_PG_IDLE_TX_TIMEOUT_MS', 30000));
+
 export async function claimWork({ nodeId, leaseSeconds = DEFAULT_LEASE_SECONDS, capabilities = null,
   requestedProvider = null, requestedModel = null, reasoningEffort = null, onlyWorkOrderId = null, workTypes = null }) {
   if (!nodeId) throw new Error('claimWork requires a nodeId');
@@ -114,7 +119,12 @@ export async function claimWork({ nodeId, leaseSeconds = DEFAULT_LEASE_SECONDS, 
 async function claimInTransaction({ nodeId, lease, capabilities,
   requestedProvider = null, requestedModel = null, reasoningEffort = null, onlyWorkOrderId = null, workTypes = null }) {
   return db.withClient(async (client) => {
-    await client.query('begin');
+    // A CLAIM CANNOT HOLD THE PLANE. A node that lost its connection inside this transaction held the plane-wide claim lock
+    // until the server noticed the dead session, and every other node's claims waited with it (verification 2026-09-24,
+    // round 3). The server ends this transaction if it sits idle, and a claim that waits too long for the lock gives up -
+    // "nothing claimed this time" - instead of joining the queue behind a dead one. Set here, in the same round trip as BEGIN,
+    // because the Supabase pooler drops settings sent in the startup packet.
+    await client.query(claimSessionSql());
     try {
       // CLAIMS ARE SERIALIZED PLANE-WIDE. The row lock (`for update skip locked`) and the surface-lock primary key make
       // the per-work-order and per-surface rules race-safe by construction; the heavy LIMITS are counts, and a count read
@@ -293,6 +303,9 @@ async function claimInTransaction({ nodeId, lease, capabilities,
       try { await client.query('rollback'); } catch { /* already aborted */ }
       // A surface collision is an ordinary race, not a failure: the other node won.
       if (String(e && e.code) === '23505') return null;
+      // The claim lock was held longer than lock_timeout (another claimer, perhaps one whose connection died): nothing was
+      // claimed this time; the next loop tries again, and the server ends the dead holder's idle transaction.
+      if (String(e && e.code) === '55P03') { claimWork.lastBusy = new Date().toISOString(); return null; }
       throw e;
     }
   });
@@ -317,8 +330,18 @@ export async function heartbeat({ runId, nodeId, leaseSeconds = DEFAULT_LEASE_SE
   return r.rows.length === 1;
 }
 
+/** A run that lost its lease to a takeover: its node keeps going only until it next reports, and then stops. */
+export class LeaseLost extends Error { constructor(msg) { super(msg); this.name = 'LeaseLost'; } }
+
 /** Persist progress. The row is a pointer; the evidence lives in the repository. */
-export async function checkpoint({ runId, workOrderId, location, scenario = null, payload = {} }) {
+export async function checkpoint({ runId, workOrderId, location, scenario = null, payload = {}, nodeId = null }) {
+  // FENCED: a run whose lease was taken over (its row requeued, or given to another node) writes no more progress - its
+  // checkpoints used to interleave with the new owner's (verification 2026-09-24, round 3). With a nodeId the run must still
+  // be in progress AND this node's; the caller learns it lost the lease and stops.
+  if (nodeId) {
+    const own = await db.read("select 1 from factory.agent_runs where run_id = $1 and node_id = $2 and status = 'in_progress'", [runId, nodeId]);
+    if (!own.rows.length) throw new LeaseLost('run ' + String(runId).slice(0, 8) + ' is no longer this node\'s (its lease was taken over); checkpoint not written');
+  }
   await db.write(
     `insert into factory.checkpoints (run_id, work_order_id, location, scenario, payload)
      values ($1, $2, $3, $4, $5::jsonb)`,
@@ -345,7 +368,7 @@ export async function checkpoint({ runId, workOrderId, location, scenario = null
  */
 export async function completeRun({ runId, status = 'done', summary = null, headCommit = null,
   terminationReason = null, actualProvider = null, actualModel = null, fallbackReason = null,
-  usage = null }) {
+  usage = null, nodeId = null }) {
   if ((status === 'done' || status === 'failed') && !terminationReason) {
     throw new Error('completeRun: status ' + status + ' claims a terminal outcome, so terminationReason is'
       + ' required — name the terminal condition that was actually observed (completed, stream_timeout,'
@@ -366,7 +389,7 @@ export async function completeRun({ runId, status = 'done', summary = null, head
     }
   }
   const u = usage || {};
-  await db.write(
+  const fin = await db.write(
     `update factory.agent_runs
         set status = $2, summary = coalesce($3, summary), head_commit = coalesce($4, head_commit),
             termination_reason = $5,
@@ -379,15 +402,23 @@ export async function completeRun({ runId, status = 'done', summary = null, head
             output_tokens = coalesce($12, output_tokens),
             estimated_cost_usd = coalesce($13, estimated_cost_usd),
             finished_at = now(), lease_expires_at = null, updated_at = now()
-      where run_id = $1`,
+      where run_id = $1 and status = 'in_progress' and ($14::text is null or node_id = $14::text)
+      returning work_order_id`,
     [runId, status, summary, headCommit, terminationReason, actualProvider, actualModel, fallbackReason,
       u.reasoningEffort ?? null, u.inputTokens ?? null, u.cachedTokens ?? null, u.outputTokens ?? null,
-      u.estimatedCostUsd ?? null]);
+      u.estimatedCostUsd ?? null, nodeId]);
+  // FENCED ON THE RUN'S OWN LIVE OWNERSHIP. A run whose lease expired and was taken over used to finish anyway: this update
+  // matched it by run_id alone and then set the WORK ORDER done while the new owner's run was still working, releasing its
+  // dependents early - two "done" runs for one work order (verification 2026-09-24, round 3). Now nothing changes unless
+  // this run is still in progress (and this node's, when the node says who it is); the work order is completed only by
+  // the run that holds it.
+  if (!fin.rows.length) return { superseded: true };
   await db.write('delete from factory.surface_locks where run_id = $1', [runId]);
   if (status === 'done') {
     await db.write(
       `update factory.work_orders
           set status = 'done', completed_at = now(), updated_at = now()
-        where work_order_id = (select work_order_id from factory.agent_runs where run_id = $1)`, [runId]);
+        where work_order_id = $1`, [fin.rows[0].work_order_id]);
   }
+  return { superseded: false };
 }

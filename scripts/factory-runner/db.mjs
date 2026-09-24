@@ -121,6 +121,9 @@ export function assessUrl(url) {
   return null;
 }
 
+/** A timeout in ms from the environment (tests shorten them), or the default. */
+export const pgTimeoutMs = (name, dflt) => { const v = Number(process.env[name]); return Number.isFinite(v) && v > 0 ? v : dflt; };
+
 async function connect() {
   if (!FACTORY_RUNNER_PG_URL) {
     throw new FactoryDbRefusal('FACTORY_RUNNER_PG_URL is not set. This module deliberately has no '
@@ -131,7 +134,21 @@ async function connect() {
   const why = assessUrl(FACTORY_RUNNER_PG_URL);
   if (why) throw new FactoryDbRefusal(why);
   const { default: pg } = await import('pg');
-  const client = new pg.Client({ connectionString: FACTORY_RUNNER_PG_URL });
+  // NO STATEMENT, NO CONNECTION AND NO TRANSACTION MAY HANG FOREVER. With none of these, a plane connection that stalled
+  // mid-statement (a network path that stops forwarding without closing) left the worker waiting forever while it read
+  // "running" everywhere; and a node that lost its connection inside the claim transaction held the plane-wide claim lock
+  // until the server noticed the dead session - every other node's claims blocked with it (independent verification
+  // 2026-09-24, round 3). Now a connect gives up, a statement is cancelled, a lock wait ends, and the server itself ends a
+  // transaction left idle; the worker then fails loudly and its supervisor restarts it. These are CLIENT-side (they work
+  // through the Supabase pooler); the server-side lock and idle-transaction limits are set inside the claim transaction
+  // (claim.mjs), because the pooler drops startup-packet settings (measured on the live plane: they did not arrive).
+  const client = new pg.Client({
+    connectionString: FACTORY_RUNNER_PG_URL,
+    connectionTimeoutMillis: pgTimeoutMs('FACTORY_PG_CONNECT_TIMEOUT_MS', 20000),
+    query_timeout: pgTimeoutMs('FACTORY_PG_QUERY_TIMEOUT_MS', 60000),
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10000,
+  });
   await client.connect();
   return client;
 }

@@ -485,6 +485,100 @@ try {
     check("L4 the abandoned run is returned to the queue with its attempt counted, not discarded",
       old.rows[0].status === "queued" && old.rows[0].attempt_count === 2, JSON.stringify(old.rows[0]));
   }
+  // ---- M. a run whose lease was TAKEN OVER cannot complete the work order --------------------------------
+  // completeRun matched the run by id alone: a node that lost its lease finished anyway and set the work order done while the
+  // new owner's run still held it, releasing its dependents early - two "done" runs for one work order (independent
+  // verification 2026-09-24, round 3). The completion and the checkpoint are fenced on the run's own live ownership.
+  {
+    await reset();
+    const woM = await wo('M: taken over', { surface: ['qa/m.txt'] });
+    const woDep = await wo('M: depends on it', { surface: ['qa/m-dep.txt'] });
+    await admin.query('insert into factory.work_order_dependencies (work_order_id, depends_on) values ($1, $2)', [woDep, woM]);
+    const runOld = await claim.claimWork({ nodeId: 'node-alpha', leaseSeconds: 60 });
+    await admin.query("update factory.agent_runs set lease_expires_at = now() - interval '1 second' where run_id = $1", [runOld.run_id]);
+    await admin.query("update factory.surface_locks set lease_expires_at = now() - interval '1 second' where run_id = $1", [runOld.run_id]);
+    const runNew = await claim.claimWork({ nodeId: 'node-beta', leaseSeconds: 60 });
+    let cpRefused = false;
+    try { await claim.checkpoint({ runId: runOld.run_id, workOrderId: woM, location: 'qa/m.txt', nodeId: 'node-alpha' }); } catch (e) { cpRefused = e.name === 'LeaseLost'; }
+    const late = await claim.completeRun({ runId: runOld.run_id, nodeId: 'node-alpha', status: 'done', terminationReason: 'completed' });
+    const afterLate = (await admin.query('select status from factory.work_orders where work_order_id = $1', [woM])).rows[0].status;
+    const depEarly = await claim.claimWork({ nodeId: 'node-alpha', leaseSeconds: 60 });
+    const own = await claim.completeRun({ runId: runNew.run_id, nodeId: 'node-beta', status: 'done', terminationReason: 'completed' });
+    const afterOwn = (await admin.query('select status from factory.work_orders where work_order_id = $1', [woM])).rows[0].status;
+    const doneRuns = (await admin.query("select count(*)::int n from factory.agent_runs where work_order_id = $1 and status = 'done'", [woM])).rows[0].n;
+    check('M  a run whose lease was taken over cannot complete the work order: its checkpoint (LeaseLost) and completion (superseded) are refused, the work order stays with the live run, the dependent stays blocked, and only the live run completes it (' + doneRuns + ' done run)',
+      runNew && runNew.work_order_id === woM && cpRefused && late && late.superseded === true && afterLate !== 'done' && !depEarly && own && own.superseded === false && afterOwn === 'done' && doneRuns === 1,
+      JSON.stringify({ taken: runNew && runNew.work_order_id === woM, cpRefused, late, afterLate, depEarly: depEarly && depEarly.work_order_id, own, afterOwn, doneRuns }));
+  }
+
+  // ---- N. a claimer that died inside the claim transaction cannot block the plane --------------------------
+  // A node that lost its connection inside the claim held the plane-wide claim lock until the server noticed the dead
+  // session, and every other node's claims waited behind it (verification round 3). The claim now opens its transaction
+  // with a lock timeout and an idle-transaction limit; the stuck claimer here opens its transaction EXACTLY the same way.
+  {
+    await reset();
+    const woN = await wo('N: behind a dead claimer', { surface: ['qa/n.txt'] });
+    const saved = { l: process.env.FACTORY_PG_LOCK_TIMEOUT_MS, i: process.env.FACTORY_PG_IDLE_TX_TIMEOUT_MS };
+    process.env.FACTORY_PG_LOCK_TIMEOUT_MS = '1500'; process.env.FACTORY_PG_IDLE_TX_TIMEOUT_MS = '4000';
+    const stuck = new pgLib.Client({ connectionString: pg.runnerUrl }); stuck.on('error', () => { /* ended by the server - the point */ });
+    await stuck.connect();
+    await stuck.query(claim.claimSessionSql());
+    await stuck.query("select pg_advisory_xact_lock(hashtext('factory.claim'))");
+    claim.claimWork.lastBusy = null;
+    const t0 = Date.now();
+    const first = await claim.claimWork({ nodeId: 'node-beta', leaseSeconds: 60 });
+    const firstMs = Date.now() - t0;
+    const busy = !!claim.claimWork.lastBusy;
+    let got = null; const t1 = Date.now();
+    while (!got && Date.now() - t1 < 20000) { await new Promise((r) => setTimeout(r, 500)); got = await claim.claimWork({ nodeId: 'node-beta', leaseSeconds: 60 }); }
+    const gotMs = Date.now() - t1;
+    const stillIdle = (await admin.query("select count(*)::int n from pg_stat_activity where usename = $1 and state like 'idle in transaction%'", [pg.runnerRole])).rows[0].n;
+    try { await stuck.end(); } catch { /* already ended */ }
+    for (const [k, v] of [['FACTORY_PG_LOCK_TIMEOUT_MS', saved.l], ['FACTORY_PG_IDLE_TX_TIMEOUT_MS', saved.i]]) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+    check('N  a claimer that died holding the claim lock cannot block the plane: another claim gives up within the lock timeout (' + firstMs + ' ms, busy ' + busy + '), the server ends the idle transaction (' + stillIdle + ' left), and the work order is claimed ' + gotMs + ' ms later',
+      first === null && firstMs < 6000 && busy && got && got.work_order_id === woN && stillIdle === 0,
+      JSON.stringify({ first, firstMs, busy, got: got && got.work_order_id, stillIdle }));
+  }
+
+  // ---- O. a plane connection that stalls fails within its timeout, never hangs ------------------------------
+  // With no timeouts a connection that stopped forwarding without closing left the worker waiting forever while everything
+  // read "running" (verification round 3). A relay here forwards to the plane and then freezes: data is held, the socket
+  // stays open. The connect and the statement must fail within their timeouts (then the worker exits and is restarted).
+  {
+    const net = await import('node:net');
+    let frozen = false; const pairs = [];
+    const relay = net.createServer((c) => {
+      const u = net.connect(pg.port, '127.0.0.1');
+      pairs.push([c, u]); c.on('error', () => {}); u.on('error', () => {});
+      c.on('data', (d) => { if (!frozen) u.write(d); }); u.on('data', (d) => { if (!frozen) c.write(d); });
+    });
+    await new Promise((r) => relay.listen(0, '127.0.0.1', r));
+    const relayUrl = pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + relay.address().port + '/');
+    const savedUrl = process.env.FACTORY_RUNNER_PG_URL;
+    const savedT = { c: process.env.FACTORY_PG_CONNECT_TIMEOUT_MS, q: process.env.FACTORY_PG_QUERY_TIMEOUT_MS };
+    process.env.FACTORY_RUNNER_PG_URL = relayUrl; process.env.FACTORY_PG_CONNECT_TIMEOUT_MS = '2000'; process.env.FACTORY_PG_QUERY_TIMEOUT_MS = '2000';
+    const dbR = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/db.mjs')).href + '?relay=' + Date.now());
+    const before = await dbR.read('select 1 as ok');
+    let midMs = -1, midErr = '';
+    await dbR.withClient(async (c) => {
+      await c.query('select 1');
+      frozen = true;
+      const t = Date.now();
+      try { await c.query('select 2'); } catch (e) { midErr = String(e && e.message || e); }
+      midMs = Date.now() - t;
+    }).catch(() => { /* the client end may fail on a frozen socket */ });
+    let conMs = -1, conErr = '';
+    { const t = Date.now(); try { await dbR.read('select 3'); } catch (e) { conErr = String(e && e.message || e); } conMs = Date.now() - t; }
+    frozen = false;
+    for (const [c, u] of pairs) { try { c.destroy(); u.destroy(); } catch { /* gone */ } }
+    relay.close();
+    process.env.FACTORY_RUNNER_PG_URL = savedUrl;
+    for (const [k, v] of [['FACTORY_PG_CONNECT_TIMEOUT_MS', savedT.c], ['FACTORY_PG_QUERY_TIMEOUT_MS', savedT.q]]) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+    check('O  a plane connection that stalls fails within its timeout instead of hanging: mid-statement ' + midMs + ' ms, at connect ' + conMs + ' ms (limits 2000 ms)',
+      before.rows[0].ok === 1 && midErr && midMs >= 1500 && midMs < 8000 && conErr && conMs >= 1500 && conMs < 8000,
+      JSON.stringify({ midMs, midErr: midErr.slice(0, 80), conMs, conErr: conErr.slice(0, 80) }));
+  }
+
   // ---- K. no ambient production credential path exists ----------------------------------------------
   //
   // IN A CHILD PROCESS, because db.mjs captures FACTORY_RUNNER_PG_URL at MODULE LOAD. A process that
