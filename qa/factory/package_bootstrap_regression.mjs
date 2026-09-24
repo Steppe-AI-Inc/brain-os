@@ -31,8 +31,9 @@
 //   F5 with a TRANSITIVE driver package (pg-protocol) removed, and then with `pg` itself removed, every entry point refuses by
 //      name: the supervisor (exit 5, state dependencies_missing, no worker started), node health (the dependency, not the
 //      connection), node.mjs start and node.mjs status (exit 5)
-//   F6 (Windows) install-autostart.ps1 -Preflight refuses on the broken clone and passes on the repaired one; an install
-//      from the clone does not replace a task that belongs to another checkout; the live task is untouched throughout
+//   F6 (Windows) install-autostart.ps1 -Preflight refuses on the broken clone, refuses an env file whose CA exists nowhere
+//      here, and passes on the repaired one; from the clone, install, -Stop and -Uninstall all refuse (exit 3) to act on a task
+//      that belongs to another checkout; the live task is untouched throughout
 //   F7 bootstrap-node.sh on a SECOND fresh clone with no node_modules and no .factory installs from the lock and ends
 //      BOOTSTRAPPED against the plane - the Work-PC path, end to end
 //   F8 the full `npm ci --strict-allow-scripts` gives the acceptance harnesses everything: every qa/factory import resolves
@@ -224,6 +225,8 @@ if (!STATIC_ONLY) {
   const cleanEnv = { FACTORY_RUNNER_PG_URL: '', FACTORY_RUNNER_ENV_FILE: '', FACTORY_STATE_DIR: '', FACTORY_NODE_ROLE: '', npm_config_audit: 'false', npm_config_fund: 'false' };
   let pg = null, admin = null, started = [];
   const liveTaskBefore = isWin ? run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName 'BrainOS Factory Node' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).WorkingDirectory + '|' + ($t.Actions|Select-Object -First 1).Arguments + '|' + $t.Settings.Enabled}else{'NONE'}"], ROOT).out.trim() : 'n/a';
+  const taskState = () => run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName 'BrainOS Factory Node' -ErrorAction SilentlyContinue; if($t){$t.State.ToString()}else{'NONE'}"], ROOT).out.trim();
+  const liveStateBefore = isWin ? taskState() : 'n/a';
   const liveTaskXml = isWin && liveTaskBefore !== 'NONE' ? run('powershell', ['-NoProfile', '-Command', "Export-ScheduledTask -TaskName 'BrainOS Factory Node'"], ROOT).out : null;
   try {
     // ENOUGH DISK FIRST. Two clones plus two installs; running out mid-run produces "unable to write file" noise that reads like a
@@ -327,13 +330,18 @@ if (!STATIC_ONLY) {
       const broken = ps(['-Preflight', '-EnvFile', envFile]);
       run(NPM, ['ci', '--omit=dev', '--strict-allow-scripts'], cloneA, cleanEnv);
       const fixed = ps(['-Preflight', '-EnvFile', envFile]);
-      let guard = { rc: 'skipped', out: 'no live task on this machine; the other-checkout guard is not exercised (an install here would create one)' };
-      if (liveTaskBefore !== 'NONE' && !liveTaskBefore.startsWith(cloneA)) guard = ps(['-Role', 'verifier', '-EnvFile', envFile]);
+      // an env file whose URL names a CA that exists nowhere on this machine: a verify-full connection would fail closed on every start
+      const noCaEnv = join(work, 'noca', 'runner.env'); mkdirSync(dirname(noCaEnv), { recursive: true });
+      writeFileSync(noCaEnv, 'FACTORY_RUNNER_PG_URL=' + pg.runnerUrl + '?sslmode=verify-full&sslrootcert=' + encodeURIComponent(join(work, 'nowhere', 'absent-ca-' + randomUUID().slice(0, 8) + '.crt')) + '\n');
+      const noCa = ps(['-Preflight', '-EnvFile', noCaEnv]);
+      let guard = { rc: 'skipped', out: 'no live task on this machine; the other-checkout guard is not exercised (an install here would create one)' }, stopGuard = guard, uninstallGuard = guard;
+      if (liveTaskBefore !== 'NONE' && !liveTaskBefore.startsWith(cloneA)) { guard = ps(['-Role', 'verifier', '-EnvFile', envFile]); stopGuard = ps(['-Stop']); uninstallGuard = ps(['-Uninstall']); }
       const liveTaskAfter = run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName 'BrainOS Factory Node' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).WorkingDirectory + '|' + ($t.Actions|Select-Object -First 1).Arguments + '|' + $t.Settings.Enabled}else{'NONE'}"], ROOT).out.trim();
-      const guardOk = guard.rc === 'skipped' || (guard.rc === 3 && /belongs to another checkout/.test(guard.out));
-      check('F6 install-autostart.ps1: -Preflight refuses the broken clone (exit ' + broken.rc + ') and passes the repaired one (exit ' + fixed.rc + '); an install from the clone does not take over another checkout\'s task (' + guard.rc + '); the live task is untouched',
-        broken.rc === 1 && /PREFLIGHT FAILED/.test(broken.out) && /npm ci/.test(broken.out) && fixed.rc === 0 && /PREFLIGHT OK/.test(fixed.out) && guardOk && liveTaskAfter === liveTaskBefore,
-        'broken: ' + broken.out + '\nfixed: ' + fixed.out + '\nguard: ' + guard.out + '\ntask before: ' + liveTaskBefore + '\ntask after: ' + liveTaskAfter);
+      const refused = (g) => g.rc === 'skipped' || (g.rc === 3 && /belongs to another checkout/.test(g.out));
+      const guardOk = refused(guard) && refused(stopGuard) && refused(uninstallGuard);
+      check('F6 install-autostart.ps1: -Preflight refuses the broken clone (exit ' + broken.rc + ') and a missing CA (exit ' + noCa.rc + ') and passes the repaired one (exit ' + fixed.rc + '); from the clone install/-Stop/-Uninstall refuse another checkout\'s task (' + guard.rc + '/' + stopGuard.rc + '/' + uninstallGuard.rc + '); the live task is untouched',
+        broken.rc === 1 && /PREFLIGHT FAILED/.test(broken.out) && /npm ci/.test(broken.out) && noCa.rc === 1 && /CA file is missing/.test(noCa.out) && fixed.rc === 0 && /PREFLIGHT OK/.test(fixed.out) && guardOk && liveTaskAfter === liveTaskBefore,
+        'broken: ' + broken.out + '\nno CA: ' + noCa.out + '\nfixed: ' + fixed.out + '\nguard: ' + guard.out + '\nstop: ' + stopGuard.out + '\nuninstall: ' + uninstallGuard.out + '\ntask before: ' + liveTaskBefore + '\ntask after: ' + liveTaskAfter);
     } else {
       run(NPM, ['ci', '--omit=dev', '--strict-allow-scripts'], cloneA, cleanEnv);
       if (!isWin) console.log('NOTE F6 is Windows-only (the scheduled-task installer); skipped on ' + process.platform);
@@ -380,6 +388,11 @@ if (!STATIC_ONLY) {
         const xmlFile = join(work, 'live-task.xml'); writeFileSync(xmlFile, liveTaskXml);
         run('powershell', ['-NoProfile', '-Command', "Register-ScheduledTask -TaskName 'BrainOS Factory Node' -Xml (Get-Content -Raw '" + xmlFile + "') -Force | Out-Null"], ROOT);
         console.log('RESTORED the live scheduled task from its export (it had changed during the run)');
+      }
+      // and running, if it was: a -Stop that got past a broken guard would otherwise leave this PC's node stopped
+      if (liveStateBefore === 'Running' && taskState() !== 'Running') {
+        run('powershell', ['-NoProfile', '-Command', "Start-ScheduledTask -TaskName 'BrainOS Factory Node'"], ROOT);
+        console.log('RESTARTED the live scheduled task (it was Running before the run and was not after)');
       }
     }
     try { if (admin) await admin.end(); } catch { /* closed */ }

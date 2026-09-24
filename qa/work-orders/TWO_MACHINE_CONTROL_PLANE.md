@@ -54,6 +54,11 @@ fresh clone could not install, ledger 217); copy `runner.env` and the CA file (`
 same folder there — the CA path inside the env file is resolved to the local copy by `runner-env.mjs`, so nothing is edited — then
 `install-autostart.ps1 -Preflight` (exit 0), `install-autostart.ps1 -Role verifier -Start` (§H), or `bootstrap-node.sh --role
 verifier --env-file …` (which runs `npm ci` itself when the dependencies are not installed at their locked versions).
+Install with `npm ci` only - never `npm install` (npm 10 rewrites the committed lock). Node 20 or newer; npm 11 or newer
+enforces the `allowScripts` decisions (npm 10 runs every locked install script - all of them are approved, so nothing extra runs,
+but nothing is enforced either). Windows on ARM needs an x64 Node for the acceptance harness: embedded-postgres publishes no
+win32-arm64 build, and `deps.mjs --dev` says so by name. The dependency check covers the whole locked tree, not just
+`pg`: a node_modules missing any package pg loads is refused, not crash-looped.
 `qa/factory/package_bootstrap_regression.mjs` proves this path on fresh clones; run it on any machine before trusting it.
 **Reply with:** "shared plane is up" and the two node ids the bootstraps print. Never the URL.
 
@@ -191,12 +196,12 @@ Windows Scheduled Task **BrainOS Factory Node** that launches it; an idle node s
 | command | does |
 |---|---|
 | `powershell -ExecutionPolicy Bypass -File scripts\factory-runner\install-autostart.ps1 -Role generic -Start` | install (idempotent: a re-install stops the running supervisor first) and start now; Work PC: `-Role verifier` |
-| `… install-autostart.ps1 -Preflight` | checks only, changes nothing: the env file yields a URL, and the runtime dependencies are installed at the locked versions (`npm ci` otherwise) |
+| `… install-autostart.ps1 -Preflight` | checks only, changes nothing: the env file yields a URL whose CA file exists on this machine, and the whole locked runtime tree is installed (`npm ci` otherwise) |
 | `… install-autostart.ps1 -Status` | task state, supervisor state file, dependency check, node liveness on the plane |
-| `… install-autostart.ps1 -Stop` / `-Start` | stop cleanly (worker ends, no orphan) / start |
+| `… install-autostart.ps1 -Stop` / `-Start` | stop cleanly (worker ends, no orphan) / start. Run from the checkout that owns the task: from any other checkout -Stop, -Uninstall and install refuse (exit 3) unless `-ReplaceOtherCheckout`, which stops THAT checkout's supervisor and refuses (exit 4) if it does not stop |
 | `… install-autostart.ps1 -Verify` | exit 0 only if the task exists, is enabled and starts this checkout's supervisor |
-| `… install-autostart.ps1 -Uninstall` | stop and remove the task |
-| `node scripts\factory-runner\node.mjs status` | ALIVE (heartbeat age) / STALE / NOT REGISTERED / UNREACHABLE, read-only |
+| `… install-autostart.ps1 -Uninstall` | stop the owning checkout's supervisor, then remove the task |
+| `node scripts\factory-runner\node.mjs status` | ALIVE (heartbeat age) / STALE / NOT REGISTERED / UNREACHABLE, read-only; DEPENDENCIES_MISSING (exit 5) when the locked tree is not installed |
 
 **Boot trigger:** Windows lets only an administrator register an AtStartup trigger (measured: "Access is denied" for a standard
 user). As installed the task is triggered **at logon**, which is the reboot path the moment the user logs on; one elevated run of
