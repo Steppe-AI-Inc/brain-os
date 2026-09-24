@@ -591,9 +591,26 @@ if (!STATIC_ONLY) {
       const bystandersAlive = alive(b1.pid) && alive(b2.pid) && b1.exitCode === null && b2.exitCode === null;
       run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--stop'], cloneA, { ...nodeEnvA, FACTORY_STATE_DIR: s11 });
       const exit11 = await new Promise((r) => { if (sup11.exitCode !== null) return r(sup11.exitCode); const t = setTimeout(() => r('timeout'), 25000); sup11.on('exit', (c) => { clearTimeout(t); r(c); }); });
-      check('F11 stale pids naming other live processes: the supervisor starts its own worker (' + running11 + '), both bystanders are alive afterwards (' + bystandersAlive + '), the stale pids are logged as such, and --stop ends it (exit ' + exit11 + ')',
-        running11 && bystandersAlive && /stale/.test(out11) && exit11 === 0, out11);
-      for (const b of [b1, b2]) { try { b.kill(); } catch { /* gone */ } }
+      // ...and a REAL orphan - a worker left running by a supervisor that crashed, recognised by the instance token that supervisor
+      // put on its command line - IS ended before the new worker starts (one worker per node identity). Planted here, because a
+      // crashed supervisor's worker usually dies on its own broken stdout before a new supervisor looks (the reboot acceptance's R5
+      // reports "orphan was alive: false"), so the path would otherwise never be exercised.
+      const inst = randomUUID();
+      const orphan = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)', join(cloneA, 'scripts', 'factory-runner', 'node.mjs'), 'start', '--supervisor-instance', inst], { stdio: 'ignore', windowsHide: true });
+      started.push(orphan);
+      await sleep(1000);
+      writeFileSync(join(s11, 'node-status.json'), JSON.stringify({ supervisorPid: 999999, instance: inst, childPid: orphan.pid, state: 'running', restarts: 0 }));
+      let out11b = '';
+      const sup11b = spawn(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--runner-env', envFile, '--role', 'verifier', '--log-dir', join(work, 'logs-a11')], { cwd: cloneA, env: { ...process.env, ...nodeEnvA, FACTORY_STATE_DIR: s11, FACTORY_RUNNER_PG_URL: '' }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+      started.push(sup11b); sup11b.stdout.on('data', (d) => { out11b += d; }); sup11b.stderr.on('data', (d) => { out11b += d; });
+      let running11b = false;
+      for (let i = 0; i < 40 && !running11b; i++) { await sleep(1000); const st = existsSync(join(s11, 'node-status.json')) ? readJson(join(s11, 'node-status.json')) : {}; running11b = st.supervisorPid === sup11b.pid && st.state === 'running'; }
+      const orphanEnded = orphan.exitCode !== null || !alive(orphan.pid);
+      run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--stop'], cloneA, { ...nodeEnvA, FACTORY_STATE_DIR: s11 });
+      const exit11b = await new Promise((r) => { if (sup11b.exitCode !== null) return r(sup11b.exitCode); const t = setTimeout(() => r('timeout'), 25000); sup11b.on('exit', (c) => { clearTimeout(t); r(c); }); });
+      check('F11 stale pids naming other live processes: the supervisor starts its own worker (' + running11 + '), both bystanders are alive afterwards (' + bystandersAlive + '), the stale pids are logged as such, and --stop ends it (exit ' + exit11 + '); a real orphan carrying the recorded instance token is ended before the new worker starts (' + orphanEnded + ', exit ' + exit11b + ')',
+        running11 && bystandersAlive && /stale/.test(out11) && exit11 === 0 && running11b && orphanEnded && /orphaned node \(pid \d+\) from a previous supervisor ended/.test(out11b) && exit11b === 0, out11 + '\n--- real orphan\n' + out11b);
+      for (const b of [b1, b2, orphan]) { try { b.kill(); } catch { /* gone */ } }
     }
 
     // F13

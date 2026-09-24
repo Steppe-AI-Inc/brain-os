@@ -104,7 +104,10 @@ function Get-SupervisorInfo($dir) {
     if ($p) {
       $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$p" -ErrorAction SilentlyContinue
       $want = (Join-Path $dir 'scripts\factory-runner\node-supervisor.mjs').Replace('/', '\').ToLower()
-      if ($proc -and $proc.CommandLine -and $proc.CommandLine.Replace('/', '\').ToLower().Contains($want)) { return [pscustomobject]@{ running = $true; pid = $p; role = $null; state = 'running'; childPid = $null; legacy = $true } }
+      if ($proc -and $proc.CommandLine -and $proc.CommandLine.Replace('/', '\').ToLower().Contains($want)) {
+        $st = Read-SupervisorStatus $dir
+        return [pscustomobject]@{ running = $true; pid = $p; role = $(if ($st) { $st.role } else { $null }); state = $(if ($st) { $st.state } else { 'running' }); childPid = $(if ($st) { $st.childPid } else { $null }); legacy = $true }
+      }
     }
   }
   return $null
