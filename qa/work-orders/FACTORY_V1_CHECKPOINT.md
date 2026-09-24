@@ -14,16 +14,27 @@
   createRequire blind spot; npx @latest; bootstrap next step; icacls success printed on failure; -Verify ignored env/CA. **All
   fixed**, each with a regression row (K7, F2, F4, F5, F6, F9, F10, lock-unchanged in F1/F8) and a mutant where plantable. Refuters
   independently reproduced the [high] closure defect and the F4 defect at `1c3bce0f` (both fixed).
-- **Proofs so far**: package regression 16/16 on full fresh clones of `0f90a9f0`; fresh mutation proof 18/18 at `a5cba4de` (F-ORIG
-  `ee2fce2b` red on 13 rows); static mutation 12/12; this checkout reinstalled by `npm ci --strict-allow-scripts` (deps --dev: 138
-  locked packages OK); the live task re-registered with the full identity and `-Verify` OK.
-- **Next, in order**: (1) full regression on `bf7fef32`+ (adds F10); (2) second independent verification workflow on HEAD, fix what it
-  confirms; (3) composer `factory_v1_acceptance.mjs` with the live URL loaded from runner.env; (4) push with exactly
+- **Verification round 2, wf_6627f6cf-dbc** (against `d552c9ea`): confirmed every round-1 fix holds (also on Node 20.0.0) and found
+  more, each fixed in `af93e952` / `442dc5b7` / `66f80654` / `f1a13223` with a regression row and a mutant: stale pids trusted after a
+  reboot (the supervisor killed a reused pid's process, or refused to start) -> `proc.mjs` identity checks; `-Stop`/`-Start` demoted
+  a verifier to generic -> `-Start` alone starts the installed task; a hand-started supervisor made the task's exit 3 -> install
+  stops it and CONFIRMS the task's supervisor; quoted / key=value / superuser / bad-CA env files passed the preflight -> one shared
+  judge (`runner-env.mjs` `usable`); a damaged package passed the dependency check -> deps imports the packages; Node's own
+  `--env-file` -> `--runner-env`; UTF-16 env files; `[` in paths; -Status on stderr; and from its critic: [high] the default node
+  reported EVERY claimed work order done (verifier-gated too) -> the CLI node claims only `factory_acceptance` and
+  `bootstrap_probe`; a visible console window whose closing killed the node -> `conhost --headless`; a silent admission refusal ->
+  logged and shown by status. Registered, bounded: K3 does not scan package names inside `node -e` strings.
+- **Proofs so far**: regression 18/18 on full fresh clones of `442dc5b7` (before F12/F13); static mutation 15/15; reboot acceptance
+  9/9, control-plane acceptance 48/48, health 10/10, founder-poke 12/12, runner-env tests 17/17 on `66f80654`; the live Home task
+  re-installed with the final installer (conhost --headless, --runner-env, -Verify OK, ALIVE).
+- **Next, in order**: (1) full regression on `f1a13223` (F12/F13); (2) third independent verification workflow on that HEAD, and the
+  fresh mutation proof; fix what they confirm; (3) composer `factory_v1_acceptance.mjs` with the live URL loaded from runner.env; (4) push with exactly
   `git -C C:/Users/Dell/dev/brain-os-factory-cp push -u origin factory/computer-agnostic-control-plane`; (5) fresh
   `git -c http.sslBackend=schannel clone` of the remote branch: lock present, `pg` declared, `--static --root` green; only then report
   the new remote SHA; (6) ledger 217 via `scratchpad/record_217.mjs` in the candidate repo, bundles, memory.
-- **Live state 2026-09-24 ~14:00 local**: plane `npvhuoozkbexddnvkqsj` healthy; Home node `node-4d4a74dd` ALIVE on the new code (task
-  re-registered, principal/trigger DESKTOP-MDPE6FS\Dell, restarts 0); local plane serving on 54329.
+- **Live state 2026-09-24 ~15:30 local**: plane `npvhuoozkbexddnvkqsj` healthy; Home node `node-4d4a74dd` ALIVE on `66f80654` code
+  (task action conhost --headless ... --runner-env, principal/trigger DESKTOP-MDPE6FS\Dell, claims only factory_acceptance and
+  bootstrap_probe); local plane serving on 54329. Backups: `C:\Users\Dell\dev\backups\factory-cp-2026-09-24-*.bundle`.
 
 ## 1. Where things are
 
