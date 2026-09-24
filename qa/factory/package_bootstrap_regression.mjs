@@ -453,7 +453,7 @@ if (!STATIC_ONLY) {
       const psT = (args) => ps([...args, '-TaskName', scratchTask]);
       const taskArgsOf = () => run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName '" + scratchTask + "' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).Arguments}else{'NONE'}"], ROOT).out.trim();
       const cyc = {};
-      cyc.install = psT(['-Role', 'verifier', '-EnvFile', envFile, '-LogDir', join(work, 'logs-task'), '-Start']);
+      cyc.install = psT(['-Role', 'verifier', '-EnvFile', envFile, '-LogDir', join(work, 'logs-task'), '-WatchdogMinutes', '1', '-Start']);
       cyc.verify = psT(['-Verify']);
       cyc.execute = run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName '" + scratchTask + "' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).Execute}else{'NONE'}"], ROOT).out.trim();
       cyc.stop = psT(['-Stop']);
@@ -474,13 +474,24 @@ if (!STATIC_ONLY) {
       const handGeneric = await handStart('generic', 'logs-hand-generic');
       cyc.startOverHand = psT(['-Start']);
       cyc.handGenericGone = await gone(handGeneric);
+      // THE WATCHDOG: a supervisor that dies (killed here) is started again by the task's repeating trigger - restart-on-failure
+      // never fired, and the node stayed down until the next logon (verification round 3)
+      const before = whois();
+      if (before.running) { try { process.kill(before.pid); } catch { /* gone */ } }
+      let revived = null;
+      for (let i = 0; i < 110 && !revived; i++) { await sleep(1000); const w = whois(); if (w.running && w.pid !== before.pid) revived = w; }
+      cyc.watchdog = 'killed supervisor ' + before.pid + '; revived ' + (revived ? 'by pid ' + revived.pid + ' role ' + revived.role : 'NOT within 110 s');
       // Stop-ScheduledTask straight (what Task Scheduler's own Stop does) kills only the headless console host: the supervisor
-      // must notice and stop with a truthful state, not run on unmanaged (verification round 3)
+      // must notice and stop, saying why, not run on unmanaged (verification round 3). Judged by that supervisor's pid and the log:
+      // the watchdog may legitimately start a new one afterwards.
+      const beforeRaw = whois();
       run('powershell', ['-NoProfile', '-Command', "Stop-ScheduledTask -TaskName '" + scratchTask + "'"], ROOT);
       let rawStopped = false;
-      for (let i = 0; i < 20 && !rawStopped; i++) { await sleep(1000); rawStopped = !whois().running; }
-      const stAfterRaw = existsSync(join(cloneA, '.factory', 'node-status.json')) ? readJson(join(cloneA, '.factory', 'node-status.json')) : {};
-      cyc.rawStop = 'supervisor stopped ' + rawStopped + ', recorded state ' + stAfterRaw.state;
+      for (let i = 0; i < 20 && !rawStopped; i++) { await sleep(1000); try { process.kill(beforeRaw.pid, 0); } catch { rawStopped = true; } }
+      const taskLog = (() => { try { return readdirSync(join(work, 'logs-task')).map((f) => readFileSync(join(work, 'logs-task', f), 'utf8')).join('\n'); } catch { return ''; } })();
+      cyc.rawStop = 'supervisor ' + beforeRaw.pid + ' stopped ' + rawStopped + ', said why ' + /the scheduled task was stopped \(its console host \d+ exited\)/.test(taskLog);
+      cyc.stopAfterRaw = psT(['-Stop']);
+      cyc.statusDown = psT(['-Status']);
       // a re-install without -LogDir keeps the task's log dir
       cyc.reinstallKeep = psT(['-Role', 'verifier', '-EnvFile', envFile]);
       cyc.argsAfterKeep = taskArgsOf();
@@ -496,10 +507,11 @@ if (!STATIC_ONLY) {
       const cycleOk = cyc.install.rc === 0 && /started: supervisor pid \d+/.test(cyc.install.out) && /role verifier/.test(cyc.install.out)
         && cyc.verify.rc === 0 && /OK/.test(cyc.verify.out)
         && (Number(String(os.release()).split('.')[2] || 0) < 17763 || /\\conhost\.exe$/i.test(cyc.execute))
-        && cyc.stop.rc === 0 && cyc.verifyStopped.rc === 1 && /not running a supervisor/.test(cyc.verifyStopped.out)
+        && cyc.stop.rc === 0 && cyc.verifyStopped.rc === 1 && /task is disabled/.test(cyc.verifyStopped.out)
         && cyc.start.rc === 0 && /nothing re-installed/.test(cyc.start.out) && /started: supervisor pid \d+/.test(cyc.start.out) && /--role verifier/.test(cyc.argsAfterStart)
         && cyc.startOverHand.rc === 0 && /stopping it so the task's own supervisor takes over/.test(cyc.startOverHand.out) && /started: supervisor pid \d+, worker pid \d+, role verifier/.test(cyc.startOverHand.out) && cyc.handGenericGone
-        && /supervisor stopped true, recorded state stopped/.test(cyc.rawStop)
+        && /revived by pid \d+ role verifier/.test(cyc.watchdog)
+        && /stopped true, said why true/.test(cyc.rawStop) && cyc.stopAfterRaw.rc === 0 && /DOWN here/.test(cyc.statusDown.out)
         && cyc.reinstallKeep.rc === 0 && /--log-dir /.test(cyc.argsAfterKeep) && /--role verifier/.test(cyc.argsAfterKeep)
         && cyc.uninstall1.rc === 0
         && cyc.reinstall.rc === 0 && /started: supervisor pid \d+/.test(cyc.reinstall.out) && (cyc.reinstall.out.match(/started: supervisor pid (\d+)/) || [])[1] !== String(hand.pid) && handGone
@@ -556,6 +568,7 @@ if (!STATIC_ONLY) {
       const badCa = join(work, 'env10', 'bad-ca.crt'); mkdirSync(dirname(badCa), { recursive: true }); writeFileSync(badCa, 'this is not a certificate\n');
       envs['a key=value string'] = [mk('kv', 'FACTORY_RUNNER_PG_URL=host=127.0.0.1 port=' + pg.port + ' user=' + pg.runnerRole + '\n'), /not a URL/];
       envs['the superuser'] = [mk('super', 'FACTORY_RUNNER_PG_URL=' + pg.superUrl + '\n'), /superuser/];
+      envs['the superuser hidden in the query string (?user=postgres)'] = [mk('queryuser', 'FACTORY_RUNNER_PG_URL=' + pg.runnerUrl + '?user=postgres\n'), /\?user=/];
       const pemCa = readFileSync(join(ROOT, 'scripts/factory-runner/runner-env.regression.test.mjs'), 'utf8').match(/'-----BEGIN CERTIFICATE-----',([\s\S]*?)'-----END CERTIFICATE-----'/);
       const derCa = join(work, 'env10', 'der-ca.cer'); writeFileSync(derCa, Buffer.from((pemCa ? pemCa[1] : '').replace(/[',\s]/g, ''), 'base64'));
       envs['a DER CA (the Windows export default; pg reads PEM)'] = [mk('der', 'FACTORY_RUNNER_PG_URL=' + pg.runnerUrl + '?sslmode=verify-full&sslrootcert=' + encodeURIComponent(derCa) + '\n'), /DER, not PEM/];

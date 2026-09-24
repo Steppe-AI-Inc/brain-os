@@ -90,3 +90,19 @@ test('a superuser connection string is refused as not least-privilege', async ()
     await assert.rejects(() => r2('select 1'), (e) => e.name === 'FactoryDbRefusal' && /superuser/.test(e.message));
   } finally { delete process.env.FACTORY_RUNNER_PG_URL; }
 });
+
+test('the query string cannot override who or where: user/host/port/password settings and repeated keys are refused', async () => {
+  const { assessUrl } = await import('./db.mjs');
+  const refused = (u, why) => { const r = assessUrl(u); assert.ok(r, 'should refuse ' + u); assert.match(r, why); };
+  // pg lets these override the URL's own user and host (verification 2026-09-24, round 3)
+  refused('postgresql://factory_runner:pw@127.0.0.1:54329/factory_control_plane?user=postgres', /\?user=/);
+  refused('postgresql://factory_runner:pw@127.0.0.1:54329/factory_control_plane?host=10.255.255.1', /\?host=/);
+  refused('postgresql://factory_runner:pw@db.example.net:5432/cp?sslmode=verify-full&port=6543', /\?port=/);
+  refused('postgresql://factory_runner:pw@db.example.net:5432/cp?sslmode=verify-full&password=other', /\?password=/);
+  refused('postgresql://factory_runner:pw@db.example.net:5432/cp?sslmode=require&ssl=false', /\?ssl=/);
+  // pg takes the LAST of a repeated key; the check would read the first
+  refused('postgresql://factory_runner:pw@db.example.net:5432/cp?sslmode=require&sslmode=disable', /repeats sslmode/);
+  // what the Factory writes still passes
+  assert.equal(assessUrl('postgresql://factory_runner.abc:pw@aws-0-x.pooler.example.com:5432/postgres?sslmode=verify-full&sslrootcert=C%3A%5Cca.crt'), null);
+  assert.equal(assessUrl('postgresql://factory_runner:pw@192.168.1.5:5432/cp?sslmode=verify-ca&sslrootcert=%2Fca.crt&uselibpqcompat=true'), null);
+});

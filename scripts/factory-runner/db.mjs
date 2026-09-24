@@ -80,6 +80,19 @@ export function assessUrl(url) {
   let u;
   try { u = new URL(url); } catch { return 'FACTORY_RUNNER_PG_URL is not a URL'; }
   if (!/^postgres(ql)?:$/.test(u.protocol)) return 'FACTORY_RUNNER_PG_URL is not a postgresql:// URL';
+  // THE QUERY STRING CANNOT OVERRIDE WHO OR WHERE. pg honours ?user=, ?host=, ?port=, ?password= and more OVER the URL's own
+  // parts, and takes the LAST of a repeated key: '?user=postgres' made a least-privilege URL connect as the superuser and
+  // '?sslmode=require&sslmode=disable' connected in the clear, both passing the checks below, which read the URL's own parts
+  // (independent verification 2026-09-24, round 3). Only the TLS and client settings the Factory writes may appear, once each.
+  const ALLOWED_QUERY = ['sslmode', 'sslrootcert', 'sslcert', 'sslkey', 'uselibpqcompat', 'application_name', 'connect_timeout', 'options'];
+  const keys = [...u.searchParams.keys()];
+  const foreign = [...new Set(keys.filter((k) => !ALLOWED_QUERY.includes(k)))];
+  if (foreign.length) {
+    return 'FACTORY_RUNNER_PG_URL carries ' + foreign.map((k) => '?' + k + '=').join(', ') + ' in its query string - pg lets query settings '
+      + 'override the URL itself (the user, the host, TLS). Write the connection in the URL; only ' + ALLOWED_QUERY.join(', ') + ' may be query parameters.';
+  }
+  const repeated = [...new Set(keys.filter((k, i) => keys.indexOf(k) !== i))];
+  if (repeated.length) return 'FACTORY_RUNNER_PG_URL repeats ' + repeated.join(', ') + ' in its query string - pg uses the LAST value, which is not the one checked here.';
   const username = decodeURIComponent(u.username || '');
   // `postgres`, `supabase_admin`, and Supabase's pooler form `postgres.<ref>` are all the superuser.
   if (username === 'postgres' || username === 'supabase_admin' || /^postgres\./.test(username)) {

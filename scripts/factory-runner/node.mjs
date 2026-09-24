@@ -36,6 +36,9 @@ import { fileURLToPath } from 'node:url';
 import * as db from './db.mjs';
 import { registerNode, claimWork, heartbeat, checkpoint, completeRun, DEFAULT_LEASE_SECONDS } from './claim.mjs';
 
+// An error in words: a connection to a host with several addresses fails with an AggregateError whose message is EMPTY -
+// its causes are in .errors ("UNREACHABLE - AggregateError" named nothing; verification 2026-09-24, round 3).
+const errText = (e) => { if (!e) return String(e); if (e.message) return e.message; if (Array.isArray(e.errors) && e.errors.length) return (e.code ? e.code + ': ' : '') + e.errors.map((x) => (x && x.message) || String(x)).join('; '); return String(e); };
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, '..', '..');
 // FACTORY_STATE_DIR lets a second node (a rehearsal, an acceptance) live beside this checkout's real node without sharing
@@ -94,7 +97,7 @@ export async function nodeStatus() {
     try { admission = JSON.parse(readFileSync(join(STATE_DIR, 'node-admission.json'), 'utf8')); } catch { /* never recorded */ }
     return { state: ageMs < NODE_STALE_MS ? 'ALIVE' : 'STALE', ageMs, role: row.security_role, host: String(row.platform || '').split(' ')[1] || null, tls, plane, nodeId: id, lastHeartbeatAt: row.last_heartbeat_at, admission };
   } catch (e) {
-    return { state: 'UNREACHABLE', ageMs: null, role: null, host: null, tls: null, plane, nodeId: id, error: String(e && e.message || e).slice(0, 160) };
+    return { state: 'UNREACHABLE', ageMs: null, role: null, host: null, tls: null, plane, nodeId: id, error: errText(e).slice(0, 160) };
   }
 }
 
@@ -239,7 +242,7 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
     if (!run) {
       if (once) { log('nothing eligible'); break; }
       if (Date.now() - lastBeat >= NODE_BEAT_MS) {
-        try { await nodeBeat(id); lastBeat = Date.now(); } catch (e) { log('node heartbeat failed: ' + String(e && e.message || e).slice(0, 100)); }
+        try { await nodeBeat(id); lastBeat = Date.now(); } catch (e) { log('node heartbeat failed: ' + errText(e).slice(0, 100)); }
       }
       await new Promise((r) => setTimeout(r, idleMs));
       continue;
@@ -287,7 +290,7 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
       // A thrown worker does NOT mark the run failed: it may be a transient provider error, and the lease
       // is the honest arbiter. Leaving it to expire lets any eligible node resume from the last checkpoint,
       // which is the behaviour a crashed process should have.
-      log('run ' + String(run.run_id).slice(0, 8) + ' threw: ' + String(e && e.message || e).slice(0, 120));
+      log('run ' + String(run.run_id).slice(0, 8) + ' threw: ' + errText(e).slice(0, 120));
       log('leaving the lease to expire so the work is recoverable rather than lost');
     } finally {
       stopBeat();
@@ -373,7 +376,7 @@ export async function health() {
     say(true, "connected as " + who.usr + " to " + who.db);
     say(true, String(who.v).split(",")[0]);
   } catch (e) {
-    say(false, "cannot connect", String(e && e.message || e).slice(0, 160));
+    say(false, "cannot connect", errText(e).slice(0, 160));
     console.log(lines.join("\n"));
     return { ok: false, reason: "connect" };
   }
@@ -396,20 +399,20 @@ export async function health() {
     const missing = TABLES.filter((x) => !found.includes(x));
     say(missing.length === 0, "the factory schema is present (" + found.length + " tables)",
       missing.length ? "missing: " + missing.join(", ") + " — apply 001_factory_control_plane.sql" : "");
-  } catch (e) { say(false, "cannot read the factory schema", String(e && e.message || e).slice(0, 120)); }
+  } catch (e) { say(false, "cannot read the factory schema", errText(e).slice(0, 120)); }
 
   // 5. It can actually DO its job: read the queue, and write its own registration.
   try {
     const q = await db.read("select count(*)::int n from factory.work_orders");
     say(true, "can read the queue (" + q.rows[0].n + " work order(s))");
-  } catch (e) { say(false, "cannot read the queue", String(e && e.message || e).slice(0, 120)); }
+  } catch (e) { say(false, "cannot read the queue", errText(e).slice(0, 120)); }
 
   try {
     await registerNode({ nodeId: nodeId(), capabilities: capabilities(), securityRole: nodeRole(),
       platform: process.platform + ' ' + hostname(), agentVersion: process.version });
     const n = await db.read("select count(*)::int n from factory.nodes");
     say(true, "registered itself as " + nodeRole() + " (" + n.rows[0].n + " node(s) known to this control plane)");
-  } catch (e) { say(false, "cannot register", String(e && e.message || e).slice(0, 120)); }
+  } catch (e) { say(false, "cannot register", errText(e).slice(0, 120)); }
 
   // ---- the repository this node would work in -------------------------------------------------------
   try {
@@ -423,7 +426,7 @@ export async function health() {
     if (remote) lines.push("  ok   GitHub recovery is available (remote: " + remote.split("\n")[0] + ")");
     else lines.push("  note no git remote — this node can work, but cannot RECOVER work from GitHub if the"
       + " control plane is lost");
-  } catch (e) { say(false, "cannot read the repository", String(e && e.message || e).slice(0, 120)); }
+  } catch (e) { say(false, "cannot read the repository", errText(e).slice(0, 120)); }
 
   // ---- PostgreSQL version as a CHECKED FLOOR, not a printed string ----------------------------------
   // The schema needs gen_random_uuid(), core since 13. Printing the version tells you nothing unless
@@ -433,7 +436,7 @@ export async function health() {
     const num = v.rows[0].n;
     say(num >= 130000, "PostgreSQL is new enough (" + Math.floor(num / 10000) + ")",
       num < 130000 ? "the schema needs gen_random_uuid(), core since 13" : "");
-  } catch (e) { say(false, "cannot read the server version", String(e && e.message || e).slice(0, 100)); }
+  } catch (e) { say(false, "cannot read the server version", errText(e).slice(0, 100)); }
 
   // ---- THIS MUST NOT BE BRAIN OS --------------------------------------------------------------------
   // The realistic mistake is not a typo. It is pointing a node at the database that is already
@@ -453,7 +456,7 @@ export async function health() {
     const supa = all.rows.map((r) => r.nspname).filter((n) => PLATFORM.includes(n));
     if (supa.length) lines.push("  note platform schemas present (" + supa.join(", ")
       + ") — acceptable only if this is a dedicated non-production project");
-  } catch (e) { say(false, "cannot check for business tables", String(e && e.message || e).slice(0, 100)); }
+  } catch (e) { say(false, "cannot check for business tables", errText(e).slice(0, 100)); }
 
   // ---- no ambient fallback, checked STRUCTURALLY ---------------------------------------------------
   //
@@ -486,7 +489,7 @@ export async function health() {
     if (Number(a.stale) > 0) lines.push("  note " + a.stale + " expired lease(s) awaiting takeover"
       + " — normal briefly; persistent means nothing is claiming");
     else lines.push("  ok   no stale leases");
-  } catch (e) { say(false, "cannot read claims and leases", String(e && e.message || e).slice(0, 100)); }
+  } catch (e) { say(false, "cannot read claims and leases", errText(e).slice(0, 100)); }
   console.log(lines.join("\n"));
   console.log("");
   console.log(ok ? "HEALTHY — this node can claim work." : "NOT HEALTHY — see the failing line above.");
