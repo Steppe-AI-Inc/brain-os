@@ -29,11 +29,16 @@
 //      health check never overwrites the running worker's record
 //   N15 two_machine_real.mjs refuses a node on another or an unrecorded commit, and seeds nothing (a Work PC on an older checkout
 //      passed the two-machine acceptance)
+//   N16 a claim-lock BUSY record left by an earlier worker (a crash, a reboot) is replaced by the next worker's first claim cycle
+//   N19 a running worker whose node record was deleted registers again and reads ALIVE at once (it read STALE for a beat)
+//   N20 the composer's plane rows count only evidence at the commit under acceptance: machines whose node runs it, runs stamped with
+//      it (not '<sha>+dirty'), failover checkpoints at it, verifications whose verifying run completed
+//   N8 also: health does not say "can claim work" while the node's supervisor is in backoff
 //   N12 only a finished, successful run can be verified: a verify of a FAILED run is refused by name and writes nothing (it was
 //      recorded as verified and reported 'completed_with_verdict'); a done run authored elsewhere is still verified
 import { startLocalPg } from './local_pg.mjs';
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -212,6 +217,17 @@ try {
     const free = await waitFor(async () => /claim lock free again - claiming/.test(w1.out), 25000, 300);
     check('N11 a plane-wide claim lock held past the lock timeout is said: the worker logs it, its status says NOT CLAIMING, and it says when the lock is free again',
       !!busy && /NOT CLAIMING: the plane-wide claim lock has been busy since/.test(st) && !!free, st.slice(-600) + '\n' + w1.out.slice(-800));
+  }
+
+  // ---- N16. a stale claim-lock record is replaced ------------------------------------------------------------------------------
+  {
+    const S6 = join(WORK, 'state-stale-busy'); mkdirSync(S6, { recursive: true });
+    writeFileSync(join(S6, 'node-claim-busy.json'), JSON.stringify({ since: '2026-01-01T00:00:00.000Z', at: '2026-01-01T00:00:00.000Z' }));
+    const before = statusOf(S6);
+    const once = spawnSync(process.execPath, [NODE, 'start', '--once'], { cwd: ROOT, encoding: 'utf8', timeout: 60000, env: { ...process.env, FACTORY_RUNNER_PG_URL: pg.runnerUrl, FACTORY_STATE_DIR: S6, FACTORY_NODE_ROLE: 'generic', FACTORY_ADMISSION: 'off' } });
+    const after = statusOf(S6);
+    check('N16 a claim-lock BUSY record left by an earlier worker is replaced by the next worker\'s first claim cycle (status no longer says NOT CLAIMING)',
+      once.status === 0 && /ready: first claim cycle completed/.test(once.stdout) && !/NOT CLAIMING: the plane-wide claim lock/.test(after), 'before: ' + before.slice(-200) + '\nafter: ' + after.slice(-300));
   }
 
   // ---- N4. a failed run fails its work order, atomically ----------------------------------------------------------------------
@@ -405,6 +421,50 @@ try {
       JSON.stringify({ rf, rdn, colsF, colsD }) + '\n' + w1.out.slice(-800));
   }
 
+  // ---- N19. a running worker whose record was deleted is ALIVE again at once ----------------------------------------------------
+  {
+    await admin.query('delete from factory.nodes where node_id = $1', [w1id]);
+    const back = await waitFor(async () => (await admin.query('select 1 from factory.nodes where node_id = $1', [w1id])).rows.length === 1, 20000, 200);
+    await sleep(1500);
+    const st = statusOf(S1);
+    check('N19 a running worker whose node record was deleted registers again and reads ALIVE at once (' + (st.match(/^(ALIVE|STALE)[^\n]*/m) || ['?'])[0].slice(0, 70) + ')',
+      !!back && /"state":"ALIVE"/.test(st) && !/"neverBeaten":true/.test(st) && /registered again as verifier/.test(w1.out), st.slice(-300) + '\n' + w1.out.slice(-400));
+  }
+
+  // ---- N20. the composer's plane rows count only evidence at the commit under acceptance -----------------------------------------
+  {
+    const pg2 = await startLocalPg();
+    const a2 = new pgLib.Client({ connectionString: pg2.superUrl }); await a2.connect();
+    try {
+      for (const f of ['001_factory_control_plane.sql', '002_director_state_machine.sql', '003_resource_governance.sql']) await a2.query(readFileSync(join(ROOT, 'supabase/control-plane', f), 'utf8'));
+      await a2.query('grant usage on schema factory to ' + pg2.runnerRole);
+      await a2.query('grant select, insert, update, delete on all tables in schema factory to ' + pg2.runnerRole);
+      const X = 'a'.repeat(40), Y = 'b'.repeat(40);
+      const node = (id, host, head, dirty) => a2.query("insert into factory.nodes (node_id, capabilities, security_role, platform, agent_version, last_heartbeat_at) values ($1, $2::jsonb, 'generic', $3, 'v', now())", [id, JSON.stringify(['factory_acceptance', 'head:' + head, ...(dirty ? ['dirty'] : [])]), 'win32 ' + host]);
+      await node('nA', 'HOST-A', X); await node('nB', 'HOST-B', X); await node('nC', 'HOST-C', Y); await node('nD', 'HOST-D', X, true);
+      const wo2 = async () => { const id = randomUUID(); await a2.query("insert into factory.work_orders (work_order_id, title, status) values ($1, 'N20', 'done')", [id]); return id; };
+      const runOf = async (nodeId, status, base) => { const w = await wo2(); const r = (await a2.query("insert into factory.agent_runs (work_order_id, node_id, status, termination_reason, authoring_node_id, base_commit, started_at, finished_at) values ($1, $2, $3, case when $3 in ('done','failed') then 'completed' end, $2, $4, now(), case when $3 = 'done' then now() end) returning run_id", [w, nodeId, status, base])).rows[0].run_id; await a2.query('update factory.agent_runs set authoring_run_id = run_id where run_id = $1', [r]); return { r, w }; };
+      // row 3: done runs at X come from HOST-A and HOST-B (below); HOST-C's only done run is another commit, HOST-D's only one is dirty
+      const rA = await runOf('nA', 'done', X); await runOf('nD', 'done', X + '+dirty'); await runOf('nC', 'done', Y);
+      // row 4: one verification counts (verifying run done, both at X); one whose verifying run is still in progress does not
+      const vDone = await runOf('nB', 'in_progress', X); await a2.query("update factory.agent_runs set status = 'done', termination_reason = 'completed_with_verdict', finished_at = now() where run_id = $1", [vDone.r]);
+      await a2.query('update factory.agent_runs set verification_run_id = $2, verification_node_id = $3 where run_id = $1', [rA.r, vDone.r, 'nB']);
+      const rA2 = await runOf('nA', 'done', X); const vLive = await runOf('nB', 'in_progress', X);
+      await a2.query('update factory.agent_runs set verification_run_id = $2, verification_node_id = $3 where run_id = $1', [rA2.r, vLive.r, 'nB']);
+      // row 2: one failover pair at X (A>B); one whose takeover ran dirty (B>A) does not count
+      const cp = async (w, r, scenario, host, head) => a2.query("insert into factory.checkpoints (run_id, work_order_id, location, scenario, payload) values ($1, $2, 'x', $3, $4::jsonb)", [r, w, scenario, JSON.stringify({ hostname: host, head })]);
+      const f1 = await runOf('nA', 'done', X); await cp(f1.w, f1.r, 'phase-1-hold', 'HOST-A', X); await cp(f1.w, f1.r, 'phase-2-takeover', 'HOST-B', X);
+      const f2 = await runOf('nB', 'done', X); await cp(f2.w, f2.r, 'phase-1-hold', 'HOST-B', X); await cp(f2.w, f2.r, 'phase-2-takeover', 'HOST-A', X + '+dirty');
+      const comp = spawnSync(process.execPath, [join(ROOT, 'qa/factory/factory_v1_acceptance.mjs'), '--plane-only', '--sha', X], { cwd: ROOT, encoding: 'utf8', timeout: 120000, env: { ...process.env, FACTORY_RUNNER_PG_URL: pg2.runnerUrl } });
+      const out = comp.stdout || '';
+      const r1 = /\[1\] machines registered on the shared plane in 7 days running a{12}: (.*)/.exec(out), r2 = /\[2\] real two-machine failover recorded on the plane by nodes running a{12}: (.*)/.exec(out);
+      const r3 = /\[3\] completed runs at a{12} from (\d+) distinct machine/.exec(out), r4 = /\[4\] verifications of done runs .* running a{12}: (\d+)/.exec(out);
+      check('N20 the composer counts only evidence at the commit under acceptance: machines ' + (r1 ? r1[1].trim() : '?') + ', failovers ' + (r2 ? r2[1].trim() || 'none' : '?') + ', done runs from ' + (r3 ? r3[1] : '?') + ' machine(s), ' + (r4 ? r4[1] : '?') + ' completed verification(s)',
+        !!r1 && r1[1].trim().split(/,\s*/).sort().join(',') === 'HOST-A,HOST-B' && !!r2 && r2[1].trim() === 'HOST-A>HOST-B' && !!r3 && r3[1] === '2' && !!r4 && r4[1] === '1',
+        out.split('\n').filter((l) => /\[[1-4]\]/.test(l)).join('\n'));
+    } finally { try { await a2.end(); } catch { /* ignore */ } await pg2.stop(); }
+  }
+
   // ---- N8. a worker that reaches the plane but fails every claim backs off and never reads ALIVE (last: it revokes a grant) ------
   {
     try { w1.kill(); } catch { /* gone */ }
@@ -416,13 +476,18 @@ try {
     await waitFor(async () => /restart 2 in \d+ s/.test(sup.out), 60000);
     const backoffs = [...sup.out.matchAll(/restart (\d+) in (\d+) s/g)].map((m) => m[1] + ':' + m[2] + 's');
     const st = statusOf(S4);
+    // ...and health does not say "can claim work" for it (it did, while the supervisor sat in backoff)
+    await waitFor(async () => { try { return JSON.parse(readFileSync(join(S4, 'node-status.json'), 'utf8')).state === 'backoff'; } catch { return false; } }, 30000, 300);
+    const h8 = spawnSync(process.execPath, [NODE, 'health'], { cwd: ROOT, encoding: 'utf8', timeout: 90000, env: { ...process.env, FACTORY_RUNNER_PG_URL: pg.runnerUrl, FACTORY_STATE_DIR: S4, FACTORY_NODE_ROLE: '' } });
+    const h8out = String(h8.stdout || '');
     spawn(process.execPath, [SUP, '--stop'], { cwd: ROOT, env: env4, stdio: 'ignore', windowsHide: true });
     const exit = await new Promise((r) => { if (sup.exitCode !== null) return r(sup.exitCode); const t = setTimeout(() => r('timeout'), 25000); sup.on('exit', (c) => { clearTimeout(t); r(c); }); });
     await admin.query('grant select on factory.work_order_dependencies to ' + pg.runnerRole);
     // the worker's own words are in the supervisor's log file (its stdout carries only the supervisor's lines)
     const logs4 = (() => { try { return readdirSync(L4).map((f) => readFileSync(join(L4, f), 'utf8')).join('\n'); } catch { return ''; } })();
     check('N8 a worker that reaches the plane but fails every claim is backed off with growing delays (' + backoffs.join(', ') + ') and never reads ALIVE (' + (st.match(/^(ALIVE|STALE)[^\n]*/m) || ['?'])[0].slice(0, 90) + ')',
-      backoffs[0] === '1:5s' && backoffs[1] === '2:10s' && /"neverBeaten":true/.test(st) && !/"state":"ALIVE"/.test(st) && /permission denied/.test(logs4) && exit === 0,
+      backoffs[0] === '1:5s' && backoffs[1] === '2:10s' && /"neverBeaten":true/.test(st) && !/"state":"ALIVE"/.test(st) && /permission denied/.test(logs4) && exit === 0
+        && /NO WORKER CLAIMS: it is backoff/.test(h8out) && !/this node can claim work/.test(h8out),
       JSON.stringify({ backoffs, exit }) + '\n' + st.slice(-400) + '\n' + sup.out.slice(-800));
   }
 } finally {

@@ -741,6 +741,18 @@ try {
     let nulErr = '';
     let second = null; try { second = await claim.claimWork({ nodeId: 'node-alpha', leaseSeconds: 60 }); } catch (e) { nulErr = String(e && e.message || e); }
     const nulStatus = (await admin.query('select status from factory.work_orders where work_order_id = $1', [nul])).rows[0].status;
+    // ...however many there are: nine at the head of the queue (NULL, empty, oversized) used up the claim's eight attempts - nothing behind
+    // them was claimed, on any node, and an oversized one ended the worker (final verification 2, 2026-09-25)
+    await reset();
+    for (let i = 0; i < 9; i++) {
+      const surf = i % 3 === 0 ? 'ARRAY[NULL]::text[]' : i % 3 === 1 ? "ARRAY['']::text[]" : "ARRAY[repeat('x', 5000)]::text[]";
+      await admin.query("insert into factory.work_orders (work_order_id, title, owned_surface, priority, status) values ($1, 'S2: malformed " + i + "', " + surf + ", 'high', 'queued')", [randomUUID()]);
+    }
+    const behind3 = await wo('S2: behind nine malformed', { surface: ['qa/s-behind3.txt'], priority: 'low' });
+    let s2Err = '', third = null;
+    try { third = await claim.claimWork({ nodeId: 'node-alpha', leaseSeconds: 60 }); } catch (e) { s2Err = String(e && e.message || e); }
+    check('S2 nine malformed work orders at the head of the queue (NULL, empty, oversized surfaces) do not starve it: the work order behind them is claimed',
+      !s2Err && third && third.work_order_id === behind3, JSON.stringify({ s2Err: s2Err.slice(0, 120), third: third && third.work_order_id, behind3 }));
     check('S  a malformed work order cannot starve the plane: a repeated surface is claimed with one lock (' + dupLocks + '), a NULL surface is declined (still ' + nulStatus + ') and the work order behind it is claimed',
       !dupErr && first && first.work_order_id === dup && dupLocks === 1 && !nulErr && second && second.work_order_id === behind2 && nulStatus === 'queued',
       JSON.stringify({ dupErr: dupErr.slice(0, 80), first: first && first.work_order_id, dup, dupLocks, nulErr: nulErr.slice(0, 80), second: second && second.work_order_id, behind2, nulStatus, behind1 }));

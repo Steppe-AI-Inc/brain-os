@@ -39,6 +39,14 @@
   owner's code, the provisioner's port). All fixed with rows and mutants (acceptance R, S, G3; node_truth N8-N15, N9b). Registered,
   bounded: a node refusing admission reads ALIVE to the Home PC; no attempt ceiling for runs that keep throwing; RS-C* read other
   worktrees. The protocol then runs again from step 2 on the new HEAD.
+- **The final verification of `6b2d323c`** (wf_d0a23f04-8f3; every agent inspected exactly `6b2d323c`) confirmed every earlier fix
+  under stronger reproductions and found, reproduced by refuters, no high defect but: [medium] -Start did not restart a healthy node on
+  an older commit than its checkout and -Verify did not notice (so the fix two_machine_real prints was a no-op); [medium] a stale
+  claim-lock BUSY record survived a worker restart; [medium] eight or more malformed work orders still starved the queue (an oversized
+  surface crash-looped it); [medium] health said "can claim work" during a supervisor backoff; [medium] S3 and composer row 3 counted
+  runs by another node or commit; and lows (dirty evidence counted, row 4 counted an unfinished verifying run, a re-registered node read
+  STALE for a beat). All fixed with rows and mutants (acceptance S2; node_truth N16, N19, N20, N8 health; regression F6 commit check).
+  Registered, bounded: more than eight assurance-declined work orders starve a node that requests a model (none does today).
 - **Live state**: plane `npvhuoozkbexddnvkqsj` healthy; Home node `node-4d4a74dd` generic under the task (conhost --headless,
   control pipe, watchdog), to be restarted on the frozen SHA (APPLIED). Local plane on 54329. Backups:
   `C:\Users\Dell\dev\backups\factory-cp-2026-09-24-*.bundle`.

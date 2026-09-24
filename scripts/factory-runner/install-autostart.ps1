@@ -68,6 +68,11 @@ $Root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
 $Supervisor = Join-Path $Root 'scripts\factory-runner\node-supervisor.mjs'
 $DepsCheck = Join-Path $Root 'scripts\factory-runner\deps.mjs'
 $NodeExe = (Get-Command node -ErrorAction Stop).Source
+# THE COMMIT THIS CHECKOUT IS AT. A worker keeps running the commit it started on after the checkout moves: -Verify and -Start compare
+# the commit the node recorded (head:<sha>) with this, so "put that PC on the commit and restart its node" does what it says (final
+# verification 2, 2026-09-25: -Start said "already running" and the node stayed on the old commit).
+$CheckoutHead = $null; try { $CheckoutHead = ((& git -C $Root rev-parse HEAD 2>$null) | Select-Object -First 1) } catch { }
+function Test-SameCommit($plane) { if (-not $plane -or -not $plane.head -or -not $CheckoutHead) { return $true }; return ($plane.head -eq $CheckoutHead) }
 $taskHint = if ($TaskName -ne 'BrainOS Factory Node') { " -TaskName '$TaskName'" } else { '' }
 
 # ---- the task and its owner ------------------------------------------------------------------------------------------------
@@ -354,6 +359,7 @@ if ($Verify) {
     # THE ROLE THAT DECIDES WHAT THE NODE CLAIMS IS THE PLANE'S: a verifier the plane held as generic claimed no verifier work while
     # this said OK (a health check from a plain shell had re-registered it; verification round 4). The worker re-asserts its role
     # on every beat, so a mismatch that lasts is a fault.
+    elseif (-not (Test-SameCommit $plane)) { 'the node runs commit ' + $plane.head + ' but this checkout is at ' + $CheckoutHead + ' - install-autostart.ps1 -Start' + $taskHint + ' restarts it on the checkout''s commit' }
     elseif ($plane.role -ne (Get-TaskArg $task 'role')) { 'the plane holds role ' + $plane.role + ' for this node, the task says ' + (Get-TaskArg $task 'role') + ' - the worker re-asserts its role within a minute; if this stays, install-autostart.ps1 -Start' + $taskHint }
     else { $null }
   if (-not $problem) { "OK   the task is enabled, watched, and running this checkout's supervisor (pid $supPid) whose worker the plane sees ALIVE; its env file, CA and dependencies pass the preflight"; exit 0 }
@@ -388,8 +394,8 @@ if ($Start -and -not $RoleGiven -and -not $EnvGiven -and -not $ChangeGiven -and 
     # one sample of 'running' is not a working node: a worker hanging on its connect reads 'running' for its whole timeout
     # (verification round 4). The plane must see the node ALIVE; otherwise it is restarted and the start confirmed.
     $plane = Get-NodeOnPlane $Root
-    if ($plane -and $plane.state -eq 'ALIVE' -and $plane.role -eq $want -and ((Test-HeardSinceStart $sv $plane) -ne $false)) { "already running: supervisor pid $($sv.pid) (task '$TaskName', role $($sv.role), state $($sv.state); the plane sees the node ALIVE as $($plane.role); nothing re-installed)"; exit 0 }
-    "the supervisor (pid $($sv.pid)) runs, but the plane does not see its current worker ALIVE as $want ($(if ($plane) { $plane.state + ', role ' + $plane.role + $(if ((Test-HeardSinceStart $sv $plane) -eq $false) { ', not heard from the worker now running' } else { '' }) + $(if ($plane.error) { ' - ' + $plane.error } else { '' }) } else { 'no answer' })) - restarting it"
+    if ($plane -and $plane.state -eq 'ALIVE' -and $plane.role -eq $want -and ((Test-HeardSinceStart $sv $plane) -ne $false) -and (Test-SameCommit $plane)) { "already running: supervisor pid $($sv.pid) (task '$TaskName', role $($sv.role), state $($sv.state); the plane sees the node ALIVE as $($plane.role); nothing re-installed)"; exit 0 }
+    "the supervisor (pid $($sv.pid)) runs, but the plane does not see its current worker ALIVE as $want ($(if ($plane) { $plane.state + ', role ' + $plane.role + $(if ((Test-HeardSinceStart $sv $plane) -eq $false) { ', not heard from the worker now running' } else { '' }) + $(if (-not (Test-SameCommit $plane)) { ', running commit ' + $plane.head + ' while this checkout is at ' + $CheckoutHead } else { '' }) + $(if ($plane.error) { ' - ' + $plane.error } else { '' }) } else { 'no answer' })) - restarting it"
     $s4 = Stop-CheckoutSupervisor $Root; $s4 | Where-Object { $_ -is [string] }
     if ($s4[-1] -ne $true) { "REFUSED - that supervisor is still running 20 s after the stop request"; exit 4 }
     if ((Get-FactoryTask).State -eq 'Running') { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue }

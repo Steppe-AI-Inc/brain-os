@@ -129,7 +129,7 @@ export async function nodeStatus() {
   if (!id) return { state: 'NOT REGISTERED', ageMs: null, role: null, host: null, tls: null, plane, nodeId: null, error: 'this checkout has no node identity yet (' + NODE_ID_FILE + ')' };
   try {
     const r = await db.read(
-      "select security_role, platform, last_heartbeat_at, extract(epoch from (now() - last_heartbeat_at)) * 1000 as age_ms from factory.nodes where node_id = $1", [id]);
+      "select security_role, platform, capabilities, last_heartbeat_at, extract(epoch from (now() - last_heartbeat_at)) * 1000 as age_ms from factory.nodes where node_id = $1", [id]);
     let tls = null;
     try { tls = (await db.withClient((c) => c.query('select ssl from pg_stat_ssl where pid = pg_backend_pid()'))).rows[0].ssl === true; } catch { tls = null; }
     if (!r.rows.length) return { state: 'NOT REGISTERED', ageMs: null, role: null, host: null, tls, plane, nodeId: id };
@@ -140,7 +140,10 @@ export async function nodeStatus() {
     try { claimBusy = JSON.parse(readFileSync(join(STATE_DIR, 'node-claim-busy.json'), 'utf8')); } catch { /* never recorded */ }
     // registered without liveness (a check, or a worker that never completed a claim cycle) starts at the epoch
     const neverBeaten = new Date(row.last_heartbeat_at).getTime() <= 0;
-    return { state: !neverBeaten && ageMs < NODE_STALE_MS ? 'ALIVE' : 'STALE', ageMs: neverBeaten ? null : ageMs, neverBeaten, role: row.security_role, host: String(row.platform || '').split(' ')[1] || null, tls, plane, nodeId: id, lastHeartbeatAt: neverBeaten ? null : row.last_heartbeat_at, admission, claimBusySince: claimBusy && claimBusy.since ? claimBusy.since : null };
+    // the commit the running worker recorded (head:<sha>, and dirty) - -Verify compares it with the checkout
+    const caps = Array.isArray(row.capabilities) ? row.capabilities : [];
+    const headCap = caps.find((c) => String(c).startsWith('head:'));
+    return { state: !neverBeaten && ageMs < NODE_STALE_MS ? 'ALIVE' : 'STALE', ageMs: neverBeaten ? null : ageMs, neverBeaten, head: headCap ? String(headCap).slice(5) : null, dirty: caps.includes('dirty'), role: row.security_role, host: String(row.platform || '').split(' ')[1] || null, tls, plane, nodeId: id, lastHeartbeatAt: neverBeaten ? null : row.last_heartbeat_at, admission, claimBusySince: claimBusy && claimBusy.since ? claimBusy.since : null };
   } catch (e) {
     return { state: 'UNREACHABLE', ageMs: null, role: null, host: null, tls: null, plane, nodeId: id, error: errText(e).slice(0, 160) };
   }
@@ -276,6 +279,9 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
   // registered WITHOUT liveness: the node reads ALIVE only once it has completed a claim cycle (below). A worker that registered
   // and then failed every claim read ALIVE while it crash-looped (final verification 2026-09-24).
   const register = () => registerNode({ nodeId: id, capabilities: caps, securityRole: nodeRole(), platform: process.platform + ' ' + hostname(), agentVersion: process.version + ' ' + String(repo.head).slice(0, 12) + (caps.includes('dirty') ? '+dirty' : ''), stamp: false });
+  // THE COMMIT ON EVERY RUN AND CHECKPOINT CARRIES ITS DIRTINESS: a tree with uncommitted changes recorded plain <sha>, and its
+  // evidence counted as the commit's (final verification 2, 2026-09-25). '<sha>+dirty' matches no commit under acceptance.
+  const commit = String(repo.head) + (caps.includes('dirty') ? '+dirty' : '');
   await retryTransient(register, 'registration', log);
   log('security role ' + nodeRole() + ' (FACTORY_NODE_ROLE); host ' + hostname());
   log('registered; capabilities ' + JSON.stringify(caps) + '; head ' + String(repo.head).slice(0, 8));
@@ -309,7 +315,9 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
   // A CLAIM LOCK THAT STAYS BUSY IS SAID, like a refused admission: a claim that cannot take the plane-wide claim lock returns
   // "nothing claimed", and a node behind a claimer holding it read ALIVE and idle while nothing was claimed (final verification
   // 2026-09-24). Changes are logged; the state is written to <state dir>/node-claim-busy.json, which status prints.
-  let busySeen = null;
+  // undefined, not null: the first cycle always writes the record, so one left by an earlier worker (a crash, a reboot) is replaced
+  // (it said NOT CLAIMING forever on a node that claimed - final verification 2, 2026-09-25)
+  let busySeen;
   const noteBusy = () => {
     const since = claimWork.lastBusy || null;
     if (since === busySeen) return;
@@ -319,7 +327,7 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
   };
   let ready = false;
   for (let i = 0; i < maxIterations; i++) {
-    const run = await retryTransient(() => claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel, workTypes, baseCommit: repo.head }), 'claim', log);
+    const run = await retryTransient(() => claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel, workTypes, baseCommit: commit }), 'claim', log);
     noteAdmission();
     noteBusy();
     // READY = ONE COMPLETED CLAIM CYCLE. Only now is liveness stamped, and the line below is what the supervisor resets its
@@ -334,7 +342,8 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
         try {
           const b = await nodeBeat(id);
           // a record removed from the plane is written again; a role changed by anything but this worker is re-asserted, and said
-          if (!b.found) { await register(); log('the plane had no record of this node - registered again as ' + nodeRole()); }
+          // (stamped at once: this worker has completed claim cycles, it is not "never beaten" - it read STALE for a whole beat)
+          if (!b.found) { await register(); await nodeBeat(id); log('the plane had no record of this node - registered again as ' + nodeRole()); }
           else if (b.was !== nodeRole()) log('the plane held role ' + b.was + ' for this node - re-asserted ' + nodeRole());
           lastBeat = Date.now();
         } catch (e) { log('node heartbeat failed: ' + errText(e).slice(0, 100)); }
@@ -360,7 +369,7 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
           [run.run_id, wt.path, wt.branch, repo.head]);
       }
 
-      const result = await runWork({ run, workOrder: woRow, worktree: wt, nodeId: id, log, head: repo.head, signal: hb.signal,
+      const result = await runWork({ run, workOrder: woRow, worktree: wt, nodeId: id, log, head: commit, signal: hb.signal,
         checkpoint: (location, scenario, payload) =>
           checkpoint({ runId: run.run_id, workOrderId: run.work_order_id, location, scenario, payload, nodeId: id }) });
       // an aborted run (its lease could not be kept) is not reported, whatever its worker returned
@@ -628,6 +637,10 @@ export async function health() {
     if (cnt.stranded) lines.push("  note " + cnt.stranded + " work order(s) 'claimed' with NO run in progress - nothing will move them and their dependents wait: "
       + stranded.rows.map((x) => String(x.work_order_id).slice(0, 8) + " " + JSON.stringify(String(x.title).slice(0, 40))).join("; "));
     if (cnt.failed) lines.push("  note " + cnt.failed + " work order(s) FAILED - their dependents wait; each run's termination_reason says why");
+    // queued work no node will ever pick (a NULL, empty or oversized surface - the claim excludes it), by id
+    const bad = (await db.read("select wo.work_order_id, wo.title from factory.work_orders wo where wo.status = 'queued' and exists (select 1 from unnest(wo.owned_surface) s where s is null or btrim(s) = '' or length(s) > 1000) order by wo.created_at limit 5")).rows;
+    if (bad.length) lines.push("  note queued work order(s) with a NULL, empty or oversized surface - no node will claim them, fix or remove them: "
+      + bad.map((x) => String(x.work_order_id).slice(0, 8) + " " + JSON.stringify(String(x.title).slice(0, 40))).join("; "));
   } catch (e) { say(false, "cannot read claims and leases", errText(e).slice(0, 100)); }
   console.log(lines.join("\n"));
   console.log("");
@@ -635,10 +648,14 @@ export async function health() {
   // dead (final verification 2026-09-24): the supervisor of this node is asked, and its absence said.
   let sup = null;
   try { const { askSupervisor } = await import("./proc.mjs"); sup = await askSupervisor(STATE_DIR, "whois", 1500); } catch { sup = null; }
-  console.log(sup ? "  ok   a supervisor runs this node here (pid " + sup.pid + ", role " + sup.role + ", " + sup.state + ")"
+  // ...and a supervisor is not a working node: "can claim work" was also printed while it sat in backoff with no worker (final
+  // verification 2, 2026-09-25). Only a running worker that has completed a claim cycle claims.
+  const working = !!(sup && sup.state === 'running' && sup.childPid && sup.readyAt);
+  console.log(working ? "  ok   a supervisor runs this node here (pid " + sup.pid + ", role " + sup.role + "; worker " + sup.childPid + " claiming since " + sup.readyAt + ")"
+    : sup ? "  note a supervisor runs this node here (pid " + sup.pid + ", role " + sup.role + ") but NO WORKER CLAIMS: it is " + sup.state + (sup.nextStartAt ? " until " + sup.nextStartAt : "") + (sup.state === 'running' ? ", its worker has not completed a claim cycle" : "") + " - install-autostart.ps1 -Status names why"
     : "  note no supervisor runs this node here - nothing on this machine claims its work (install-autostart.ps1 -Start)");
   console.log("");
-  console.log(ok ? (sup ? "HEALTHY — this node can claim work." : "HEALTHY — the plane is reachable and usable; start the node to claim work.") : "NOT HEALTHY — see the failing line above.");
+  console.log(ok ? (working ? "HEALTHY — this node can claim work." : sup ? "HEALTHY — the plane is reachable and usable; this node's worker is not claiming (see the note above)." : "HEALTHY — the plane is reachable and usable; start the node to claim work.") : "NOT HEALTHY — see the failing line above.");
   return { ok, host, database };
 }
 if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {

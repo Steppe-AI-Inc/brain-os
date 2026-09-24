@@ -38,11 +38,11 @@ const MUTANTS = [
   { id: 'N5', suite: NT, what: 'a busy node stamps nothing on its node record', edits: [
     [CLAIM, "       where run_id in (select run_id from run)),\n    stamped as (\n      update factory.nodes set last_heartbeat_at = now()\n       where node_id = $2 and exists (select 1 from run))", "       where run_id in (select run_id from run))"],
     [NODE, '    nodeBeat(id).then((b) =>', '    Promise.resolve({ found: false }).then((b) =>']] },
-  { id: 'N6', suite: NT, what: 'one transient plane error ends the worker', edits: [[NODE, "    const run = await retryTransient(() => claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel, workTypes, baseCommit: repo.head }), 'claim', log);", '    const run = await claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel, workTypes, baseCommit: repo.head });']] },
+  { id: 'N6', suite: NT, what: 'one transient plane error ends the worker', edits: [[NODE, "    const run = await retryTransient(() => claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel, workTypes, baseCommit: commit }), 'claim', log);", '    const run = await claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel, workTypes, baseCommit: commit });']] },
   { id: 'N7', suite: NT, what: 'the backoff resets only after ten minutes of uptime', edits: [['scripts/factory-runner/node-supervisor.mjs', 'status.readyAt = new Date().toISOString(); status.consecutiveFailures = 0; writeStatus(status);', 'status.readyAt = new Date().toISOString(); writeStatus(status);']] },
   { id: 'N8', suite: NT, what: 'the backoff resets on registration, and registration stamps liveness (a claim-failing worker crash-loops ALIVE)', edits: [
     ['scripts/factory-runner/node-supervisor.mjs', '/\\] ready: first claim cycle completed/.test(tail)', '/\\] registered; capabilities /.test(tail)'],
-    [NODE, "(caps.includes('dirty') ? '+dirty' : ''), stamp: false });\n  await retryTransient(register, 'registration', log);", "(caps.includes('dirty') ? '+dirty' : '') });\n  await retryTransient(register, 'registration', log);"]] },
+    [NODE, "(caps.includes('dirty') ? '+dirty' : ''), stamp: false });\n  // THE COMMIT ON EVERY RUN", "(caps.includes('dirty') ? '+dirty' : '') });\n  // THE COMMIT ON EVERY RUN"]] },
   { id: 'N9', suite: NT, what: 'a second worker runs under the same node identity', edits: [[NODE, '      if (!wl.held) {', '      if (false) {']] },
   { id: 'N9b', suite: NT, what: 'a bare worker runs beside the supervisor of the same node', edits: [[NODE, '      if (sup && sup.instance !== mine) {', '      if (false) {']] },
   { id: 'N10', suite: NT, what: 'the handler acts on malformed arguments', edits: [['scripts/factory-runner/handlers/factory-acceptance.mjs', '  if (bad) return {', '  if (false) return {']] },
@@ -50,9 +50,15 @@ const MUTANTS = [
   { id: 'N11', suite: NT, what: 'a busy claim lock is silent', edits: [[NODE, '    noteBusy();\n', '']] },
   { id: 'N12', suite: NT, what: 'a failed run can be recorded as verified', edits: [[CLAIM, "        where run_id = $1 and (status = 'done' or run_id = $2 or authoring_node_id = $3)\n        returning run_id, authoring_node_id, verification_node_id", "        where run_id = $1\n        returning run_id, authoring_node_id, verification_node_id"]] },
   { id: 'R', suite: ACC, what: 'a close that is never answered hangs the worker', edits: [[DB, 'export async function write(sql, params = []) {\n  assertAllowed(sql);\n  const client = await connect();\n  try { return await client.query(sql, params); } finally { await close(client); }', 'export async function write(sql, params = []) {\n  assertAllowed(sql);\n  const client = await connect();\n  try { return await client.query(sql, params); } finally { await client.end(); }']] },
-  { id: 'S', suite: ACC, what: 'a repeated or NULL surface starves the plane', edits: [
-    [CLAIM, "      if ((wo.owned_surface || []).some((s) => typeof s !== 'string' || !s.trim())) {", '      if (false) {'],
+  { id: 'S', suite: ACC, what: 'a repeated, NULL, empty or oversized surface starves the plane', edits: [
+    [CLAIM, "            and not exists (select 1 from unnest(wo.owned_surface) s where s is null or btrim(s) = '' or length(s) > 1000)\n", ''],
     [CLAIM, '      wo.owned_surface = [...new Set(wo.owned_surface || [])];\n', '']] },
+  { id: 'N16', suite: NT, what: 'a claim-lock record left by an earlier worker is never replaced', edits: [[NODE, '  let busySeen;', '  let busySeen = null;']] },
+  { id: 'N19', suite: NT, what: 'a worker whose record was deleted re-registers as never beaten', edits: [[NODE, 'if (!b.found) { await register(); await nodeBeat(id); log(', 'if (!b.found) { await register(); log(']] },
+  { id: 'N8', suite: NT, what: 'health says "can claim work" while the supervisor is in backoff', label: 'N8H', edits: [[NODE, "  const working = !!(sup && sup.state === 'running' && sup.childPid && sup.readyAt);", '  const working = !!sup;']] },
+  { id: 'N20', suite: NT, what: 'composer row 3 counts done runs at any commit', label: 'N20a', edits: [['qa/factory/factory_v1_acceptance.mjs', "where r.status = 'done' and r.base_commit = $1 and r.finished_at", "where r.status = 'done' and r.finished_at"]] },
+  { id: 'N20', suite: NT, what: 'composer row 4 counts a verification whose verifying run never completed', label: 'N20b', edits: [['qa/factory/factory_v1_acceptance.mjs', "where a.status = 'done' and v.status = 'done' and a.base_commit", "where a.status = 'done' and a.base_commit"]] },
+  { id: 'N20', suite: NT, what: 'composer row 1 counts a machine whose node runs the commit with uncommitted changes', label: 'N20c', edits: [['qa/factory/factory_v1_acceptance.mjs', " and not capabilities ? 'dirty'", '']] },
 ];
 const git = (args, cwd) => spawnSync('git', args, { cwd, encoding: 'utf8' });
 const head = git(['rev-parse', 'HEAD'], ROOT).stdout.trim();

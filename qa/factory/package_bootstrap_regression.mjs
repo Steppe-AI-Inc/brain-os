@@ -465,6 +465,12 @@ if (!STATIC_ONLY) {
       cyc.planeHealthPlain = run(process.execPath, [join(cloneA, 'scripts/factory-runner/plane-health.mjs')], cloneA, { ...cleanEnv, FACTORY_RUNNER_PG_URL: pg.runnerUrl }, 60000);
       cyc.roleAfterHealth = run(process.execPath, [join(cloneA, 'scripts/factory-runner/node.mjs'), 'status', '--json', '--runner-env', envFile], cloneA, cleanEnv, 60000).out.trim().split(/\r?\n/).filter((l) => l.startsWith('{')).map((l) => { try { return JSON.parse(l).role; } catch { return '?'; } }).pop() || 'none';
       cyc.verifyAfterHealth = psT(['-Verify']);
+      // A NODE ON ANOTHER COMMIT THAN ITS CHECKOUT: -Verify fails naming both, and -Start alone restarts it on the checkout's commit (it
+      // said "already running" and the node stayed on the old commit - final verification 2, 2026-09-25). The clone moves one commit.
+      run('git', ['-c', 'user.name=qa', '-c', 'user.email=qa@example.invalid', 'commit', '--allow-empty', '--quiet', '-m', 'qa: the checkout moves'], cloneA);
+      cyc.verifyMoved = psT(['-Verify']);
+      cyc.startMoved = psT(['-Start']);
+      cyc.verifyAfterMove = psT(['-Verify']);
       cyc.execute = run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName '" + scratchTask + "' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).Execute}else{'NONE'}"], ROOT).out.trim();
       cyc.stop = psT(['-Stop']);
       cyc.verifyStopped = psT(['-Verify']);
@@ -555,6 +561,9 @@ if (!STATIC_ONLY) {
         && cyc.verify.rc === 0 && /OK/.test(cyc.verify.out)
         && cyc.healthPlain.rc === 0 && /role verifier kept as the plane holds it/.test(cyc.healthPlain.out) && /registered on the plane as verifier/.test(cyc.planeHealthPlain.out)
         && cyc.roleAfterHealth === 'verifier' && cyc.verifyAfterHealth.rc === 0 && /plane\s+ALIVE .*role verifier/.test(cyc.verifyAfterHealth.out)
+        && cyc.verifyMoved.rc === 1 && /the node runs commit [0-9a-f]{40} but this checkout is at [0-9a-f]{40}/.test(cyc.verifyMoved.out)
+        && cyc.startMoved.rc === 0 && /running commit [0-9a-f]{40} while this checkout is at [0-9a-f]{40}\) - restarting it/.test(cyc.startMoved.out) && /started: supervisor pid \d+/.test(cyc.startMoved.out)
+        && cyc.verifyAfterMove.rc === 0
         && (Number(String(os.release()).split('.')[2] || 0) < 17763 || /\\conhost\.exe$/i.test(cyc.execute))
         && cyc.stop.rc === 0 && cyc.verifyStopped.rc === 1 && /task is disabled/.test(cyc.verifyStopped.out)
         && cyc.start.rc === 0 && /nothing re-installed/.test(cyc.start.out) && /started: supervisor pid \d+/.test(cyc.start.out) && /--role verifier/.test(cyc.argsAfterStart)

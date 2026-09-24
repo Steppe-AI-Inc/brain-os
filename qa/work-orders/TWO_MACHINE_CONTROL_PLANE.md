@@ -184,8 +184,13 @@ orders (`scripts/factory-runner/handlers/factory-acceptance.mjs`: hold, die-and-
 uncommitted changes to tracked files) and its acceptance handler (`handler:factory-acceptance/2`) as capabilities, and stamps the
 commit on every run it claims (`base_commit`) and in every acceptance checkpoint. `two_machine_real.mjs run [--sha <commit>]` (default:
 this checkout's HEAD) REFUSES, seeding nothing, unless both nodes run exactly that commit, clean, with that handler - a Work PC on
-an older checkout passed it before (final verification 2026-09-24) - and seeds work only that handler can claim. The composer's
-milestone rows 2 and 4 count only evidence recorded at that commit.
+an older checkout passed it before (final verification 2026-09-24) - and seeds work only a node at that commit, with that handler,
+can claim; every scenario checks its runs came from the home or work node at exactly that commit (a third node's runs passed S3).
+A run from a tree with uncommitted changes is stamped `<sha>+dirty`, which is no commit. The composer's rows 1-4 count only evidence at
+the commit: machines whose node runs it cleanly, runs and checkpoints stamped with it, verifications whose verifying run completed.
+A node keeps running the commit it started on when its checkout moves: `-Verify` fails naming both commits, and `-Start` alone
+restarts it on the checkout's commit - so "put that PC on the commit and restart its node" is `git checkout <sha>; npm ci;
+install-autostart.ps1 -Start`.
 
 A worker completes only an instruction it carried out: an action its checkout does not know (a newer seeder, a typo, a wrong
 case) or a handoff that is not a JSON object FAILS the run and its work order by name (`factory_acceptance_unknown_action`,
@@ -267,12 +272,16 @@ order): all or nothing.
   execution, abandoned ones included.
 - *Nothing waits forever on the plane.* A connection close is bounded too (5 s, then the socket is destroyed): a close the other side
   never answered left a worker hung after a successful statement while its heartbeat kept it looking healthy.
-- *A malformed work order is declined, not retried.* A NULL or empty surface is declined by name and the next work order taken (it
-  crash-looped every node); a repeated surface is one surface (it collided with itself and starved the queue); an acceptance action
+- *A malformed work order is never picked.* A NULL, empty or oversized surface is excluded by the claim itself, however many there are
+  (eight of them used up the claim's attempts and starved every node; an oversized one crash-looped them), and `node.mjs health` names
+  them by id; a repeated surface is one surface (it collided with itself and starved the queue); an acceptance action
   with a malformed argument fails by name; a data exception (SQLSTATE class 22) inside a run fails it - the same input fails every time.
 - *Only a finished, successful run can be verified.* A `verify` of a failed or unfinished run is refused by name and writes
   nothing (it was recorded as verified and counted as milestone-4 evidence); the independence constraints still refuse a run
   verifying itself, or its authoring node, by their own names. The composer counts only done authoring runs.
+- *"Can claim work" means a worker that claims.* `node.mjs health` says it only when this node's supervisor runs a worker that has
+  completed a claim cycle; a supervisor in backoff is named as not claiming (it said "can claim work" then). A record deleted from the
+  plane is registered and stamped again at once by the running worker.
 - *Not claiming is said.* A refused admission, and a plane-wide claim lock held past the lock timeout, are logged and shown by
   `node.mjs status`, `-Status` and `-Verify` (NOT CLAIMING, with since when).
 - *The role belongs to the running worker.* Health checks keep the role the plane holds (they used to re-register a running
@@ -289,12 +298,15 @@ order): all or nothing.
   corrupts the CA path), or an escape that does not decode.
 
 **Registered, bounded - not fixed (final verification 2026-09-24):** (1) a node refusing admission reads ALIVE on the plane: the
-refusal is local to the node (`node.mjs status`, `-Status` and `-Verify` print NOT CLAIMING there), and the Home PC cannot see it
+refusal is local to the node (`node.mjs status`, `-Status` and `-Verify` print NOT CLAIMING there - a record an earlier worker left is replaced by the next worker's
+  first claim cycle), and the Home PC cannot see it
 without a plane schema change - if a `two_machine_real.mjs` scenario times out, run `-Status` on the Work PC; `-Verify` does not fail on it,
 because this PC's own heavy suites push the CPU over the admission threshold for minutes; (2) a work order whose run keeps
 throwing an error that is not a data exception is retried every lease period with no attempt ceiling, and each lapse leaves the
 old run as a `queued` row - the lease is the arbiter by design; `node.mjs health` shows the expired leases; (3)
-`round-state.regression.test.mjs` RS-C* read other worktrees of this PC (not part of the node, and not in the composer).
+`round-state.regression.test.mjs` RS-C* read other worktrees of this PC (not part of the node, and not in the composer); (4) a node that
+requests a model (`FACTORY_MODEL`) declines at most eight verifier-gated work orders per claim on its model's standing - more than eight
+of them ahead of other work starve that node (no Factory node sets `FACTORY_MODEL` today; the declines are logged).
 
 **Boot trigger:** Windows lets only an administrator register an AtStartup trigger (measured: "Access is denied" for a standard
 user). As installed the task is triggered **at logon**, which is the reboot path the moment the user logs on; one elevated run of

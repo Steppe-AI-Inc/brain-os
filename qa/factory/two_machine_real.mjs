@@ -77,7 +77,10 @@ for (const [name, n] of [['home', home], ['work', work]]) {
 }
 
 const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..*/, '') + '-' + randomUUID().slice(0, 4);
+// EVERY WORK ORDER REQUIRES THE COMMIT UNDER ACCEPTANCE: a third node on another commit took the S3 work and the scenario passed on
+// its runs (final verification 2, 2026-09-25). And every scenario checks its runs came from the home or work node at exactly it.
 const seed = async (name, payload, { caps = ['factory_acceptance', HANDLER_CAP], role = 'generic', surface = null } = {}) => {
+  caps = [...new Set([...caps, 'head:' + EXPECTED])];
   const id = randomUUID();
   await db.write("insert into factory.work_orders (work_order_id, title, work_type, owned_surface, priority, status, requires_security_role, requires_capabilities, handoff) values ($1, $2, 'factory_acceptance', $3::text[], 'high', 'queued', $4, $5::text[], $6)",
     [id, TITLE + stamp + ' ' + name, [surface || ('qa/factory/real/' + stamp + '/' + name)], role, caps, JSON.stringify(payload)]);
@@ -88,6 +91,8 @@ const waitDone = async (ids, ms) => { const until = Date.now() + ms; while (Date
 const cps = async (id) => (await db.read('select scenario, payload, created_at from factory.checkpoints where work_order_id = $1 order by created_at', [id])).rows;
 const runsOf = async (id) => (await db.read("select r.run_id, r.status, r.node_id, r.started_at, r.finished_at, r.last_heartbeat_at, r.base_commit, r.termination_reason, r.verification_node_id, r.authoring_node_id, n.platform from factory.agent_runs r left join factory.nodes n on n.node_id = r.node_id where r.work_order_id = $1 order by r.started_at", [id])).rows;
 let ok = true;
+// a run is evidence only if one of the two nodes under test ran it at exactly the commit ('<sha>+dirty' is not the commit)
+const ours = (r) => !!r && [home.nodeId, work.nodeId].includes(r.node_id) && r.base_commit === EXPECTED;
 const say = (good, label, detail) => { if (!good) ok = false; console.log((good ? 'OK   ' : 'FAIL ') + label + (detail ? '  — ' + detail : '')); };
 
 const failover = async (label, from, to) => {
@@ -100,7 +105,7 @@ const failover = async (label, from, to) => {
   const doneRun = runs.find((r) => r.status === 'done');
   say(done && p1 && p1.payload.nodeId === from.nodeId && p1.payload.head === EXPECTED, label + ': the named node died on the work order, running ' + EXPECTED.slice(0, 12), p1 ? p1.payload.nodeId.slice(0, 20) + ' on ' + p1.payload.hostname + ' at ' + String(p1.payload.head).slice(0, 12) : 'no phase-1 checkpoint');
   say(done && p2 && p2.payload.nodeId === to.nodeId && p2.payload.resumedFrom === from.nodeId && p2.payload.head === EXPECTED, label + ': the takeover node completed it from the dead node\'s checkpoint, running ' + EXPECTED.slice(0, 12), p2 ? p2.payload.nodeId.slice(0, 20) + ' on ' + p2.payload.hostname + ' at ' + String(p2.payload.head).slice(0, 12) + ' resumed from ' + String(p2.payload.resumedFrom).slice(0, 20) : 'no phase-2 checkpoint');
-  say(!!doneRun && doneRun.termination_reason === 'factory_acceptance_takeover' && doneRun.node_id === to.nodeId, label + ': the done run belongs to the takeover node with the stated termination reason', doneRun ? doneRun.termination_reason : 'no done run');
+  say(!!doneRun && doneRun.termination_reason === 'factory_acceptance_takeover' && doneRun.node_id === to.nodeId && ours(doneRun), label + ': the done run belongs to the takeover node, at ' + EXPECTED.slice(0, 12) + ', with the stated termination reason', doneRun ? doneRun.termination_reason + ' at ' + doneRun.base_commit : 'no done run');
   return { p1, p2, doneRun };
 };
 
@@ -125,6 +130,8 @@ const s2 = await failover('S2 work→home', work, home);
   const hosts = new Set([ra, rb, rf].filter(Boolean).map((r) => hostOf(r.platform)));
   say(done && disjoint, 'S3: the two work orders on one surface never ran at the same time (' + runsA.length + ' + ' + runsB.length + ' executions compared)', ra && rb ? runsA.map((r) => '[' + win(r).map((t) => new Date(t).toISOString()).join(' → ') + ']').join(', ') + ' vs ' + runsB.map((r) => '[' + win(r).map((t) => new Date(t).toISOString()).join(' → ') + ']').join(', ') : 'missing runs');
   say(done && !!rf, 'S3: the free work order completed', rf ? 'on ' + hostOf(rf.platform) : '');
+  const s3runs = [...runsA, ...runsB, ...(await runsOf(f))];
+  say(s3runs.length > 0 && s3runs.every(ours), 'S3: every S3 execution was by the home or work node at ' + EXPECTED.slice(0, 12), s3runs.filter((r) => !ours(r)).map((r) => String(r.node_id).slice(0, 20) + ' at ' + r.base_commit).join('; '));
   console.log('     S3 runs came from ' + hosts.size + ' hostname(s): ' + [...hosts].join(', ') + (hosts.size < 2 ? ' (both workers were free to take any of the three; one may have taken them all)' : ''));
 }
 
@@ -137,7 +144,7 @@ const s2 = await failover('S2 work→home', work, home);
   const c = (await cps(v)).find((x) => x.scenario === 'verify');
   const rv = (await runsOf(v)).find((r) => r.status === 'done');
   const auth = authored ? (await db.read('select a.verification_node_id, a.authoring_node_id, nv.platform vp, na.platform ap from factory.agent_runs a left join factory.nodes nv on nv.node_id = a.verification_node_id left join factory.nodes na on na.node_id = a.authoring_node_id where a.run_id = $1', [authored])).rows[0] : null;
-  say(done && c && c.payload.accepted === true && c.payload.head === EXPECTED && rv && rv.node_id === work.nodeId, 'S4: the work node (verifier role) recorded a verification of the home node\'s run through the runner\'s own path, running ' + EXPECTED.slice(0, 12), c ? 'accepted=' + c.payload.accepted + ' at ' + String(c.payload.head).slice(0, 12) + (c.payload.reason ? ' ' + c.payload.reason : '') : 'no verify checkpoint');
+  say(done && c && c.payload.accepted === true && c.payload.head === EXPECTED && rv && rv.node_id === work.nodeId && ours(rv), 'S4: the work node (verifier role) recorded a verification of the home node\'s run through the runner\'s own path, running ' + EXPECTED.slice(0, 12), c ? 'accepted=' + c.payload.accepted + ' at ' + String(c.payload.head).slice(0, 12) + (c.payload.reason ? ' ' + c.payload.reason : '') : 'no verify checkpoint');
   say(auth && auth.verification_node_id === work.nodeId && auth.authoring_node_id === home.nodeId, 'S4: the plane records the verifier node ≠ the authoring node', auth ? 'author ' + String(auth.authoring_node_id).slice(0, 20) + ' on ' + hostOf(auth.ap) + ', verifier ' + String(auth.verification_node_id).slice(0, 20) + ' on ' + hostOf(auth.vp) : 'no run');
 }
 

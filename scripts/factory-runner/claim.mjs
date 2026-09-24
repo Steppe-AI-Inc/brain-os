@@ -218,6 +218,11 @@ async function claimInTransaction({ nodeId, lease, capabilities,
             and ($6::uuid is null or wo.work_order_id = $6::uuid)
             -- only the work types this caller can do (null: the caller does its own dispatch)
             and ($7::text[] is null or wo.work_type = any($7::text[]))
+            -- A MALFORMED WORK ORDER IS NEVER PICKED: a NULL, empty or oversized surface (the lock's primary key cannot hold it) used
+            -- to be declined one pick at a time, and eight of them at the head of the queue used up every attempt - nothing behind them
+            -- was ever claimed, on any node; an oversized one ended the worker (final verification 2, 2026-09-25). node.mjs health
+            -- names them by id.
+            and not exists (select 1 from unnest(wo.owned_surface) s where s is null or btrim(s) = '' or length(s) > 1000)
             -- this node must BE enough: its role must rank at or above what the work order requires
             and (case wo.requires_security_role when 'release_broker' then 2 when 'verifier' then 1 else 0 end) <= $1
             -- ...and must HAVE every capability the work order names
@@ -246,18 +251,8 @@ async function claimInTransaction({ nodeId, lease, capabilities,
       if (!picked.rows.length) { await client.query('rollback'); return null; }
       wo = picked.rows[0];
 
-      // A MALFORMED WORK ORDER DOES NOT STARVE THE PLANE. A NULL or empty surface failed the lock insert (23502) and ended the
-      // worker - every node crash-looped on the same head of the queue - and a repeated surface collided with itself (23505,
-      // read as "another node won"), so nothing behind it was ever claimed (final verification 2026-09-24). A repeat is one
-      // surface; a work order with a NULL or empty surface is declined by name and left for a human, and the next is tried.
-      if ((wo.owned_surface || []).some((s) => typeof s !== 'string' || !s.trim())) {
-        claimWork.malformed = claimWork.malformed || new Set();
-        // said once per work order per process (the claim loop runs every few seconds)
-        if (!claimWork.malformed.has(wo.work_order_id)) { claimWork.malformed.add(wo.work_order_id); console.log('[claim] declining ' + String(wo.work_order_id).slice(0, 8) + ': its owned_surface has a NULL or empty entry - fix the work order'); }
-        declined.push(wo.work_order_id);
-        wo = null;
-        continue;
-      }
+      // A REPEATED SURFACE IS ONE SURFACE: it collided with itself (23505, read as "another node won") and starved the queue (final
+      // verification 2026-09-24). Malformed surfaces never reach this point (the pick excludes them).
       wo.owned_surface = [...new Set(wo.owned_surface || [])];
 
       // THE RELEASE GATE MAY NOT BE SERVED BY A MODEL WITH NO EVIDENCE THAT IT FINISHES A RUN.
