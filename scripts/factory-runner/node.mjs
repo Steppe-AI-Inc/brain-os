@@ -90,7 +90,9 @@ export async function nodeStatus() {
     if (!r.rows.length) return { state: 'NOT REGISTERED', ageMs: null, role: null, host: null, tls, plane, nodeId: id };
     const row = r.rows[0];
     const ageMs = Number(row.age_ms);
-    return { state: ageMs < NODE_STALE_MS ? 'ALIVE' : 'STALE', ageMs, role: row.security_role, host: String(row.platform || '').split(' ')[1] || null, tls, plane, nodeId: id, lastHeartbeatAt: row.last_heartbeat_at };
+    let admission = null;
+    try { admission = JSON.parse(readFileSync(join(STATE_DIR, 'node-admission.json'), 'utf8')); } catch { /* never recorded */ }
+    return { state: ageMs < NODE_STALE_MS ? 'ALIVE' : 'STALE', ageMs, role: row.security_role, host: String(row.platform || '').split(' ')[1] || null, tls, plane, nodeId: id, lastHeartbeatAt: row.last_heartbeat_at, admission };
   } catch (e) {
     return { state: 'UNREACHABLE', ageMs: null, role: null, host: null, tls: null, plane, nodeId: id, error: String(e && e.message || e).slice(0, 160) };
   }
@@ -190,7 +192,9 @@ export function startHeartbeat({ runId, id, leaseSeconds = DEFAULT_LEASE_SECONDS
 // `worktree` is injectable for the same reason `runWork` is: the loop and the checkout are separate
 // concerns, and a test of the loop that creates a 3 870-file checkout per iteration is testing git.
 // The real ensureWorktree is exercised on its own.
-export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_LEASE_SECONDS, idleMs = 5000, maxIterations = Infinity, worktree = ensureWorktree } = {}) {
+// `workTypes`: the work types this node's runWork can actually do - the claim takes nothing else (null: every type, for a
+// caller whose runWork dispatches on its own). The CLI node passes HANDLED_WORK_TYPES.
+export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_LEASE_SECONDS, idleMs = 5000, maxIterations = Infinity, worktree = ensureWorktree, workTypes = null } = {}) {
   const id = nodeId();
   const caps = capabilities();
   const repo = reconcileRepository({ fetch: false });
@@ -211,14 +215,27 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
   const requestedModel = process.env.FACTORY_MODEL || null;
   log(requestedModel ? 'intends ' + (requestedProvider || '?') + ' / ' + requestedModel + ' (FACTORY_MODEL); the claim gates verifier work on its run evidence'
     : 'no FACTORY_MODEL set: claims carry no requested model, so the assurance gate and the no-silent-fallback constraints do not apply to this node');
+  log(workTypes ? 'claims only work types it can do: ' + workTypes.join(', ') : 'claims every work type (the caller dispatches)');
   let claimed = 0;
+  // A REFUSED ADMISSION IS SAID, NOT SILENT. The gate records its verdict on claimWork.lastAdmission; before this nothing read
+  // it, so a node below the free-memory floor read ALIVE while it never claimed (verification 2026-09-24, round 2). Every
+  // change is logged, and the current verdict is written to <state dir>/node-admission.json, which status prints.
+  let lastAdmit = null;
+  const noteAdmission = () => {
+    const g = claimWork.lastAdmission;
+    if (!g || g.admit === lastAdmit) return;
+    lastAdmit = g.admit;
+    log(g.admit ? 'admission: claiming (' + g.reason + ')' : 'admission REFUSED - not claiming: ' + g.reason);
+    try { mkdirSync(STATE_DIR, { recursive: true }); writeFileSync(join(STATE_DIR, 'node-admission.json'), JSON.stringify({ admit: g.admit, reason: g.reason, at: new Date().toISOString() })); } catch { /* status only */ }
+  };
   // AN IDLE NODE IS VISIBLY ALIVE. Before this, the node record was touched only at registration, so a node that ran for
   // days with nothing to claim looked dead on the plane (2026-09-22: last heartbeat four days old while nothing was wrong
   // but the absence of a worker after a reboot - two facts one timestamp could not tell apart). Every NODE_BEAT_MS the
   // idle loop stamps last_heartbeat_at; `node.mjs status` reads it back.
   let lastBeat = Date.now();
   for (let i = 0; i < maxIterations; i++) {
-    const run = await claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel });
+    const run = await claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel, workTypes });
+    noteAdmission();
     if (!run) {
       if (once) { log('nothing eligible'); break; }
       if (Date.now() - lastBeat >= NODE_BEAT_MS) {
@@ -235,7 +252,8 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
       // to check out, and the 2026-09-22 acceptances left twelve full worktrees behind before this distinction existed.
       const woRow = (await db.read('select work_type, title, handoff, owned_surface, requires_security_role from factory.work_orders where work_order_id = $1', [run.work_order_id])).rows[0] || {};
       let wt = null;
-      if (woRow.work_type !== 'factory_acceptance') {
+      // (a bootstrap_probe has none either - it does no work by definition)
+      if (woRow.work_type !== 'factory_acceptance' && woRow.work_type !== 'bootstrap_probe') {
         wt = await worktree({ runId: run.run_id, baseCommit: repo.head });
         log((wt.recovered ? 'recovered' : 'created') + ' worktree ' + wt.path);
         await db.write(
@@ -511,12 +529,17 @@ if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
     const s = await nodeStatus();
     const age = s.ageMs == null ? '' : ' (heartbeat ' + Math.round(s.ageMs / 1000) + ' s ago)';
     console.log(s.state + age + ' — node ' + (s.nodeId ? s.nodeId.slice(0, 13) : '(none yet)') + (s.role ? ', role ' + s.role : '') + (s.host ? ', host ' + s.host : '')
-      + ', plane ' + s.plane + (s.tls == null ? '' : ', tls ' + (s.tls ? 'on' : 'OFF')) + (s.error ? ' — ' + s.error : ''));
+      + ', plane ' + s.plane + (s.tls == null ? '' : ', tls ' + (s.tls ? 'on' : 'OFF')) + (s.error ? ' — ' + s.error : '')
+      + (s.admission && s.admission.admit === false ? ' — NOT CLAIMING: admission refused since ' + s.admission.at + ' (' + s.admission.reason + ')' : ''));
     if (process.argv.includes('--json')) console.log(JSON.stringify(s));
     process.exit(s.state === 'ALIVE' ? 0 : 1);
   }
   else if (cmd === 'start') {
     const { factoryAcceptance } = await import('./handlers/factory-acceptance.mjs');
+    // THE WORK TYPES THIS NODE CAN DO, and nothing else is claimed. factory_acceptance: the Factory's own acceptance
+    // (handlers/factory-acceptance.mjs). bootstrap_probe: a work order whose whole purpose is to be claimed and completed - it
+    // proves the claim/lease/complete path and does no work by definition, which its summary says.
+    const HANDLED_WORK_TYPES = ['factory_acceptance', 'bootstrap_probe'];
     // a refusal (no FACTORY_RUNNER_PG_URL, a superuser, the production project) is the designed answer, printed as one line
     // with the fix instead of an uncaught stack; the supervisor provides the URL from the env file, a bare shell does not
     try {
@@ -524,12 +547,16 @@ if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
       runWork: async ({ run, workOrder, checkpoint: cp, nodeId: nid, log: l }) => {
         // The Factory's own acceptance work is the one thing the generic bootstrap runs itself (handlers/factory-acceptance.mjs).
         if (workOrder && workOrder.work_type === 'factory_acceptance') return factoryAcceptance({ run, workOrder, checkpoint: cp, nodeId: nid, log: l });
-        // No provider is launched by the default bootstrap: what a node DOES is the director's business,
-        // and wiring a specific agent in here would be the machine-specific logic this file forbids.
-        await cp('qa/verification/CHECKPOINT.md', 'bootstrap');
-        return { status: 'done', summary: 'bootstrap claimed and released work order ' + run.work_order_id };
+        if (workOrder && workOrder.work_type === 'bootstrap_probe') {
+          await cp('qa/verification/CHECKPOINT.md', 'bootstrap_probe');
+          return { status: 'done', terminationReason: 'bootstrap_probe_completed', summary: 'bootstrap probe ' + run.work_order_id + ' claimed and completed; a probe does no work by definition' };
+        }
+        // Unreachable while the claim is filtered to HANDLED_WORK_TYPES - and if it is ever reached, the run is NOT reported
+        // done: the throw leaves the lease to expire and the work order to a node that can do it.
+        throw new Error('no worker for work type ' + (workOrder && workOrder.work_type) + ' on this node; nothing was done');
       },
       once: process.argv.includes('--once'),
+      workTypes: HANDLED_WORK_TYPES,
     });
     } catch (e) {
       if (!(e && e.name === 'FactoryDbRefusal')) throw e;

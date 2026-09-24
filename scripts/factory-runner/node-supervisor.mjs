@@ -54,7 +54,13 @@ const isOurWorker = (pid) => isScriptProcess(pid, WORKER_SCRIPT, ['start']);
 const readStatus = () => { try { return JSON.parse(readFileSync(STATUS_FILE, 'utf8')); } catch { return null; } };
 const writeStatus = (s) => { mkdirSync(STATE_DIR, { recursive: true }); writeFileSync(STATUS_FILE, JSON.stringify(s, null, 2)); };
 
-if (has('--status')) { const s = readStatus(); console.log(s ? JSON.stringify(s, null, 2) : 'no status file (' + STATUS_FILE + ')'); process.exit(s ? 0 : 1); }
+if (has('--status')) {
+  const s = readStatus();
+  console.log(s ? JSON.stringify(s, null, 2) : 'no status file (' + STATUS_FILE + ')');
+  // a status file is a record, not a fact: 'running' with a supervisor that is not running is said to be STALE
+  if (s && ['starting', 'running', 'backoff'].includes(s.state) && !isOurSupervisor(s.supervisorPid)) console.log('STALE: the recorded supervisor (pid ' + s.supervisorPid + ') is not running - the node is down');
+  process.exit(s ? 0 : 1);
+}
 if (has('--stop')) {
   mkdirSync(STATE_DIR, { recursive: true });
   writeFileSync(STOP_FILE, String(Date.now()));
@@ -138,6 +144,9 @@ const stopRequested = () => stopping || existsSync(STOP_FILE);
 const shutdown = (why) => { if (stopping) return; stopping = true; log('stopping: ' + why); if (child && child.exitCode === null) { try { child.kill(); } catch { /* gone */ } } };
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
+// a closed console (CTRL_CLOSE_EVENT arrives as SIGHUP on Windows) ends the supervisor with a truthful 'stopped' state, not a
+// status file that still says 'running' with dead pids
+process.on('SIGHUP', () => shutdown('the console was closed (SIGHUP)'));
 
 while (!stopRequested()) {
   rotate();

@@ -194,7 +194,8 @@ if ($Uninstall) {
 if ($Verify) {
   if (-not $task) { "FAIL task '$TaskName' is not installed"; exit 1 }
   $action = $task.Actions | Select-Object -First 1
-  $okAction = ($action.Execute -eq $NodeExe) -and ($action.Arguments -like "*node-supervisor.mjs*") -and (Test-SameDir $action.WorkingDirectory $Root)
+  $viaConhost = ($action.Execute -like '*\conhost.exe') -and ($action.Arguments -like "*--headless*") -and ($action.Arguments -like "*$NodeExe*")
+  $okAction = (($action.Execute -eq $NodeExe) -or $viaConhost) -and ($action.Arguments -like "*node-supervisor.mjs*") -and (Test-SameDir $action.WorkingDirectory $Root)
   $enabled = $task.Settings.Enabled -and ($task.State -ne 'Disabled')
   $triggers = ($task.Triggers | ForEach-Object { $_.CimClass.CimClassName }) -join ','
   $info = Get-ScheduledTaskInfo -TaskName $TaskName
@@ -245,7 +246,13 @@ try { $aclOut = & icacls $EnvFile /inheritance:r /grant:r "$($me):(R,W)" 2>&1; $
 if ($aclOk) { "env file ACL: inheritance removed, $me read/write only" } else { "WARNING: the env file ACL was NOT tightened (icacls exit $LASTEXITCODE): $(($aclOut | Out-String).Trim()) - restrict $EnvFile to $me by hand" }
 # --runner-env, not --env-file: node itself consumes --env-file anywhere on its command line and exits 9 on a missing file
 $taskArgs = "`"$Supervisor`" --runner-env `"$EnvFile`" --role $Role" + $(if ($LogDir) { " --log-dir `"$LogDir`"" } else { '' })
-$action = New-ScheduledTaskAction -Execute $NodeExe -Argument $taskArgs -WorkingDirectory $Root
+# NO CONSOLE WINDOW. An interactive-logon task (the non-elevated default) showed the supervisor in a visible console window, and
+# closing it killed the node until the next logon while the task did not restart it (verification 2026-09-24, round 2). The
+# supervisor is launched through conhost --headless (Windows 10 1809+): a console with no window, nothing to close.
+$conhost = Join-Path $env:SystemRoot 'System32\conhost.exe'
+$headless = (Test-Path -LiteralPath $conhost) -and ([Environment]::OSVersion.Version.Build -ge 17763)
+if ($headless) { $action = New-ScheduledTaskAction -Execute $conhost -Argument ("--headless `"$NodeExe`" " + $taskArgs) -WorkingDirectory $Root }
+else { $action = New-ScheduledTaskAction -Execute $NodeExe -Argument $taskArgs -WorkingDirectory $Root; "note: this Windows has no headless console (build < 17763): the node runs in a visible console window - do not close it" }
 $triggers = @((New-ScheduledTaskTrigger -AtLogOn -User $me), (New-ScheduledTaskTrigger -AtStartup))
 $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) `
   -MultipleInstances IgnoreNew -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -Hidden

@@ -55,7 +55,7 @@ const readStatus = () => { try { return JSON.parse(readFileSync(join(stateDir, '
 const nodeStatus = () => { const r = spawnSync(process.execPath, [NODE, 'status', '--json'], { cwd: ROOT, env: ENV, encoding: 'utf8' }); const m = /\{.*\}\s*$/s.exec(r.stdout || ''); return m ? JSON.parse(m[0]) : { state: 'PARSE_ERROR', raw: r.stdout + r.stderr }; };
 const waitFor = async (fn, ms, every = 1000) => { const until = Date.now() + ms; let v; while (Date.now() < until) { v = await fn(); if (v) return v; await sleep(every); } return null; };
 const hb = async () => (await admin.query('select last_heartbeat_at from factory.nodes where node_id = $1', [NODE_ID])).rows[0]?.last_heartbeat_at || null;
-const newWo = async (title) => { const id = randomUUID(); await admin.query("insert into factory.work_orders (work_order_id, title, owned_surface, priority, status) values ($1, $2, $3::text[], 'high', 'queued')", [id, title, ['qa/factory/reboot/' + id.slice(0, 8)]]); return id; };
+const newWo = async (title) => { const id = randomUUID(); await admin.query("insert into factory.work_orders (work_order_id, title, work_type, owned_surface, priority, status) values ($1, $2, 'bootstrap_probe', $3::text[], 'high', 'queued')", [id, title, ['qa/factory/reboot/' + id.slice(0, 8)]]); return id; };
 const woDone = async (id) => (await admin.query("select status from factory.work_orders where work_order_id = $1", [id])).rows[0]?.status === 'done';
 
 let sup = null;
