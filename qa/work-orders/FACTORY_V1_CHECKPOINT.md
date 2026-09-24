@@ -4,40 +4,26 @@
 
 - **Published remote** `factory/computer-agnostic-control-plane` = `ee2fce2b` (the founder found it cannot `npm ci`: no lock, `pg`
   undeclared). **Do not hand the Work PC any SHA until the steps below finish and the remote is re-verified from a fresh clone.**
-- **Local branch**, ahead of the remote and not pushed: `aa8db28b` lock + pg + deps.mjs + refusals · `37c68fe2` `*.sh eol=lf` ·
-  `73b2ccfd` regression --root/--skip + mutation proof · `1c3bce0f` acorn parse · `3a647e33` disk-safe proofs · `050d5543`
-  verification fixes part 1 (deps.mjs walks the whole locked closure; node.mjs start/status refuse by name; BOM + caMissing in
-  runner-env; supervisor refuses a missing CA; local_pg stops PostgreSQL with `pg_ctl stop -m fast -w`, no orphans).
-- **Verification workflow `wf_0bc2563b-650`** (four probes against `1c3bce0f`) reported DEFECTS_FOUND. Fixed in `050d5543`: the
-  closure check [high], the start/status refusals, BOM, caMissing (supervisor side), local_pg teardown + entry-script test.
-  **Still open, in this order:**
-  1. `install-autostart.ps1`: -ReplaceOtherCheckout must stop the OTHER checkout's supervisor (its path + pid file), refuse
-     (exit 4) if it stays alive; -Stop/-Uninstall refuse (exit 3) on another checkout's task; build module URLs with
-     `pathToFileURL` (a `#` in the path broke -Preflight); -Preflight FAILs on `caMissing`.
-  2. `bootstrap-node.sh`: print the supervisor command with `--env-file` as the next step; refuse on `caMissing`; note that
-     npm < 11 ignores `allowScripts` (the locked script set is fully approved, so nothing extra runs).
-  3. `verify-deployed-bytes.sh`: `npx --yes supabase@latest` -> `supabase@2.117.0` (the version used 2026-09-08).
-  4. Regression: F2 real `import()` (not `import.meta.resolve`, absent on Node 20.0-20.5); F4 on a FRESH state dir, ALIVE only with
-     role verifier, heartbeat after supervisor start, restarts 0; F5 removes `pg-protocol` (transitive) and `pg`, and checks
-     `node.mjs start`/`status` refuse (exit 5); F9 judges rc and parses `# pass`/`ℹ pass`; K3 tracks `createRequire` aliases and
-     fails non-constant loads other than relative / `pathToFileURL(...)`; new K7: every `npx --yes` pins an exact version.
-  5. Mutation proof: add F-DIE (worker exits on start, F4 must go red) and a transitive-closure mutant; rerun static + `--fresh`.
-  6. This checkout's node_modules are hand-installed (`@vercel/node` 12.0.3 vs lock 14.0.0; `deps.mjs --dev` now says so):
-     `install-autostart.ps1 -Stop`; `node qa/factory/shared_local_pg.mjs stop`; confirm no postgres.exe under node_modules;
-     `npm ci --strict-allow-scripts`; `deps.mjs --dev` ok; restart the local plane detached; `-Start`; `node.mjs status` ALIVE.
-  7. Suites: package regression (full fresh clones), mutation proof `--fresh`, then the composer `factory_v1_acceptance.mjs`
-     with the live URL loaded from runner.env.
-  8. Re-run an independent verification workflow on the new HEAD; fix what it confirms.
-  9. Push with exactly `git -C C:/Users/Dell/dev/brain-os-factory-cp push -u origin factory/computer-agnostic-control-plane`;
-     fresh `git -c http.sslBackend=schannel clone` of the remote branch: lock present, `pg` declared, `--static --root` green;
-     only then report the new remote SHA. Ledger 217: `scratchpad/record_217.mjs` (candidate repo), then bundles + memory.
-- **Live state at 2026-09-24 ~13:10 local**: plane `npvhuoozkbexddnvkqsj` healthy; Home node `node-4d4a74dd` ALIVE, TLS on,
-  supervisor restarts 0 (it still runs the code loaded 2026-09-23; it picks up new code on its next restart). The local plane
-  (postmaster pid 14200) is running. Two orphaned io_workers from earlier harness runs were found and ended by pid.
-- Disk C: about 5 GB free. Delete the workflow scratch `…/scratchpad/verify/` once its results are read.
-
-**Written 2026-09-22 end of night shift. Read this first; everything below is reconstructible from disk, git and the plane
-without the founder.** The rule of this file: state what is TRUE and where it is measured, never what was intended.
+- **Local branch**, not pushed: `git log --oneline ee2fce2b..HEAD` (lock + pg + deps.mjs, eol=lf, regression + mutation proof,
+  then the fixes for verification wf_0bc2563b-650 in `050d5543`, `0f1e1e9d`, `0f90a9f0`, `a5cba4de`, `ca341633`, `bf7fef32`).
+  Backup of the unpushed commits: `C:\Users\Dell\dev\backups\factory-cp-2026-09-24-*.bundle`.
+- **Verification wf_0bc2563b-650** (against `1c3bce0f`) found: [high] deps.mjs checked only the manifest (pg-protocol missing read
+  as ready -> crash loop); [high, critic] a missing CA passed -Preflight -> crash loop; [medium] node.mjs start/status raw errors;
+  F4 read ALIVE from another registration; harness teardown orphaned PostgreSQL io workers (npm ci EPERM); -ReplaceOtherCheckout
+  stopped the wrong checkout; [low] -Stop/-Uninstall from any clone; `#` in path; BOM; F9 on Node 20/22; F2 on Node 20.0-20.5; K3
+  createRequire blind spot; npx @latest; bootstrap next step; icacls success printed on failure; -Verify ignored env/CA. **All
+  fixed**, each with a regression row (K7, F2, F4, F5, F6, F9, F10, lock-unchanged in F1/F8) and a mutant where plantable. Refuters
+  independently reproduced the [high] closure defect and the F4 defect at `1c3bce0f` (both fixed).
+- **Proofs so far**: package regression 16/16 on full fresh clones of `0f90a9f0`; fresh mutation proof 18/18 at `a5cba4de` (F-ORIG
+  `ee2fce2b` red on 13 rows); static mutation 12/12; this checkout reinstalled by `npm ci --strict-allow-scripts` (deps --dev: 138
+  locked packages OK); the live task re-registered with the full identity and `-Verify` OK.
+- **Next, in order**: (1) full regression on `bf7fef32`+ (adds F10); (2) second independent verification workflow on HEAD, fix what it
+  confirms; (3) composer `factory_v1_acceptance.mjs` with the live URL loaded from runner.env; (4) push with exactly
+  `git -C C:/Users/Dell/dev/brain-os-factory-cp push -u origin factory/computer-agnostic-control-plane`; (5) fresh
+  `git -c http.sslBackend=schannel clone` of the remote branch: lock present, `pg` declared, `--static --root` green; only then report
+  the new remote SHA; (6) ledger 217 via `scratchpad/record_217.mjs` in the candidate repo, bundles, memory.
+- **Live state 2026-09-24 ~14:00 local**: plane `npvhuoozkbexddnvkqsj` healthy; Home node `node-4d4a74dd` ALIVE on the new code (task
+  re-registered, principal/trigger DESKTOP-MDPE6FS\Dell, restarts 0); local plane serving on 54329.
 
 ## 1. Where things are
 
