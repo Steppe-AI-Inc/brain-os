@@ -49,9 +49,12 @@ Then, on the Home PC:
 ```
 bash scripts/factory-runner/bootstrap-node.sh --role generic --env-file "$env:USERPROFILE\.brain-factory\runner.env"
 ```
-On the Work PC: copy `runner.env` and the CA file (`~/.brain-factory/supabase-root-2021-ca.crt`) to the same folder there — the
-CA path inside the env file is resolved to the local copy by `runner-env.mjs`, so nothing is edited — then
-`install-autostart.ps1 -Role verifier -Start` (§H) or `bootstrap-node.sh --role verifier --env-file …`.
+On the Work PC: a fresh clone of this branch, then `npm ci` (the committed `package-lock.json`; since 2026-09-24 - before it a
+fresh clone could not install, ledger 217); copy `runner.env` and the CA file (`~/.brain-factory/supabase-root-2021-ca.crt`) to the
+same folder there — the CA path inside the env file is resolved to the local copy by `runner-env.mjs`, so nothing is edited — then
+`install-autostart.ps1 -Preflight` (exit 0), `install-autostart.ps1 -Role verifier -Start` (§H), or `bootstrap-node.sh --role
+verifier --env-file …` (which runs `npm ci` itself when the dependencies are not installed at their locked versions).
+`qa/factory/package_bootstrap_regression.mjs` proves this path on fresh clones; run it on any machine before trusting it.
 **Reply with:** "shared plane is up" and the two node ids the bootstraps print. Never the URL.
 
 Rotation is the same command again (the password rotates, the identity is kept). `--force` is refused alongside the flag.
@@ -188,7 +191,8 @@ Windows Scheduled Task **BrainOS Factory Node** that launches it; an idle node s
 | command | does |
 |---|---|
 | `powershell -ExecutionPolicy Bypass -File scripts\factory-runner\install-autostart.ps1 -Role generic -Start` | install (idempotent: a re-install stops the running supervisor first) and start now; Work PC: `-Role verifier` |
-| `… install-autostart.ps1 -Status` | task state, supervisor state file, node liveness on the plane |
+| `… install-autostart.ps1 -Preflight` | checks only, changes nothing: the env file yields a URL, and the runtime dependencies are installed at the locked versions (`npm ci` otherwise) |
+| `… install-autostart.ps1 -Status` | task state, supervisor state file, dependency check, node liveness on the plane |
 | `… install-autostart.ps1 -Stop` / `-Start` | stop cleanly (worker ends, no orphan) / start |
 | `… install-autostart.ps1 -Verify` | exit 0 only if the task exists, is enabled and starts this checkout's supervisor |
 | `… install-autostart.ps1 -Uninstall` | stop and remove the task |

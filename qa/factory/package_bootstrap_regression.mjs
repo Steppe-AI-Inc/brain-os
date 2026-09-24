@@ -34,7 +34,7 @@
 //      and embedded-postgres starts and stops a server from the clone's own install
 //   F9 the accessor and runner-env regression tests pass inside the clone
 import { spawn, spawnSync, execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync, mkdirSync, statfsSync } from 'node:fs';
 import { builtinModules } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, sep, resolve as resolvePath } from 'node:path';
@@ -52,6 +52,10 @@ const STATIC_ONLY = process.argv.includes('--static');
 const skipArg = process.argv.indexOf('--skip');
 const SKIP = new Set(skipArg > -1 && process.argv[skipArg + 1] ? process.argv[skipArg + 1].split(',') : []);
 const want = (id) => { if (!SKIP.has(id)) return true; console.log('SKIP ' + id + ' (--skip)'); return false; };
+// --sparse: clone only the paths a Factory node uses (the root files, scripts/, qa/factory/, supabase/control-plane/). The default
+// is a FULL clone - what the Work PC does. The mutation proof, which makes a dozen clones, uses --sparse: on 2026-09-24 its full
+// clones (each carrying thousands of unrelated verification scratch files) filled this machine's disk mid-run.
+const SPARSE = process.argv.includes('--sparse');
 const isWin = process.platform === 'win32';
 const NPM = isWin ? 'npm.cmd' : 'npm';
 let pass = 0; const failures = [];
@@ -184,7 +188,19 @@ if (!STATIC_ONLY) {
   const liveTaskBefore = isWin ? run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName 'BrainOS Factory Node' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).WorkingDirectory + '|' + ($t.Actions|Select-Object -First 1).Arguments + '|' + $t.Settings.Enabled}else{'NONE'}"], ROOT).out.trim() : 'n/a';
   const liveTaskXml = isWin && liveTaskBefore !== 'NONE' ? run('powershell', ['-NoProfile', '-Command', "Export-ScheduledTask -TaskName 'BrainOS Factory Node'"], ROOT).out : null;
   try {
-    for (const c of [cloneA, cloneB]) { git(['clone', '--quiet', '--no-hardlinks', ROOT, c], work); git(['checkout', '--quiet', head], c); }
+    // ENOUGH DISK FIRST. Two clones plus two installs; running out mid-run produces "unable to write file" noise that reads like a
+    // repository fault. Refuse up front, by name.
+    const fs = statfsSync(tmpdir());
+    const freeMb = Math.floor((fs.bavail * fs.bsize) / (1024 * 1024));
+    const needMb = SPARSE ? 1024 : 3072;
+    if (freeMb < needMb) throw new Error('only ' + freeMb + ' MB free under ' + tmpdir() + '; the fresh-clone rows need about ' + needMb + ' MB (' + (SPARSE ? 'sparse' : 'full') + ' clones). Free space, or pass --sparse.');
+    for (const c of [cloneA, cloneB]) {
+      if (SPARSE) {
+        git(['clone', '--quiet', '--no-hardlinks', '--no-checkout', ROOT, c], work);
+        git(['sparse-checkout', 'set', '--cone', 'scripts', 'qa/factory', 'supabase/control-plane'], c);
+        git(['checkout', '--quiet', head], c);
+      } else { git(['clone', '--quiet', '--no-hardlinks', ROOT, c], work); git(['checkout', '--quiet', head], c); }
+    }
     const clean = [cloneA, cloneB].every((c) => !existsSync(join(c, 'node_modules')) && !existsSync(join(c, '.factory')) && git(['rev-parse', 'HEAD'], c) === head);
     if (!clean) throw new Error('the fresh clones are not clean or not at HEAD');
 
@@ -279,7 +295,7 @@ if (!STATIC_ONLY) {
     check('F9 the accessor and runner-env regression tests pass inside the clone (pass ' + passN + ', fail ' + failN + ')', f9.rc === 0 && failN === '0', f9.out.slice(-600));
     }
   } catch (e) {
-    check('fresh-clone setup', false, e && e.stack || e);
+    check('F0 fresh-clone setup (free disk, clones at HEAD, disposable plane)', false, e && e.stack || e);
   } finally {
     for (const c of started) { try { if (c.exitCode === null) c.kill(); } catch { /* gone */ } }
     if (isWin) { // any process still running from the temp clones (a worker a failed row left behind) is ended
@@ -299,6 +315,6 @@ if (!STATIC_ONLY) {
 }
 
 console.log('');
-console.log('package_bootstrap_regression: ' + pass + ' passed, ' + failures.length + ' failed' + (STATIC_ONLY ? '  (static rows only)' : '  (fresh clones of ' + head.slice(0, 12) + ', installed from the committed lock)'));
+console.log('package_bootstrap_regression: ' + pass + ' passed, ' + failures.length + ' failed' + (STATIC_ONLY ? '  (static rows only)' : '  (' + (SPARSE ? 'sparse' : 'full') + ' fresh clones of ' + head.slice(0, 12) + ', installed from the committed lock)'));
 if (failures.length) { console.log('FAILURES:'); for (const f of failures) console.log(' - ' + f); process.exit(1); }
 process.exit(0);

@@ -54,12 +54,20 @@ without the founder.** The rule of this file: state what is TRUE and where it is
 | `qa/factory/reboot_recovery_acceptance.mjs` | 9/9 | disposable plane + the live scheduled task |
 | `qa/factory/shared_plane_live_acceptance.mjs` | 11/11 | **the LIVE plane**, from this machine |
 | `qa/factory/two_machine_real.mjs run` | every row green, verdict SAME MACHINE | **the LIVE plane**, two supervised nodes on this machine |
+| `qa/factory/package_bootstrap_regression.mjs` | 15/15 | FRESH clones of HEAD installed from the committed lock (runtime-only and full), a disposable plane |
+| `qa/factory/package_bootstrap_mutation_proof.mjs --fresh` | control green, every mutant killed incl. the published defect `ee2fce2b` | clones with one planted defect each |
 | `qa/factory/factory_v1_acceptance.mjs` (composer) | HOLD: 0 failed, only founder/Work-PC rows open | all of the above + plane rows |
 
 Candidate-repo suites (invitation branch): ten invitation suites 116 green / DS-D1 red by design; `gate_202609110001.mjs` 6/6;
 `gate_invitation_deploy.mjs` 6/6; `bug036_auth_inspection.mjs --selftest` 7/7.
 
-## 5. Defects found and closed by these proofs (ledger 211–216 in the candidate repo)
+## 5. Defects found and closed by these proofs (ledger 211–217 in the candidate repo)
+
+2026-09-24 (ledger 217, found by the founder on the published branch): no package-lock.json and `pg` undeclared, so a fresh clone
+could not `npm ci`; a supervised node on such a clone crash-looped on ERR_MODULE_NOT_FOUND; the bootstrap redirected into a
+`.factory/` that a fresh clone does not have; shell scripts checked out CRLF; the regression's first import scan was a regex that read
+a package name out of a string literal (caught by its own mutation proof's control).
+
 
 lease expiry left the work order `claimed`; a run could verify itself; a plane restart rotated the credential; orphaned
 postgres workers; the real node never requested a model; a declined work order starved the node; a verifier node demoted
@@ -70,11 +78,18 @@ node after a reboot; a heavy-job limit that was a count, not a lock; twelve work
 
 ## 6. THE GATES (the only things that stop the Director)
 
-**A — Work PC (tomorrow).** On the Work PC, from a checkout of this branch at `621b931f` or later:
+**A — Work PC.** On the Work PC, from a FRESH clone of this branch at a commit that contains `package-lock.json` (the
+2026-09-24 packaging fix; before it a fresh clone could not `npm ci` - ledger 217):
+0. `git clone --branch factory/computer-agnostic-control-plane https://github.com/Steppe-AI-Inc/brain-os.git brain-os-factory-cp`,
+   `git rev-parse HEAD` equal to the SHA the founder handed over, then `npm ci` (installs exactly the committed lock; the node itself
+   needs only `pg`, the acceptance harnesses need the dev packages too). `node scripts/factory-runner/deps.mjs` must print
+   "runtime dependencies installed at their locked versions";
 1. copy `runner.env` and `supabase-root-2021-ca.crt` into `%USERPROFILE%\.brain-factory\` there. Nothing is edited: every
    reader goes through `scripts/factory-runner/runner-env.mjs`, which resolves the CA path recorded on this PC to the copy beside
    the env file on that PC (proved against the live plane with a foreign path);
-2. `powershell -ExecutionPolicy Bypass -File scripts\factory-runner\install-autostart.ps1 -Role verifier -Start`, then `-Status`;
+2. `powershell -ExecutionPolicy Bypass -File scripts\factory-runner\install-autostart.ps1 -Preflight` (checks only; exit 0 needed),
+   then `... -Role verifier -Start`, then `-Status`. The install refuses by name if dependencies are missing, and the supervisor exits
+   5 naming `npm ci` rather than crash-looping;
 3. back on the Home PC: `node qa/factory/two_machine_real.mjs nodes` (both ALIVE, two hostnames), then
    `node qa/factory/two_machine_real.mjs run` → expect **TWO MACHINES**; then `node qa/factory/factory_v1_acceptance.mjs`
    (with the env loaded) → the real-failover, scheduling and verification rows turn OK. A third machine (laptop) bootstrapped

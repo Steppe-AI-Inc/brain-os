@@ -23,7 +23,16 @@ const git = (args, cwd) => execFileSync('git', args, { cwd, encoding: 'utf8', st
 const work = mkdtempSync(join(tmpdir(), 'factory-pkg-mut-'));
 const head = git(['rev-parse', 'HEAD'], ROOT);
 let n = 0;
-const clone = (name, at = head) => { const d = join(work, name); git(['clone', '--quiet', '--no-hardlinks', ROOT, d], work); git(['checkout', '--quiet', at], d); return d; };
+// SPARSE CLONES, DELETED AS SOON AS JUDGED. The first --fresh run kept a dozen full clones until the end and filled the disk
+// ("No space left on device" mid-clone, 2026-09-24). A mutant needs only the Factory's own paths; the regression is told --sparse too.
+const clone = (name, at = head) => {
+  const d = join(work, name);
+  git(['clone', '--quiet', '--no-hardlinks', '--no-checkout', ROOT, d], work);
+  git(['sparse-checkout', 'set', '--cone', 'scripts', 'qa/factory', 'supabase/control-plane'], d);
+  git(['checkout', '--quiet', at], d);
+  return d;
+};
+const drop = (d) => { try { rmSync(d, { recursive: true, force: true }); } catch { /* windows lock: removed with the work dir at the end */ } };
 const commitAll = (d, msg) => { git(['add', '-A'], d); git(['-c', 'user.name=mutant', '-c', 'user.email=mutant@example.invalid', 'commit', '--quiet', '--no-verify', '-m', msg], d); };
 const edit = (d, file, fn) => { const p = join(d, file); writeFileSync(p, fn(readFileSync(p, 'utf8'))); };
 const editJson = (d, file, fn) => edit(d, file, (s) => JSON.stringify(fn(JSON.parse(s)), null, 2) + '\n');
@@ -35,7 +44,8 @@ const runRegression = (d, extra = []) => {
 const results = [];
 const expectRed = (id, label, d, rows, extra = []) => {
   n++;
-  const r = runRegression(d, extra);
+  const r = runRegression(d, extra.includes('--static') ? extra : [...extra, '--sparse']);
+  drop(d);
   const killed = r.rc === 1 && rows.every((row) => r.failed.includes(row));
   results.push({ id, killed });
   console.log((killed ? 'KILLED  ' : 'SURVIVED') + ' ' + id + ' ' + label + ' -> expected red ' + rows.join('+') + '; failed rows: ' + (r.failed.join(', ') || 'none') + ' (rc ' + r.rc + ')');
@@ -44,7 +54,7 @@ const expectRed = (id, label, d, rows, extra = []) => {
 
 try {
   // control: HEAD unmutated must be green on the static rows
-  { const d = clone('control'); const r = runRegression(d, ['--static']); const green = r.rc === 0 && r.failed.length === 0; results.push({ id: 'C0', killed: green }); console.log((green ? 'GREEN   ' : 'RED     ') + ' C0 control (HEAD, no mutation) must pass every static row; failed: ' + (r.failed.join(', ') || 'none')); }
+  { const d = clone('control'); const r = runRegression(d, ['--static']); drop(d); const green = r.rc === 0 && r.failed.length === 0; results.push({ id: 'C0', killed: green }); console.log((green ? 'GREEN   ' : 'RED     ') + ' C0 control (HEAD, no mutation) must pass every static row; failed: ' + (r.failed.join(', ') || 'none')); }
 
   { const d = clone('m1'); git(['rm', '--cached', '--quiet', 'package-lock.json'], d); appendFileSync(join(d, '.gitignore'), '\npackage-lock.json\n'); commitAll(d, 'mutant: lock untracked and ignored');
     expectRed('M1', 'package-lock.json untracked and ignored', d, ['K1'], ['--static']); }
