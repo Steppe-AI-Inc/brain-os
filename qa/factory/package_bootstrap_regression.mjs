@@ -62,9 +62,39 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const eq = (a, b) => JSON.stringify(a || {}) === JSON.stringify(b || {});
 const sortKeys = (o) => Object.fromEntries(Object.entries(o || {}).sort(([a], [b]) => a.localeCompare(b)));
 
-// ---- the source scan: every bare package specifier, static, dynamic, require, re-export --------------------------------
+// ---- the source scan: every bare package the code LOADS - parsed, not grepped -----------------------------------------
+// The first version matched import-shaped text with a regular expression and, on its own mutation proof's control, reported
+// `left-pad` as an import - the specifier sat inside a string literal that contains a line of code. A text scan cannot tell code
+// from text, so the source is parsed (acorn, the pinned dev dependency) and only real loads are collected: import and
+// export-from declarations, import() with a constant specifier, and require() with a constant argument. A file that does not
+// parse is itself a failure, never a silent skip.
+const { parse: parseJs } = await import('acorn');
 const PKG_NAME = /^(?:@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/;
 const BUILTINS = new Set(builtinModules);
+function specifiersOf(source) {
+  let ast = null, lastError = null;
+  for (const sourceType of ['module', 'script']) {
+    try { ast = parseJs(source, { ecmaVersion: 'latest', sourceType, allowHashBang: true, allowAwaitOutsideFunction: true, allowReturnOutsideFunction: true }); break; } catch (e) { lastError = e; }
+  }
+  if (!ast) throw lastError;
+  const specs = [];
+  const constant = (n) => (n && n.type === 'Literal' && typeof n.value === 'string') ? n.value
+    : (n && n.type === 'TemplateLiteral' && n.expressions.length === 0 ? n.quasis[0].value.cooked : null);
+  const visit = (node) => {
+    if (!node || typeof node.type !== 'string') return;
+    if ((node.type === 'ImportDeclaration' || node.type === 'ExportAllDeclaration' || node.type === 'ExportNamedDeclaration') && node.source) specs.push(node.source.value);
+    else if (node.type === 'ImportExpression') { const c = constant(node.source); if (c !== null) specs.push(c); }
+    else if (node.type === 'CallExpression' && node.callee.type === 'Identifier' && node.callee.name === 'require' && node.arguments.length) { const c = constant(node.arguments[0]); if (c !== null) specs.push(c); }
+    for (const key of Object.keys(node)) {
+      if (key === 'loc' || key === 'range') continue;
+      const v = node[key];
+      if (Array.isArray(v)) v.forEach(visit); else if (v && typeof v === 'object' && typeof v.type === 'string') visit(v);
+    }
+  };
+  visit(ast);
+  return specs;
+}
+const unparsed = [];
 function scanImports(root, dir) {
   const found = new Map();
   const walk = (d) => {
@@ -72,16 +102,15 @@ function scanImports(root, dir) {
       const p = join(d, e.name);
       if (e.isDirectory()) { if (e.name !== 'node_modules') walk(p); continue; }
       if (!/\.(mjs|js|cjs)$/.test(e.name)) continue;
-      const s = readFileSync(p, 'utf8');
-      const re = /(?:\bimport\s+(?:[^'"()]*?\s+from\s+)?|\bimport\s*\(\s*|\brequire\s*\(\s*|\bexport\s+[^'"]*?\s+from\s+)['"]([^'"]+)['"]/g;
-      let m;
-      while ((m = re.exec(s))) {
-        const spec = m[1];
+      const rel = relative(root, p).split(sep).join('/');
+      let specs;
+      try { specs = specifiersOf(readFileSync(p, 'utf8')); } catch (err) { unparsed.push(rel + ': ' + String(err && err.message || err).slice(0, 120)); continue; }
+      for (const spec of specs) {
         if (spec.startsWith('node:') || spec.startsWith('.') || spec.startsWith('/') || /^[A-Za-z]:/.test(spec) || spec.startsWith('file:')) continue;
         const name = spec.startsWith('@') ? spec.split('/').slice(0, 2).join('/') : spec.split('/')[0];
-        if (!PKG_NAME.test(name) || BUILTINS.has(name)) continue; // code inside strings, and builtins imported without node:
+        if (!PKG_NAME.test(name) || BUILTINS.has(name)) continue; // builtins imported without the node: prefix
         if (!found.has(name)) found.set(name, new Set());
-        found.get(name).add(relative(root, p).split(sep).join('/'));
+        found.get(name).add(rel);
       }
     }
   };
@@ -117,8 +146,9 @@ const harnessImports = scanImports(ROOT, 'qa/factory');
   const deps = pkg.dependencies || {}, dev = pkg.devDependencies || {};
   const missingRuntime = [...runtimeImports].filter(([n]) => !(n in deps)).map(([n, f]) => n + (n in dev ? ' (declared only as dev - a --omit=dev node cannot load it)' : ' (undeclared)') + ' <- ' + [...f].join(', '));
   const missingHarness = [...harnessImports].filter(([n]) => !(n in deps) && !(n in dev)).map(([n, f]) => n + ' <- ' + [...f].join(', '));
-  check('K3 every package the Factory imports is declared: runtime ' + [...runtimeImports.keys()].join(', ') + ' in dependencies; harness ' + [...harnessImports.keys()].join(', ') + ' in dependencies or devDependencies',
-    runtimeImports.size > 0 && missingRuntime.length === 0 && missingHarness.length === 0, [...missingRuntime, ...missingHarness].join(' | '));
+  check('K3 every package the Factory imports is declared (parsed, not grepped): runtime ' + [...runtimeImports.keys()].join(', ') + ' in dependencies; harness ' + [...harnessImports.keys()].join(', ') + ' in dependencies or devDependencies',
+    runtimeImports.size > 0 && missingRuntime.length === 0 && missingHarness.length === 0 && unparsed.length === 0,
+    [...missingRuntime, ...missingHarness, ...unparsed.map((u) => 'does not parse: ' + u)].join(' | '));
 }
 { // K4
   const exact = /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/;
