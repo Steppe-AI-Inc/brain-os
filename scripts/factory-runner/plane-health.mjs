@@ -98,7 +98,8 @@ export async function planeHealth({ role: stated = roleArg } = {}) {
       const held = (await c.query('select security_role from factory.nodes where node_id = $1', [nodeId()])).rows[0];
       if (!role) role = held ? held.security_role : 'generic';
       if (!ROLES.includes(role)) throw new Error('unknown role ' + role + ' (generic | verifier | release_broker)');
-      await registerNode({ nodeId: nodeId(), capabilities: capabilities(), securityRole: role, platform: process.platform + ' ' + hostname(), agentVersion: process.version });
+      // registered without liveness: only a working node stamps it (this check made a dead node read ALIVE - final verification)
+      await registerNode({ nodeId: nodeId(), capabilities: capabilities(), securityRole: role, platform: process.platform + ' ' + hostname(), agentVersion: process.version, stamp: false });
       const me = (await c.query('select security_role from factory.nodes where node_id = $1', [nodeId()])).rows[0];
       say(me && me.security_role === role, 'registered on the plane as ' + role + ' with hostname ' + hostname()
         + (!stated && held ? ' (the role the plane holds, kept - pass --role to state one)' : held && held.security_role !== role ? ' (the plane held ' + held.security_role + '; a running worker of this node re-asserts its own role within a minute)' : ''));

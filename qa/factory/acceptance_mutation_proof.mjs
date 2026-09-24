@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// EACH ROW GOES RED ON THE DEFECT IT NAMES. For the rows of acceptance.mjs (M-Q) and node_truth_acceptance.mjs (N1-N7) added by
-// the independent verification of 2026-09-24, every fix is reverted - alone - in a sparse clone of HEAD, and the suite that
+// EACH ROW GOES RED ON THE DEFECT IT NAMES. For the rows of acceptance.mjs (M-S) and node_truth_acceptance.mjs (N1-N11) added by
+// the independent verifications of 2026-09-24, every fix is reverted - alone - in a sparse clone of HEAD, and the suite that
 // owns the row is run there: the named row must FAIL. A row that stays green on its own defect proves nothing.
 //
 //   node qa/factory/acceptance_mutation_proof.mjs [ID ...]      all mutants, or only the named ones
@@ -27,23 +27,36 @@ const MUTANTS = [
   { id: 'N1', suite: NT, what: 'health and plane-health re-register with a defaulted role', edits: [
     [NODE, '    const role = held ? held.security_role : (stated || "generic");', '    const role = nodeRole();'],
     ['scripts/factory-runner/plane-health.mjs', "const roleArg = args.includes('--role') ? args[args.indexOf('--role') + 1] : null;", "const roleArg = args.includes('--role') ? args[args.indexOf('--role') + 1] : (process.env.FACTORY_NODE_ROLE || 'generic');"]] },
-  { id: 'N2', suite: NT, what: 'the worker never re-asserts its role', edits: [[NODE, "set last_heartbeat_at = now(), security_role = $2 from factory.nodes o", "set last_heartbeat_at = now(), security_role = o.security_role from factory.nodes o"]] },
+  { id: 'N1', suite: NT, what: 'a health check stamps liveness (a dead node reads ALIVE)', label: 'N1L', edits: [[NODE, "      platform: process.platform + ' ' + hostname(), agentVersion: process.version, stamp: false });", "      platform: process.platform + ' ' + hostname(), agentVersion: process.version });"]] },
+  { id: 'N2', suite: NT, what: 'the worker never re-asserts its role', edits: [[NODE, "set last_heartbeat_at = now(), security_role = $2 from was", "set last_heartbeat_at = now(), security_role = was.security_role from was"]] },
   { id: 'N3', suite: NT, what: 'the handler completes an action it does not know', edits: [['scripts/factory-runner/handlers/factory-acceptance.mjs', '  if (!ACTIONS.includes(p.action)) {', '  if (false) {']] },
   { id: 'N4', suite: NT, what: 'a failed run leaves its work order claimed', edits: [[CLAIM, "       where work_order_id in (select work_order_id from fin))\n    select work_order_id from fin", "       where $2 = 'done' and work_order_id in (select work_order_id from fin))\n    select work_order_id from fin"]] },
   { id: 'N5', suite: NT, what: 'a busy node stamps nothing on its node record', edits: [
     [CLAIM, "       where run_id in (select run_id from run)),\n    stamped as (\n      update factory.nodes set last_heartbeat_at = now()\n       where node_id = $2 and exists (select 1 from run))", "       where run_id in (select run_id from run))"],
     [NODE, '    nodeBeat(id).then((b) =>', '    Promise.resolve({ found: false }).then((b) =>']] },
   { id: 'N6', suite: NT, what: 'one transient plane error ends the worker', edits: [[NODE, "    const run = await retryTransient(() => claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel, workTypes }), 'claim', log);", '    const run = await claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel, workTypes });']] },
-  { id: 'N7', suite: NT, what: 'the backoff resets only after ten minutes of uptime', edits: [['scripts/factory-runner/node-supervisor.mjs', 'status.registeredAt = new Date().toISOString(); status.consecutiveFailures = 0; writeStatus(status);', 'status.registeredAt = new Date().toISOString(); writeStatus(status);']] },
+  { id: 'N7', suite: NT, what: 'the backoff resets only after ten minutes of uptime', edits: [['scripts/factory-runner/node-supervisor.mjs', 'status.readyAt = new Date().toISOString(); status.consecutiveFailures = 0; writeStatus(status);', 'status.readyAt = new Date().toISOString(); writeStatus(status);']] },
+  { id: 'N8', suite: NT, what: 'the backoff resets on registration, and registration stamps liveness (a claim-failing worker crash-loops ALIVE)', edits: [
+    ['scripts/factory-runner/node-supervisor.mjs', '/\\] ready: first claim cycle completed/.test(tail)', '/\\] registered; capabilities /.test(tail)'],
+    [NODE, "platform: process.platform + ' ' + hostname(), agentVersion: process.version, stamp: false });\n  await retryTransient(register, 'registration', log);", "platform: process.platform + ' ' + hostname(), agentVersion: process.version });\n  await retryTransient(register, 'registration', log);"]] },
+  { id: 'N9', suite: NT, what: 'a second worker runs under the same node identity', edits: [[NODE, '      if (!wl.held) {', '      if (false) {']] },
+  { id: 'N9b', suite: NT, what: 'a bare worker runs beside the supervisor of the same node', edits: [[NODE, '      if (sup && sup.instance !== mine) {', '      if (false) {']] },
+  { id: 'N10', suite: NT, what: 'the handler acts on malformed arguments', edits: [['scripts/factory-runner/handlers/factory-acceptance.mjs', '  if (bad) return {', '  if (false) return {']] },
+  { id: 'N10', suite: NT, what: 'a data exception inside a run is retried forever', label: 'N10D', edits: [[NODE, '      if (/^22/.test(code)) {', '      if (false) {']] },
+  { id: 'N11', suite: NT, what: 'a busy claim lock is silent', edits: [[NODE, '    noteBusy();\n', '']] },
+  { id: 'R', suite: ACC, what: 'a close that is never answered hangs the worker', edits: [[DB, 'export async function write(sql, params = []) {\n  assertAllowed(sql);\n  const client = await connect();\n  try { return await client.query(sql, params); } finally { await close(client); }', 'export async function write(sql, params = []) {\n  assertAllowed(sql);\n  const client = await connect();\n  try { return await client.query(sql, params); } finally { await client.end(); }']] },
+  { id: 'S', suite: ACC, what: 'a repeated or NULL surface starves the plane', edits: [
+    [CLAIM, "      if ((wo.owned_surface || []).some((s) => typeof s !== 'string' || !s.trim())) {", '      if (false) {'],
+    [CLAIM, '      wo.owned_surface = [...new Set(wo.owned_surface || [])];\n', '']] },
 ];
 const git = (args, cwd) => spawnSync('git', args, { cwd, encoding: 'utf8' });
 const head = git(['rev-parse', 'HEAD'], ROOT).stdout.trim();
 const lf = (s) => s.split('\r\n').join('\n');
 const pick = process.argv.slice(2);
-const chosen = MUTANTS.filter((m) => !pick.length || pick.includes(m.id));
+const chosen = MUTANTS.filter((m) => !pick.length || pick.includes(m.label || m.id));
 // every anchor, in HEAD's committed text, exactly once
 const missing = [];
-for (const m of chosen) for (const [file, from] of m.edits) { const src = lf(git(['show', head + ':' + file], ROOT).stdout || ''); if (src.split(from).length !== 2) missing.push(m.id + ' ' + file + ': ' + from.slice(0, 70)); }
+for (const m of chosen) for (const [file, from] of m.edits) { const src = lf(git(['show', head + ':' + file], ROOT).stdout || ''); if (src.split(from).length !== 2) missing.push((m.label || m.id) + ' ' + file + ': ' + from.slice(0, 70)); }
 if (missing.length) { console.log('MUTATION ANCHORS MISSING - the proof would test nothing:\n  ' + missing.join('\n  ')); process.exit(2); }
 console.log('acceptance mutation proof on ' + head + ' (' + chosen.length + ' mutants)');
 const results = [];
@@ -60,8 +73,8 @@ for (const m of chosen) {
   const out = (r.stdout || '') + (r.stderr || '');
   const red = new RegExp('^FAIL ' + m.id + ' ', 'm').test(out);
   const summary = (out.match(/(factory acceptance|node_truth_acceptance): .*/) || ['no summary (exit ' + r.status + ')'])[0];
-  results.push({ id: m.id, killed: red });
-  console.log((red ? 'KILLED   ' : 'SURVIVED ') + m.id + ' (' + m.what + ') - ' + summary);
+  results.push({ id: m.label || m.id, killed: red });
+  console.log((red ? 'KILLED   ' : 'SURVIVED ') + (m.label || m.id) + ' (' + m.what + ') - ' + summary);
   if (process.platform === 'win32') spawnSync('powershell', ['-NoProfile', '-Command', "(Get-Item -LiteralPath '" + join(S, 'node_modules') + "').Delete()"]);
   try { rmSync(S, { recursive: true, force: true }); } catch { /* windows lock */ }
 }

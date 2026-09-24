@@ -12,8 +12,8 @@
 //
 // It reads FACTORY_RUNNER_PG_URL from the env file (default %USERPROFILE%/.brain-factory/runner.env, the file
 // provision-control-plane.mjs --write-env produced), never prints it, and runs `node.mjs start` as a child process. When
-// the child exits for any reason it is restarted with bounded backoff (5 s doubling to 5 min; a child that REACHED THE PLANE -
-// it logs its registration - or lived ten minutes resets the backoff). It stops only when asked: --stop (over its control pipe), a `.factory/node.stop` file,
+// the child exits for any reason it is restarted with bounded backoff (5 s doubling to 5 min; a child that completed a CLAIM
+// CYCLE - it logs "ready:" - or lived ten minutes resets the backoff). It stops only when asked: --stop (over its control pipe), a `.factory/node.stop` file,
 // SIGINT/SIGTERM/SIGHUP, or - when the scheduled task launched it through a headless console host - that host exiting.
 //
 // ONE SUPERVISOR PER STATE DIR, BY LOCK. It holds an exclusive control pipe named from its state dir (proc.mjs) for its whole
@@ -104,7 +104,8 @@ const shutdown = (why) => { if (stopping) return; stopping = true; log('stopping
 const held = await holdControlPipe(STATE_DIR,
   () => ({ pid: process.pid, instance: INSTANCE, root: ROOT, stateDir: STATE_DIR, role: ROLE, envFile: ENV_FILE, logDir: LOG_DIR,
     state: status ? status.state : 'starting', childPid: status ? status.childPid : null, restarts: status ? status.restarts : 0, startedAt: status ? status.startedAt : null,
-    nextStartAt: status && status.state === 'backoff' ? status.nextStartAt : null, registeredAt: status ? status.registeredAt || null : null }),
+    nextStartAt: status && status.state === 'backoff' ? status.nextStartAt : null, readyAt: status ? status.readyAt || null : null,
+    childStartedAt: status && status.childPid ? status.childStartedAt : null }),
   () => shutdown('stop requested over the control pipe'));
 if (!held.held) {
   const other = await askSupervisor(STATE_DIR, 'whois');
@@ -207,15 +208,17 @@ while (!stopRequested()) {
     cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true,
     env: workerEnv(),
   });
-  status.childPid = child.pid; status.childStartedAt = new Date().toISOString(); status.state = 'running'; status.nextStartAt = null; status.registeredAt = null; writeStatus(status);
+  status.childPid = child.pid; status.childStartedAt = new Date().toISOString(); status.state = 'running'; status.nextStartAt = null; status.readyAt = null; writeStatus(status);
   log('node started (pid ' + child.pid + ')');
   let tail = '';
-  // A WORKER THAT REACHED THE PLANE RESETS THE BACKOFF. Only ten minutes of uptime did: a run of short network losses, each ending
-  // a worker that had registered fine, walked the backoff up to 5 minutes while the plane was reachable (verification round 4).
+  // A WORKER THAT COMPLETED A CLAIM CYCLE RESETS THE BACKOFF. Only ten minutes of uptime did: a run of short losses walked the
+  // backoff up to 5 minutes while the plane was reachable (verification round 4). Not the registration: a worker that registers
+  // and then fails every claim (a revoked grant, a missing column) reset it every time and crash-looped every 6 s forever (final
+  // verification 2026-09-24). The worker prints "ready:" once its first claim cycle is done.
   const pipe = (stream) => stream.on('data', (d) => {
     tail = (tail + d).slice(-4096);
     try { writeFileSync(logName(), scrub(d), { flag: 'a' }); } catch { /* disk */ }
-    if (!status.registeredAt && /\] registered; capabilities /.test(tail)) { status.registeredAt = new Date().toISOString(); status.consecutiveFailures = 0; writeStatus(status); }
+    if (!status.readyAt && /\] ready: first claim cycle completed/.test(tail)) { status.readyAt = new Date().toISOString(); status.consecutiveFailures = 0; writeStatus(status); }
   });
   pipe(child.stdout); pipe(child.stderr);
   // while the worker runs, the stop file is watched here - the loop is otherwise waiting on the child

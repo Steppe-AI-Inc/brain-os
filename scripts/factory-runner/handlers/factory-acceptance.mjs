@@ -41,10 +41,20 @@ export async function factoryAcceptance({ run, workOrder, checkpoint, nodeId, lo
   if (!ACTIONS.includes(p.action)) {
     return { status: 'failed', terminationReason: 'factory_acceptance_unknown_action', summary: 'action ' + JSON.stringify(p.action ?? null) + ' is not one ' + HANDLER_VERSION + ' carries out (' + ACTIONS.join(' | ') + ') - nothing was done on ' + host };
   }
+  // ...and ITS ARGUMENTS, before anything is done: a verify naming a run id that is not a uuid threw inside the database on every
+  // attempt and was retried every lease period forever, and a hold of "30 seconds" was reported done as a 10 s hold (final
+  // verification 2026-09-24)
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const bad = p.action === 'hold' && !(typeof p.seconds === 'number' && Number.isFinite(p.seconds) && p.seconds >= 1 && p.seconds <= 600) ? 'hold needs "seconds": a number from 1 to 600'
+    : p.action === 'die' && !(typeof p.dieOn === 'string' && p.dieOn) ? 'die needs "dieOn": the node id that dies'
+    : p.action === 'die' && p.takeoverNode !== undefined && !(typeof p.takeoverNode === 'string' && p.takeoverNode) ? 'die: "takeoverNode" must be a node id'
+    : p.action === 'verify' && !(typeof p.authoringRunId === 'string' && UUID.test(p.authoringRunId)) ? 'verify needs "authoringRunId": a run id (uuid)'
+    : null;
+  if (bad) return { status: 'failed', terminationReason: 'factory_acceptance_bad_argument', summary: bad + ' (got ' + JSON.stringify(p).slice(0, 120) + ') - nothing was done on ' + host };
   const base = { hostname: host, nodeId, action: p.action, title: workOrder.title, handler: HANDLER_VERSION };
 
   if (p.action === 'hold') {
-    const seconds = Math.min(600, Math.max(1, Number(p.seconds) || 10));
+    const seconds = p.seconds;
     await checkpoint('handlers/factory-acceptance.mjs', 'wave', { ...base, seconds });
     log('holding ' + String(run.work_order_id).slice(0, 8) + ' for ' + seconds + ' s');
     await sleep(seconds * 1000);

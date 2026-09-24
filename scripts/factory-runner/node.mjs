@@ -68,9 +68,11 @@ export const NODE_STALE_MS = Math.max(2000, Number(process.env.FACTORY_NODE_STAL
  *  record - a health check from a plain shell used to demote a running verifier to generic (verification round 4) - is undone
  *  within one beat, and said. @returns {Promise<{found:boolean, was:string|null}>} */
 export async function nodeBeat(id, role = nodeRole()) {
-  // the self-join reads the row as it was before this update: the role the plane held until now
+  // the previous role is read UNDER THE ROW LOCK (for update waits for a concurrent writer and then reads what it committed): a
+  // plain self-join read its snapshot, so a demotion committed during the beat was overwritten without being said (final
+  // verification 2026-09-24)
   const r = await db.write(
-    'update factory.nodes n set last_heartbeat_at = now(), security_role = $2 from factory.nodes o where n.node_id = $1 and o.node_id = $1 returning o.security_role as was',
+    'with was as (select node_id, security_role from factory.nodes where node_id = $1 for update) update factory.nodes n set last_heartbeat_at = now(), security_role = $2 from was where n.node_id = was.node_id returning was.security_role as was',
     [id, role]);
   return { found: r.rows.length === 1, was: r.rows.length ? r.rows[0].was : null };
 }
@@ -132,9 +134,12 @@ export async function nodeStatus() {
     if (!r.rows.length) return { state: 'NOT REGISTERED', ageMs: null, role: null, host: null, tls, plane, nodeId: id };
     const row = r.rows[0];
     const ageMs = Number(row.age_ms);
-    let admission = null;
+    let admission = null, claimBusy = null;
     try { admission = JSON.parse(readFileSync(join(STATE_DIR, 'node-admission.json'), 'utf8')); } catch { /* never recorded */ }
-    return { state: ageMs < NODE_STALE_MS ? 'ALIVE' : 'STALE', ageMs, role: row.security_role, host: String(row.platform || '').split(' ')[1] || null, tls, plane, nodeId: id, lastHeartbeatAt: row.last_heartbeat_at, admission };
+    try { claimBusy = JSON.parse(readFileSync(join(STATE_DIR, 'node-claim-busy.json'), 'utf8')); } catch { /* never recorded */ }
+    // registered without liveness (a check, or a worker that never completed a claim cycle) starts at the epoch
+    const neverBeaten = new Date(row.last_heartbeat_at).getTime() <= 0;
+    return { state: !neverBeaten && ageMs < NODE_STALE_MS ? 'ALIVE' : 'STALE', ageMs: neverBeaten ? null : ageMs, neverBeaten, role: row.security_role, host: String(row.platform || '').split(' ')[1] || null, tls, plane, nodeId: id, lastHeartbeatAt: neverBeaten ? null : row.last_heartbeat_at, admission, claimBusySince: claimBusy && claimBusy.since ? claimBusy.since : null };
   } catch (e) {
     return { state: 'UNREACHABLE', ageMs: null, role: null, host: null, tls: null, plane, nodeId: id, error: errText(e).slice(0, 160) };
   }
@@ -220,17 +225,19 @@ export function ensureWorktree({ runId, baseCommit, branch }) {
 /** 8. Renew the lease on a timer for as long as the work is running (the heartbeat also stamps the node record - claim.mjs). */
 export function startHeartbeat({ runId, id, leaseSeconds = DEFAULT_LEASE_SECONDS }) {
   const everyMs = Math.max(5000, Math.floor((leaseSeconds * 1000) / 3));
-  let lost = false;
+  let lost = false, stopped = false;
   const timer = setInterval(() => {
+    if (stopped) return;
     heartbeat({ runId, nodeId: id, leaseSeconds })
       // a lost lease is said once; the completion fence (claim.mjs completeRun) keeps this run's result off the work order
-      .then((ok) => { if (!ok && !lost) { lost = true; console.log('[' + String(id).slice(0, 13) + '] run ' + String(runId).slice(0, 8) + ' LOST its lease (taken over by another node); its result will not complete the work order'); } })
+      // (never said of a run this node has already finished - its beat may land after the completion)
+      .then((ok) => { if (!ok && !lost && !stopped) { lost = true; console.log('[' + String(id).slice(0, 13) + '] run ' + String(runId).slice(0, 8) + ' LOST its lease (taken over by another node); its result will not complete the work order'); } })
       .catch(() => { /* the lease will expire; that is the design */ });
     // ...and the role, while busy too (a long run no longer leaves a demotion standing until it ends)
     nodeBeat(id).then((b) => { if (b.found && b.was !== nodeRole()) console.log('[' + String(id).slice(0, 13) + '] the plane held role ' + b.was + ' for this node - re-asserted ' + nodeRole()); }, () => { /* the next beat */ });
   }, everyMs);
   if (typeof timer.unref === 'function') timer.unref();
-  return () => clearInterval(timer);
+  return () => { stopped = true; clearInterval(timer); };
 }
 
 /**
@@ -251,7 +258,9 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
   // re-registered the node as `generic`, so a Work PC bootstrapped as the verifier was silently demoted the first
   // time it started - and the claim would then have refused it verifier work while looking healthy.
   const log = (m) => console.log('[' + id.slice(0, 13) + '] ' + m);
-  const register = () => registerNode({ nodeId: id, capabilities: caps, securityRole: nodeRole(), platform: process.platform + ' ' + hostname(), agentVersion: process.version });
+  // registered WITHOUT liveness: the node reads ALIVE only once it has completed a claim cycle (below). A worker that registered
+  // and then failed every claim read ALIVE while it crash-looped (final verification 2026-09-24).
+  const register = () => registerNode({ nodeId: id, capabilities: caps, securityRole: nodeRole(), platform: process.platform + ' ' + hostname(), agentVersion: process.version, stamp: false });
   await retryTransient(register, 'registration', log);
   log('security role ' + nodeRole() + ' (FACTORY_NODE_ROLE); host ' + hostname());
   log('registered; capabilities ' + JSON.stringify(caps) + '; head ' + String(repo.head).slice(0, 8));
@@ -282,9 +291,28 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
   // but the absence of a worker after a reboot - two facts one timestamp could not tell apart). Every NODE_BEAT_MS the
   // idle loop stamps last_heartbeat_at; `node.mjs status` reads it back.
   let lastBeat = Date.now();
+  // A CLAIM LOCK THAT STAYS BUSY IS SAID, like a refused admission: a claim that cannot take the plane-wide claim lock returns
+  // "nothing claimed", and a node behind a claimer holding it read ALIVE and idle while nothing was claimed (final verification
+  // 2026-09-24). Changes are logged; the state is written to <state dir>/node-claim-busy.json, which status prints.
+  let busySeen = null;
+  const noteBusy = () => {
+    const since = claimWork.lastBusy || null;
+    if (since === busySeen) return;
+    busySeen = since;
+    log(since ? 'claim lock BUSY since ' + since + ' - not claiming: another claimer holds the plane-wide claim lock past the lock timeout' : 'claim lock free again - claiming');
+    try { mkdirSync(STATE_DIR, { recursive: true }); writeFileSync(join(STATE_DIR, 'node-claim-busy.json'), JSON.stringify({ since, at: new Date().toISOString() })); } catch { /* status only */ }
+  };
+  let ready = false;
   for (let i = 0; i < maxIterations; i++) {
     const run = await retryTransient(() => claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel, workTypes }), 'claim', log);
     noteAdmission();
+    noteBusy();
+    // READY = ONE COMPLETED CLAIM CYCLE. Only now is liveness stamped, and the line below is what the supervisor resets its
+    // backoff on - not the registration, which a worker that fails every claim also reaches (final verification 2026-09-24).
+    if (!ready) {
+      try { await nodeBeat(id); ready = true; lastBeat = Date.now(); log('ready: first claim cycle completed - the node reads ALIVE on the plane'); }
+      catch (e) { log('node heartbeat failed: ' + errText(e).slice(0, 100)); }
+    }
     if (!run) {
       if (once) { log('nothing eligible'); break; }
       if (Date.now() - lastBeat >= NODE_BEAT_MS) {
@@ -345,8 +373,19 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
       // A thrown worker does NOT mark the run failed: it may be a transient provider error, and the lease
       // is the honest arbiter. Leaving it to expire lets any eligible node resume from the last checkpoint,
       // which is the behaviour a crashed process should have.
-      log('run ' + String(run.run_id).slice(0, 8) + ' threw: ' + errText(e).slice(0, 120));
-      log('leaving the lease to expire so the work is recoverable rather than lost');
+      // EXCEPT A DATA EXCEPTION (SQLSTATE class 22): the same input fails the same way on every attempt, and a verify naming a run id
+      // that is not a uuid was re-claimed and re-thrown every lease period, holding its dependents forever (final verification
+      // 2026-09-24). That run fails, by name, and its work order with it.
+      const code = String((e && e.code) || '');
+      if (/^22/.test(code)) {
+        try {
+          await completeRun({ runId: run.run_id, nodeId: id, status: 'failed', terminationReason: 'data_exception_' + code, summary: errText(e).slice(0, 300) });
+          log('FAILED run ' + String(run.run_id).slice(0, 8) + ' (data exception ' + code + ': ' + errText(e).slice(0, 120) + ') - the same input fails every time; its work order is failed');
+        } catch (e2) { log('run ' + String(run.run_id).slice(0, 8) + ' hit a data exception and could not be recorded failed: ' + errText(e2).slice(0, 120)); }
+      } else {
+        log('run ' + String(run.run_id).slice(0, 8) + ' threw: ' + errText(e).slice(0, 120));
+        log('leaving the lease to expire so the work is recoverable rather than lost');
+      }
     } finally {
       stopBeat();
     }
@@ -470,8 +509,10 @@ export async function health() {
     const held = (await db.read("select security_role from factory.nodes where node_id = $1", [nodeId()])).rows[0];
     const stated = process.env.FACTORY_NODE_ROLE ? nodeRole() : null;
     const role = held ? held.security_role : (stated || "generic");
+    // ...nor whether it is alive: only a working node stamps liveness (a check on a PC whose node was dead made it read ALIVE for
+    // three minutes - final verification 2026-09-24)
     await registerNode({ nodeId: nodeId(), capabilities: capabilities(), securityRole: role,
-      platform: process.platform + ' ' + hostname(), agentVersion: process.version });
+      platform: process.platform + ' ' + hostname(), agentVersion: process.version, stamp: false });
     const n = await db.read("select count(*)::int n from factory.nodes");
     say(true, (held ? "refreshed its registration, role " + role + " kept as the plane holds it" : "registered itself as " + role)
       + " (" + n.rows[0].n + " node(s) known to this control plane)");
@@ -608,14 +649,28 @@ if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
   else if (cmd === 'capabilities') { console.log(JSON.stringify(capabilities(), null, 2)); }
   else if (cmd === 'status') {
     const s = await nodeStatus();
-    const age = s.ageMs == null ? '' : ' (heartbeat ' + Math.round(s.ageMs / 1000) + ' s ago)';
+    const age = s.neverBeaten ? ' (never beaten: registered, but no worker has completed a claim cycle)' : s.ageMs == null ? '' : ' (heartbeat ' + Math.round(s.ageMs / 1000) + ' s ago)';
     console.log(s.state + age + ' — node ' + (s.nodeId ? s.nodeId.slice(0, 13) : '(none yet)') + (s.role ? ', role ' + s.role : '') + (s.host ? ', host ' + s.host : '')
       + ', plane ' + s.plane + (s.tls == null ? '' : ', tls ' + (s.tls ? 'on' : 'OFF')) + (s.error ? ' — ' + s.error : '')
-      + (s.admission && s.admission.admit === false ? ' — NOT CLAIMING: admission refused since ' + s.admission.at + ' (' + s.admission.reason + ')' : ''));
+      + (s.admission && s.admission.admit === false ? ' — NOT CLAIMING: admission refused since ' + s.admission.at + ' (' + s.admission.reason + ')' : '')
+      + (s.claimBusySince ? ' — NOT CLAIMING: the plane-wide claim lock has been busy since ' + s.claimBusySince : ''));
     if (process.argv.includes('--json')) console.log(JSON.stringify(s));
     process.exit(s.state === 'ALIVE' ? 0 : 1);
   }
   else if (cmd === 'start') {
+    // ONE WORKER PER NODE IDENTITY. A bare "node.mjs start" beside the supervised worker ran a second worker under the same node
+    // id: the two re-asserted different roles on every beat and both claimed (final verification 2026-09-24). A worker holds a
+    // lock for its state dir; and a bare start does not run while a supervisor holds that state dir. Exit 4, not REFUSED: a
+    // supervisor restarts a worker that lost this race (an orphan still dying), it does not give up.
+    {
+      const { holdControlPipe, askSupervisor } = await import('./proc.mjs');
+      const mine = process.argv.includes('--supervisor-instance') ? process.argv[process.argv.indexOf('--supervisor-instance') + 1] : null;
+      const sup = await askSupervisor(STATE_DIR, 'whois', 1500);
+      if (sup && sup.instance !== mine) { console.log('NOT STARTED - a supervisor (pid ' + sup.pid + ', role ' + sup.role + ') already runs the node of ' + STATE_DIR + ': one worker per node identity. Use install-autostart.ps1 -Status / -Stop, or give this worker its own FACTORY_STATE_DIR.'); process.exit(4); }
+      const lockDir = join(STATE_DIR, 'worker-lock'); mkdirSync(lockDir, { recursive: true });
+      const wl = await holdControlPipe(lockDir, () => ({ pid: process.pid, kind: 'worker', role: nodeRole(), instance: mine }), () => { /* the supervisor stops its worker */ });
+      if (!wl.held) { const other = await askSupervisor(lockDir, 'whois', 1500); console.log('NOT STARTED - another worker already runs the node of ' + STATE_DIR + (other ? ' (pid ' + other.pid + ', role ' + other.role + ')' : '') + ': one worker per node identity.'); process.exit(4); }
+    }
     const { factoryAcceptance } = await import('./handlers/factory-acceptance.mjs');
     // THE WORK TYPES THIS NODE CAN DO, and nothing else is claimed. factory_acceptance: the Factory's own acceptance
     // (handlers/factory-acceptance.mjs). bootstrap_probe: a work order whose whole purpose is to be claimed and completed - it

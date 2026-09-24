@@ -316,7 +316,7 @@ async function main() {
       const mode = (u.searchParams.get('sslmode') || '').toLowerCase();
       if (remote && !['require', 'verify-ca', 'verify-full'].includes(mode)) u.searchParams.set('sslmode', 'require');
     }
-    const runnerUrl = u.toString();
+    let runnerUrl = u.toString();
 
     // ---- PROVE THE BOUNDARY, as the runner, on a fresh connection --------------------------------------------------------
     const probe = new pg.Client({ connectionString: runnerUrl });
@@ -326,6 +326,10 @@ async function main() {
     console.log('proving the boundary as ' + decodeURIComponent(u.username) + ':');
     try {
       await probe.connect();
+      // THE URL NAMES WHAT THE CONNECTION USED. An admin URL without a port or a database connected through PGPORT / PGDATABASE,
+      // and the runner URL written from it named neither - every gate then refused it, and a rotation left both nodes refusing
+      // their new env file (final verification 2026-09-24).
+      u.port = String(probe.port); u.pathname = '/' + encodeURIComponent(probe.database); runnerUrl = u.toString();
       const me = (await probe.query('select current_user u, rolsuper, rolcreatedb, rolcreaterole, rolbypassrls, rolreplication from pg_roles where rolname = current_user')).rows[0];
       say(me && !me.rolsuper && !me.rolcreatedb && !me.rolcreaterole && !me.rolbypassrls && !me.rolreplication, 'connected as ' + (me && me.u) + ' with no privileged attribute');
       if (dedicatedRef) {
@@ -350,6 +354,9 @@ async function main() {
     } catch (e) { say(false, 'the runner connection failed', e.message); }
     finally { try { await probe.end(); } catch { /* closed */ } }
     if (!proved) { console.log(''); console.log('REFUSING to hand out a runner URL: the boundary did not prove. Nothing was written.'); process.exit(1); }
+    // ...and never a URL the nodes' own judge would refuse
+    { const { assessUrl } = await import('./url-judge.mjs'); const why = assessUrl(runnerUrl);
+      if (why) { console.log(''); console.log('REFUSING to hand out a runner URL the accessor refuses: ' + why + ' Nothing was written.'); process.exit(1); } }
 
     console.log('');
     if (writeEnv) {

@@ -122,14 +122,21 @@ so another node resumes the work.
 Identical on every computer. There is no Home-PC or Work-PC variant, and there must never be one.
 
 ```
-git clone <repo> && cd <repo>
-export FACTORY_RUNNER_PG_URL=...
-node scripts/factory-runner/node.mjs start
+git clone <repo> && cd <repo> && npm ci
+bash scripts/factory-runner/bootstrap-node.sh --role <generic|verifier> --env-file ~/.brain-factory/runner.env
+# Windows (every PC here): the node runs under the scheduled task, never in a terminal
+powershell -ExecutionPolicy Bypass -File scripts\factory-runner\install-autostart.ps1 -Role <generic|verifier> -Start
 ```
+
+The role is stated once, at install (`-Role`), and the running worker holds it on the plane. A bare
+`node scripts/factory-runner/node.mjs start` is for a node with no supervisor only: it does not start while a supervisor or
+another worker runs the same node identity (exit 4) - one worker per node - and it registers the role in `FACTORY_NODE_ROLE`
+(default generic). `TWO_MACHINE_CONTROL_PLANE.md` §H is the operating reference.
 
 On first run the node generates a uuid identity, persists it in `.factory/node-id`, registers itself and
 reports **derived** capabilities — each one a question with a checkable answer, because a capability list
-somebody types is one somebody forgets to update, and that failure is silent.
+somebody types is one somebody forgets to update, and that failure is silent. It reads ALIVE on the plane only once it has
+completed a claim cycle; registering alone - or running a health check - never makes a node look alive.
 
 ```
 node scripts/factory-runner/node.mjs health
@@ -151,7 +158,7 @@ factory node health
   ok   the connected role is NOT a superuser
   ok   the factory schema is present (6 tables)
   ok   can read the queue (0 work order(s))
-  ok   registered itself (1 node(s) known to this control plane)
+  ok   refreshed its registration, role generic kept as the plane holds it (1 node(s) known to this control plane)
 
 HEALTHY — this node can claim work.
 ```

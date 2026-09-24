@@ -172,6 +172,15 @@ function Get-NodeOnPlane($dir) {
   if ($j) { try { return ($j | ConvertFrom-Json) } catch { } }
   return $null
 }
+# THE PLANE MUST HAVE HEARD FROM THE CURRENT WORKER. A worker that registers and then fails every claim is restarted every few
+# seconds; each sample of "running" found a fresh worker, and the plane's ALIVE was the previous worker's (final verification
+# 2026-09-24). The node reads ALIVE only after a completed claim cycle, and that stamp must be younger than the worker now running
+# (a duration on each side, so a clock difference does not matter). $null: nothing to judge (a supervisor from before the pipe).
+function Test-HeardSinceStart($sv, $plane) {
+  if (-not $sv -or -not $sv.childStartedAt -or -not $plane -or $plane.ageMs -eq $null) { return $null }
+  $upFor = ((Get-Date) - [datetime]$sv.childStartedAt).TotalSeconds
+  return ((([double]$plane.ageMs) / 1000) -le ($upFor + 5))
+}
 # THE START IS CONFIRMED BY THE NODE, NOT BY A SAMPLE. The task's exit code says nothing (a headless console host returns 0
 # whatever happened), and one 2-second sample of "state running" read a worker that died a second later as started, and a
 # supervisor briefly in backoff as not running (verification 2026-09-24, round 3). Now: the same worker must stay up for 12 s AND
@@ -273,7 +282,11 @@ if ($Status) {
   elseif (Test-Path -LiteralPath $envPath) {
     # the node line through the task's own env file - not a URL this shell happens to carry; never printed
     Remove-Item Env:FACTORY_RUNNER_PG_URL -ErrorAction SilentlyContinue
-    $nodeLine = & $NodeExe (Join-Path $dir 'scripts\factory-runner\node.mjs') status --runner-env $envPath 2>&1 | ForEach-Object { "$_" } | Select-Object -Last 1
+    # THIS checkout's node.mjs, pointed at the owner's state dir: another checkout's code is never run from here (it ran the
+    # owner's node.mjs when -EnvFile was given - final verification 2026-09-24)
+    $env:FACTORY_STATE_DIR = Join-Path $dir '.factory'
+    $nodeLine = & $NodeExe (Join-Path $Root 'scripts\factory-runner\node.mjs') status --runner-env $envPath 2>&1 | ForEach-Object { "$_" } | Select-Object -Last 1
+    Remove-Item Env:FACTORY_STATE_DIR -ErrorAction SilentlyContinue
     # the plane's heartbeat lags a dead node by minutes; with no supervisor answering here the node is DOWN, whatever it says - and
     # with a supervisor waiting out a backoff (no worker) it is NOT RUNNING, whatever it says (it read ALIVE; verification round 4)
     if (-not $live) { "node      DOWN here (no supervisor is running) - the plane's last word: $nodeLine" }
@@ -322,7 +335,11 @@ if ($Verify) {
   $watchdog = @($task.Triggers | Where-Object { $_.CimClass.CimClassName -eq 'MSFT_TaskTimeTrigger' -and $_.Repetition.Interval }).Count -gt 0
   $plane = if ($running) { Get-NodeOnPlane $Root } else { $null }
   "watchdog  $(if ($watchdog) { 'a repeating trigger restarts a dead supervisor' } else { 'NONE - a supervisor that dies stays dead until the next logon' })"
-  if ($plane) { "plane     $($plane.state)$(if ($plane.ageMs -ne $null) { ' (heartbeat ' + [Math]::Round([double]$plane.ageMs / 1000) + ' s ago)' } else { '' }), role $($plane.role)$(if ($plane.error) { ' - ' + $plane.error } else { '' })" }
+  if ($plane) { "plane     $($plane.state)$(if ($plane.neverBeaten) { ' (never beaten: no worker has completed a claim cycle)' } elseif ($plane.ageMs -ne $null) { ' (heartbeat ' + [Math]::Round([double]$plane.ageMs / 1000) + ' s ago)' } else { '' }), role $($plane.role)$(if ($plane.error) { ' - ' + $plane.error } else { '' })" }
+  # not claiming for a reason the node records (this PC's load, another claimer holding the claim lock): said, not failed - both pass
+  if ($plane -and $plane.admission -and $plane.admission.admit -eq $false) { "claiming  NOT CLAIMING: admission refused since $($plane.admission.at) ($($plane.admission.reason))" }
+  if ($plane -and $plane.claimBusySince) { "claiming  NOT CLAIMING: the plane-wide claim lock has been busy since $($plane.claimBusySince)" }
+  $heard = Test-HeardSinceStart $sv $plane
   $problem = if (-not $enabled) { 'the task is disabled (-Stop disables it; install-autostart.ps1 -Start' + $taskHint + ' enables and starts it)' }
     elseif (-not $okAction) { 'the task action is not this checkout''s supervisor' }
     elseif (-not $watchdog) { 'the task has no watchdog trigger - re-install it (install-autostart.ps1 -Role <role> -Start' + $taskHint + ')' }
@@ -333,6 +350,7 @@ if ($Verify) {
     elseif ($sv.state -eq 'backoff') { 'the supervisor runs, but no worker does (backoff' + $(if ($sv.nextStartAt) { ' until ' + $sv.nextStartAt } else { '' }) + ') - last worker error: ' + (Get-LastWorkerError $sv.logDir) + ' - install-autostart.ps1 -Start' + $taskHint + ' restarts it now' }
     elseif ($sv.state -ne 'running') { 'the supervisor is ' + $sv.state }
     elseif (-not $plane -or $plane.state -ne 'ALIVE') { 'the worker runs, but the plane does not see the node ALIVE' + $(if ($plane) { ': ' + $plane.state + $(if ($plane.error) { ' - ' + $plane.error } else { '' }) } else { '' }) }
+    elseif ($heard -eq $false) { 'the plane has not heard from the worker now running since it started (worker pid ' + $sv.childPid + ' up ' + [Math]::Round(((Get-Date) - [datetime]$sv.childStartedAt).TotalSeconds) + ' s, last heartbeat ' + [Math]::Round([double]$plane.ageMs / 1000) + ' s ago) - a worker that keeps restarting; last worker error: ' + (Get-LastWorkerError $sv.logDir) }
     # THE ROLE THAT DECIDES WHAT THE NODE CLAIMS IS THE PLANE'S: a verifier the plane held as generic claimed no verifier work while
     # this said OK (a health check from a plain shell had re-registered it; verification round 4). The worker re-asserts its role
     # on every beat, so a mismatch that lasts is a fault.
@@ -370,8 +388,8 @@ if ($Start -and -not $RoleGiven -and -not $EnvGiven -and -not $ChangeGiven -and 
     # one sample of 'running' is not a working node: a worker hanging on its connect reads 'running' for its whole timeout
     # (verification round 4). The plane must see the node ALIVE; otherwise it is restarted and the start confirmed.
     $plane = Get-NodeOnPlane $Root
-    if ($plane -and $plane.state -eq 'ALIVE' -and $plane.role -eq $want) { "already running: supervisor pid $($sv.pid) (task '$TaskName', role $($sv.role), state $($sv.state); the plane sees the node ALIVE as $($plane.role); nothing re-installed)"; exit 0 }
-    "the supervisor (pid $($sv.pid)) runs, but the plane does not see the node ALIVE as $want ($(if ($plane) { $plane.state + ', role ' + $plane.role + $(if ($plane.error) { ' - ' + $plane.error } else { '' }) } else { 'no answer' })) - restarting it"
+    if ($plane -and $plane.state -eq 'ALIVE' -and $plane.role -eq $want -and ((Test-HeardSinceStart $sv $plane) -ne $false)) { "already running: supervisor pid $($sv.pid) (task '$TaskName', role $($sv.role), state $($sv.state); the plane sees the node ALIVE as $($plane.role); nothing re-installed)"; exit 0 }
+    "the supervisor (pid $($sv.pid)) runs, but the plane does not see its current worker ALIVE as $want ($(if ($plane) { $plane.state + ', role ' + $plane.role + $(if ((Test-HeardSinceStart $sv $plane) -eq $false) { ', not heard from the worker now running' } else { '' }) + $(if ($plane.error) { ' - ' + $plane.error } else { '' }) } else { 'no answer' })) - restarting it"
     $s4 = Stop-CheckoutSupervisor $Root; $s4 | Where-Object { $_ -is [string] }
     if ($s4[-1] -ne $true) { "REFUSED - that supervisor is still running 20 s after the stop request"; exit 4 }
     if ((Get-FactoryTask).State -eq 'Running') { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue }

@@ -63,19 +63,24 @@ export async function recordVerification({ authoringRunId, verificationRunId }) 
   }
 }
 
-/** Register (or refresh) this node. Capabilities are what the director schedules on. */
-export async function registerNode({ nodeId, capabilities = [], securityRole = 'generic', platform = '', agentVersion = '' }) {
+/** Register (or refresh) this node. Capabilities are what the director schedules on.
+ *
+ * stamp: false REGISTERS WITHOUT CLAIMING LIVENESS. A registration used to stamp last_heartbeat_at, so a health check run on a
+ * PC whose node was dead made it read ALIVE for three minutes, and a worker that registered and then failed every claim read
+ * ALIVE while it crash-looped (final verification 2026-09-24). Liveness is stamped only by what a working node does - its beat
+ * after a completed claim cycle and its run heartbeat. An unstamped new record starts at the epoch: it reads STALE, "never beaten". */
+export async function registerNode({ nodeId, capabilities = [], securityRole = 'generic', platform = '', agentVersion = '', stamp = true }) {
   if (!nodeId) throw new Error('registerNode requires a nodeId');
   await db.write(
     `insert into factory.nodes (node_id, capabilities, security_role, platform, agent_version, last_heartbeat_at)
-     values ($1, $2::jsonb, $3, $4, $5, now())
+     values ($1, $2::jsonb, $3, $4, $5, case when $6::boolean then now() else to_timestamp(0) end)
      on conflict (node_id) do update
        set capabilities = excluded.capabilities,
            security_role = excluded.security_role,
            platform = excluded.platform,
            agent_version = excluded.agent_version,
-           last_heartbeat_at = now()`,
-    [nodeId, JSON.stringify(capabilities), securityRole, platform, agentVersion]);
+           last_heartbeat_at = case when $6::boolean then now() else factory.nodes.last_heartbeat_at end`,
+    [nodeId, JSON.stringify(capabilities), securityRole, platform, agentVersion, stamp !== false]);
   return nodeId;
 }
 
@@ -134,6 +139,7 @@ async function claimInTransaction({ nodeId, lease, capabilities,
       // wait for the previous claim's commit, so the count it reads is the truth. Claims are seconds apart at Factory
       // scale; the serialization costs nothing measurable and removes a whole class of "counted, not locked" races.
       await client.query("select pg_advisory_xact_lock(hashtext('factory.claim'))");
+      claimWork.lastBusy = null; // the lock was taken: not busy (lastBusy says since when it was)
       // Expire any lease that has run out BEFORE looking for work, so a dead node's claim is visible as
       // available rather than as taken. This is the recovery path and it is deliberately part of the same
       // transaction as the claim: a reader that expires leases in a separate step can expire one and then
@@ -222,6 +228,20 @@ async function claimInTransaction({ nodeId, lease, capabilities,
       if (!picked.rows.length) { await client.query('rollback'); return null; }
       wo = picked.rows[0];
 
+      // A MALFORMED WORK ORDER DOES NOT STARVE THE PLANE. A NULL or empty surface failed the lock insert (23502) and ended the
+      // worker - every node crash-looped on the same head of the queue - and a repeated surface collided with itself (23505,
+      // read as "another node won"), so nothing behind it was ever claimed (final verification 2026-09-24). A repeat is one
+      // surface; a work order with a NULL or empty surface is declined by name and left for a human, and the next is tried.
+      if ((wo.owned_surface || []).some((s) => typeof s !== 'string' || !s.trim())) {
+        claimWork.malformed = claimWork.malformed || new Set();
+        // said once per work order per process (the claim loop runs every few seconds)
+        if (!claimWork.malformed.has(wo.work_order_id)) { claimWork.malformed.add(wo.work_order_id); console.log('[claim] declining ' + String(wo.work_order_id).slice(0, 8) + ': its owned_surface has a NULL or empty entry - fix the work order'); }
+        declined.push(wo.work_order_id);
+        wo = null;
+        continue;
+      }
+      wo.owned_surface = [...new Set(wo.owned_surface || [])];
+
       // THE RELEASE GATE MAY NOT BE SERVED BY A MODEL WITH NO EVIDENCE THAT IT FINISHES A RUN.
       //
       // model-assurance.mjs derived a model's standing from run evidence and NOTHING CONSULTED IT - a policy
@@ -305,7 +325,7 @@ async function claimInTransaction({ nodeId, lease, capabilities,
       if (String(e && e.code) === '23505') return null;
       // The claim lock was held longer than lock_timeout (another claimer, perhaps one whose connection died): nothing was
       // claimed this time; the next loop tries again, and the server ends the dead holder's idle transaction.
-      if (String(e && e.code) === '55P03') { claimWork.lastBusy = new Date().toISOString(); return null; }
+      if (String(e && e.code) === '55P03') { claimWork.lastBusy = claimWork.lastBusy || new Date().toISOString(); return null; }
       throw e;
     }
   });

@@ -111,11 +111,27 @@ async function connect() {
     await client.query('set idle_in_transaction_session_timeout = ' + idleTxMs + '; set transaction_timeout = ' + txMs);
   } catch (e) {
     // a server older than PostgreSQL 17 has no transaction_timeout: keep the idle limit, and say what is missing, once
-    if (String(e && e.code) !== '42704') { try { await client.end(); } catch { /* closing */ } throw e; }
+    if (String(e && e.code) !== '42704') { await close(client); throw e; }
     await client.query('set idle_in_transaction_session_timeout = ' + idleTxMs);
     if (!connect.warned) { connect.warned = true; console.log('note: this control plane has no transaction_timeout (PostgreSQL < 17) - a transaction stalled between protocol messages is not bounded'); }
   }
   return client;
+}
+
+/**
+ * CLOSING IS BOUNDED TOO. client.end() waits for the server's side of the close, with no limit: a path that took the
+ * Terminate and never answered the close left the worker waiting forever after a statement that had succeeded - after a
+ * checkpoint, or after the completion itself - while its heartbeat timer kept the run's lease and the node's record fresh, so
+ * every check read it healthy (final verification 2026-09-24). The close is given a few seconds, then the socket is destroyed.
+ */
+export async function close(client) {
+  const ms = pgTimeoutMs('FACTORY_PG_CLOSE_TIMEOUT_MS', 5000);
+  let timer;
+  const bounded = new Promise((r) => { timer = setTimeout(() => r('timeout'), ms); if (typeof timer.unref === 'function') timer.unref(); });
+  const how = await Promise.race([client.end().then(() => 'ended', () => 'ended'), bounded]);
+  clearTimeout(timer);
+  if (how === 'timeout') { try { client.connection.stream.destroy(); } catch { /* already gone */ } }
+  return how;
 }
 
 /** Run a read. Refuses anything that mutates, so a reader cannot become a writer by edit. */
@@ -126,14 +142,14 @@ export async function read(sql, params = []) {
       + 'change visible at the call site.');
   }
   const client = await connect();
-  try { return await client.query(sql, params); } finally { await client.end(); }
+  try { return await client.query(sql, params); } finally { await close(client); }
 }
 
 /** Run a DML write. */
 export async function write(sql, params = []) {
   assertAllowed(sql);
   const client = await connect();
-  try { return await client.query(sql, params); } finally { await client.end(); }
+  try { return await client.query(sql, params); } finally { await close(client); }
 }
 
 /**
@@ -148,7 +164,7 @@ export async function write(sql, params = []) {
  */
 export async function withClient(fn) {
   const client = await connect();
-  try { return await fn(client); } finally { await client.end(); }
+  try { return await fn(client); } finally { await close(client); }
 }
 /** Several statements in one transaction, all-or-nothing. */
 export async function transaction(statements) {
@@ -163,5 +179,5 @@ export async function transaction(statements) {
   } catch (e) {
     try { await client.query('rollback'); } catch { /* already aborted */ }
     throw e;
-  } finally { await client.end(); }
+  } finally { await close(client); }
 }

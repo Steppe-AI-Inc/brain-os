@@ -41,7 +41,7 @@
 //      nothing re-installed), -Status NOT RUNNING while a supervisor waits out a backoff, a hand-started supervisor stopped by a re-install whose task supervisor is confirmed, -Uninstall;
 //      the live task is untouched throughout
 //   F7 bootstrap-node.sh on a SECOND fresh clone with no node_modules and no .factory installs from the lock and ends
-//      BOOTSTRAPPED against the plane - the Work-PC path, end to end
+//      BOOTSTRAPPED against the plane - the Work-PC path, end to end; run again without --role it keeps the plane's role
 //   F8 the full `npm ci --strict-allow-scripts` gives the acceptance harnesses everything: every qa/factory import resolves
 //      and embedded-postgres starts and stops a server from the clone's own install
 //   F9 the accessor and runner-env regression tests pass inside the clone (they include a BOM'd env file and a missing CA)
@@ -538,10 +538,13 @@ if (!STATIC_ONLY) {
         const marker = join(work, 'fake-owner-ran.txt');
         writeFileSync(fakeSup, "require('fs').appendFileSync(" + JSON.stringify(marker) + ", process.argv.slice(2).join(' ') + '\\n');\n");
         writeFileSync(join(fake, 'scripts', 'factory-runner', 'deps.mjs'), "import('node:fs').then((f) => f.appendFileSync(" + JSON.stringify(marker) + ", 'deps\\n'));\n");
+        writeFileSync(join(fake, 'scripts', 'factory-runner', 'node.mjs'), "import('node:fs').then((f) => f.appendFileSync(" + JSON.stringify(marker) + ", 'node.mjs ' + process.argv.slice(2).join(' ') + '\\n'));\n");
         const T2 = scratchTask + '-OWNER';
         run('powershell', ['-NoProfile', '-Command', "$a = New-ScheduledTaskAction -Execute '" + process.execPath + "' -Argument '\"" + fakeSup + "\" --runner-env \"" + envFile + "\" --role verifier' -WorkingDirectory '" + fake + "'; $p = New-ScheduledTaskPrincipal -UserId ([Security.Principal.WindowsIdentity]::GetCurrent().Name) -LogonType Interactive -RunLevel Limited; Register-ScheduledTask -TaskName '" + T2 + "' -Action $a -Principal $p | Out-Null"], ROOT);
         const psO = (args) => ps([...args, '-TaskName', T2]);
         cyc.ownerStatus = psO(['-Status']);
+        // with -EnvFile the node's liveness is read - with THIS checkout's node.mjs, never the owner's (final verification 2026-09-24)
+        cyc.ownerStatusEnv = psO(['-Status', '-EnvFile', envFile]);
         cyc.ownerStop = psO(['-Stop', '-ReplaceOtherCheckout']);
         cyc.ownerUninstall = psO(['-Uninstall', '-ReplaceOtherCheckout']);
         run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName '" + T2 + "' -ErrorAction SilentlyContinue; if($t){ Unregister-ScheduledTask -TaskName '" + T2 + "' -Confirm:$false }"], ROOT);
@@ -564,7 +567,7 @@ if (!STATIC_ONLY) {
         && cyc.reinstall.rc === 0 && /started: supervisor pid \d+/.test(cyc.reinstall.out) && (cyc.reinstall.out.match(/started: supervisor pid (\d+)/) || [])[1] !== String(hand.pid) && handGone
         && cyc.argsAfterReinstall.includes('--runner-env "' + envFile + '"')
         && cyc.uninstall.rc === 0 && cyc.argsAfterUninstall === 'NONE'
-        && cyc.ownerScriptRan === 'never' && /ANOTHER checkout/.test(cyc.ownerStatus.out) && cyc.ownerStop.rc === 0 && cyc.ownerUninstall.rc === 0;
+        && cyc.ownerScriptRan === 'never' && /ANOTHER checkout/.test(cyc.ownerStatus.out) && /^node\s+DOWN here/m.test(cyc.ownerStatusEnv.out) && cyc.ownerStop.rc === 0 && cyc.ownerUninstall.rc === 0;
       const liveTaskAfter = run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName 'BrainOS Factory Node' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).WorkingDirectory + '|' + ($t.Actions|Select-Object -First 1).Arguments + '|' + $t.Settings.Enabled}else{'NONE'}"], ROOT).out.trim();
       const refused = (g) => g.rc === 'skipped' || (g.rc === 3 && /belongs to another checkout/.test(g.out));
       const guardOk = refused(guard) && refused(stopGuard) && refused(uninstallGuard) && (statusOther.rc === 'skipped' || (/ANOTHER checkout/.test(statusOther.out) && /run -Status there/.test(statusOther.out)));
@@ -582,8 +585,13 @@ if (!STATIC_ONLY) {
     if (want('F7') && (process.platform === 'win32' || existsSync('/bin/bash'))) {
       const stateB = join(work, 'state-b'); mkdirSync(stateB, { recursive: true });
       const f7 = run('bash', ['scripts/factory-runner/bootstrap-node.sh', '--role', 'verifier', '--env-file', envFile], cloneB, { ...cleanEnv, FACTORY_STATE_DIR: stateB, FACTORY_ADMISSION: 'off' }, 900000);
-      check('F7 bootstrap-node.sh on a second fresh clone (no node_modules, no .factory) installs from the lock and ends BOOTSTRAPPED against the plane',
-        f7.rc === 0 && /installing the locked dependencies \(npm ci\)/.test(f7.out) && /BOOTSTRAPPED/.test(f7.out) && existsSync(join(cloneB, 'node_modules', 'pg')), f7.out);
+      // run again WITHOUT --role: the node registered as verifier stays verifier (it passed --role generic and demoted it - final
+      // verification 2026-09-24), and the role printed is the plane's
+      const f7b = run('bash', ['scripts/factory-runner/bootstrap-node.sh', '--env-file', envFile], cloneB, { ...cleanEnv, FACTORY_STATE_DIR: stateB, FACTORY_ADMISSION: 'off' }, 300000);
+      const role7 = (run(process.execPath, [join(cloneB, 'scripts/factory-runner/node.mjs'), 'status', '--json', '--runner-env', envFile], cloneB, { ...cleanEnv, FACTORY_STATE_DIR: stateB }).out.trim().split(/\r?\n/).filter((l) => l.startsWith('{')).map((l) => { try { return JSON.parse(l).role; } catch { return '?'; } }).pop()) || 'none';
+      check('F7 bootstrap-node.sh on a second fresh clone (no node_modules, no .factory) installs from the lock and ends BOOTSTRAPPED against the plane; run again without --role it keeps the role the plane holds (' + role7 + ')',
+        f7.rc === 0 && /installing the locked dependencies \(npm ci\)/.test(f7.out) && /BOOTSTRAPPED/.test(f7.out) && existsSync(join(cloneB, 'node_modules', 'pg'))
+          && f7b.rc === 0 && /role\s+verifier \(as the plane holds it/.test(f7b.out) && role7 === 'verifier', f7.out + '\n--- without --role\n' + f7b.out);
     } else if (!SKIP.has('F7')) console.log('NOTE F7 needs bash; skipped');
 
     // F8

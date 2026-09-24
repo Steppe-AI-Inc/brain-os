@@ -3,6 +3,8 @@
 #
 #   bash scripts/factory-runner/bootstrap-node.sh --role generic      # Home PC (implementation + generic work)
 #   bash scripts/factory-runner/bootstrap-node.sh --role verifier     # Work PC (independent acceptance authority)
+#   bash scripts/factory-runner/bootstrap-node.sh                     # a node already registered: its role is KEPT as the plane
+#                                                                     # holds it (a first bootstrap without --role registers generic)
 #
 # There is no Home-PC script and no Work-PC script: the only thing that differs is the security role the node
 # registers on the plane, and the plane's node record - not the machine - is what the claim enforces.
@@ -11,7 +13,7 @@
 # never committed, never written under the checkout). It refuses to proceed without it, prints the URL nowhere,
 # and stops at the first failing link so the fix is named rather than guessed.
 set -u
-ROLE=generic
+ROLE=""
 ENV_FILE=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -21,13 +23,13 @@ while [ $# -gt 0 ]; do
     *) echo "unknown argument: $1"; exit 2 ;;
   esac
 done
-case "$ROLE" in generic|verifier|release_broker) ;; *) echo "role must be generic | verifier | release_broker"; exit 2 ;; esac
+case "$ROLE" in ""|generic|verifier|release_broker) ;; *) echo "role must be generic | verifier | release_broker"; exit 2 ;; esac
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
 cd "$ROOT" || exit 2
 
-echo "factory node bootstrap  role=$ROLE  checkout=$ROOT"
+echo "factory node bootstrap  role=${ROLE:-(kept as the plane holds it)}  checkout=$ROOT"
 echo
 
 # 1. the URL - its absence is the designed refusal, reported as a setup step
@@ -78,8 +80,15 @@ if command -v claude >/dev/null 2>&1; then echo "  ok   claude CLI $(claude --ve
 
 # 3. the plane, link by link (refuses a superuser, a production project, or a network crossed in the clear)
 echo
-export FACTORY_NODE_ROLE="$ROLE"
-if ! node scripts/factory-runner/plane-health.mjs --role "$ROLE"; then
+# A ROLE IS CHANGED ONLY WHEN ONE IS GIVEN. Without --role this passed --role generic and demoted a running verifier until its
+# worker's next beat (final verification 2026-09-24): now the role the plane holds is kept.
+if [ -n "$ROLE" ]; then
+  export FACTORY_NODE_ROLE="$ROLE"
+  plane_health() { node scripts/factory-runner/plane-health.mjs --role "$ROLE"; }
+else
+  plane_health() { node scripts/factory-runner/plane-health.mjs; }
+fi
+if ! plane_health; then
   echo
   echo "  bootstrap stopped at the failing row above; nothing else was changed."
   exit 1
@@ -87,7 +96,9 @@ fi
 
 echo
 echo "  node id  $(node scripts/factory-runner/node.mjs id)"
-echo "  role     $ROLE (registered on the plane; the claim enforces it from the node record)"
+HELD="$(node scripts/factory-runner/node.mjs status --json 2>/dev/null | tail -1 | node -e "let s='';process.stdin.on('data',(d)=>{s+=d}).on('end',()=>{try{process.stdout.write(JSON.parse(s).role||'')}catch{}})")"
+ROLE="${ROLE:-${HELD:-generic}}"
+echo "  role     $ROLE (as the plane holds it for this node; the claim enforces it from the node record)"
 echo
 # The next step must work in THIS shell. node.mjs does not read the env file (the URL came from --env-file into this script's
 # environment only), so after --env-file the command printed is the supervisor, which reads the file itself.

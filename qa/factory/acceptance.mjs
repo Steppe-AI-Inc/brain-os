@@ -26,6 +26,9 @@ const check = (label, ok, detail) => {
 
 const pg = await startLocalPg();
 process.env.FACTORY_RUNNER_PG_URL = pg.runnerUrl;
+// THIS PC'S LOAD IS NOT UNDER TEST HERE: with the admission gate on, a busy machine turned claims into nulls and the suite red,
+// then crashed on the null (final verification 2026-09-24). No row here tests admission (shared_control_plane_acceptance does).
+process.env.FACTORY_ADMISSION = 'off';
 
 const { default: pgLib } = await import('pg');
 const admin = new pgLib.Client({ connectionString: pg.superUrl });
@@ -669,6 +672,75 @@ try {
     check('Q  a statement stalled between its Execute and its Sync cannot hold its lock: the server ends that session (' + lockedBy + ' stalled, ' + leftover + ' left) and another writer gets the row in ' + otherMs + ' ms (limit 3000 ms)',
       lockedBy === 1 && !otherErr && otherMs < 9000 && leftover === 0 && stalledResult !== 'HUNG',
       JSON.stringify({ lockedBy, otherErr: otherErr.slice(0, 80), otherMs, leftover, stalledResult: String(stalledResult).slice(0, 80) }));
+  }
+
+  // ---- R. a close that is never answered cannot hang the worker ---------------------------------------------------------
+  // client.end() waits for the server's side of the close with no limit. A path that took the Terminate and never answered the
+  // close left the worker waiting forever after a statement that had succeeded, while its heartbeat timer kept the run and the
+  // node fresh (final verification 2026-09-24). A relay here swallows the Terminate and the FIN of the one connection that
+  // carried the marked statement: the write must still return, within the close limit.
+  {
+    await reset();
+    const net = await import('node:net');
+    const conns = [];
+    const relay = net.createServer({ allowHalfOpen: true }, (c) => {
+      const u = net.connect(pg.port, '127.0.0.1'); conns.push(c, u); c.on('error', () => {}); u.on('error', () => {});
+      let buf = Buffer.alloc(0), started = false, marked = false;
+      c.on('data', (d) => {
+        buf = Buffer.concat([buf, d]);
+        const out = [];
+        for (;;) {
+          if (!started) { if (buf.length < 4) break; const n = buf.readInt32BE(0); if (buf.length < n) break; const m = buf.subarray(0, n); out.push(m); buf = buf.subarray(n); const code = n >= 8 ? m.readInt32BE(4) : 0; if (code !== 80877103) started = true; continue; }
+          if (buf.length < 5) break;
+          const t = String.fromCharCode(buf[0]); const n = buf.readInt32BE(1); if (buf.length < 1 + n) break;
+          const m = buf.subarray(0, 1 + n); buf = buf.subarray(1 + n);
+          if ((t === 'Q' || t === 'P') && m.toString('latin1').includes('qa-close-swallowed')) marked = true;
+          if (marked && t === 'X') continue; // the Terminate never reaches the server
+          out.push(m);
+        }
+        if (out.length) u.write(Buffer.concat(out));
+      });
+      c.on('end', () => { if (!marked) u.end(); }); // the FIN of the marked connection is never answered
+      u.on('data', (d) => { if (!c.destroyed) c.write(d); });
+      u.on('end', () => { if (!marked) c.end(); });
+    });
+    await new Promise((r) => relay.listen(0, '127.0.0.1', r));
+    const relayUrl = pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + relay.address().port + '/');
+    const saved = { url: process.env.FACTORY_RUNNER_PG_URL, cl: process.env.FACTORY_PG_CLOSE_TIMEOUT_MS };
+    process.env.FACTORY_RUNNER_PG_URL = relayUrl; process.env.FACTORY_PG_CLOSE_TIMEOUT_MS = '1500';
+    const dbR = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/db.mjs')).href + '?closeswallowed=' + Date.now());
+    const t0 = Date.now();
+    const how = await Promise.race([dbR.write("select 1 as ok /* qa-close-swallowed */").then((r) => 'returned ' + r.rows[0].ok, (e) => 'error: ' + String(e && e.message || e)), new Promise((r) => setTimeout(() => r('HUNG'), 12000))]);
+    const ms = Date.now() - t0;
+    for (const x of conns) { try { x.destroy(); } catch { /* gone */ } }
+    relay.close();
+    process.env.FACTORY_RUNNER_PG_URL = saved.url;
+    if (saved.cl === undefined) delete process.env.FACTORY_PG_CLOSE_TIMEOUT_MS; else process.env.FACTORY_PG_CLOSE_TIMEOUT_MS = saved.cl;
+    check('R  a close the server side never answers cannot hang the worker: the statement returned and its connection was given up after the close limit (' + how + ' in ' + ms + ' ms; limit 1500 ms)',
+      how === 'returned 1' && ms >= 1200 && ms < 9000, JSON.stringify({ how, ms }));
+  }
+
+  // ---- S. a malformed work order cannot starve the plane ------------------------------------------------------------------
+  // A repeated surface collided with itself (23505, read as "another node won") and a NULL surface failed the lock insert (23502,
+  // ending the worker): either way the work order at the head of the queue was retried forever and nothing behind it was claimed
+  // (final verification 2026-09-24). A repeat is one surface; a NULL or empty surface is declined and the next work order taken.
+  {
+    await reset();
+    const dup = await wo('S: repeated surface', { surface: ['qa/s.txt', 'qa/s.txt'], priority: 'high' });
+    const behind1 = await wo('S: behind it', { surface: ['qa/s-behind.txt'] });
+    let dupErr = '';
+    let first = null; try { first = await claim.claimWork({ nodeId: 'node-alpha', leaseSeconds: 60 }); } catch (e) { dupErr = String(e && e.message || e); }
+    const dupLocks = first ? (await admin.query('select count(*)::int n from factory.surface_locks where run_id = $1', [first.run_id])).rows[0].n : -1;
+    await reset();
+    const nul = randomUUID();
+    await admin.query("insert into factory.work_orders (work_order_id, title, owned_surface, priority, status) values ($1, 'S: NULL surface', ARRAY[NULL]::text[], 'high', 'queued')", [nul]);
+    const behind2 = await wo('S: behind the NULL one', { surface: ['qa/s-behind2.txt'] });
+    let nulErr = '';
+    let second = null; try { second = await claim.claimWork({ nodeId: 'node-alpha', leaseSeconds: 60 }); } catch (e) { nulErr = String(e && e.message || e); }
+    const nulStatus = (await admin.query('select status from factory.work_orders where work_order_id = $1', [nul])).rows[0].status;
+    check('S  a malformed work order cannot starve the plane: a repeated surface is claimed with one lock (' + dupLocks + '), a NULL surface is declined (still ' + nulStatus + ') and the work order behind it is claimed',
+      !dupErr && first && first.work_order_id === dup && dupLocks === 1 && !nulErr && second && second.work_order_id === behind2 && nulStatus === 'queued',
+      JSON.stringify({ dupErr: dupErr.slice(0, 80), first: first && first.work_order_id, dup, dupLocks, nulErr: nulErr.slice(0, 80), second: second && second.work_order_id, behind2, nulStatus, behind1 }));
   }
 
   // ---- K. no ambient production credential path exists ----------------------------------------------

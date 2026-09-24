@@ -93,7 +93,7 @@ Run on each node, in this order; each stops at the first failing link and names 
 
 | command | proves |
 |---|---|
-| `node scripts/factory-runner/node.mjs health` | URL present and judged safe; connected as a non-superuser; schema present; queue readable; registered (**the role the plane holds is kept** - a check never changes a running node's role; a different `FACTORY_NODE_ROLE` in the shell is said, not written); PostgreSQL ≥ 13; no business tables; the accessor spawns nothing; work orders `claimed` with no run in progress, and failed ones, named |
+| `node scripts/factory-runner/node.mjs health` | URL present and judged safe; connected as a non-superuser; schema present; queue readable; registered (**the role the plane holds is kept** - a check never changes a running node's role, nor stamps its liveness; a different `FACTORY_NODE_ROLE` in the shell is said, not written); PostgreSQL ≥ 13; no business tables; the accessor spawns nothing; work orders `claimed` with no run in progress, and failed ones, named |
 | `node scripts/factory-runner/plane-health.mjs [--role <r>]` | all of the above, then: TLS **in use** on this backend; role attributes on the server; the server refuses DDL; `001`+`002`+`003` applied; clock skew and round trip within limits; registered - as `<r>` when `--role` is given (the bootstrap passes it), else with the role the plane holds; which other nodes and **which other hostnames** this plane has seen in 24 h |
 | `node scripts/factory-runner/monitor-gc.mjs list` | no stale monitors on this node (milestone 5) |
 
@@ -244,7 +244,22 @@ it. That is the "exactly once" of the two-machine takeover. Every session also c
 statement stalled between its protocol messages cannot hold a lock either, and a completion is ONE statement (run, locks, work
 order): all or nothing.
 
-**What a node says about itself is true** (verification round 4; `qa/factory/node_truth_acceptance.mjs`):
+**What a node says about itself is true** (verification round 4 and the final verification of 2026-09-24;
+`qa/factory/node_truth_acceptance.mjs` N1-N11, `acceptance.mjs` R-S):
+- *ALIVE means working.* A node reads ALIVE only after its worker has completed a claim cycle (it logs `ready:`); registering, a
+  health check or a bootstrap never stamp liveness (a check once made a dead node read ALIVE for three minutes). A worker that reaches
+  the plane but fails its claims is backed off (5 s doubling to 5 min) and reads STALE, "never beaten" - it used to reset its backoff
+  on registration and crash-loop every 6 s while reading ALIVE. `-Verify` and `-Start` also require that the plane has heard from
+  the worker running NOW, not from its predecessor.
+- *One worker per node identity.* A worker holds a lock for its state dir; a second one, or a bare `node.mjs start` beside a
+  supervisor, does not start (exit 4).
+- *Nothing waits forever on the plane.* A connection close is bounded too (5 s, then the socket is destroyed): a close the other side
+  never answered left a worker hung after a successful statement while its heartbeat kept it looking healthy.
+- *A malformed work order is declined, not retried.* A NULL or empty surface is declined by name and the next work order taken (it
+  crash-looped every node); a repeated surface is one surface (it collided with itself and starved the queue); an acceptance action
+  with a malformed argument fails by name; a data exception (SQLSTATE class 22) inside a run fails it - the same input fails every time.
+- *Not claiming is said.* A refused admission, and a plane-wide claim lock held past the lock timeout, are logged and shown by
+  `node.mjs status`, `-Status` and `-Verify` (NOT CLAIMING, with since when).
 - *The role belongs to the running worker.* Health checks keep the role the plane holds (they used to re-register a running
   verifier as generic); the worker re-asserts its own role on every beat, while idle and while busy, and says when it had to.
   `-Verify`, `-Start` and the start confirmation compare the plane's role with the task's.
@@ -252,7 +267,7 @@ order): all or nothing.
   working longer than three minutes used to read STALE.
 - *Short losses do not take a node down.* A transient plane error (a reset, a refused or timed-out connection, a server
   restart) is retried inside the worker, 2 s doubling to 30 s, and it says so; only five minutes of nothing but such errors hand
-  the node to its supervisor. The supervisor's backoff resets as soon as a worker has registered on the plane.
+  the node to its supervisor. The supervisor's backoff resets as soon as a worker has completed a claim cycle.
 - *A failed run fails its work order,* in the same statement: nothing is left `claimed` with no run holding it, and its
   dependents are visibly blocked. `node.mjs health` names any stranded or failed work order.
 - *The URL judge refuses what pg would misread:* a space or a `%` that is not an escape (pg re-encodes such a URL whole and
