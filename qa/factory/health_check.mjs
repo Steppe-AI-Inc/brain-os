@@ -6,7 +6,8 @@
 // deliberately here and the output is checked for naming the right one.
 import { startLocalPg } from './local_pg.mjs';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -21,8 +22,11 @@ const check = (label, ok, detail) => {
   else { failures.push(label); console.log('FAIL ' + label + (detail ? '\n       ' + detail : '')); }
 };
 
+// ITS OWN NODE IDENTITY. health ran in the checkout's .factory - the live node's identity, registered on this disposable plane, and
+// its answer depended on whether the live supervisor happened to run (the composer went red on the PC whose node runs).
+const STATE = mkdtempSync(join(tmpdir(), 'factory-health-'));
 const run = (url) => {
-  const env = { ...process.env };
+  const env = { ...process.env, FACTORY_STATE_DIR: STATE };
   if (url === null) delete env.FACTORY_RUNNER_PG_URL; else env.FACTORY_RUNNER_PG_URL = url;
   const r = spawnSync(process.execPath, [NODE_MJS, 'health'],
     { encoding: 'utf8', env, cwd: ROOT, timeout: 90000 });
@@ -105,6 +109,7 @@ try {
 } finally {
   try { await admin.end(); } catch { /* ignore */ }
   await pg.stop();
+  try { rmSync(STATE, { recursive: true, force: true }); } catch { /* windows lock */ }
 }
 
 console.log('');
