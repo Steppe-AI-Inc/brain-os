@@ -47,6 +47,11 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const rootArg = process.argv.indexOf('--root');
 const ROOT = rootArg > -1 && process.argv[rootArg + 1] ? resolvePath(process.argv[rootArg + 1]) : join(HERE, '..', '..');
 const STATIC_ONLY = process.argv.includes('--static');
+// --skip F6,F7,...: leave rows out, loudly. The mutation proof uses it for F6 when judging OLD or mutated code: the installer
+// before this fix had no other-checkout guard, and running it would replace this PC's live task.
+const skipArg = process.argv.indexOf('--skip');
+const SKIP = new Set(skipArg > -1 && process.argv[skipArg + 1] ? process.argv[skipArg + 1].split(',') : []);
+const want = (id) => { if (!SKIP.has(id)) return true; console.log('SKIP ' + id + ' (--skip)'); return false; };
 const isWin = process.platform === 'win32';
 const NPM = isWin ? 'npm.cmd' : 'npm';
 let pass = 0; const failures = [];
@@ -200,7 +205,7 @@ if (!STATIC_ONLY) {
       f5.rc === 5 && st5.state === 'dependencies_missing' && /npm ci/.test(f5.out) && !/node started/.test(f5.out) && h5.rc === 1 && /runtime dependencies are not installed/.test(h5.out) && !/cannot connect/.test(h5.out), f5.out + '\n--- health\n' + h5.out);
 
     // F6
-    if (isWin) {
+    if (isWin && want('F6')) {
       const ps = (args) => run('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', join(cloneA, 'scripts/factory-runner/install-autostart.ps1'), ...args], cloneA, cleanEnv, 120000);
       const broken = ps(['-Preflight', '-EnvFile', envFile]);
       run(NPM, ['ci', '--omit=dev', '--strict-allow-scripts'], cloneA, cleanEnv);
@@ -214,18 +219,19 @@ if (!STATIC_ONLY) {
         'broken: ' + broken.out + '\nfixed: ' + fixed.out + '\nguard: ' + guard.out + '\ntask before: ' + liveTaskBefore + '\ntask after: ' + liveTaskAfter);
     } else {
       run(NPM, ['ci', '--omit=dev', '--strict-allow-scripts'], cloneA, cleanEnv);
-      console.log('NOTE F6 is Windows-only (the scheduled-task installer); skipped on ' + process.platform);
+      if (!isWin) console.log('NOTE F6 is Windows-only (the scheduled-task installer); skipped on ' + process.platform);
     }
 
     // F7
-    if (process.platform === 'win32' || existsSync('/bin/bash')) {
+    if (want('F7') && (process.platform === 'win32' || existsSync('/bin/bash'))) {
       const stateB = join(work, 'state-b'); mkdirSync(stateB, { recursive: true });
       const f7 = run('bash', ['scripts/factory-runner/bootstrap-node.sh', '--role', 'verifier', '--env-file', envFile], cloneB, { ...cleanEnv, FACTORY_STATE_DIR: stateB, FACTORY_ADMISSION: 'off' }, 900000);
       check('F7 bootstrap-node.sh on a second fresh clone (no node_modules, no .factory) installs from the lock and ends BOOTSTRAPPED against the plane',
         f7.rc === 0 && /installing the locked dependencies \(npm ci\)/.test(f7.out) && /BOOTSTRAPPED/.test(f7.out) && existsSync(join(cloneB, 'node_modules', 'pg')), f7.out);
-    } else console.log('NOTE F7 needs bash; skipped');
+    } else if (!SKIP.has('F7')) console.log('NOTE F7 needs bash; skipped');
 
     // F8
+    if (want('F8')) {
     const f8 = run(NPM, ['ci', '--strict-allow-scripts'], cloneA, cleanEnv);
     const depsDev = run(process.execPath, [join(cloneA, 'scripts/factory-runner/deps.mjs'), '--dev'], cloneA, cleanEnv);
     const resH = run(process.execPath, ['--input-type=module', '-e', resolveScript, JSON.stringify([...harnessImports.keys()])], join(cloneA, 'qa/factory'), cleanEnv);
@@ -234,11 +240,14 @@ if (!STATIC_ONLY) {
     const epFromClone = /EMBEDDED PostgreSQL/.test(ep.out);
     check('F8 the full `npm ci --strict-allow-scripts` gives the harnesses everything: deps.mjs --dev ok, every qa/factory import resolves, and embedded-postgres from the clone\'s own install starts a server (' + (ep.out.match(/EMBEDDED ([^\n]+)/) || [, '?'])[1] + ')',
       f8.rc === 0 && depsDev.rc === 0 && resH.out.trim().endsWith('[]') && epFromClone, f8.out.slice(-400) + ' | ' + depsDev.out + ' | ' + resH.out + ' | ' + ep.out);
+    }
 
     // F9
+    if (want('F9')) {
     const f9 = run(process.execPath, ['--test', 'scripts/factory-runner/db.regression.test.mjs', 'scripts/factory-runner/runner-env.regression.test.mjs'], cloneA, cleanEnv, 180000);
     const passN = (f9.out.match(/ℹ pass (\d+)/) || [, '?'])[1], failN = (f9.out.match(/ℹ fail (\d+)/) || [, '?'])[1];
     check('F9 the accessor and runner-env regression tests pass inside the clone (pass ' + passN + ', fail ' + failN + ')', f9.rc === 0 && failN === '0', f9.out.slice(-600));
+    }
   } catch (e) {
     check('fresh-clone setup', false, e && e.stack || e);
   } finally {
