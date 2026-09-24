@@ -52,8 +52,11 @@ bash scripts/factory-runner/bootstrap-node.sh --role generic --env-file "$env:US
 On the Work PC: a fresh clone of this branch, then `npm ci` (the committed `package-lock.json`; since 2026-09-24 - before it a
 fresh clone could not install, ledger 217); copy `runner.env` and the CA file (`~/.brain-factory/supabase-root-2021-ca.crt`) to the
 same folder there — the CA path inside the env file is resolved to the local copy by `runner-env.mjs`, so nothing is edited — then
-`install-autostart.ps1 -Preflight` (exit 0), `install-autostart.ps1 -Role verifier -Start` (§H), or `bootstrap-node.sh --role
-verifier --env-file …` (which runs `npm ci` itself when the dependencies are not installed at their locked versions).
+`install-autostart.ps1 -Preflight` (exit 0), then `install-autostart.ps1 -Role verifier -Start` (§H; it prints "started:
+supervisor pid N ... role verifier" only when the task's supervisor is confirmed running), then `install-autostart.ps1 -Status`
+(node ALIVE, role verifier, tls on). Copy the files; do not re-save them in an editor (a re-save is decoded if it is UTF-16 or
+has a BOM, but a changed value is refused by name). `bootstrap-node.sh --role verifier --env-file …` runs the same checks from
+bash and `npm ci` itself when needed; on Windows it then prints the installer command as the next step.
 Install with `npm ci` only - never `npm install` (npm 10 rewrites the committed lock). Node 20 or newer; npm 11 or newer
 enforces the `allowScripts` decisions (npm 10 runs every locked install script - all of them are approved, so nothing extra runs,
 but nothing is enforced either). Windows on ARM needs an x64 Node for the acceptance harness: embedded-postgres publishes no
@@ -195,13 +198,19 @@ Windows Scheduled Task **BrainOS Factory Node** that launches it; an idle node s
 
 | command | does |
 |---|---|
-| `powershell -ExecutionPolicy Bypass -File scripts\factory-runner\install-autostart.ps1 -Role generic -Start` | install (idempotent: a re-install stops the running supervisor first) and start now; Work PC: `-Role verifier` |
-| `… install-autostart.ps1 -Preflight` | checks only, changes nothing: the env file yields a URL whose CA file exists on this machine, and the whole locked runtime tree is installed (`npm ci` otherwise) |
-| `… install-autostart.ps1 -Status` | task state, supervisor state file, dependency check, node liveness on the plane |
-| `… install-autostart.ps1 -Stop` / `-Start` | stop cleanly (worker ends, no orphan) / start. Run from the checkout that owns the task: from any other checkout -Stop, -Uninstall and install refuse (exit 3) unless `-ReplaceOtherCheckout`, which stops THAT checkout's supervisor and refuses (exit 4) if it does not stop |
-| `… install-autostart.ps1 -Verify` | exit 0 only if the task exists, is enabled and starts this checkout's supervisor |
+| `powershell -ExecutionPolicy Bypass -File scripts\factory-runner\install-autostart.ps1 -Role generic -Start` | install and start; Work PC: `-Role verifier`. Any supervisor of this checkout (the old task's, or one started by hand in a terminal) is stopped first, and the new task's supervisor is CONFIRMED running (identity-checked pid, state running) or the command fails (exit 5) naming the task result and the refusal. A re-install without `-Role` keeps the installed role |
+| `… install-autostart.ps1 -Preflight` | checks only, changes nothing: the env file judged by `runner-env.mjs` (the same judge the supervisor uses: a URL, not the superuser/production/plaintext, its CA present here and a real certificate; UTF-16 and BOM decoded) and the locked runtime tree installed AND loadable (`npm ci` otherwise) |
+| `… install-autostart.ps1 -Status` | the task (and which checkout owns it), its role, the owner's supervisor state - STALE when the recorded supervisor is not running - the dependency check, and the node's liveness read with the task's own env file |
+| `… install-autostart.ps1 -Stop` / `-Start` | stop cleanly (worker ends, no orphan) / `-Start` ALONE starts the installed task as it is (role and env file unchanged; nothing re-installed). Run from the checkout that owns the task: from any other checkout -Stop, -Uninstall and install refuse (exit 3) unless `-ReplaceOtherCheckout`, which stops THAT checkout's supervisor and refuses (exit 4) if it does not stop |
+| `… install-autostart.ps1 -Verify` | exit 0 only if the task exists, is enabled, is RUNNING an identity-checked supervisor of this checkout, and its own env file and the dependencies pass the preflight |
 | `… install-autostart.ps1 -Uninstall` | stop the owning checkout's supervisor, then remove the task |
-| `node scripts\factory-runner\node.mjs status` | ALIVE (heartbeat age) / STALE / NOT REGISTERED / UNREACHABLE, read-only; DEPENDENCIES_MISSING (exit 5) when the locked tree is not installed |
+| `node scripts\factory-runner\node.mjs status --runner-env <runner.env>` | ALIVE (heartbeat age) / STALE / NOT REGISTERED / UNREACHABLE, read-only; URL NOT SET without `--runner-env` (the default file is never read implicitly); DEPENDENCIES_MISSING (exit 5) when the locked tree is not installed or does not load |
+
+The supervisor takes `--runner-env <file>`, not `--env-file`: Node itself consumes `--env-file` anywhere on its command line and
+exits 9 on a missing file before the supervisor runs. A pid recorded in `.factory/` is trusted only when that process's command
+line is this checkout's supervisor or worker (`proc.mjs`): after a reboot the numbers belong to whatever process Windows handed
+them to, and the supervisor neither refuses to start nor kills anything because of them. A worker that refuses its
+configuration (exit 2, REFUSED) is terminal - the supervisor stops with state `refused` instead of restarting it forever.
 
 **Boot trigger:** Windows lets only an administrator register an AtStartup trigger (measured: "Access is denied" for a standard
 user). As installed the task is triggered **at logon**, which is the reboot path the moment the user logs on; one elevated run of

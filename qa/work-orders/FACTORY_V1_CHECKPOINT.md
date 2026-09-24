@@ -56,8 +56,10 @@
   `node.mjs start`. Logon-triggered (a boot trigger needs one elevated run of the installer; Windows refuses AtStartup to a
   standard user). Logs: `C:\Users\Dell\.brain-factory\logs\node-<date>.log`. State: `.factory/node-status.json`.
 - Commands (PowerShell, from the repo): `install-autostart.ps1 -Status | -Start | -Stop | -Verify | -Uninstall`;
-  `node scripts/factory-runner/node.mjs status` → ALIVE / STALE / NOT REGISTERED / UNREACHABLE (read-only).
-- If `status` says STALE after a reboot and the task did not start: `install-autostart.ps1 -Start`.
+  `install-autostart.ps1 -Status` reads the task's own env file and prints the node's liveness (ALIVE / STALE / NOT REGISTERED /
+  UNREACHABLE); from a shell, `node scripts/factory-runner/node.mjs status --runner-env ~/.brain-factory/runner.env`.
+- If `-Status` says STALE after a reboot and the task did not start: `install-autostart.ps1 -Start` (alone: starts the installed
+  task as it is, role unchanged, and confirms the supervisor).
 - The local embedded plane (`qa/factory/shared_local_pg.mjs start`, loopback 54329) is only for the 18-row local suite; it is
   not running after a reboot and must be started detached before `shared_control_plane_acceptance.mjs`.
 
@@ -110,8 +112,9 @@ node after a reboot; a heavy-job limit that was a count, not a lock; twelve work
    reader goes through `scripts/factory-runner/runner-env.mjs`, which resolves the CA path recorded on this PC to the copy beside
    the env file on that PC (proved against the live plane with a foreign path);
 2. `powershell -ExecutionPolicy Bypass -File scripts\factory-runner\install-autostart.ps1 -Preflight` (checks only; exit 0 needed),
-   then `... -Role verifier -Start`, then `-Status`. The install refuses by name if dependencies are missing, and the supervisor exits
-   5 naming `npm ci` rather than crash-looping;
+   then `... -Role verifier -Start` (must print "started: supervisor pid N ... role verifier"), then `-Status` (node ALIVE, role
+   verifier, tls on). Every gate refuses by name - missing or damaged dependencies (`npm ci`), a CA not copied, a bad env file - and
+   the supervisor exits (5 or 2) naming the fix rather than crash-looping;
 3. back on the Home PC: `node qa/factory/two_machine_real.mjs nodes` (both ALIVE, two hostnames), then
    `node qa/factory/two_machine_real.mjs run` → expect **TWO MACHINES**; then `node qa/factory/factory_v1_acceptance.mjs`
    (with the env loaded) → the real-failover, scheduling and verification rows turn OK. A third machine (laptop) bootstrapped
