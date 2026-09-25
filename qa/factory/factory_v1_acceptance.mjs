@@ -86,7 +86,12 @@ if (LOCAL_ONLY || !process.env.FACTORY_RUNNER_PG_URL) {
     // verification 2, 2026-09-25)
     const hosts = (await db.read("select distinct split_part(platform, ' ', 2) h from factory.nodes where platform like '% %' and last_heartbeat_at > now() - interval '7 days' and capabilities ? ('head:' || $1) and not capabilities ? 'dirty'", [SHA])).rows.map((x) => x.h).filter(Boolean);
     row('1', 'machines registered on the shared plane in 7 days running ' + SHA.slice(0, 12) + ': ' + hosts.join(', '), hosts.length >= 2, hosts.length < 2 ? 'only ' + hosts.join(', ') + ' - bootstrap the other PC (§C/§D)' : '', hosts.length < 2);
-    const fo = (await db.read("select c1.payload->>'hostname' h1, c2.payload->>'hostname' h2 from factory.checkpoints c1 join factory.checkpoints c2 on c1.work_order_id = c2.work_order_id where c1.scenario = 'phase-1-hold' and c2.scenario = 'phase-2-takeover' and c1.payload->>'head' = $1 and c2.payload->>'head' = $1", [SHA])).rows;
+    // COMPLETED FAILOVERS ONLY: the takeover run done with its stated reason, and the work order done - checkpoints alone counted a takeover
+    // whose completion never landed (final verification 4, critic; the rule row 4 got in final verification 2)
+    const fo = (await db.read("select c1.payload->>'hostname' h1, c2.payload->>'hostname' h2 from factory.checkpoints c1 join factory.checkpoints c2 on c1.work_order_id = c2.work_order_id"
+      + " join factory.agent_runs tr on tr.run_id = c2.run_id join factory.work_orders tw on tw.work_order_id = c2.work_order_id"
+      + " where c1.scenario = 'phase-1-hold' and c2.scenario = 'phase-2-takeover' and c1.payload->>'head' = $1 and c2.payload->>'head' = $1"
+      + " and tr.status = 'done' and tr.termination_reason in ('factory_acceptance_takeover', 'two_machine_failover_completed') and tw.status = 'done'", [SHA])).rows;
     const pairs = fo.filter((p) => p.h1 && p.h2 && p.h1 !== p.h2);
     const both = new Set(pairs.map((p) => p.h1 + '>' + p.h2));
     row('2', 'real two-machine failover recorded on the plane by nodes running ' + SHA.slice(0, 12) + ': ' + [...both].join(', '), pairs.length >= 1, pairs.length ? '' : 'with both PCs on exactly this commit, run qa/factory/two_machine_real.mjs run on the Home PC (§I)', pairs.length < 1);

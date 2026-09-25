@@ -66,6 +66,8 @@
 //   N35 the runbook's scripts read the env file as the node does (--runner-env, the CA path resolved to the local copy) and end on one
 //      line when the plane cannot be reached
 //   N36 node.mjs status asks the plane three times before it says UNREACHABLE (one reset read a healthy node UNREACHABLE)
+//   N20 also: the failover row counts only COMPLETED failovers (a takeover whose completion never landed was counted)
+//   N37 two_machine_real.mjs retries a transient plane error, and one it cannot get past ends INCONCLUSIVE (exit 4), never as a FAIL
 import { startLocalPg } from './local_pg.mjs';
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync, rmSync } from 'node:fs';
@@ -888,6 +890,34 @@ try {
       !!j && j.state === 'ALIVE' && j.tls === false && conns >= 2, String(st.stdout || '').slice(-400));
   }
 
+  // ---- N37. two_machine_real is as tolerant as the nodes it measures ----------------------------------------------------------------
+  currentRow = 'N37';
+  if (want('N37')) {
+    // a work node on another commit: the run refuses it (exit 1, REFUSED) - through a relay that resets the first two connections
+    await claim.registerNode({ nodeId: 'node-n37-older', capabilities: ['factory_acceptance', 'handler:factory-acceptance/2', 'head:' + '0'.repeat(40), 'node:node-n37-older'], securityRole: 'verifier', platform: 'test other-host' });
+    await admin.query("update factory.nodes set capabilities = capabilities - 'dirty' where node_id = $1", [w1id]);
+    const net = await import('node:net');
+    const socks = []; let conns = 0;
+    const relay = net.createServer((c) => {
+      c.on('error', () => {}); socks.push(c);
+      if (++conns <= 2) { c.destroy(); return; }
+      const u = net.connect(pg.port, '127.0.0.1'); u.on('error', () => {}); socks.push(u);
+      c.pipe(u); u.pipe(c); c.on('close', () => u.destroy()); u.on('close', () => c.destroy());
+    });
+    await new Promise((r) => relay.listen(0, '127.0.0.1', r));
+    const relayUrl = pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + relay.address().port + '/');
+    const tmr = (url, extra = {}) => new Promise((r) => { const c = spawn(process.execPath, [join(ROOT, 'qa/factory/two_machine_real.mjs'), 'run', '--home', w1id, '--work', 'node-n37-older'], { cwd: ROOT, env: { ...process.env, FACTORY_RUNNER_PG_URL: url, FACTORY_STATE_DIR: S1, ...extra }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }); let o = ''; c.stdout.on('data', (d) => { o += d; }); c.stderr.on('data', (d) => { o += d; }); const t = setTimeout(() => { try { c.kill(); } catch { /* gone */ } }, 90000); c.on('exit', (code) => { clearTimeout(t); r({ code, out: o }); }); });
+    const through = await tmr(relayUrl);
+    const dead = await new Promise((r) => { const srv = net.createServer(); srv.listen(0, '127.0.0.1', () => { const p = srv.address().port; srv.close(() => r(p)); }); });
+    const down = await tmr(pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + dead + '/'), { FACTORY_TMR_RETRY_MS: '4000' });
+    relay.close(); for (const x of socks) { try { x.destroy(); } catch { /* gone */ } }
+    await admin.query("update factory.nodes set last_heartbeat_at = now() - interval '1 day' where node_id = 'node-n37-older'");
+    check('N37 two_machine_real retries a transient plane error (two resets: exit ' + through.code + ', ' + (/REFUSED - the work node node-n37-older/.test(through.out) ? 'the same refusal' : 'NOT the refusal') + ') and a plane it cannot reach ends INCONCLUSIVE (exit ' + down.code + '), not FAIL',
+      conns >= 3 && through.code === 1 && /REFUSED - the work node node-n37-older.* runs 0{40}/.test(through.out) && !/ECONNRESET/.test(through.out)
+        && down.code === 4 && /^INCONCLUSIVE: /m.test(down.out) && !/^\s+at /m.test(down.out),
+      through.out.slice(-500) + '\n--- down\n' + down.out.slice(-500));
+  }
+
   // ---- N22. an admission-only cycle is not a claim cycle ------------------------------------------------------------------------
   currentRow = 'N22';
   if (want('N22')) {
@@ -978,6 +1008,10 @@ try {
       // row 2: one failover pair at X (A>B); one whose takeover ran dirty (B>A) does not count
       const cp = async (w, r, scenario, host, head) => a2.query("insert into factory.checkpoints (run_id, work_order_id, location, scenario, payload) values ($1, $2, 'x', $3, $4::jsonb)", [r, w, scenario, JSON.stringify({ hostname: host, head })]);
       const f1 = await runOf('nA', 'done', X); await cp(f1.w, f1.r, 'phase-1-hold', 'HOST-A', X); await cp(f1.w, f1.r, 'phase-2-takeover', 'HOST-B', X);
+      await a2.query("update factory.agent_runs set termination_reason = 'factory_acceptance_takeover' where run_id = $1", [f1.r]);
+      // ...and a takeover whose completion never landed (run in progress, work order claimed) does not count either (final verification 4)
+      const f3 = await runOf('nB', 'in_progress', X); await cp(f3.w, f3.r, 'phase-1-hold', 'HOST-B', X); await cp(f3.w, f3.r, 'phase-2-takeover', 'HOST-A', X);
+      await a2.query("update factory.work_orders set status = 'claimed' where work_order_id = $1", [f3.w]);
       const f2 = await runOf('nB', 'done', X); await cp(f2.w, f2.r, 'phase-1-hold', 'HOST-B', X); await cp(f2.w, f2.r, 'phase-2-takeover', 'HOST-A', X + '+dirty');
       const comp = spawnSync(process.execPath, [join(ROOT, 'qa/factory/factory_v1_acceptance.mjs'), '--plane-only', '--sha', X], { cwd: ROOT, encoding: 'utf8', timeout: 120000, env: { ...process.env, FACTORY_RUNNER_PG_URL: pg2.runnerUrl } });
       const out = comp.stdout || '';

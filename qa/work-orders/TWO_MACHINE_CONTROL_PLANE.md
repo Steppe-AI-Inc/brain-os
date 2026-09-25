@@ -145,6 +145,10 @@ node qa/factory/two_machine_failover.mjs verify <s>
 instrument works, the milestone is not proved), **1 FAIL** (a row failed: it says which). Run it the other way round too
 (Work PC dies, Home PC takes over) — the plane has no notion of which machine is primary.
 
+`two_machine_real.mjs` retries a transient plane error like the nodes it measures, and one it cannot get past ends the run
+INCONCLUSIVE (exit 4, with the stamp to clean up) - never exit 1, which is VERDICT: FAIL. The composer's failover row counts only
+completed failovers (the takeover run done with its stated reason, its work order done).
+
 Both scripts read the node's own env file, as the node does: `~/.brain-factory/runner.env` by default, or `--runner-env <file>` (or
 FACTORY_RUNNER_PG_URL when it is set) - the CA path a copied runner.env names is resolved to the copy beside it, so nothing is
 exported or edited on the Work PC; a plane that does not answer ends the script with one FAILED line.

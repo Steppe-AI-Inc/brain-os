@@ -27,8 +27,25 @@ const ROOT = join(HERE, '..', '..');
   const note = ensureRunnerEnv();
   if (!process.env.FACTORY_RUNNER_PG_URL) { console.log(note); process.exit(2); }
 }
-const db = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/db.mjs')).href);
+const dbRaw = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/db.mjs')).href);
 const nodeMod = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/node.mjs')).href);
+// THE INSTRUMENT IS AS TOLERANT AS THE NODES IT MEASURES: one transient plane error ended a run with a stack and no verdict, and its exit 1
+// read as VERDICT: FAIL (final verification 4, critic). Its statements are retried like the nodes' (for up to FACTORY_TMR_RETRY_MS, 2 min);
+// an error it cannot get past ends the run INCONCLUSIVE, exit 4, naming the stamp to clean up - never exit 1.
+const RETRY_MS = Math.max(1000, Number(process.env.FACTORY_TMR_RETRY_MS) || 120000);
+const retrying = (fn) => async (...a) => {
+  const until = Date.now() + RETRY_MS; let wait = 1000;
+  for (;;) {
+    try { return await fn(...a); } catch (e) {
+      if (!nodeMod.isTransientPlaneError(e) || Date.now() > until) throw e;
+      await new Promise((r) => setTimeout(r, wait)); wait = Math.min(10000, wait * 2);
+    }
+  }
+};
+const db = { ...dbRaw, read: retrying(dbRaw.read), write: retrying(dbRaw.write) };
+let stampForCleanup = null;
+const inconclusive = (e) => { console.log('INCONCLUSIVE: ' + String((e && e.message) || e).split('\n')[0].slice(0, 200) + ' - nothing was judged' + (stampForCleanup ? '; its work orders carry stamp ' + stampForCleanup + ' (two_machine_real.mjs cleanup)' : '') + '; run it again'); process.exit(4); };
+process.on('uncaughtException', inconclusive); process.on('unhandledRejection', inconclusive);
 const argv = process.argv.slice(2);
 const mode = argv[0];
 const opt = (n) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : null; };
@@ -77,6 +94,7 @@ for (const [name, n] of [['home', home], ['work', work]]) {
 }
 
 const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..*/, '') + '-' + randomUUID().slice(0, 4);
+stampForCleanup = stamp;
 // EVERY WORK ORDER REQUIRES THE COMMIT UNDER ACCEPTANCE: a third node on another commit took the S3 work and the scenario passed on
 // its runs (final verification 2, 2026-09-25). And every scenario checks its runs came from the home or work node at exactly it.
 const seed = async (name, payload, { caps = ['factory_acceptance', HANDLER_CAP], role = 'generic', surface = null } = {}) => {
