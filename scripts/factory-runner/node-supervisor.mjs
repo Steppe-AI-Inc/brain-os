@@ -145,7 +145,7 @@ secrets = (() => { try { const u = new URL(RUNNER_URL); return [RUNNER_URL, deco
     const ours = prev.instance ? isScriptProcess(prev.childPid, null, ['node.mjs', prev.instance]) : isScriptProcess(prev.childPid, join(HERE, 'node.mjs'), ['start']);
     if (ours) {
       try { process.kill(prev.childPid); } catch { /* raced */ }
-      const t0 = Date.now(); while (isAlive(prev.childPid) && Date.now() - t0 < 5000) { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200); }
+      const t0 = performance.now(); while (isAlive(prev.childPid) && performance.now() - t0 < 5000) { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200); }
       log('orphaned node (pid ' + prev.childPid + ') from a previous supervisor ended before starting a new one');
     } else log('stale worker pid ' + prev.childPid + ' in the status file belongs to another process (a reused pid); not touched');
   }

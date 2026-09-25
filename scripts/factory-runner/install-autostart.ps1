@@ -155,8 +155,9 @@ function Stop-CheckoutSupervisor($dir) {
   # the control pipe (this checkout's code), and the stop file a pre-pipe supervisor watches - nothing of that checkout is run
   $null = Ask-Supervisor $dir 'stop'
   try { [IO.Directory]::CreateDirectory((Join-Path $dir '.factory')) | Out-Null; [IO.File]::WriteAllText((Join-Path $dir '.factory\node.stop'), [string][DateTimeOffset]::Now.ToUnixTimeMilliseconds()) } catch { }
-  $deadline = (Get-Date).AddSeconds(20)
-  while ((Get-Date) -lt $deadline) { if (-not (Get-Process -Id $i.pid -ErrorAction SilentlyContinue)) { return $true }; Start-Sleep -Milliseconds 500 }
+  # (deadlines on a Stopwatch, not the wall clock: a clock step during a -Stop or -Start stretched or cut them - the class of final verification 5)
+  $sw = [Diagnostics.Stopwatch]::StartNew()
+  while ($sw.Elapsed.TotalSeconds -lt 20) { if (-not (Get-Process -Id $i.pid -ErrorAction SilentlyContinue)) { return $true }; Start-Sleep -Milliseconds 500 }
   return (-not (Get-Process -Id $i.pid -ErrorAction SilentlyContinue))
 }
 function Read-SupervisorStatus($dir) { $f = Join-Path $dir '.factory\node-status.json'; if (Test-Path -LiteralPath $f) { try { return (Get-Content -LiteralPath $f -Raw | ConvertFrom-Json) } catch { } }; return $null }
@@ -236,10 +237,10 @@ function Test-HeardSinceStart($sv, $plane) {
 # clock difference does not matter). Otherwise the verdict names what failed: a refusal the supervisor recorded, or the error
 # its worker keeps failing on.
 function Confirm-TaskSupervisor($dir, $since) {
-  $deadline = (Get-Date).AddSeconds(75)
+  $sw = [Diagnostics.Stopwatch]::StartNew()
   $fresh = { param($st) $st -and $st.stoppedAt -and ([datetime]$st.stoppedAt -ge $since.AddSeconds(-1)) }
   $first = $null; $backoffs = 0; $last = $null; $plane = $null
-  while ((Get-Date) -lt $deadline) {
+  while ($sw.Elapsed.TotalSeconds -lt 75) {
     Start-Sleep -Seconds 2
     $i = Get-SupervisorInfo $dir
     if ($i) {
