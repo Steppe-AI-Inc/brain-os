@@ -14,6 +14,8 @@
 //   T5  sslmode=verify-full with the server certificate as sslrootcert connects; with the wrong root it does not
 //   T6  a worker process dies mid-claim over TLS and a second worker process resumes it (the claim path over the network)
 //   T7  the accessor refuses the superuser over TLS on the LAN address (least privilege is judged before TLS helps)
+//   T8  with NODE_TLS_REJECT_UNAUTHORIZED=0 in its environment, the runner's own accessor still refuses a server certified by another root
+//       (pg left rejectUnauthorized unset and Node took it from that variable: a node claimed work on the wrong server, "tls on")
 //
 // Disposable by construction: fresh initdb in a temp dir, a random superuser password, certificate valid for one day,
 // data directory removed on exit. Nothing here can reach a production host.
@@ -138,6 +140,15 @@ try {
   // T7 the superuser over TLS is still refused by the accessor
   const t7 = child(NODE_MJS, ['health'], { FACTORY_RUNNER_PG_URL: 'postgresql://postgres:' + encodeURIComponent(superPassword) + '@' + LAN + ':' + port + '/factory_control_plane?sslmode=verify-ca&sslrootcert=' + encodeURIComponent(crt) + '&uselibpqcompat=true' });
   check('T7 the accessor refuses the superuser over TLS on the LAN address', t7.status === 1 && /superuser/.test(t7.stdout + t7.stderr), t7.stdout + t7.stderr);
+
+  // T8 VERIFICATION CANNOT BE SWITCHED OFF FROM THE ENVIRONMENT (final verification 3, critic): the runner's own path - node.mjs status in
+  //    its own process, through db.mjs - with NODE_TLS_REJECT_UNAUTHORIZED=0 set, against a server whose certificate another root signed
+  // (with a node identity: status without one answers NOT REGISTERED before it connects, and would test nothing)
+  const s8 = mkdtempSync(join(tmpdir(), 'tls-t8-')); writeFileSync(join(s8, 'node-id'), 'node-tls-t8-' + randomUUID().slice(0, 8));
+  const t8 = child(NODE_MJS, ['status', '--json'], { FACTORY_RUNNER_PG_URL: tlsWrong, NODE_TLS_REJECT_UNAUTHORIZED: '0', FACTORY_STATE_DIR: s8 });
+  const t8j = (() => { try { return JSON.parse(String(t8.stdout || '').trim().split(/\r?\n/).filter((l) => l.startsWith('{')).pop()); } catch { return null; } })();
+  check('T8 with NODE_TLS_REJECT_UNAUTHORIZED=0 in its environment the runner still refuses a server certified by another root (' + (t8j ? t8j.state + (t8j.error ? ' - ' + String(t8j.error).slice(0, 80) : '') + (t8j.tls != null ? ', tls ' + t8j.tls : '') : 'no status') + ')',
+    !!t8j && t8j.state === 'UNREACHABLE' && /self.signed|certificate|unable to verify|CERT/i.test(String(t8j.error || '')), (t8.stdout || '') + (t8.stderr || ''));
 } finally {
   try { await pg.stop(); } catch { /* down */ }
   try { rmSync(dir, { recursive: true, force: true }); } catch { /* windows lock */ }

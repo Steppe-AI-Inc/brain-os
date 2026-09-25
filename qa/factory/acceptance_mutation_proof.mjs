@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..', '..');
-const ACC = 'qa/factory/acceptance.mjs', NT = 'qa/factory/node_truth_acceptance.mjs';
+const ACC = 'qa/factory/acceptance.mjs', NT = 'qa/factory/node_truth_acceptance.mjs', TLS = 'qa/factory/tls_plane_acceptance.mjs';
 const CLAIM = 'scripts/factory-runner/claim.mjs', DB = 'scripts/factory-runner/db.mjs', NODE = 'scripts/factory-runner/node.mjs';
 const MUTANTS = [
   { id: 'M', suite: ACC, what: 'a run whose lease was taken over completes the work order', edits: [[CLAIM, "      where run_id = $1 and status = 'in_progress' and ($14::text is null or node_id = $14::text)", "      where run_id = $1 and ($14::text is null or true)"]] },
@@ -41,6 +41,7 @@ const MUTANTS = [
   { id: 'N26', suite: NT, what: 'a retried completion whose earlier attempt landed is reported as a takeover', label: 'N26s', edits: [[NODE, '  if (superseded && completionAttempts > 1) {', '  if (false) {']] },
   { id: 'N26', suite: NT, what: 'a checkpoint that meets a transient plane loss is not retried', label: 'N26c', edits: [[NODE, "          return retryTransient(() => {\n            if (hb.signal.aborted)", "          return ((f) => f())(() => {\n            if (hb.signal.aborted)"]] },
   { id: 'N26', suite: NT, what: 'a retried checkpoint is written twice (no checkpoint id)', label: 'N26i', edits: [[CLAIM, "     values (coalesce($6::uuid, gen_random_uuid()), $1, $2, $3, $4, $5::jsonb)\n     on conflict (checkpoint_id) do nothing", "     values (case when $6::uuid is null then gen_random_uuid() else gen_random_uuid() end, $1, $2, $3, $4, $5::jsonb)"]] },
+  { id: 'T8', suite: TLS, what: 'NODE_TLS_REJECT_UNAUTHORIZED=0 in the environment turns certificate verification off', edits: [[DB, "  if (client.ssl && typeof client.ssl === 'object' && client.ssl.rejectUnauthorized === undefined) client.ssl.rejectUnauthorized = true;\n", '']] },
   { id: 'N22', suite: NT, what: 'an admission-only cycle counts as a claim cycle', edits: [[NODE, '    const admitted = !(claimWork.lastAdmission && claimWork.lastAdmission.admit === false);', '    const admitted = true;']] },
   { id: 'N15', suite: NT, what: 'the two-machine acceptance accepts a node on another commit', edits: [['qa/factory/two_machine_real.mjs', '  if (n.head !== EXPECTED || n.dirty || !n.handler) {', '  if (false) {']] },
   { id: 'G3', suite: ACC, what: 'the lease sweep erases which node ran an abandoned run', edits: [[CLAIM, "            set status = 'queued', lease_expires_at = null,", "            set status = 'queued', node_id = null, lease_expires_at = null,"]] },
@@ -97,11 +98,11 @@ for (const m of chosen) {
   const r = spawnSync(process.execPath, [join(S, m.suite)], { cwd: S, encoding: 'utf8', timeout: 1200000, maxBuffer: 1 << 26, env: { ...process.env, FACTORY_RUNNER_PG_URL: '', FACTORY_STATE_DIR: '' } });
   const out = (r.stdout || '') + (r.stderr || '');
   const red = new RegExp('^FAIL ' + m.id + ' ', 'm').test(out);
-  const summary = (out.match(/(factory acceptance|node_truth_acceptance): .*/) || ['no summary (exit ' + r.status + ')'])[0];
+  const summary = (out.match(/(factory acceptance|node_truth_acceptance|tls_plane_acceptance): .*/) || ['no summary (exit ' + r.status + ')'])[0];
   results.push({ id: m.label || m.id, killed: red });
   console.log((red ? 'KILLED   ' : 'SURVIVED ') + (m.label || m.id) + ' (' + m.what + ') - ' + summary);
   // a suite that ended with no summary is never a kill, and says why (a crash in a sparse clone printed nothing to diagnose it by)
-  if (!/(factory acceptance|node_truth_acceptance): /.test(out)) console.log('         its output ended:\n' + out.slice(-1500).split('\n').map((l) => '         ' + l).join('\n'));
+  if (!/(factory acceptance|node_truth_acceptance|tls_plane_acceptance): /.test(out)) console.log('         its output ended:\n' + out.slice(-1500).split('\n').map((l) => '         ' + l).join('\n'));
   if (process.platform === 'win32') spawnSync('powershell', ['-NoProfile', '-Command', "(Get-Item -LiteralPath '" + join(S, 'node_modules') + "').Delete()"]);
   try { rmSync(S, { recursive: true, force: true }); } catch { /* windows lock */ }
 }

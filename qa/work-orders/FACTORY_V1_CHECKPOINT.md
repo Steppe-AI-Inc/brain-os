@@ -1,6 +1,6 @@
 # FACTORY V1 — DURABLE CHECKPOINT (for a fresh Claude Code session)
 
-## 0. RESUME HERE — 2026-09-24, packaging fix: round 4 applied, certification protocol running (NOTHING PUSHED since `ee2fce2b`)
+## 0. RESUME HERE — 2026-09-25, packaging fix: final verification 3 applied, certification protocol running (NOTHING PUSHED since `ee2fce2b`)
 
 - **Published remote** `factory/computer-agnostic-control-plane` = `ee2fce2b` (the founder found it cannot `npm ci`: no lock, `pg`
   undeclared). **No SHA goes to the Work PC until the certification protocol below has finished and the REMOTE is re-verified
@@ -56,6 +56,35 @@
   -Verify flags a record with no commit (node_truth N23); [medium] edits made during a two_machine_real run became the run's code
   through its own die restarts -> the per-row '<sha>+dirty' refusals (e5afa147) make such evidence count for no commit.
   Operational recommendation (NEXT, not done): run the Home node from a dedicated clean clone, not the implementer's worktree.
+- **The final verification of `18bce497`** (wf_25776cde-e0e; every agent inspected exactly `18bce497`) confirmed every earlier fix
+  and found, each reproduced by a refuter, no high defect but: [medium] the lease guard timed the lease from the claim's return while
+  the plane stamps it at the claim's BEGIN (a claim that waited on the claim lock was aborted only after another node took its
+  surface) -> timed from the claim attempt's start; [medium] the oversized-surface exclusion counted characters while the lock key
+  limit is bytes (a 1000-character multibyte surface on the UTF8 plane crash-looped every node) -> octet_length, and 54000 is
+  "nothing claimed"; [medium] the installer's commit check ignored dirty -> head and dirty compared, -Status prints a commit line;
+  and lows: two_machine_scheduling verified an unfinished run -> only a finished one; health said "can claim work" over a refused
+  admission or a busy claim lock -> NOT CLAIMING; -Stop raced the watchdog -> disabled first, stopped, re-checked; -Start confirmed a
+  restarted worker with its predecessor's heartbeat -> readyAt and a beat since the current worker started. Found while fixing them:
+  a renewal in flight when a run completed was read as a takeover (a completed run logged LOST and ABORTED) -> the heartbeat is
+  settled once the work is over. Rows and mutants: acceptance S3 (a UTF8 database of its own), node_truth N13 (claim lock held
+  12 s), N24 (beside a real supervisor), N25 (a relay holding the last renewal past the completion), regression F6 dirty/clean;
+  mutants N13c, N24, N25, S3, F-DIRTYCHECK. The acceptance mutation proof runs from factory-cp (row I reconstructs from this
+  branch, which a clone of another worktree lacks) and prints a crashed suite's output.
+Its Work-PC probe added (reproduced by a refuter): [medium] a transient plane loss at a run's completion or checkpoint threw the
+  finished run away - its claim looked live for a lease while nothing ran it, and the work was done again -> both are retried like a
+  claim; a checkpoint carries its own id, and a retried completion that finds the run finished by this node is its own (node_truth
+  N26; mutants N26, N26s, N26c, N26i); [low] -Start restarted a healthy, busy node on one failed status probe, and printed 'tls off' for
+  a TLS state it had not read -> the probe is asked three times, a node that has completed its claim cycles is left alone ('cannot
+  judge', exit 5), 'not read'; [low] after the checkout moved, a worker restarted by the old supervisor passed -Verify -> the supervisor
+  records its commit, which -Verify, -Status and -Start compare; [low] -Status read ALIVE for a worker that had not completed a claim
+  cycle -> NOT CONFIRMED, and -Verify fails (regression F6, which now also holds node-only commit and dirty cases so the node's own
+  check stays proved; mutants F-SUPCOMMIT, F-UNREADY, F-LEAVEALONE). Its critic added (reproduced by a refuter): [medium]
+  NODE_TLS_REJECT_UNAUTHORIZED=0 in the user's environment turned verify-full off - a node registered and claimed work on a server
+  another CA certified, and every check said tls on -> db.mjs sets rejectUnauthorized itself whenever pg left it unset (TLS suite T8;
+  mutant T8); [medium] at internet latency the claim's own round trips used up the lease guard's margin -> the same class as the lease
+  finding above, closed by timing the lease from before the claim began (N13, N13c).
+  Unit suites: RS-C6 (round-state) reads the closed Edge campaign's worktree and fails there whatever this branch holds - registered,
+  not touched.
 - **Live state**: plane `npvhuoozkbexddnvkqsj` healthy; Home node `node-4d4a74dd` generic under the task (conhost --headless,
   control pipe, watchdog), to be restarted on the frozen SHA (APPLIED). Local plane on 54329. Backups:
   `C:\Users\Dell\dev\backups\factory-cp-2026-09-24-*.bundle`.
@@ -105,20 +134,20 @@
 
 | suite | count | engine |
 |---|---|---|
-| `qa/factory/acceptance.mjs` | 53/53 (A-Q) | disposable PostgreSQL 18 |
-| `qa/factory/node_truth_acceptance.mjs` | 7/7 (N1-N7) | disposable plane, real worker and supervisor processes |
-| `qa/factory/acceptance_mutation_proof.mjs` | every mutant killed (M-Q, N1-N7) | sparse clones with one fix reverted each |
+| `qa/factory/acceptance.mjs` | 58/58 (A-S3) | disposable PostgreSQL 18 |
+| `qa/factory/node_truth_acceptance.mjs` | 25/25 (N1-N26) | disposable plane, real worker and supervisor processes |
+| `qa/factory/acceptance_mutation_proof.mjs` | every mutant killed (M-S3, N1-N26, T8), run from factory-cp | sparse clones with one fix reverted each |
 | `qa/factory/health_check.mjs` | 10/10 | disposable |
 | `qa/factory/founder_poke_not_required.mjs` | 12/12 | disposable |
 | `scripts/factory-runner/db.regression.test.mjs` + `runner-env.regression.test.mjs` | 32 tests | pure |
 | `qa/factory/shared_control_plane_acceptance.mjs` | 18/18 | local embedded plane, real processes |
-| `qa/factory/tls_plane_acceptance.mjs` | 7/7 | disposable TLS server on the LAN address |
+| `qa/factory/tls_plane_acceptance.mjs` | 8/8 (T1-T8) | disposable TLS server on the LAN address |
 | `qa/factory/dedicated_supabase_provisioning.mjs` | 11/11 | disposable TLS server dressed as Supabase |
 | `qa/factory/http_provider_acceptance.mjs` | 9/9 | stub provider + disposable plane |
 | `qa/factory/reboot_recovery_acceptance.mjs` | 9/9 | disposable plane + the live scheduled task |
 | `qa/factory/shared_plane_live_acceptance.mjs` | 11/11 | **the LIVE plane**, from this machine |
 | `qa/factory/two_machine_real.mjs run` | every row green, verdict SAME MACHINE | **the LIVE plane**, two supervised nodes on this machine |
-| `qa/factory/package_bootstrap_regression.mjs` | 15/15 | FRESH clones of HEAD installed from the committed lock (runtime-only and full), a disposable plane |
+| `qa/factory/package_bootstrap_regression.mjs` | 22/22 (K1-K7, F1-F15) | FRESH clones of HEAD installed from the committed lock (runtime-only and full), a disposable plane |
 | `qa/factory/package_bootstrap_mutation_proof.mjs --fresh` | control green, every mutant killed incl. the published defect `ee2fce2b` | clones with one planted defect each |
 | `qa/factory/factory_v1_acceptance.mjs` (composer) | HOLD: 0 failed, only founder/Work-PC rows open | all of the above + plane rows |
 

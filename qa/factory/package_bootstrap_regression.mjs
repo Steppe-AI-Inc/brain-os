@@ -499,6 +499,23 @@ if (!STATIC_ONLY) {
       cyc.statusSupMoved = psT(['-Status']);
       cyc.startSupMoved = psT(['-Start']);
       cyc.verifyAfterSupMove = psT(['-Verify']);
+      // ...and the NODE's commit on its own: the supervisor at the checkout's commit and its worker on another (a worker restarted while the
+      // checkout was elsewhere, the checkout back since) - then only the node's record tells, for the commit and for uncommitted changes
+      const headM = run('git', ['rev-parse', 'HEAD'], cloneA).out.trim();
+      run('git', ['-c', 'user.name=qa', '-c', 'user.email=qa@example.invalid', 'commit', '--allow-empty', '--quiet', '-m', 'qa: a commit only the worker restarts on'], cloneA);
+      const onN = await killWorkerAndWait(true);
+      run('git', ['reset', '--quiet', '--hard', headM], cloneA);
+      cyc.nodeOnly = 'worker ' + onN.before.childPid + ' -> ' + onN.now.childPid + ', ready ' + !!onN.now.readyAt + '; checkout back at ' + headM.slice(0, 12) + ' (' + run('git', ['rev-parse', 'HEAD'], cloneA).out.trim().slice(0, 12) + ')';
+      cyc.verifyNodeOnly = psT(['-Verify']);
+      cyc.startNodeOnly = psT(['-Start']);
+      cyc.verifyAfterNodeOnly = psT(['-Verify']);
+      writeFileSync(touched, readFileSync(touched, 'utf8') + '\n// qa: uncommitted while only the worker restarts\n');
+      const onDirty = await killWorkerAndWait(true);
+      run('git', ['checkout', '--', 'qa/factory/local_pg.mjs'], cloneA);
+      cyc.nodeDirtyOnly = 'worker ' + onDirty.before.childPid + ' -> ' + onDirty.now.childPid + ', ready ' + !!onDirty.now.readyAt + '; checkout clean again ' + (run('git', ['status', '--porcelain', '--untracked-files=no'], cloneA).out.trim() === '');
+      cyc.verifyNodeDirtyOnly = psT(['-Verify']);
+      cyc.startNodeDirtyOnly = psT(['-Start']);
+      cyc.verifyAfterNodeDirtyOnly = psT(['-Verify']);
       // A WORKER THAT HAS NOT COMPLETED A CLAIM CYCLE is not the one the plane's ALIVE is about (final verification 3, Work-PC probe: -Status
       // said ALIVE for crash-looping workers, from their predecessor's heartbeat). A superuser holds this node's record, so the next worker's
       // registration waits: it runs, and has not completed a claim cycle, for as long as the record is held.
@@ -612,34 +629,46 @@ if (!STATIC_ONLY) {
         cyc.ownerScriptRan = existsSync(marker) ? readFileSync(marker, 'utf8').trim().replace(/\r?\n/g, ' | ') : 'never';
       }
       cyc.argsAfterUninstall = taskArgsOf();
-      const cycleOk = cyc.install.rc === 0 && /started: supervisor pid \d+/.test(cyc.install.out) && /role verifier/.test(cyc.install.out)
-        && cyc.verify.rc === 0 && /OK/.test(cyc.verify.out)
-        && cyc.healthPlain.rc === 0 && /role verifier kept as the plane holds it/.test(cyc.healthPlain.out) && /registered on the plane as verifier/.test(cyc.planeHealthPlain.out)
-        && cyc.roleAfterHealth === 'verifier' && cyc.verifyAfterHealth.rc === 0 && /plane\s+ALIVE .*role verifier/.test(cyc.verifyAfterHealth.out)
-        && cyc.verifyMoved.rc === 1 && /the node runs commit [0-9a-f]{40} but this checkout is at [0-9a-f]{40}/.test(cyc.verifyMoved.out)
-        && cyc.startMoved.rc === 0 && /running commit [0-9a-f]{40} while this checkout is at [0-9a-f]{40}\) - restarting it/.test(cyc.startMoved.out) && /started: supervisor pid \d+/.test(cyc.startMoved.out)
-        && cyc.verifyAfterMove.rc === 0 && /^commit\s+the node runs [0-9a-f]{12} but this checkout is at [0-9a-f]{12}/m.test(cyc.statusMoved.out)
-        && cyc.verifyDirty.rc === 1 && /but this checkout is at [0-9a-f]{40}\+dirty/.test(cyc.verifyDirty.out) && cyc.startDirty.rc === 0 && /started: supervisor pid \d+/.test(cyc.startDirty.out)
-        && cyc.verifyCleanAgain.rc === 1 && /the node runs commit [0-9a-f]{40}\+dirty but this checkout is at [0-9a-f]{40} /.test(cyc.verifyCleanAgain.out) && cyc.startCleanAgain.rc === 0 && cyc.verifyAfterClean.rc === 0
-        && /ready true/.test(cyc.supMove) && cyc.verifySupMoved.rc === 1 && /the supervisor runs commit [0-9a-f]{40} but this checkout is at [0-9a-f]{40}/.test(cyc.verifySupMoved.out)
-        && /^commit\s+the supervisor runs commit [0-9a-f]{40} but this checkout is at [0-9a-f]{40}/m.test(cyc.statusSupMoved.out)
-        && cyc.startSupMoved.rc === 0 && /runs commit [0-9a-f]{40} but this checkout is at [0-9a-f]{40} - restarting it/.test(cyc.startSupMoved.out) && /started: supervisor pid \d+/.test(cyc.startSupMoved.out) && cyc.verifyAfterSupMove.rc === 0
-        && /ready false/.test(cyc.unready) && /^node\s+NOT CONFIRMED here \(the worker now running/m.test(cyc.statusUnready.out) && !/^node\s+ALIVE/m.test(cyc.statusUnready.out)
-        && cyc.verifyUnready.rc === 1 && /has not completed a claim cycle/.test(cyc.verifyUnready.out) && cyc.verifyReadyAgain.rc === 0
-        && /^env pointed at a dead port; supervisor (\d+) -> \1, worker (\d+) -> \2$/.test(cyc.unreachable) && cyc.startUnreachable.rc === 5 && /cannot judge: the plane did not answer this PC's status probe/.test(cyc.startUnreachable.out) && cyc.verifyAfterUnreachable.rc === 0
-        && (Number(String(os.release()).split('.')[2] || 0) < 17763 || /\\conhost\.exe$/i.test(cyc.execute))
-        && cyc.stop.rc === 0 && cyc.verifyStopped.rc === 1 && /task is disabled/.test(cyc.verifyStopped.out)
-        && cyc.start.rc === 0 && /nothing re-installed/.test(cyc.start.out) && /started: supervisor pid \d+/.test(cyc.start.out) && /--role verifier/.test(cyc.argsAfterStart)
-        && cyc.startOverHand.rc === 0 && /stopping it so the task's own supervisor takes over/.test(cyc.startOverHand.out) && /started: supervisor pid \d+, worker pid \d+, role verifier/.test(cyc.startOverHand.out) && cyc.handGenericGone
-        && /revived by pid \d+ role verifier/.test(cyc.watchdog)
-        && /stopped true, said why true/.test(cyc.rawStop) && cyc.stopAfterRaw.rc === 0 && /DOWN here/.test(cyc.statusDown.out)
-        && cyc.reinstallKeep.rc === 0 && /--log-dir /.test(cyc.argsAfterKeep) && /--role verifier/.test(cyc.argsAfterKeep) && cyc.watchdogAfterKeep === 'PT1M'
-        && cyc.uninstall1.rc === 0
-        && /^node\s+NOT RUNNING here \(supervisor backoff, next start \S+; last worker error: .*password authentication failed/m.test(cyc.statusBackoff.out) && cyc.handBadGone
-        && cyc.reinstall.rc === 0 && /started: supervisor pid \d+/.test(cyc.reinstall.out) && (cyc.reinstall.out.match(/started: supervisor pid (\d+)/) || [])[1] !== String(hand.pid) && handGone
-        && cyc.argsAfterReinstall.includes('--runner-env "' + envFile + '"')
-        && cyc.uninstall.rc === 0 && cyc.argsAfterUninstall === 'NONE'
-        && cyc.ownerScriptRan === 'never' && /ANOTHER checkout/.test(cyc.ownerStatus.out) && /^node\s+DOWN here/m.test(cyc.ownerStatusEnv.out) && cyc.ownerStop.rc === 0 && cyc.ownerUninstall.rc === 0;
+      // the cycle, part by part: a failure names the parts that failed and prints their steps (the detail is cut to its last 900 characters,
+      // and the one long expression printed nothing that said which step failed)
+      const cycleParts = [
+        ["install", ["install"], cyc.install.rc === 0 && /started: supervisor pid \d+/.test(cyc.install.out) && /role verifier/.test(cyc.install.out)],
+        ["verify", ["verify"], cyc.verify.rc === 0 && /OK/.test(cyc.verify.out)],
+        ["healthPlain", ["healthPlain","planeHealthPlain"], cyc.healthPlain.rc === 0 && /role verifier kept as the plane holds it/.test(cyc.healthPlain.out) && /registered on the plane as verifier/.test(cyc.planeHealthPlain.out)],
+        ["roleAfterHealth", ["roleAfterHealth","verifyAfterHealth"], cyc.roleAfterHealth === 'verifier' && cyc.verifyAfterHealth.rc === 0 && /plane\s+ALIVE .*role verifier/.test(cyc.verifyAfterHealth.out)],
+        ["verifyMoved", ["verifyMoved"], cyc.verifyMoved.rc === 1 && /the (node|supervisor) runs commit [0-9a-f]{40} but this checkout is at [0-9a-f]{40}/.test(cyc.verifyMoved.out)],
+        ["startMoved", ["startMoved"], cyc.startMoved.rc === 0 && /(running commit [0-9a-f]{40} while this checkout is at [0-9a-f]{40}\)|runs commit [0-9a-f]{40} but this checkout is at [0-9a-f]{40}) - restarting it/.test(cyc.startMoved.out) && /started: supervisor pid \d+/.test(cyc.startMoved.out)],
+        ["verifyAfterMove", ["verifyAfterMove","statusMoved"], cyc.verifyAfterMove.rc === 0 && /^commit\s+the node runs [0-9a-f]{12} but this checkout is at [0-9a-f]{12}/m.test(cyc.statusMoved.out)],
+        ["verifyDirty", ["verifyDirty","startDirty"], cyc.verifyDirty.rc === 1 && /but this checkout is at [0-9a-f]{40}\+dirty/.test(cyc.verifyDirty.out) && cyc.startDirty.rc === 0 && /started: supervisor pid \d+/.test(cyc.startDirty.out)],
+        ["verifyCleanAgain", ["verifyCleanAgain","startCleanAgain","verifyAfterClean"], cyc.verifyCleanAgain.rc === 1 && /the (node|supervisor) runs commit [0-9a-f]{40}\+dirty but this checkout is at [0-9a-f]{40} /.test(cyc.verifyCleanAgain.out) && cyc.startCleanAgain.rc === 0 && cyc.verifyAfterClean.rc === 0],
+        ["supMove", ["supMove","verifySupMoved"], /ready true/.test(cyc.supMove) && cyc.verifySupMoved.rc === 1 && /the supervisor runs commit [0-9a-f]{40} but this checkout is at [0-9a-f]{40}/.test(cyc.verifySupMoved.out)],
+        ["statusSupMoved", ["statusSupMoved"], /^commit\s+the supervisor runs commit [0-9a-f]{40} but this checkout is at [0-9a-f]{40}/m.test(cyc.statusSupMoved.out)],
+        ["startSupMoved", ["startSupMoved","verifyAfterSupMove"], cyc.startSupMoved.rc === 0 && /runs commit [0-9a-f]{40} but this checkout is at [0-9a-f]{40} - restarting it/.test(cyc.startSupMoved.out) && /started: supervisor pid \d+/.test(cyc.startSupMoved.out) && cyc.verifyAfterSupMove.rc === 0],
+        ["nodeOnly", ["nodeOnly","verifyNodeOnly","startNodeOnly","verifyAfterNodeOnly"], /ready true; checkout back at ([0-9a-f]{12}) \(\1\)$/.test(cyc.nodeOnly) && cyc.verifyNodeOnly.rc === 1 && /the node runs commit [0-9a-f]{40} but this checkout is at [0-9a-f]{40} /.test(cyc.verifyNodeOnly.out)
+          && cyc.startNodeOnly.rc === 0 && /running commit [0-9a-f]{40} while this checkout is at [0-9a-f]{40}\) - restarting it/.test(cyc.startNodeOnly.out) && cyc.verifyAfterNodeOnly.rc === 0],
+        ["nodeDirtyOnly", ["nodeDirtyOnly","verifyNodeDirtyOnly","startNodeDirtyOnly","verifyAfterNodeDirtyOnly"], /ready true; checkout clean again true$/.test(cyc.nodeDirtyOnly) && cyc.verifyNodeDirtyOnly.rc === 1 && /the node runs commit [0-9a-f]{40}\+dirty but this checkout is at [0-9a-f]{40} /.test(cyc.verifyNodeDirtyOnly.out)
+          && cyc.startNodeDirtyOnly.rc === 0 && /running commit [0-9a-f]{40}\+dirty while this checkout is at [0-9a-f]{40}\) - restarting it/.test(cyc.startNodeDirtyOnly.out) && cyc.verifyAfterNodeDirtyOnly.rc === 0],
+        ["unready", ["unready","statusUnready"], /ready false/.test(cyc.unready) && /^node\s+NOT CONFIRMED here \(the worker now running/m.test(cyc.statusUnready.out) && !/^node\s+ALIVE/m.test(cyc.statusUnready.out)],
+        ["verifyUnready", ["verifyUnready","verifyReadyAgain"], cyc.verifyUnready.rc === 1 && /has not completed a claim cycle/.test(cyc.verifyUnready.out) && cyc.verifyReadyAgain.rc === 0],
+        ["unreachable", ["unreachable","startUnreachable","verifyAfterUnreachable"], /^env pointed at a dead port; supervisor (\d+) -> \1, worker (\d+) -> \2$/.test(cyc.unreachable) && cyc.startUnreachable.rc === 5 && /cannot judge: the plane did not answer this PC's status probe/.test(cyc.startUnreachable.out) && cyc.verifyAfterUnreachable.rc === 0],
+        ["execute", ["execute"], (Number(String(os.release()).split('.')[2] || 0) < 17763 || /\\conhost\.exe$/i.test(cyc.execute))],
+        ["stop", ["stop","verifyStopped"], cyc.stop.rc === 0 && cyc.verifyStopped.rc === 1 && /task is disabled/.test(cyc.verifyStopped.out)],
+        ["start", ["start","argsAfterStart"], cyc.start.rc === 0 && /nothing re-installed/.test(cyc.start.out) && /started: supervisor pid \d+/.test(cyc.start.out) && /--role verifier/.test(cyc.argsAfterStart)],
+        ["startOverHand", ["startOverHand","handGenericGone"], cyc.startOverHand.rc === 0 && /stopping it so the task's own supervisor takes over/.test(cyc.startOverHand.out) && /started: supervisor pid \d+, worker pid \d+, role verifier/.test(cyc.startOverHand.out) && cyc.handGenericGone],
+        ["watchdog", ["watchdog"], /revived by pid \d+ role verifier/.test(cyc.watchdog)],
+        ["rawStop", ["rawStop","stopAfterRaw","statusDown"], /stopped true, said why true/.test(cyc.rawStop) && cyc.stopAfterRaw.rc === 0 && /DOWN here/.test(cyc.statusDown.out)],
+        ["reinstallKeep", ["reinstallKeep","argsAfterKeep","watchdogAfterKeep"], cyc.reinstallKeep.rc === 0 && /--log-dir /.test(cyc.argsAfterKeep) && /--role verifier/.test(cyc.argsAfterKeep) && cyc.watchdogAfterKeep === 'PT1M'],
+        ["uninstall1", ["uninstall1"], cyc.uninstall1.rc === 0],
+        ["statusBackoff", ["statusBackoff","handBadGone"], /^node\s+NOT RUNNING here \(supervisor backoff, next start \S+; last worker error: .*password authentication failed/m.test(cyc.statusBackoff.out) && cyc.handBadGone],
+        ["reinstall", ["reinstall"], cyc.reinstall.rc === 0 && /started: supervisor pid \d+/.test(cyc.reinstall.out) && (cyc.reinstall.out.match(/started: supervisor pid (\d+)/) || [])[1] !== String(hand.pid) && handGone],
+        ["argsAfterReinstall", ["argsAfterReinstall"], cyc.argsAfterReinstall.includes('--runner-env "' + envFile + '"')],
+        ["uninstall", ["uninstall","argsAfterUninstall"], cyc.uninstall.rc === 0 && cyc.argsAfterUninstall === 'NONE'],
+        ["ownerScriptRan", ["ownerScriptRan","ownerStatus","ownerStatusEnv","ownerStop","ownerUninstall"], cyc.ownerScriptRan === 'never' && /ANOTHER checkout/.test(cyc.ownerStatus.out) && /^node\s+DOWN here/m.test(cyc.ownerStatusEnv.out) && cyc.ownerStop.rc === 0 && cyc.ownerUninstall.rc === 0],
+      ];
+      const cycleOk = cycleParts.every((p) => p[2]);
+      // FACTORY_QA_DUMP=<file>: every step of the cycle, whole, for a person reading a failure
+      if (process.env.FACTORY_QA_DUMP) { try { writeFileSync(process.env.FACTORY_QA_DUMP, JSON.stringify(cyc, null, 1)); } catch { /* diagnostics only */ } }
+      const cycleFailed = cycleParts.filter((p) => !p[2]).map(([label, keys]) => label + ' {' + keys.map((k) => k + ': ' + (typeof cyc[k] === 'string' ? cyc[k] : cyc[k] ? 'rc ' + cyc[k].rc + ' ' + String(cyc[k].out).trim().split(/\r?\n/).slice(-3).join(' / ') : 'none').slice(0, 260)).join(' | ') + '}');
       const liveTaskAfter = run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName 'BrainOS Factory Node' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).WorkingDirectory + '|' + ($t.Actions|Select-Object -First 1).Arguments + '|' + $t.Settings.Enabled}else{'NONE'}"], ROOT).out.trim();
       const refused = (g) => g.rc === 'skipped' || (g.rc === 3 && /belongs to another checkout/.test(g.out));
       const guardOk = refused(guard) && refused(stopGuard) && refused(uninstallGuard) && (statusOther.rc === 'skipped' || (/ANOTHER checkout/.test(statusOther.out) && /run -Status there/.test(statusOther.out)));
@@ -647,7 +676,7 @@ if (!STATIC_ONLY) {
         broken.rc === 1 && /PREFLIGHT FAILED/.test(broken.out) && /npm ci/.test(broken.out) && noCa.rc === 1 && /copy the CA file/.test(noCa.out) && fixed.rc === 0 && /PREFLIGHT OK/.test(fixed.out) && guardOk && cycleOk && liveTaskAfter === liveTaskBefore,
         'broken: ' + broken.out + '\nno CA: ' + noCa.out + '\nfixed: ' + fixed.out + '\nguard: ' + guard.out + '\nstop: ' + stopGuard.out + '\nuninstall: ' + uninstallGuard.out + '\nstatus: ' + statusOther.out
         + '\n--- cycle ' + Object.entries(cyc).map(([k, v]) => k + ': ' + (typeof v === 'string' ? v : 'rc ' + v.rc + ' ' + v.out)).join('\n') + '\nhand-started supervisor pid ' + hand.pid + ' gone ' + handGone
-        + '\ntask before: ' + liveTaskBefore + '\ntask after: ' + liveTaskAfter);
+        + '\ntask before: ' + liveTaskBefore + '\ntask after: ' + liveTaskAfter + (cycleOk ? '' : '\nCYCLE PART DETAILS: ' + cycleFailed.join('\n  ') + '\nCYCLE PARTS FAILED: ' + cycleParts.filter((p) => !p[2]).map((p) => p[0]).join(', ')));
     } else {
       run(NPM, ['ci', '--omit=dev', '--strict-allow-scripts'], cloneA, cleanEnv);
       if (!isWin) console.log('NOTE F6 is Windows-only (the scheduled-task installer); skipped on ' + process.platform);

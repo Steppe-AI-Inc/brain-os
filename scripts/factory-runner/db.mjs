@@ -97,6 +97,12 @@ async function connect() {
     keepAlive: true,
     keepAliveInitialDelayMillis: 10000,
   });
+  // CERTIFICATE VERIFICATION CANNOT BE SWITCHED OFF FROM OUTSIDE. For sslmode=verify-full (and verify-ca, require with a root) pg leaves
+  // rejectUnauthorized unset, and Node then takes it from NODE_TLS_REJECT_UNAUTHORIZED: with that variable 0 in the user's environment a
+  // node connected to a server certified by another CA, registered and claimed work there, and every check said tls on (final
+  // verification 3, critic). Unset, it is set here - true. (A URL that turns verification off by its own words keeps them; the URL judge
+  // decides which of those are allowed.) pg's client and its connection share this object.
+  if (client.ssl && typeof client.ssl === 'object' && client.ssl.rejectUnauthorized === undefined) client.ssl.rejectUnauthorized = true;
   // a connection lost under a pending query rejects that query; the client ALSO emits 'error', which unhandled would end the
   // whole process instead of failing one statement (found by acceptance row Q's mutation check)
   client.on('error', () => { /* the pending query rejects with it */ });
