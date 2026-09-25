@@ -107,12 +107,15 @@ const SUP_DIRTY = SUP_HEAD ? !!gitOut(['status', '--porcelain', '--untracked-fil
 // ---- one supervisor per state dir, by lock ----------------------------------------------------------------------------------
 const INSTANCE = randomUUID();
 let status = null, child = null, stopping = false;
+// the worker's uptime on the monotonic clock, for whois: the installer took it as the difference of two wall-clock readings, which a clock step
+// makes negative - a healthy worker read "not heard from since it started" (the class of final verification 5)
+let childStartedMono = 0;
 const shutdown = (why) => { if (stopping) return; stopping = true; log('stopping: ' + why); if (child && child.exitCode === null) { try { child.kill(); } catch { /* gone */ } } };
 const held = await holdControlPipe(STATE_DIR,
   () => ({ pid: process.pid, instance: INSTANCE, root: ROOT, stateDir: STATE_DIR, role: ROLE, envFile: ENV_FILE, logDir: LOG_DIR, head: SUP_HEAD, dirty: SUP_DIRTY,
     state: status ? status.state : 'starting', childPid: status ? status.childPid : null, restarts: status ? status.restarts : 0, startedAt: status ? status.startedAt : null,
     nextStartAt: status && status.state === 'backoff' ? status.nextStartAt : null, readyAt: status ? status.readyAt || null : null,
-    childStartedAt: status && status.childPid ? status.childStartedAt : null }),
+    childStartedAt: status && status.childPid ? status.childStartedAt : null, childUpMs: status && status.childPid ? Math.round(performance.now() - childStartedMono) : null }),
   () => shutdown('stop requested over the control pipe'));
 if (!held.held) {
   const other = await askSupervisor(STATE_DIR, 'whois');
@@ -217,6 +220,7 @@ while (!stopRequested()) {
     cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true,
     env: workerEnv(),
   });
+  childStartedMono = performance.now();
   status.childPid = child.pid; status.childStartedAt = new Date().toISOString(); status.state = 'running'; status.nextStartAt = null; status.readyAt = null; writeStatus(status);
   log('node started (pid ' + child.pid + ')');
   let tail = '';

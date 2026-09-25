@@ -217,9 +217,16 @@ function Get-NodeOnPlane($dir) {
 # seconds; each sample of "running" found a fresh worker, and the plane's ALIVE was the previous worker's (final verification
 # 2026-09-24). The node reads ALIVE only after a completed claim cycle, and that stamp must be younger than the worker now running
 # (a duration on each side, so a clock difference does not matter). $null: nothing to judge (a supervisor from before the pipe).
+# How long the worker now running has been up: the supervisor's own monotonic measure when it gives one (the difference of two wall-clock
+# readings goes negative across a clock step, and a healthy worker read "not heard from since it started"), else from its recorded start.
+function Get-WorkerUpSeconds($sv) {
+  if ($sv -and $sv.childUpMs -ne $null) { return ([double]$sv.childUpMs / 1000) }
+  if ($sv -and $sv.childStartedAt) { return ((Get-Date) - [datetime]$sv.childStartedAt).TotalSeconds }
+  return $null
+}
 function Test-HeardSinceStart($sv, $plane) {
-  if (-not $sv -or -not $sv.childStartedAt -or -not $plane -or $plane.ageMs -eq $null) { return $null }
-  $upFor = ((Get-Date) - [datetime]$sv.childStartedAt).TotalSeconds
+  if (-not $sv -or ($sv.childUpMs -eq $null -and -not $sv.childStartedAt) -or -not $plane -or $plane.ageMs -eq $null) { return $null }
+  $upFor = Get-WorkerUpSeconds $sv
   return ((([double]$plane.ageMs) / 1000) -le ($upFor + 5))
 }
 # THE START IS CONFIRMED BY THE NODE, NOT BY A SAMPLE. The task's exit code says nothing (a headless console host returns 0
@@ -245,7 +252,7 @@ function Confirm-TaskSupervisor($dir, $since) {
           # THE WORKER NOW RUNNING must have completed a claim cycle (readyAt, set for this worker only) and the plane must have heard from
           # it since it started: a beat older than the worker (its predecessor's) confirmed a worker admission kept refusing (final
           # verification 3, 2026-09-25)
-          $sinceChild = if ($i.childStartedAt) { ((Get-Date) - [datetime]$i.childStartedAt).TotalSeconds } else { $upFor }
+          $sinceChild = if ($i.childUpMs -ne $null -or $i.childStartedAt) { Get-WorkerUpSeconds $i } else { $upFor }
           if ($i.readyAt -and $plane -and $plane.state -eq 'ALIVE' -and $plane.ageMs -ne $null -and ([double]$plane.ageMs / 1000) -le ($sinceChild + 2) -and $plane.role -eq $i.role) {
             return "started: supervisor pid $($i.pid), worker pid $($i.childPid), role $($i.role); the node is ALIVE on the plane (heartbeat $([Math]::Round([double]$plane.ageMs / 1000)) s ago, role $($plane.role), tls $(if ($plane.tls -eq $true) { 'on' } elseif ($plane.tls -eq $false) { 'off' } else { 'not read' }))"
           }
@@ -344,7 +351,7 @@ if ($Status) {
     elseif ($live.state -ne 'running' -or -not $live.childPid) { "node      NOT RUNNING here (supervisor $($live.state)$(if ($live.nextStartAt) { ', next start ' + $live.nextStartAt } else { '' }); last worker error: $(Get-LastWorkerError $live.logDir)) - the plane's last word: $nodeLine" }
     # ...and a worker that has not completed a claim cycle is not the one the plane's ALIVE is about: -Status said ALIVE for crash-looping
     # workers, from their predecessor's heartbeat (final verification 3, Work-PC probe)
-    elseif (-not $live.legacy -and -not $live.readyAt) { "node      NOT CONFIRMED here (the worker now running, pid $($live.childPid)$(if ($live.childStartedAt) { ', up ' + [Math]::Round(((Get-Date) - [datetime]$live.childStartedAt).TotalSeconds) + ' s' } else { '' }), has not completed a claim cycle - still starting, or a worker that keeps restarting) - the plane's last word, about an earlier worker: $nodeLine" }
+    elseif (-not $live.legacy -and -not $live.readyAt) { "node      NOT CONFIRMED here (the worker now running, pid $($live.childPid)$(if ($live.childUpMs -ne $null -or $live.childStartedAt) { ', up ' + [Math]::Round((Get-WorkerUpSeconds $live)) + ' s' } else { '' }), has not completed a claim cycle - still starting, or a worker that keeps restarting) - the plane's last word, about an earlier worker: $nodeLine" }
     else { "node      $nodeLine" }
     if (-not (Test-OtherCheckout $owner) -and $live -and -not (Test-SupervisorCommit $live)) { "commit    the supervisor runs $(Get-SupervisorCommitText $live) but this checkout is at $(Get-CommitText $CheckoutHead $CheckoutDirty) - install-autostart.ps1 -Start$taskHint restarts it on the checkout's commit" }
     # the commit the node runs, against this checkout (it read ALIVE for a node -Verify failed on a moved checkout - final verification 3)
@@ -413,9 +420,9 @@ if ($Verify) {
     elseif ($sv.state -ne 'running') { 'the supervisor is ' + $sv.state }
     elseif (-not (Test-SupervisorCommit $sv)) { 'the supervisor runs ' + (Get-SupervisorCommitText $sv) + ' but this checkout is at ' + (Get-CommitText $CheckoutHead $CheckoutDirty) + ' - install-autostart.ps1 -Start' + $taskHint + ' restarts it on the checkout''s commit' }
     # the plane's ALIVE is about a worker that completed a claim cycle - not one still starting, or one that keeps restarting
-    elseif (-not $sv.legacy -and -not $sv.readyAt) { 'the worker now running (pid ' + $sv.childPid + $(if ($sv.childStartedAt) { ', up ' + [Math]::Round(((Get-Date) - [datetime]$sv.childStartedAt).TotalSeconds) + ' s' } else { '' }) + ') has not completed a claim cycle - still starting, or a worker that keeps restarting (-Status shows the supervisor''s restarts)' }
+    elseif (-not $sv.legacy -and -not $sv.readyAt) { 'the worker now running (pid ' + $sv.childPid + $(if ($sv.childUpMs -ne $null -or $sv.childStartedAt) { ', up ' + [Math]::Round((Get-WorkerUpSeconds $sv)) + ' s' } else { '' }) + ') has not completed a claim cycle - still starting, or a worker that keeps restarting (-Status shows the supervisor''s restarts)' }
     elseif (-not $plane -or $plane.state -ne 'ALIVE') { 'the worker runs, but the plane does not see the node ALIVE' + $(if ($plane) { ': ' + $plane.state + $(if ($plane.error) { ' - ' + $plane.error } else { '' }) } else { '' }) }
-    elseif ($heard -eq $false) { 'the plane has not heard from the worker now running since it started (worker pid ' + $sv.childPid + ' up ' + [Math]::Round(((Get-Date) - [datetime]$sv.childStartedAt).TotalSeconds) + ' s, last heartbeat ' + [Math]::Round([double]$plane.ageMs / 1000) + ' s ago) - a worker that keeps restarting; last worker error: ' + (Get-LastWorkerError $sv.logDir) }
+    elseif ($heard -eq $false) { 'the plane has not heard from the worker now running since it started (worker pid ' + $sv.childPid + ' up ' + [Math]::Round((Get-WorkerUpSeconds $sv)) + ' s, last heartbeat ' + [Math]::Round([double]$plane.ageMs / 1000) + ' s ago) - a worker that keeps restarting; last worker error: ' + (Get-LastWorkerError $sv.logDir) }
     # THE ROLE THAT DECIDES WHAT THE NODE CLAIMS IS THE PLANE'S: a verifier the plane held as generic claimed no verifier work while
     # this said OK (a health check from a plain shell had re-registered it; verification round 4). The worker re-asserts its role
     # on every beat, so a mismatch that lasts is a fault.

@@ -74,6 +74,8 @@
 //   N37b a two_machine_real run cut short after a row FAILED ends VERDICT: FAIL (exit 1), not INCONCLUSIVE
 //   N38 the supervisor's restart backoff runs on a monotonic clock (a wall-clock step back kept the node down for the step)
 //   N39 the idle liveness beat runs on a monotonic clock (a wall-clock step back made a healthy node read STALE)
+//   N38u the supervisor reports its worker's uptime on a monotonic clock (whois childUpMs): the installer judged "heard since it started"
+//      from two wall-clock readings, which a clock step makes negative
 import { startLocalPg } from './local_pg.mjs';
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync, rmSync } from 'node:fs';
@@ -1103,6 +1105,23 @@ try {
     await new Promise((r) => { if (sup.exitCode !== null) return r(); const t = setTimeout(() => { try { sup.kill(); } catch { /* gone */ } r(); }, 25000); sup.on('exit', () => { clearTimeout(t); r(); }); });
     check('N38 the supervisor\'s restart backoff runs on a monotonic clock: with the wall clock stepped back an hour at 12 s, ' + starts + ' workers were started in 40 s (backoff 5 s, 10 s, 20 s)',
       starts >= 3, (sup.out.match(/.*(node started|restart \d+ in).*/g) || []).join('\n').slice(-900));
+  }
+
+  // ---- N38u. the supervisor reports its worker's uptime on a monotonic clock ------------------------------------------------------
+  currentRow = 'N38u';
+  if (want('N38u')) {
+    const S38u = join(WORK, 'state-sup-uptime'); const L38u = join(WORK, 'logs-sup-uptime'); mkdirSync(S38u, { recursive: true });
+    const env = { ...process.env, FACTORY_RUNNER_PG_URL: '', FACTORY_STATE_DIR: S38u, FACTORY_NODE_BEAT_MS: '2000', FACTORY_ADMISSION: 'off', NODE_OPTIONS: clockStepOpt, QA_STEP_AT_MS: '5000', QA_STEP_BY_MS: '3600000' };
+    const sup = spawn(process.execPath, [SUP, '--runner-env', envFile, '--role', 'generic', '--log-dir', L38u], { cwd: ROOT, env, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+    sup.out = ''; sup.stdout.on('data', (d) => { sup.out += d; }); sup.stderr.on('data', (d) => { sup.out += d; }); procs.push(sup);
+    await waitFor(async () => /node started \(pid \d+\)/.test(sup.out), 30000, 300);
+    await sleep(12000);
+    const w = spawnSync(process.execPath, [SUP, '--whois'], { cwd: ROOT, encoding: 'utf8', timeout: 30000, env: { ...env, NODE_OPTIONS: '' } });
+    const j = (() => { try { return JSON.parse(String(w.stdout || '').trim().split(/\r?\n/).filter((l) => l.startsWith('{')).pop()); } catch { return null; } })();
+    spawn(process.execPath, [SUP, '--stop'], { cwd: ROOT, env: { ...env, NODE_OPTIONS: '' }, stdio: 'ignore', windowsHide: true });
+    await new Promise((r) => { if (sup.exitCode !== null) return r(); const t = setTimeout(() => { try { sup.kill(); } catch { /* gone */ } r(); }, 25000); sup.on('exit', () => { clearTimeout(t); r(); }); });
+    check('N38u the supervisor reports its worker\'s uptime on a monotonic clock: with its wall clock stepped back an hour, whois says up ' + (j && j.childUpMs != null ? Math.round(j.childUpMs / 1000) + ' s' : 'NOTHING'),
+      !!j && typeof j.childUpMs === 'number' && j.childUpMs >= 10000 && j.childUpMs < 60000, String(w.stdout || '').slice(-400) + '\n' + sup.out.slice(-300));
   }
 
   // ---- N39. the idle liveness beat runs on a monotonic clock ------------------------------------------------------------------------
