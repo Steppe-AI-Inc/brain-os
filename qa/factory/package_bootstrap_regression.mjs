@@ -554,6 +554,16 @@ if (!STATIC_ONLY) {
       cyc.startDead = psT(['-Start']);
       writeFileSync(envFile, envSaved);
       cyc.startRevived = psT(['-Start']);
+      // A BARE WORKER ALREADY RUNNING THIS NODE (runbook §D's line, left running): the task's worker is refused as a second one, and the
+      // installer quotes that refusal - it said "nothing logged that names it" (final verification 5, critic)
+      cyc.stopForBare = psT(['-Stop']);
+      const bare = spawn(process.execPath, [join(cloneA, 'scripts/factory-runner/node.mjs'), 'start'], { cwd: cloneA, env: { ...process.env, ...cleanEnv, FACTORY_RUNNER_PG_URL: pg.runnerUrl, FACTORY_NODE_ROLE: 'verifier', FACTORY_ADMISSION: 'off' }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+      started.push(bare); let bareOut = ''; bare.stdout.on('data', (d) => { bareOut += d; }); bare.stderr.on('data', (d) => { bareOut += d; });
+      for (let i = 0; i < 60 && !/ready: first claim cycle completed/.test(bareOut); i++) await sleep(500);
+      cyc.startBesideBare = psT(['-Start']);
+      try { bare.kill(); } catch { /* gone */ }
+      await gone(bare);
+      cyc.startAfterBare = psT(['-Start']);
       cyc.execute = run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName '" + scratchTask + "' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).Execute}else{'NONE'}"], ROOT).out.trim();
       cyc.stop = psT(['-Stop']);
       cyc.verifyStopped = psT(['-Verify']);
@@ -662,6 +672,7 @@ if (!STATIC_ONLY) {
         ["nodeDirtyOnly", ["nodeDirtyOnly","verifyNodeDirtyOnly","startNodeDirtyOnly","verifyAfterNodeDirtyOnly"], /ready true; checkout clean again true$/.test(cyc.nodeDirtyOnly) && cyc.verifyNodeDirtyOnly.rc === 1 && /the node runs commit [0-9a-f]{40}\+dirty but this checkout is at [0-9a-f]{40} /.test(cyc.verifyNodeDirtyOnly.out)
           && cyc.startNodeDirtyOnly.rc === 0 && /running commit [0-9a-f]{40}\+dirty while this checkout is at [0-9a-f]{40}\) - restarting it/.test(cyc.startNodeDirtyOnly.out) && cyc.verifyAfterNodeDirtyOnly.rc === 0],
         ["startDead", ["stopForDead","startDead","startRevived"], cyc.stopForDead.rc === 0 && cyc.startDead.rc === 5 && !/admission refuses/.test(cyc.startDead.out) && /ECONNREFUSED|transient plane error/.test(cyc.startDead.out) && cyc.startRevived.rc === 0 && /started: supervisor pid \d+/.test(cyc.startRevived.out)],
+        ["startBesideBare", ["stopForBare","startBesideBare","startAfterBare"], cyc.stopForBare.rc === 0 && cyc.startBesideBare.rc === 5 && /NOT STARTED - another worker already runs the node/.test(cyc.startBesideBare.out) && !/nothing logged that names it/.test(cyc.startBesideBare.out) && cyc.startAfterBare.rc === 0 && /started: supervisor pid \d+/.test(cyc.startAfterBare.out)],
         ["unready", ["unready","statusUnready"], /ready false/.test(cyc.unready) && /^node\s+NOT CONFIRMED here \(the worker now running/m.test(cyc.statusUnready.out) && !/^node\s+ALIVE/m.test(cyc.statusUnready.out)],
         ["verifyUnready", ["verifyUnready","verifyReadyAgain"], cyc.verifyUnready.rc === 1 && /has not completed a claim cycle/.test(cyc.verifyUnready.out) && cyc.verifyReadyAgain.rc === 0],
         ["unreachable", ["unreachable","startUnreachable","verifyAfterUnreachable"], /^env pointed at a dead port; supervisor (\d+) -> \1, worker (\d+) -> \2$/.test(cyc.unreachable) && cyc.startUnreachable.rc === 5 && /cannot judge: the plane did not answer this PC's status probe/.test(cyc.startUnreachable.out) && cyc.verifyAfterUnreachable.rc === 0],
@@ -690,7 +701,7 @@ if (!STATIC_ONLY) {
         && (startGuard.rc === 'skipped' || (startGuard.rc === 3 && /belongs to another checkout/.test(startGuard.out) && !/kept from the installed task|yields a usable runner URL|PREFLIGHT/i.test(startGuard.out)))
         && (verifyOther.rc === 'skipped' || (verifyOther.rc === 1 && /belongs to another checkout .* - run -Verify there/.test(verifyOther.out) && !/^preflight/m.test(verifyOther.out) && !/^plane /m.test(verifyOther.out)));
       check('F6 install-autostart.ps1: -Preflight refuses the broken clone (exit ' + broken.rc + ') and a missing CA (exit ' + noCa.rc + ') and passes the repaired one (exit ' + fixed.rc + '); from the clone install/-Stop/-Uninstall refuse another checkout\'s task (' + guard.rc + '/' + stopGuard.rc + '/' + uninstallGuard.rc + ') and -Status names its owner; the scratch-task Work-PC cycle (install+start, -Verify, -Stop, -Start still verifier, a hand-started supervisor replaced, -Uninstall) ' + (cycleOk ? 'holds' : 'FAILS') + '; the live task is untouched',
-        broken.rc === 1 && /PREFLIGHT FAILED/.test(broken.out) && /npm ci/.test(broken.out) && noCa.rc === 1 && /copy the CA file/.test(noCa.out) && fixed.rc === 0 && /PREFLIGHT OK/.test(fixed.out) && guardOk && cycleOk && liveTaskAfter === liveTaskBefore,
+        broken.rc === 1 && /PREFLIGHT FAILED/.test(broken.out) && /npm ci/.test(broken.out) && noCa.rc === 1 && /copy the CA file/.test(noCa.out) && fixed.rc === 0 && /PREFLIGHT OK/.test(fixed.out) && /^power\s+(sleep after .* on AC|sleep timeout not read)/m.test(fixed.out) && guardOk && cycleOk && liveTaskAfter === liveTaskBefore,
         'broken: ' + broken.out + '\nno CA: ' + noCa.out + '\nfixed: ' + fixed.out + '\nguard: ' + guard.out + '\nstop: ' + stopGuard.out + '\nuninstall: ' + uninstallGuard.out + '\nstatus: ' + statusOther.out + '\nverify (another checkout): ' + verifyOther.out + '\nstart (another checkout): ' + startGuard.out
         + '\n--- cycle ' + Object.entries(cyc).map(([k, v]) => k + ': ' + (typeof v === 'string' ? v : 'rc ' + v.rc + ' ' + v.out)).join('\n') + '\nhand-started supervisor pid ' + hand.pid + ' gone ' + handGone
         + '\ntask before: ' + liveTaskBefore + '\ntask after: ' + liveTaskAfter + (cycleOk ? '' : '\nCYCLE PART DETAILS: ' + cycleFailed.join('\n  ') + '\nCYCLE PARTS FAILED: ' + cycleParts.filter((p) => !p[2]).map((p) => p[0]).join(', ')));

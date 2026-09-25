@@ -81,6 +81,8 @@
 //   N41 a scheduling wave keeps the leases it holds while it claims over a slow link (another node took one over, and the wave said
 //      'completed')
 //   N35b plane-health reads the env file as the node does (--runner-env), and a URL copied from another machine has its CA path resolved
+//   N42 a node that admission refuses stamps no liveness: it reads STALE (with the refusal said) until it claims again, then ALIVE (it
+//      read ALIVE while refusing every claim, and the other machine chose it)
 import { startLocalPg } from './local_pg.mjs';
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync, rmSync } from 'node:fs';
@@ -1001,6 +1003,32 @@ try {
     const o1 = String(viaFile.stdout || '') + String(viaFile.stderr || ''), o2 = String(raw.stdout || '') + String(raw.stderr || '');
     check('N35b plane-health reads the env file as the node does (--runner-env: exit ' + viaFile.status + ') and resolves a copied URL\'s CA path (raw URL: exit ' + raw.status + ')',
       viaFile.status === 0 && /PLANE HEALTHY/.test(o1) && raw.status === 0 && /PLANE HEALTHY/.test(o2) && !/ENOENT|is not set/.test(o1 + o2), o1.slice(-400) + '\n--- raw\n' + o2.slice(-400));
+  }
+
+  // ---- N42. a node that admission refuses stamps no liveness ---------------------------------------------------------------------------
+  // Admission is switched at run time through a preload that reads a flag file (admission reads FACTORY_MIN_FREE_MB on every call).
+  currentRow = 'N42';
+  if (want('N42')) {
+    const flag = join(WORK, 'n42-refuse.flag');
+    const pre = join(WORK, 'admflag.mjs');
+    writeFileSync(pre, "import { existsSync } from 'node:fs'; const f = process.env.QA_ADMISSION_FLAG; const t = () => { process.env.FACTORY_MIN_FREE_MB = existsSync(f) ? '99999999' : '1'; }; t(); setInterval(t, 200).unref();\n");
+    const S19 = join(WORK, 'state-admit');
+    const w17 = spawnWorker({ state: S19, role: 'generic', extra: { FACTORY_ADMISSION: '', FACTORY_MAX_CPU_PCT: '101', NODE_OPTIONS: '--import=' + pathToFileURL(pre).href, QA_ADMISSION_FLAG: flag } });
+    await waitFor(async () => /\] ready: first claim cycle completed/.test(w17.out), 60000);
+    const st = () => { try { return JSON.parse(String(statusOf(S19)).trim().split(/\r?\n/).filter((l) => l.startsWith('{')).pop()); } catch { return null; } };
+    const before = st();
+    writeFileSync(flag, 'refuse');
+    await waitFor(async () => /admission REFUSED/.test(w17.out), 30000, 300);
+    await sleep(14000); // the stale window (8 s) and more than one beat (2 s)
+    const refused = st();
+    rmSync(flag, { force: true });
+    await waitFor(async () => /admission: claiming/.test(w17.out.split('admission REFUSED').pop()), 30000, 300);
+    await sleep(5000);
+    const after = st();
+    try { w17.kill(); } catch { /* gone */ }
+    check('N42 a node that admission refuses stamps no liveness: ' + (before && before.state) + ' -> ' + (refused && refused.state) + (refused && refused.admission && refused.admission.admit === false ? ' (admission refused, said)' : '') + ' -> ' + (after && after.state),
+      !!before && before.state === 'ALIVE' && !!refused && refused.state === 'STALE' && !!refused.admission && refused.admission.admit === false && !!after && after.state === 'ALIVE',
+      JSON.stringify({ before, refused, after }).slice(0, 600) + '\n' + w17.out.slice(-600));
   }
 
   // ---- N36. status asks the plane three times -------------------------------------------------------------------------------------

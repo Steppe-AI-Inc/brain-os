@@ -71,13 +71,14 @@ export const NODE_STALE_MS = Math.max(2000, Number(process.env.FACTORY_NODE_STAL
 // reg: { capabilities, agentVersion } - the WHOLE registration is re-asserted, not only the role. A script run on the same PC that
 // registered the checkout's node id replaced its capabilities (its commit, its handler, factory_acceptance): the node silently stopped
 // claiming acceptance work while every check read healthy (final verification 2, 2026-09-25). recordChanged says it happened.
-export async function nodeBeat(id, role = nodeRole(), reg = null) {
+// stamp: false re-asserts the record without stamping liveness - what a worker that admission refuses does (see the idle loop)
+export async function nodeBeat(id, role = nodeRole(), reg = null, stamp = true) {
   // the previous record is read UNDER THE ROW LOCK (for update waits for a concurrent writer and then reads what it committed): a
   // plain self-join read its snapshot, so a demotion committed during the beat was overwritten without being said (final
   // verification 2026-09-24)
   const r = await db.write(
-    'with was as (select node_id, security_role, capabilities, agent_version from factory.nodes where node_id = $1 for update) update factory.nodes n set last_heartbeat_at = now(), security_role = $2, capabilities = coalesce($3::jsonb, n.capabilities), agent_version = coalesce($4, n.agent_version) from was where n.node_id = was.node_id returning was.security_role as was, was.capabilities as caps_was, was.agent_version as av_was',
-    [id, role, reg ? JSON.stringify(reg.capabilities) : null, reg ? reg.agentVersion : null]);
+    'with was as (select node_id, security_role, capabilities, agent_version from factory.nodes where node_id = $1 for update) update factory.nodes n set last_heartbeat_at = case when $5::boolean then now() else n.last_heartbeat_at end, security_role = $2, capabilities = coalesce($3::jsonb, n.capabilities), agent_version = coalesce($4, n.agent_version) from was where n.node_id = was.node_id returning was.security_role as was, was.capabilities as caps_was, was.agent_version as av_was',
+    [id, role, reg ? JSON.stringify(reg.capabilities) : null, reg ? reg.agentVersion : null, stamp !== false]);
   const row = r.rows[0];
   return { found: !!row, was: row ? row.was : null,
     recordChanged: !!(row && reg && (JSON.stringify(row.caps_was) !== JSON.stringify(reg.capabilities) || row.av_was !== reg.agentVersion)) };
@@ -429,10 +430,14 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
       if (once) { log('nothing eligible'); break; }
       if (ready && monoNow() - lastBeat >= NODE_BEAT_MS) {
         try {
-          const b = await nodeBeat(id, nodeRole(), reg);
+          // A NODE THAT ADMISSION REFUSES STAMPS NO LIVENESS: it read ALIVE on the plane for as long as it refused every claim, the Home PC
+          // picked it as the work node, and two_machine_real spent seventeen minutes on a FAIL that named no cause (final verification 5,
+          // critic). Its record is still re-asserted; the plane reads it STALE after the stale window, and its status says why.
+          const refusedNow = !!(claimWork.lastAdmission && claimWork.lastAdmission.admit === false);
+          const b = await nodeBeat(id, nodeRole(), reg, !refusedNow);
           // a record removed from the plane is written again; a role or registration changed by anything but this worker is re-asserted, and said
           // (stamped at once: this worker has completed claim cycles, it is not "never beaten" - it read STALE for a whole beat)
-          if (!b.found) { await register(); await nodeBeat(id, nodeRole(), reg); log('the plane had no record of this node - registered again as ' + nodeRole()); }
+          if (!b.found) { await register(); await nodeBeat(id, nodeRole(), reg, !refusedNow); log('the plane had no record of this node - registered again as ' + nodeRole()); }
           else {
             if (b.was !== nodeRole()) log('the plane held role ' + b.was + ' for this node - re-asserted ' + nodeRole());
             if (b.recordChanged) log('the plane held a different registration for this node (capabilities or version - another script registered this node id?) - re-asserted: head ' + String(repo.head).slice(0, 12) + ', handler ' + HANDLER_VERSION);

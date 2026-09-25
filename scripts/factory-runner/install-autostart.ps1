@@ -103,6 +103,19 @@ function Test-SameDir($a, $b) {
   $r = & $NodeExe -e "const f=require('fs');const n=p=>{try{return f.realpathSync.native(p)}catch{return require('path').resolve(p)}};const x=n(process.argv[1]).toLowerCase().replace(/[\\/]+$/,''),y=n(process.argv[2]).toLowerCase().replace(/[\\/]+$/,'');process.stdout.write(x===y?'same':'other')" $a $b
   return ($r -eq 'same')
 }
+# AN UNATTENDED NODE MUST NOT SLEEP: nothing kept the Work PC awake and nothing said so - after the power plan's idle timeout its node would
+# go STALE with nobody at the keyboard (final verification 5, critic). The active plan's sleep timeouts are read and said; 'never' on the
+# power the PC runs on is what a node needs.
+function Get-SleepNote {
+  try {
+    $q = (& powercfg /q SCHEME_CURRENT SUB_SLEEP STANDBYIDLE 2>$null) -join "`n"
+    $ac = [regex]::Match($q, 'Current AC Power Setting Index:\s*0x([0-9a-fA-F]+)'); $dc = [regex]::Match($q, 'Current DC Power Setting Index:\s*0x([0-9a-fA-F]+)')
+    if (-not $ac.Success) { return 'power     sleep timeout not read (powercfg) - an unattended node needs sleep set to never' }
+    $acS = [Convert]::ToInt32($ac.Groups[1].Value, 16); $dcS = if ($dc.Success) { [Convert]::ToInt32($dc.Groups[1].Value, 16) } else { -1 }
+    $fmt = { param($x) if ($x -eq 0) { 'never' } elseif ($x -lt 0) { '?' } else { [string][Math]::Round($x / 60) + ' min' } }
+    return 'power     sleep after ' + (& $fmt $acS) + ' on AC, ' + (& $fmt $dcS) + ' on battery' + $(if ($acS -ne 0) { ' - WARNING: an unattended node stops when the PC sleeps; set it to never on AC (powercfg /change standby-timeout-ac 0)' } else { '' })
+  } catch { return 'power     sleep timeout not read - an unattended node needs sleep set to never' }
+}
 function Test-OtherCheckout($dir) { return [bool]($dir -and -not (Test-SameDir $dir $Root)) }
 function Deny-OtherCheckout($what) {
   "REFUSED - the task '$TaskName' belongs to another checkout ($owner); this is $Root."
@@ -180,7 +193,9 @@ function Get-LastWorkerError($ld) {
   foreach ($seg in $segs) {
     # the worker's own one-line verdict first ('error: ...' / REFUSED), then anything naming a failure - never a field of pg's
     # error-object dump ("routine: 'auth_failed'" was quoted as the cause; verification round 4)
-    $l = $seg | Where-Object { $_ -match '^(error: |REFUSED)' -or $_ -match '\] (error: |REFUSED)' } | Select-Object -Last 1
+    # (NOT STARTED too: a worker refused as a second worker of the same identity said so, and this read "nothing logged" - final
+    # verification 5, critic)
+    $l = $seg | Where-Object { $_ -match '^(error: |REFUSED|NOT STARTED)' -or $_ -match '\] (error: |REFUSED|NOT STARTED)' } | Select-Object -Last 1
     if (-not $l) { $l = $seg | Where-Object { $_ -notmatch '^\s+(at |[a-zA-Z]+: )' -and $_ -match 'Error|REFUSED|FAIL|ECONN|ETIMEDOUT|ENOTFOUND|password|certificate|refused' } | Select-Object -Last 1 }
     if ($l) { return ([string]$l).Trim().Substring(0, [Math]::Min(220, ([string]$l).Trim().Length)) }
   }
@@ -297,6 +312,7 @@ function Test-NodePreflight($envPath) {
 if ($Preflight) {
   $lines = Test-NodePreflight $EnvFile
   $lines | Where-Object { $_ -is [string] }
+  Get-SleepNote
   if ($lines[-1] -eq $true) { "PREFLIGHT OK for $Root"; exit 0 } else { "PREFLIGHT FAILED for $Root - nothing was installed or changed"; exit 1 }
 }
 
@@ -334,6 +350,7 @@ if ($Status) {
   elseif ($st -and ($st.state -in @('starting', 'running', 'backoff'))) { "STALE     the recorded supervisor (pid $($st.supervisorPid)) is not running - the node is DOWN; install-autostart.ps1 -Start$taskHint" }
   if (Test-OtherCheckout $owner) { "deps      (the task belongs to $owner - its dependencies are checked by -Status there; nothing of that checkout is run from here)" }
   else { "deps      " + (& $NodeExe $DepsCheck 2>&1 | Out-String).Trim() }
+  Get-SleepNote
   $envPath = if ($EnvGiven) { $EnvFile } elseif (Get-TaskArg $task 'env') { Get-TaskArg $task 'env' } else { $EnvFile }
   # ANOTHER checkout's task: its credential and its plane are that checkout's business - this -Status does not read the owner's
   # env file or query its plane (a scratch clone's regression did both on the live node; verification 2026-09-24, round 3)
@@ -404,6 +421,7 @@ if ($Verify) {
   $preOk = ($pre[-1] -eq $true)
   $watchdog = @($task.Triggers | Where-Object { $_.CimClass.CimClassName -eq 'MSFT_TaskTimeTrigger' -and $_.Repetition.Interval }).Count -gt 0
   $plane = if ($running) { Get-NodeOnPlane $Root } else { $null }
+  Get-SleepNote
   "watchdog  $(if ($watchdog) { 'a repeating trigger restarts a dead supervisor' } else { 'NONE - a supervisor that dies stays dead until the next logon' })"
   if ($plane) { "plane     $($plane.state)$(if ($plane.neverBeaten) { ' (never beaten: no worker has completed a claim cycle)' } elseif ($plane.ageMs -ne $null) { ' (heartbeat ' + [Math]::Round([double]$plane.ageMs / 1000) + ' s ago)' } else { '' }), role $($plane.role)$(if ($plane.error) { ' - ' + $plane.error } else { '' })" }
   # not claiming for a reason the node records (this PC's load, another claimer holding the claim lock): said, not failed - both pass
@@ -422,6 +440,8 @@ if ($Verify) {
     elseif (-not (Test-SupervisorCommit $sv)) { 'the supervisor runs ' + (Get-SupervisorCommitText $sv) + ' but this checkout is at ' + (Get-CommitText $CheckoutHead $CheckoutDirty) + ' - install-autostart.ps1 -Start' + $taskHint + ' restarts it on the checkout''s commit' }
     # the plane's ALIVE is about a worker that completed a claim cycle - not one still starting, or one that keeps restarting
     elseif (-not $sv.legacy -and -not $sv.readyAt) { 'the worker now running (pid ' + $sv.childPid + $(if ($sv.childUpMs -ne $null -or $sv.childStartedAt) { ', up ' + [Math]::Round((Get-WorkerUpSeconds $sv)) + ' s' } else { '' }) + ') has not completed a claim cycle - still starting, or a worker that keeps restarting (-Status shows the supervisor''s restarts)' }
+    # a node that admission refuses stamps no liveness (final verification 5, critic): named as that, not as a plane that lost the node
+    elseif ($plane -and $plane.state -eq 'STALE' -and $plane.admission -and $plane.admission.admit -eq $false) { 'the node is NOT CLAIMING: admission refused since ' + $plane.admission.at + ' (' + $plane.admission.reason + ') - it resumes when the load allows; the plane reads it STALE until then' }
     elseif (-not $plane -or $plane.state -ne 'ALIVE') { 'the worker runs, but the plane does not see the node ALIVE' + $(if ($plane) { ': ' + $plane.state + $(if ($plane.error) { ' - ' + $plane.error } else { '' }) } else { '' }) }
     elseif ($heard -eq $false) { 'the plane has not heard from the worker now running since it started (worker pid ' + $sv.childPid + ' up ' + [Math]::Round((Get-WorkerUpSeconds $sv)) + ' s, last heartbeat ' + [Math]::Round([double]$plane.ageMs / 1000) + ' s ago) - a worker that keeps restarting; last worker error: ' + (Get-LastWorkerError $sv.logDir) }
     # THE ROLE THAT DECIDES WHAT THE NODE CLAIMS IS THE PLANE'S: a verifier the plane held as generic claimed no verifier work while

@@ -267,6 +267,10 @@ watchdog, preflight, task not running, no supervisor, wrong role, worker failing
 not seeing the node, or the plane holding another role. `-Status` says DOWN when no supervisor answers here, NOT RUNNING while
 the supervisor waits out a backoff, and NOT CONFIRMED while the worker now running has not completed a claim cycle, whatever the
 plane's last heartbeat says (it read ALIVE for crash-looping workers, from their predecessor's heartbeat); `-Verify` fails then too.
+**An unattended node must not sleep.** `-Preflight`, `-Verify` and `-Status` print the active power plan's sleep timeouts and warn
+unless sleep on AC is "never" (`powercfg /change standby-timeout-ac 0`): on the Work PC nobody is at the keyboard. And on a PC with the
+scheduled task, run no bare `node.mjs start` (§D is for a PC without the task): the task's worker is refused as a second worker of the
+same node, and `-Start` quotes that refusal with the bare worker's pid.
 **One status probe is not a verdict.** A probe the plane does not answer is asked again, three times in all; and a node whose
 worker has completed its claim cycles is never restarted because this PC could not reach the plane - `-Start` says "cannot judge"
 (exit 5) and leaves it running (one reset on a flaky path restarted a healthy, busy node and abandoned its run).
@@ -317,7 +321,9 @@ order): all or nothing.
   completed a claim cycle, and not while that worker's own records say NOT CLAIMING (admission refused, claim lock busy); a supervisor
   in backoff is named as not claiming (it said "can claim work" then). A record deleted from the
   plane is registered and stamped again at once by the running worker.
-- *Not claiming is said.* A refused admission, and a plane-wide claim lock held past the lock timeout, are logged and shown by
+- *Not claiming is said - and a refused node is not live.* A node that admission refuses stamps no liveness: it reads STALE on the
+  plane (the Home PC does not pick it as the work node) until it claims again, and `-Verify` names the refusal. A refused admission, and a
+  plane-wide claim lock held past the lock timeout, are logged and shown by
   `node.mjs status`, `-Status` and `-Verify` (NOT CLAIMING, with since when).
 - *The registration belongs to the running worker.* Health checks keep the record the plane holds (they used to re-register a
   running verifier as generic); the runbook's scripts (`two_machine_scheduling.mjs`, `two_machine_failover.mjs`) register their own node ids,
