@@ -361,6 +361,9 @@ if ($Uninstall) {
 
 if ($Verify) {
   if (-not $task) { "FAIL task '$TaskName' is not installed"; exit 1 }
+  # ANOTHER CHECKOUT'S TASK: its env file, its credential and its plane are that checkout's business, as for -Status - -Verify read that
+  # env file, probed that plane under this checkout's node id, and showed this checkout's supervisor as the task's (final verification 4)
+  if (Test-OtherCheckout $owner) { "task      $TaskName"; "workdir   $owner"; "FAIL the task '$TaskName' belongs to another checkout ($owner) - run -Verify there"; exit 1 }
   $action = $task.Actions | Select-Object -First 1
   $viaConhost = ($action.Execute -like '*\conhost.exe') -and ($action.Arguments -like "*--headless*") -and ($action.Arguments -like "*$NodeExe*")
   $okAction = (($action.Execute -eq $NodeExe) -or $viaConhost) -and ($action.Arguments -like "*node-supervisor.mjs*") -and (Test-SameDir $action.WorkingDirectory $Root)

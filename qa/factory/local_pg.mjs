@@ -37,6 +37,23 @@ async function freePort() {
   });
 }
 
+// THE TEARDOWN EVERY DISPOSABLE SERVER HERE USES (see stop below): pg_ctl stop -m fast -w, which returns only after the postmaster has
+// ended every child; only if that fails, the library's stop and a sweep of the postmaster's children. tls_plane_acceptance stopped its
+// server with the library alone, and an io worker was left running under node_modules (final verification 4, fixes-hold).
+export async function stopServer(pg, dataDir) {
+  const pm = pg.process ? pg.process.pid : null;
+  const c = pg.process && pg.process.spawnargs && pg.process.spawnargs[0] ? join(dirname(pg.process.spawnargs[0]), process.platform === 'win32' ? 'pg_ctl.exe' : 'pg_ctl') : null;
+  const ok = !!(c && existsSync(c)) && spawnSync(c, ['stop', '-D', dataDir, '-m', 'fast', '-w', '-t', '30'], { stdio: 'ignore', windowsHide: true, timeout: 45000 }).status === 0;
+  if (pg.process && ok) {
+    if (pg.process.exitCode === null && pg.process.signalCode === null) await new Promise((r) => { const t = setTimeout(r, 10000); pg.process.once('exit', () => { clearTimeout(t); r(); }); });
+    pg.process = undefined;
+  } else if (pg.process) {
+    try { await pg.stop(); } catch { /* already down */ }
+    if (process.platform === 'win32' && pm) spawnSync('powershell', ['-NoProfile', '-Command', 'Get-CimInstance Win32_Process -Filter "ParentProcessId=' + pm + '" | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }'], { stdio: 'ignore', windowsHide: true, timeout: 30000 });
+  }
+  return pm;
+}
+
 export async function startLocalPg({ quiet = true } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'factory-pg-'));
   const port = await freePort();

@@ -77,6 +77,9 @@ if (mode === 'wave') {
   while (Date.now() < until) {
     for (const wo of wos) {
       if (held.some((h) => h.wo === wo.work_order_id)) continue;
+      // AT MOST ONE OF THE TWO CONFLICT WORK ORDERS PER NODE: a wave that started first took both, no other node authored a run, and the
+      // verifier had nothing to verify (final verification 4, fixes-hold). The surface is then worked by both nodes, one after the other.
+      if (wo.title.split(' ').pop().startsWith('conflict') && held.some((h) => h.kind.startsWith('conflict'))) continue;
       const done = (await db.read('select status from factory.work_orders where work_order_id = $1', [wo.work_order_id])).rows[0];
       if (!done || done.status === 'done') continue;
       const run = await claim.claimWork({ nodeId: myNode, leaseSeconds: 60, onlyWorkOrderId: wo.work_order_id, baseCommit: COMMIT });

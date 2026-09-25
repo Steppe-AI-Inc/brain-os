@@ -56,6 +56,10 @@
 //      never reaches a claim cycle (status repeated them for a worker that could not reach the plane)
 //   N29 a claim that committed but whose reply was lost is given back at once: the plane requeues it and the work is done within
 //      seconds, not after a whole lease with a live claim nothing held
+//   N27 also: with a head start (25 s) and a short hold, the node that started first takes only one of the two conflict work orders
+//   N30 the work-order read right after a claim is retried through a transient loss (the run was thrown away)
+//   N31 a slow claim (it waited on the claim lock) is not aborted before its first renewal: that renewal is due a third of the lease
+//      after the lease began, not after the claim returned (a node re-claimed and aborted the same work order forever)
 import { startLocalPg } from './local_pg.mjs';
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync, rmSync } from 'node:fs';
@@ -609,6 +613,19 @@ try {
       verified = spawnSync(process.execPath, [tms, 'verify', stamp], { cwd: ROOT, encoding: 'utf8', timeout: 60000, env: envOf({}) });
       verified = { code: verified.status, out: String(verified.stdout || '') + String(verified.stderr || '') };
     }
+    // ...and with a head start and a short hold: the first node took BOTH conflict work orders and no other node authored a run
+    let vr2 = { code: 'not run', out: '' }, verified2 = vr2;
+    if (stamp) {
+      const seeded2 = spawnSync(process.execPath, [tms, 'seed'], { cwd: ROOT, encoding: 'utf8', timeout: 60000, env: envOf({}) });
+      const stamp2 = (String(seeded2.stdout).match(/STAMP (\S+)/) || [])[1];
+      const wave2 = (id, role) => new Promise((r) => { const c = spawn(process.execPath, [tms, 'wave', stamp2, '5'], { cwd: ROOT, env: envOf({ FACTORY_NODE_ID: id, FACTORY_NODE_ROLE: role }), stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }); let o = ''; c.stdout.on('data', (d) => { o += d; }); c.stderr.on('data', (d) => { o += d; }); const t = setTimeout(() => { try { c.kill(); } catch { /* gone */ } }, 180000); c.on('exit', (code) => { clearTimeout(t); r({ code, out: o }); }); procs.push(c); });
+      const vp2 = wave2('node-n27-verifier2', 'verifier'); await sleep(25000); const gp2 = wave2('node-n27-generic2', 'generic');
+      [vr2] = await Promise.all([vp2, gp2]);
+      const v2 = spawnSync(process.execPath, [tms, 'verify', stamp2], { cwd: ROOT, encoding: 'utf8', timeout: 60000, env: envOf({}) });
+      verified2 = { code: v2.status, out: String(v2.stdout || '') + String(v2.stderr || '') };
+    }
+    check('N27b the scheduling instrument passes with a 25 s head start and a 5 s hold (verify exit ' + verified2.code + ', ' + ((String(verified2.out).match(/VERDICT: [A-Z ]+/) || ['no verdict'])[0]).trim() + ')',
+      verified2.code === 3 && /VERDICT: SAME MACHINE/.test(verified2.out) && !/^FAIL /m.test(verified2.out), String(verified2.out).slice(-600) + '\n--- first wave\n' + String(vr2.out).slice(-500));
     check('N27 the scheduling instrument passes with the verifier\'s wave started first (verify exit ' + verified.code + ', ' + ((verified.out.match(/VERDICT: [A-Z ]+/) || ['no verdict'])[0]).trim() + ')',
       !!stamp && verified.code === 3 && /VERDICT: SAME MACHINE/.test(verified.out) && !/^FAIL /m.test(verified.out) && /verification: [0-9a-f]{8}-/.test(vr.out),
       verified.out.slice(-700) + '\n--- verifier wave\n' + vr.out.slice(-500) + '\n--- generic wave\n' + gr.out.slice(-300));
@@ -671,6 +688,57 @@ try {
       seen.dropped === 1 && !!done && took < 45 && runsH.length === 2 && runsH.filter((r) => r.status === 'done').length === 1 && runsH.every((r) => r.node_id === w9id)
         && /gave back the lease of run [0-9a-f]{8}: a claim of this node committed but its reply was lost/.test(w9.out),
       JSON.stringify({ seen, runs: runsH.map((r) => r.status + ':' + r.termination_reason) }) + '\n' + w9.out.slice(-900));
+  }
+
+  // ---- N30. the work-order read right after a claim is retried --------------------------------------------------------------------
+  currentRow = 'N30';
+  {
+    const net = await import('node:net');
+    const socks = []; const seen = { dropped: 0 };
+    const relay = net.createServer((c) => {
+      c.on('error', () => {}); socks.push(c);
+      const u = net.connect(pg.port, '127.0.0.1'); u.on('error', () => {}); socks.push(u);
+      let loseReply = false;
+      c.on('data', (d) => { if (!seen.dropped && d.toString('latin1').includes('select work_type, title, handoff, owned_surface')) { seen.dropped++; loseReply = true; } if (!u.destroyed) u.write(d); });
+      u.on('data', (d) => { if (loseReply) { setTimeout(() => { c.destroy(); u.destroy(); }, 300); return; } if (!c.destroyed) c.write(d); });
+      c.on('close', () => u.destroy()); u.on('close', () => c.destroy());
+    });
+    await new Promise((r) => relay.listen(0, '127.0.0.1', r));
+    const relayUrl = pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + relay.address().port + '/');
+    const S13 = join(WORK, 'state-woread');
+    const w10 = spawnWorker({ state: S13, role: 'generic', url: relayUrl, extra: { FACTORY_LEASE_SECONDS: '90' } });
+    await waitFor(async () => /\] ready: first claim cycle completed/.test(w10.out), 60000);
+    const h = await seed('N30 a work order whose read after the claim meets a transient loss', { type: 'factory_acceptance', handoff: JSON.stringify({ action: 'complete' }), caps: ['factory_acceptance', 'node:' + idOf(S13)] });
+    const t0 = Date.now();
+    const done = await waitFor(async () => (await woStatus(h)) === 'done', 60000, 500);
+    const took = Math.round((Date.now() - t0) / 1000);
+    const runsH = await runsOf(h);
+    try { w10.kill(); } catch { /* gone */ }
+    relay.close(); for (const x of socks) { try { x.destroy(); } catch { /* gone */ } }
+    check('N30 the work-order read right after a claim is retried through a transient loss: done in ' + took + ' s (lease 90 s), ' + runsH.length + ' run(s)' + (seen.dropped ? '' : ' - NO REPLY WAS DROPPED'),
+      seen.dropped === 1 && !!done && took < 45 && runsH.length === 1 && runsH[0].status === 'done' && /work order read of run [0-9a-f]{8} failed on a transient plane error/.test(w10.out) && !/threw/.test(w10.out),
+      JSON.stringify({ seen, runs: runsH.map((r) => r.status + ':' + r.termination_reason) }) + '\n' + w10.out.slice(-800));
+  }
+
+  // ---- N31. a slow claim is not aborted before its first renewal ------------------------------------------------------------------
+  currentRow = 'N31';
+  {
+    const S14 = join(WORK, 'state-slowclaim');
+    const w11 = spawnWorker({ state: S14, role: 'generic', extra: { FACTORY_LEASE_SECONDS: '30', FACTORY_PG_LOCK_TIMEOUT_MS: '40000', FACTORY_PG_QUERY_TIMEOUT_MS: '40000' } });
+    await waitFor(async () => /\] ready: first claim cycle completed/.test(w11.out), 60000);
+    const holder = new pgLib.Client({ connectionString: pg.superUrl }); holder.on('error', () => {}); await holder.connect();
+    await holder.query('begin'); await holder.query("select pg_advisory_xact_lock(hashtext('factory.claim'))");
+    const h = await seed('N31 a hold claimed after an 18 s wait on the claim lock', { type: 'factory_acceptance', handoff: JSON.stringify({ action: 'hold', seconds: 15 }), caps: ['factory_acceptance', 'node:' + idOf(S14)] });
+    // the worker's claim is waiting on the lock; it waits 18 s more
+    const waiting = await waitFor(async () => Number((await admin.query("select count(*)::int n from pg_locks where locktype = 'advisory' and not granted")).rows[0].n) > 0, 20000, 200);
+    await sleep(18000);
+    await holder.query('rollback'); await holder.end();
+    const done = await waitFor(async () => (await woStatus(h)) === 'done', 90000, 500);
+    const runsH = await runsOf(h);
+    try { w11.kill(); } catch { /* gone */ }
+    check('N31 a claim that waited 18 s on the claim lock is not aborted before its first renewal (lease 30 s): ' + (done ? 'done' : 'NOT done') + ', ' + runsH.length + ' run(s), ' + (/ABORTED/.test(w11.out) ? 'ABORTED' : 'not aborted'),
+      !!waiting && !!done && runsH.length === 1 && runsH[0].status === 'done' && !/ABORTED/.test(w11.out),
+      JSON.stringify({ waiting: !!waiting, runs: runsH.map((r) => r.status + ':' + r.termination_reason) }) + '\n' + w11.out.slice(-900));
   }
 
   // ---- N22. an admission-only cycle is not a claim cycle ------------------------------------------------------------------------

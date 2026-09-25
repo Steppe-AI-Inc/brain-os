@@ -447,8 +447,10 @@ if (!STATIC_ONLY) {
       const noCa = ps(['-Preflight', '-EnvFile', noCaEnv]);
       let guard = { rc: 'skipped', out: 'no live task on this machine; the other-checkout guard is not exercised (an install here would create one)' }, stopGuard = guard, uninstallGuard = guard;
       if (liveTaskBefore !== 'NONE' && !liveTaskBefore.startsWith(cloneA)) { guard = ps(['-Role', 'verifier', '-EnvFile', envFile]); stopGuard = ps(['-Stop']); uninstallGuard = ps(['-Uninstall']); }
-      let statusOther = { rc: 'skipped', out: '' };
+      let statusOther = { rc: 'skipped', out: '' }, verifyOther = statusOther;
       if (liveTaskBefore !== 'NONE' && !liveTaskBefore.startsWith(cloneA)) statusOther = ps(['-Status']);
+      // ...and -Verify stops at "another checkout's": it read that checkout's env file and probed its plane (final verification 4)
+      if (liveTaskBefore !== 'NONE' && !liveTaskBefore.startsWith(cloneA)) verifyOther = ps(['-Verify']);
       // THE WORK-PC CYCLE on a SCRATCH task (never the live one): install as verifier and start (the task's supervisor confirmed),
       // -Verify, -Stop, -Start alone (must stay verifier and re-install nothing - the documented -Stop/-Start used to re-register
       // a verifier as generic), then a hand-started supervisor that a re-install must stop and replace with a confirmed task
@@ -680,10 +682,11 @@ if (!STATIC_ONLY) {
       const cycleFailed = cycleParts.filter((p) => !p[2]).map(([label, keys]) => label + ' {' + keys.map((k) => k + ': ' + (typeof cyc[k] === 'string' ? cyc[k] : cyc[k] ? 'rc ' + cyc[k].rc + ' ' + String(cyc[k].out).trim().split(/\r?\n/).slice(-3).join(' / ') : 'none').slice(0, 260)).join(' | ') + '}');
       const liveTaskAfter = run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName 'BrainOS Factory Node' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).WorkingDirectory + '|' + ($t.Actions|Select-Object -First 1).Arguments + '|' + $t.Settings.Enabled}else{'NONE'}"], ROOT).out.trim();
       const refused = (g) => g.rc === 'skipped' || (g.rc === 3 && /belongs to another checkout/.test(g.out));
-      const guardOk = refused(guard) && refused(stopGuard) && refused(uninstallGuard) && (statusOther.rc === 'skipped' || (/ANOTHER checkout/.test(statusOther.out) && /run -Status there/.test(statusOther.out)));
+      const guardOk = refused(guard) && refused(stopGuard) && refused(uninstallGuard) && (statusOther.rc === 'skipped' || (/ANOTHER checkout/.test(statusOther.out) && /run -Status there/.test(statusOther.out)))
+        && (verifyOther.rc === 'skipped' || (verifyOther.rc === 1 && /belongs to another checkout .* - run -Verify there/.test(verifyOther.out) && !/^preflight/m.test(verifyOther.out) && !/^plane /m.test(verifyOther.out)));
       check('F6 install-autostart.ps1: -Preflight refuses the broken clone (exit ' + broken.rc + ') and a missing CA (exit ' + noCa.rc + ') and passes the repaired one (exit ' + fixed.rc + '); from the clone install/-Stop/-Uninstall refuse another checkout\'s task (' + guard.rc + '/' + stopGuard.rc + '/' + uninstallGuard.rc + ') and -Status names its owner; the scratch-task Work-PC cycle (install+start, -Verify, -Stop, -Start still verifier, a hand-started supervisor replaced, -Uninstall) ' + (cycleOk ? 'holds' : 'FAILS') + '; the live task is untouched',
         broken.rc === 1 && /PREFLIGHT FAILED/.test(broken.out) && /npm ci/.test(broken.out) && noCa.rc === 1 && /copy the CA file/.test(noCa.out) && fixed.rc === 0 && /PREFLIGHT OK/.test(fixed.out) && guardOk && cycleOk && liveTaskAfter === liveTaskBefore,
-        'broken: ' + broken.out + '\nno CA: ' + noCa.out + '\nfixed: ' + fixed.out + '\nguard: ' + guard.out + '\nstop: ' + stopGuard.out + '\nuninstall: ' + uninstallGuard.out + '\nstatus: ' + statusOther.out
+        'broken: ' + broken.out + '\nno CA: ' + noCa.out + '\nfixed: ' + fixed.out + '\nguard: ' + guard.out + '\nstop: ' + stopGuard.out + '\nuninstall: ' + uninstallGuard.out + '\nstatus: ' + statusOther.out + '\nverify (another checkout): ' + verifyOther.out
         + '\n--- cycle ' + Object.entries(cyc).map(([k, v]) => k + ': ' + (typeof v === 'string' ? v : 'rc ' + v.rc + ' ' + v.out)).join('\n') + '\nhand-started supervisor pid ' + hand.pid + ' gone ' + handGone
         + '\ntask before: ' + liveTaskBefore + '\ntask after: ' + liveTaskAfter + (cycleOk ? '' : '\nCYCLE PART DETAILS: ' + cycleFailed.join('\n  ') + '\nCYCLE PARTS FAILED: ' + cycleParts.filter((p) => !p[2]).map((p) => p[0]).join(', ')));
     } else {

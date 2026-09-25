@@ -282,12 +282,17 @@ export function startHeartbeat({ runId, id, leaseSeconds = DEFAULT_LEASE_SECONDS
       .catch(() => { if (!stopped && !retry) { retry = setTimeout(() => { retry = null; renew(); }, 5000); if (typeof retry.unref === 'function') retry.unref(); } })
       .finally(() => { inFlight = false; });
   };
-  const timer = setInterval(() => {
+  // THE FIRST RENEWAL IS DUE A THIRD OF THE LEASE AFTER THE LEASE BEGAN (claimedFrom), not after the claim returned: a slow claim was
+  // aborted while its first renewal, scheduled from the claim's return, was still in flight - and the node re-claimed and aborted the
+  // same work order again and again while reading ALIVE (final verification 4, fixes-hold). Then every third of the lease.
+  let timer = null;
+  const tick = () => {
     if (stopped) return;
     renew();
     // ...and the role, while busy too (a long run no longer leaves a demotion standing until it ends)
     nodeBeat(id, nodeRole(), reg).then((b) => { if (b.found && b.was !== nodeRole()) console.log('[' + String(id).slice(0, 13) + '] the plane held role ' + b.was + ' for this node - re-asserted ' + nodeRole()); if (b.recordChanged) console.log('[' + String(id).slice(0, 13) + '] the plane held a different registration for this node - re-asserted'); }, () => { /* the next beat */ });
-  }, everyMs);
+  };
+  const first = setTimeout(() => { if (stopped) return; tick(); timer = setInterval(tick, everyMs); if (typeof timer.unref === 'function') timer.unref(); }, Math.max(0, claimedFrom + everyMs - Date.now()));
   // A RUN THAT CANNOT RENEW ITS LEASE STOPS BEFORE THE LEASE CAN LAPSE. A node cut off from the plane kept working after its lease
   // lapsed and another node had taken the surface: two machines worked one surface at once, and the work ran twice (final
   // verification 2026-09-24). The run is aborted when its lease - as the plane holds it, from the start of the last renewal that landed -
@@ -295,12 +300,12 @@ export function startHeartbeat({ runId, id, leaseSeconds = DEFAULT_LEASE_SECONDS
   // whose next renewal was still landing over a slow link (final verification 2, 2026-09-25).
   const margin = Math.min(5000, leaseMs / 3);
   const guard = setInterval(() => { if (!stopped && Date.now() - leaseFrom > leaseMs - margin) abort('no lease renewal for ' + Math.round((Date.now() - leaseFrom) / 1000) + ' s (lease ' + leaseSeconds + ' s) - stopped before the lease can lapse and another node takes its surface'); }, 1000);
-  for (const t of [timer, guard]) if (typeof t.unref === 'function') t.unref();
+  for (const t of [first, guard]) if (typeof t.unref === 'function') t.unref();
   // SETTLE: THE WORK IS OVER, ONLY ITS COMPLETION IS LEFT. A renewal still in flight when the completion committed found no run in
   // progress and was read as a takeover: a run that completed normally was logged LOST and ABORTED (final verification 3, 2026-09-25,
   // over a slow link). Settled, the renewals go on (a slow completion keeps its lease), but a renewal that finds no run is no longer a
   // takeover and the guard no longer aborts: the completion is fenced by itself (claim.mjs completeRun - a run taken over is superseded).
-  return { stop: () => { stopped = true; clearInterval(timer); clearInterval(guard); if (retry) clearTimeout(retry); }, settle: () => { finishing = true; }, signal: ac.signal };
+  return { stop: () => { stopped = true; clearTimeout(first); if (timer) clearInterval(timer); clearInterval(guard); if (retry) clearTimeout(retry); }, settle: () => { finishing = true; }, signal: ac.signal };
 }
 
 /**
@@ -418,25 +423,27 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
     log('claimed work order ' + String(run.work_order_id).slice(0, 8) + ' as run ' + String(run.run_id).slice(0, 8));
     const hb = startHeartbeat({ runId: run.run_id, id, leaseSeconds, reg, claimedFrom: claimStart });
     const stopBeat = hb.stop;
+    const short = String(run.run_id).slice(0, 8);
     try {
       // The work order itself: its type decides whether a checkout is needed. A factory_acceptance work order has no code
       // to check out, and the 2026-09-22 acceptances left twelve full worktrees behind before this distinction existed.
-      const woRow = (await db.read('select work_type, title, handoff, owned_surface, requires_security_role from factory.work_orders where work_order_id = $1', [run.work_order_id])).rows[0] || {};
+      // (retried like the claim: one transient loss right after a claim threw the run away, and its claim looked live for a whole lease
+      // while nothing ran it - final verification 4, fixes-hold)
+      const woRow = (await retryTransient(() => db.read('select work_type, title, handoff, owned_surface, requires_security_role from factory.work_orders where work_order_id = $1', [run.work_order_id]), 'work order read of run ' + short, log)).rows[0] || {};
       let wt = null;
       // (a bootstrap_probe has none either - it does no work by definition)
       if (woRow.work_type !== 'factory_acceptance' && woRow.work_type !== 'bootstrap_probe') {
         wt = await worktree({ runId: run.run_id, baseCommit: repo.head });
         log((wt.recovered ? 'recovered' : 'created') + ' worktree ' + wt.path);
-        await db.write(
+        await retryTransient(() => db.write(
           'update factory.agent_runs set worktree = $2, branch = $3, base_commit = $4, updated_at = now() where run_id = $1',
-          [run.run_id, wt.path, wt.branch, repo.head]);
+          [run.run_id, wt.path, wt.branch, repo.head]), 'worktree record of run ' + short, log);
       }
 
       // A CHECKPOINT OR A COMPLETION THAT DID NOT REACH THE PLANE IS RETRIED, like a claim: one transient loss while a run recorded its
       // progress, or while a finished run was being completed, threw the run away - its claim looked live for a whole lease while nothing
       // ran it, and the work was done again (final verification 3, Work-PC probe). A checkpoint carries its own id, so a retry after one
       // that landed writes it once; a retry stops as soon as the run is aborted (its lease could not be kept).
-      const short = String(run.run_id).slice(0, 8);
       const result = await runWork({ run, workOrder: woRow, worktree: wt, nodeId: id, log, head: commit, signal: hb.signal,
         checkpoint: (location, scenario, payload) => {
           const checkpointId = randomUUID();

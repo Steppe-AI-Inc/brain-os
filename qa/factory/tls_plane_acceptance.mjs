@@ -16,6 +16,7 @@
 //   T7  the accessor refuses the superuser over TLS on the LAN address (least privilege is judged before TLS helps)
 //   T8  with NODE_TLS_REJECT_UNAUTHORIZED=0 in its environment, the runner's own accessor still refuses a server certified by another root
 //       (pg left rejectUnauthorized unset and Node took it from that variable: a node claimed work on the wrong server, "tls on")
+//   T9  the teardown leaves nothing behind: no process of the server (an io worker outlived the library's stop) and no directory
 //
 // Disposable by construction: fresh initdb in a temp dir, a random superuser password, certificate valid for one day,
 // data directory removed on exit. Nothing here can reach a production host.
@@ -27,6 +28,7 @@ import { dirname, join } from 'node:path';
 import { createServer } from 'node:net';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { stopServer } from './local_pg.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..', '..');
@@ -149,9 +151,14 @@ try {
   const t8j = (() => { try { return JSON.parse(String(t8.stdout || '').trim().split(/\r?\n/).filter((l) => l.startsWith('{')).pop()); } catch { return null; } })();
   check('T8 with NODE_TLS_REJECT_UNAUTHORIZED=0 in its environment the runner still refuses a server certified by another root (' + (t8j ? t8j.state + (t8j.error ? ' - ' + String(t8j.error).slice(0, 80) : '') + (t8j.tls != null ? ', tls ' + t8j.tls : '') : 'no status') + ')',
     !!t8j && t8j.state === 'UNREACHABLE' && /self.signed|certificate|unable to verify|CERT/i.test(String(t8j.error || '')), (t8.stdout || '') + (t8.stderr || ''));
+  try { rmSync(s8, { recursive: true, force: true }); } catch { /* windows lock */ }
 } finally {
-  try { await pg.stop(); } catch { /* down */ }
+  // T9 the teardown local_pg.mjs uses, and then nothing of the server is left
+  let pm = null; try { pm = await stopServer(pg, dataDir); } catch { /* reported below */ }
   try { rmSync(dir, { recursive: true, force: true }); } catch { /* windows lock */ }
+  const left = process.platform === 'win32' && pm ? String(spawnSync('powershell', ['-NoProfile', '-Command', '@(Get-CimInstance Win32_Process -Filter "ParentProcessId=' + pm + ' OR ProcessId=' + pm + '").Count'], { encoding: 'utf8', windowsHide: true }).stdout || '').trim() : '0';
+  check('T9 the teardown leaves nothing behind: ' + left + ' process(es) of the server (postmaster ' + pm + ' and its children), data directory ' + (existsSync(dir) ? 'LEFT' : 'removed'),
+    left === '0' && !existsSync(dir), 'postmaster ' + pm + ', processes left ' + left);
 }
 
 console.log('');
