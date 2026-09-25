@@ -27,7 +27,10 @@
 
 // `pg` is imported lazily inside connect() so the refusal paths — and their tests — need no driver.
 
-export const FACTORY_RUNNER_PG_URL = process.env.FACTORY_RUNNER_PG_URL || '';
+// (with its CA path resolved for THIS machine, as runner-env.mjs does for the node: a URL copied from another machine's runner.env into this
+// shell named that machine's CA path, and plane-health and the runbook's scripts failed with ENOENT - final verification 5, Work-PC probe)
+import { resolveCaPath } from './runner-env.mjs';
+export const FACTORY_RUNNER_PG_URL = process.env.FACTORY_RUNNER_PG_URL ? resolveCaPath(process.env.FACTORY_RUNNER_PG_URL).url : '';
 
 export class FactoryDbRefusal extends Error {
   constructor(msg) { super('REFUSED — ' + msg); this.name = 'FactoryDbRefusal'; }

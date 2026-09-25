@@ -76,6 +76,11 @@
 //   N39 the idle liveness beat runs on a monotonic clock (a wall-clock step back made a healthy node read STALE)
 //   N38u the supervisor reports its worker's uptime on a monotonic clock (whois childUpMs): the installer judged "heard since it started"
 //      from two wall-clock readings, which a clock step makes negative
+//   N40 a run starts when it is inserted, after the claim lock: a claim that waited on the lock no longer "started" before the run on
+//      its surface had finished (a correct schedule read as an overlap)
+//   N41 a scheduling wave keeps the leases it holds while it claims over a slow link (another node took one over, and the wave said
+//      'completed')
+//   N35b plane-health reads the env file as the node does (--runner-env), and a URL copied from another machine has its CA path resolved
 import { startLocalPg } from './local_pg.mjs';
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync, rmSync } from 'node:fs';
@@ -755,6 +760,61 @@ try {
       JSON.stringify({ seen, runs: runsH.map((r) => r.status + ':' + r.termination_reason) }) + '\n' + w15.out.slice(-900));
   }
 
+  // ---- N40. a run starts when it is inserted ------------------------------------------------------------------------------------------
+  currentRow = 'N40';
+  if (want('N40')) {
+    const surface = 'qa/nodetruth/n40-' + randomUUID().slice(0, 8);
+    const wa = await seed('N40 first on the surface', { type: 'qa_n40', surface }), wb = await seed('N40 second on the surface', { type: 'qa_n40', surface });
+    for (const n of ['node-n40-a', 'node-n40-b']) await claim.registerNode({ nodeId: n, capabilities: [], securityRole: 'generic', platform: 'test n40' });
+    const ra = await claim.claimWork({ nodeId: 'node-n40-a', leaseSeconds: 60, onlyWorkOrderId: wa });
+    // the second claim begins, and waits on the claim lock while the first run completes
+    const holder = new pgLib.Client({ connectionString: pg.superUrl }); holder.on('error', () => {}); await holder.connect();
+    await holder.query('begin'); await holder.query("select pg_advisory_xact_lock(hashtext('factory.claim'))");
+    const pb = claim.claimWork({ nodeId: 'node-n40-b', leaseSeconds: 60, onlyWorkOrderId: wb });
+    await sleep(1500);
+    if (ra) await claim.completeRun({ runId: ra.run_id, nodeId: 'node-n40-a', status: 'done', terminationReason: 'completed' });
+    await sleep(500);
+    await holder.query('rollback'); await holder.end();
+    const rb = await pb;
+    const t = rb ? (await admin.query('select a.finished_at af, b.started_at bs, b.started_at > a.finished_at disjoint from factory.agent_runs a, factory.agent_runs b where a.run_id = $1 and b.run_id = $2', [ra.run_id, rb.run_id])).rows[0] : null;
+    if (rb) await claim.completeRun({ runId: rb.run_id, nodeId: 'node-n40-b', status: 'done', terminationReason: 'completed' });
+    check('N40 a run that waited on the claim lock starts after the run on its surface finished (' + (t ? 'finished ' + new Date(t.af).toISOString().slice(11, 23) + ', next started ' + new Date(t.bs).toISOString().slice(11, 23) : 'no second run') + ')',
+      !!ra && !!rb && !!t && t.disjoint === true, JSON.stringify({ ra: !!ra, rb: !!rb, t }));
+  }
+
+  // ---- N41. a scheduling wave keeps the leases it holds while it claims over a slow link ----------------------------------------------
+  // A relay adds 150 ms each way to the wave's plane; its lease is 14 s. A sweeper tries every 1.5 s to take over any work order the wave
+  // holds - it can only when the wave's lease on it has lapsed.
+  currentRow = 'N41';
+  if (want('N41')) {
+    const tms = join(ROOT, 'qa/factory/two_machine_scheduling.mjs');
+    const envOf = (extra) => ({ ...process.env, FACTORY_RUNNER_PG_URL: pg.runnerUrl, FACTORY_STATE_DIR: join(WORK, 'state-n41'), FACTORY_ADMISSION: 'off', ...extra });
+    const seeded = spawnSync(process.execPath, [tms, 'seed'], { cwd: ROOT, encoding: 'utf8', timeout: 60000, env: envOf({}) });
+    const stamp = (String(seeded.stdout).match(/STAMP (\S+)/) || [])[1];
+    const net = await import('node:net');
+    const socks = [];
+    const relay = net.createServer((c) => {
+      c.on('error', () => {}); socks.push(c);
+      const u = net.connect(pg.port, '127.0.0.1'); u.on('error', () => {}); socks.push(u);
+      c.on('data', (d) => setTimeout(() => { if (!u.destroyed) u.write(d); }, 150)); u.on('data', (d) => setTimeout(() => { if (!c.destroyed) c.write(d); }, 150));
+      c.on('close', () => setTimeout(() => u.destroy(), 150)); u.on('close', () => setTimeout(() => c.destroy(), 150));
+    });
+    await new Promise((r) => relay.listen(0, '127.0.0.1', r));
+    const relayUrl = pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + relay.address().port + '/');
+    await claim.registerNode({ nodeId: 'node-n41-sweeper', capabilities: [], securityRole: 'generic', platform: 'test n41' });
+    let took = 0, waveDone = false;
+    const wave = new Promise((r) => { const c = spawn(process.execPath, [tms, 'wave', stamp, '10'], { cwd: ROOT, env: envOf({ FACTORY_RUNNER_PG_URL: relayUrl, FACTORY_NODE_ID: 'node-n41-wave', FACTORY_NODE_ROLE: 'generic', FACTORY_TMS_LEASE_S: '14' }), stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }); let o = ''; c.stdout.on('data', (d) => { o += d; }); c.stderr.on('data', (d) => { o += d; }); const t = setTimeout(() => { try { c.kill(); } catch { /* gone */ } }, 180000); c.on('exit', (code) => { clearTimeout(t); waveDone = true; r({ code, out: o }); }); procs.push(c); });
+    while (!waveDone && stamp) {
+      const heldByWave = (await admin.query("select distinct r.work_order_id from factory.agent_runs r join factory.work_orders w on w.work_order_id = r.work_order_id where r.node_id = 'node-n41-wave' and w.title like $1 and w.status <> 'done'", ['TM-sched ' + stamp + ' %'])).rows;
+      for (const x of heldByWave) { const got = await claim.claimWork({ nodeId: 'node-n41-sweeper', leaseSeconds: 60, onlyWorkOrderId: x.work_order_id }); if (got) { took++; await claim.completeRun({ runId: got.run_id, nodeId: 'node-n41-sweeper', status: 'done', terminationReason: 'completed' }); } }
+      await sleep(1500);
+    }
+    const wr = await wave;
+    relay.close(); for (const x of socks) { try { x.destroy(); } catch { /* gone */ } }
+    check('N41 a scheduling wave keeps the leases it holds while it claims over a slow link (150 ms each way, lease 14 s): the sweeper took ' + took + ' work order(s) from it, wave exit ' + wr.code,
+      !!stamp && took === 0 && wr.code === 0 && /completed conflict-a/.test(wr.out) && !/LOST|NOT completed/.test(wr.out), wr.out.slice(-800));
+  }
+
   // ---- N30. the work-order read right after a claim is retried --------------------------------------------------------------------
   currentRow = 'N30';
   if (want('N30')) {
@@ -921,6 +981,26 @@ try {
     check('N35 the runbook\'s scripts read the env file as the node does (seed with the other machine\'s CA path: exit ' + good.status + '), retry a reset connection (exit ' + resetOnce.code + ') and end INCONCLUSIVE on one line when the plane cannot be reached (exit ' + bad.status + ')',
       good.status === 0 && /STAMP \S+/.test(good.stdout || '') && resetOnce.code === 0 && /STAMP \S+/.test(resetOnce.out) && conns35 >= 2 && bad.status === 4 && /^INCONCLUSIVE: /m.test(badOut) && !/^\s+at /m.test(badOut),
       String(good.stdout || '').slice(-300) + String(good.stderr || '').slice(-300) + '\n--- dead\n' + badOut.slice(-500));
+  }
+
+  // ---- N35b. plane-health reads the env file as the node does -------------------------------------------------------------------------
+  currentRow = 'N35b';
+  if (want('N35b')) {
+    const E = join(WORK, 'env-n35b'); mkdirSync(E, { recursive: true });
+    const pemB64 = (readFileSync(join(ROOT, 'scripts/factory-runner/runner-env.regression.test.mjs'), 'utf8').match(/'-----BEGIN CERTIFICATE-----',([\s\S]*?)'-----END CERTIFICATE-----'/) || [, ''])[1].replace(/[',\s]/g, '');
+    writeFileSync(join(E, 'qa-n35b-ca.crt'), '-----BEGIN CERTIFICATE-----\n' + (pemB64.match(/.{1,64}/g) || []).join('\n') + '\n-----END CERTIFICATE-----\n');
+    // the other machine's CA path, as a copied runner.env carries it; the copy sits beside the env file
+    const url = pg.runnerUrl + '?sslmode=disable&sslrootcert=' + encodeURIComponent('C:\\Users\\OtherPC\\.brain-factory\\qa-n35b-ca.crt');
+    writeFileSync(join(E, 'runner.env'), 'FACTORY_RUNNER_PG_URL=' + url + '\n');
+    const ph = join(ROOT, 'scripts/factory-runner/plane-health.mjs');
+    const env = { ...process.env, FACTORY_STATE_DIR: S1, FACTORY_NODE_ROLE: '', USERPROFILE: E, HOME: E };
+    const viaFile = spawnSync(process.execPath, [ph, '--runner-env', join(E, 'runner.env')], { cwd: ROOT, encoding: 'utf8', timeout: 90000, env: { ...env, FACTORY_RUNNER_PG_URL: '' } });
+    // ...and the same URL exported raw into the shell (the checkpoint's recipe): its CA path is resolved to the copy under ~/.brain-factory
+    mkdirSync(join(E, '.brain-factory'), { recursive: true }); writeFileSync(join(E, '.brain-factory', 'qa-n35b-ca.crt'), readFileSync(join(E, 'qa-n35b-ca.crt')));
+    const raw = spawnSync(process.execPath, [ph], { cwd: ROOT, encoding: 'utf8', timeout: 90000, env: { ...env, FACTORY_RUNNER_PG_URL: url } });
+    const o1 = String(viaFile.stdout || '') + String(viaFile.stderr || ''), o2 = String(raw.stdout || '') + String(raw.stderr || '');
+    check('N35b plane-health reads the env file as the node does (--runner-env: exit ' + viaFile.status + ') and resolves a copied URL\'s CA path (raw URL: exit ' + raw.status + ')',
+      viaFile.status === 0 && /PLANE HEALTHY/.test(o1) && raw.status === 0 && /PLANE HEALTHY/.test(o2) && !/ENOENT|is not set/.test(o1 + o2), o1.slice(-400) + '\n--- raw\n' + o2.slice(-400));
   }
 
   // ---- N36. status asks the plane three times -------------------------------------------------------------------------------------

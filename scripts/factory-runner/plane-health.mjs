@@ -117,6 +117,19 @@ export async function planeHealth({ role: stated = roleArg } = {}) {
 }
 
 if (process.argv[1] && /plane-health\.mjs$/.test(process.argv[1])) {
+  // --runner-env <file>: the env file AS THE NODE READS IT (runner-env.mjs: the judge, the CA path resolved to the copy beside the file). It
+  // was ignored - on the Work PC plane-health said PLANE NOT HEALTHY for a healthy plane (final verification 5, Work-PC probe). db.mjs reads
+  // the URL when it is imported, so the check runs once more with the URL in the CHILD's environment only, as node.mjs does.
+  const reIdx = process.argv.indexOf('--runner-env');
+  if (reIdx > -1 && process.argv[reIdx + 1]) {
+    const { loadRunnerUrl } = await import('./runner-env.mjs');
+    const lr = loadRunnerUrl(process.argv[reIdx + 1]);
+    if (!lr.usable) { console.log('REFUSED — ' + lr.note); process.exit(2); }
+    const { spawnSync } = await import('node:child_process');
+    const a = process.argv.slice(1).filter((x, i, all) => x !== '--runner-env' && all[i - 1] !== '--runner-env');
+    const child = spawnSync(process.execPath, a, { stdio: 'inherit', env: { ...process.env, FACTORY_RUNNER_PG_URL: lr.url } });
+    process.exit(child.status === null ? 1 : child.status);
+  }
   const r = await planeHealth();
   console.log('');
   console.log('plane health (' + (r.host || '?') + ')');

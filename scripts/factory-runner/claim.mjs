@@ -303,11 +303,14 @@ async function claimInTransaction({ nodeId, lease, capabilities,
       // It is also the field whose absence made the 2026-08-24 forensics reconstructive: a failed turn
       // recorded no model name anywhere, so "which model was being tried" had to be inferred from
       // model_usage boundaries and row-creation times. Written before the call, it survives the failure.
+      // started_at is the INSERT's clock_timestamp(), after the claim lock and the pick - not now(), the transaction's BEGIN: a claim that
+      // waited on the claim lock "started" before the run it waited for had finished, and a correct schedule read as an overlap on one
+      // surface (final verification 5, Work-PC probe). The lease stays timed from BEGIN (the safe side for the guard).
       const run = await client.query(
         `insert into factory.agent_runs
            (work_order_id, node_id, status, lease_expires_at, last_heartbeat_at, started_at, authoring_node_id,
             requested_provider, requested_model, reasoning_effort, base_commit)
-         values ($1, $2, 'in_progress', now() + ($3 || ' seconds')::interval, now(), now(), $2, $4, $5, $6, $7)
+         values ($1, $2, 'in_progress', now() + ($3 || ' seconds')::interval, now(), clock_timestamp(), $2, $4, $5, $6, $7)
          returning run_id, work_order_id, node_id, attempt_count, lease_expires_at,
                    requested_provider, requested_model`,
         [wo.work_order_id, nodeId, String(lease), requestedProvider, requestedModel, reasoningEffort, baseCommit]);

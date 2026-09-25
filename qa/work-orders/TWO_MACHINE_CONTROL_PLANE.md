@@ -94,7 +94,7 @@ Run on each node, in this order; each stops at the first failing link and names 
 | command | proves |
 |---|---|
 | `node scripts/factory-runner/node.mjs health` | URL present and judged safe; connected as a non-superuser; schema present; queue readable; registered (**the role the plane holds is kept** - a check never changes a running node's role, nor stamps its liveness; a different `FACTORY_NODE_ROLE` in the shell is said, not written); PostgreSQL ≥ 13; no business tables; the accessor spawns nothing; work orders `claimed` with no run in progress, and failed ones, named |
-| `node scripts/factory-runner/plane-health.mjs [--role <r>]` | all of the above, then: TLS **in use** on this backend; role attributes on the server; the server refuses DDL; `001`+`002`+`003` applied; clock skew and round trip within limits; registered - as `<r>` when `--role` is given (the bootstrap passes it), else with the role the plane holds; which other nodes and **which other hostnames** this plane has seen in 24 h |
+| `node scripts/factory-runner/plane-health.mjs [--role <r>] [--runner-env <file>]` | all of the above, then: TLS **in use** on this backend; role attributes on the server; the server refuses DDL; `001`+`002`+`003` applied; clock skew and round trip within limits; registered - as `<r>` when `--role` is given (the bootstrap passes it), else with the role the plane holds; which other nodes and **which other hostnames** this plane has seen in 24 h |
 | `node scripts/factory-runner/monitor-gc.mjs list` | no stale monitors on this node (milestone 5) |
 
 Exit 0 healthy, 1 otherwise; `--json` appends the rows as JSON for a record.
@@ -148,7 +148,9 @@ instrument works, the milestone is not proved), **1 FAIL** (a row failed: it say
 `two_machine_real.mjs`, `two_machine_failover.mjs` and `two_machine_scheduling.mjs` retry a transient plane error like the nodes
 they measure, and one they cannot get past ends the run INCONCLUSIVE (exit 4, with the stamp to clean up) - or VERDICT: FAIL (exit 1)
 when a row had already failed, never a failure read as a benign re-run. The composer's failover row counts only
-completed failovers (the takeover run done with its stated reason, its work order done).
+completed failovers (the takeover run done with its stated reason, its work order done). A run starts when it is inserted - after the
+claim lock and the pick, not at its transaction's BEGIN - so a claim that waited on the claim lock no longer reads as an overlap with the
+run it waited for; and a wave renews every lease it holds after each claim and checkpoint (a slow first pass outlived its lease).
 
 Both scripts read the node's own env file, as the node does: `~/.brain-factory/runner.env` by default, or `--runner-env <file>` (or
 FACTORY_RUNNER_PG_URL when it is set) - the CA path a copied runner.env names is resolved to the copy beside it, so nothing is

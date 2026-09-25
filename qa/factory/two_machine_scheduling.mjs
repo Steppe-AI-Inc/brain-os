@@ -108,6 +108,16 @@ if (mode === 'wave') {
   const wos = await stampWos(stampArg);
   if (wos.length !== 4) { console.log('expected 4 stamped work orders, found ' + wos.length + ' - run seed first'); process.exit(1); }
   const held = [];
+  // A WAVE KEEPS THE LEASES IT HOLDS WHILE IT GOES ON CLAIMING: its first pass (a claim and a checkpoint per work order, each on a fresh
+  // connection) outlived a 60 s lease on a slow link, another wave took the work order over, and this one still printed 'completed' (final
+  // verification 5, Work-PC probe). Every lease it holds is renewed after each claim and each checkpoint, on a 120 s lease
+  // (FACTORY_TMS_LEASE_S for a test); a renewal the plane refuses is said as LOST, a completion it does not record as NOT completed.
+  const LEASE_S = Math.max(5, Number(process.env.FACTORY_TMS_LEASE_S) || 120);
+  const beatHeld = async () => {
+    for (const h of held.filter((x) => !x.completed && !x.lost)) {
+      if (!(await claim.heartbeat({ runId: h.run, nodeId: myNode, leaseSeconds: LEASE_S }))) { h.lost = true; console.log('  LOST ' + h.kind + ' (run ' + h.run.slice(0, 8) + '): its lease was taken over - this wave does not complete it'); }
+    }
+  };
   // TWICE THE HOLD, AND A MINUTE: the second conflict work order can start only after the first has been held, so a run by the other node
   // can end near twice the hold - a verifier wave that started first gave up waiting for a finished run to verify (final verification 4)
   const until = Date.now() + (2 * hold + 60) * 1000;
@@ -121,16 +131,17 @@ if (mode === 'wave') {
       if (wo.title.split(' ').pop().startsWith('conflict') && held.some((h) => h.kind.startsWith('conflict'))) continue;
       const done = (await db.read('select status from factory.work_orders where work_order_id = $1', [wo.work_order_id])).rows[0];
       if (!done || done.status === 'done') continue;
-      const run = await claim.claimWork({ nodeId: myNode, leaseSeconds: 60, onlyWorkOrderId: wo.work_order_id, baseCommit: COMMIT });
+      const run = await claim.claimWork({ nodeId: myNode, leaseSeconds: LEASE_S, onlyWorkOrderId: wo.work_order_id, baseCommit: COMMIT });
       if (run) {
         held.push({ wo: wo.work_order_id, run: run.run_id, kind: wo.title.split(' ').pop(), at: Date.now() });
         await claim.checkpoint({ runId: run.run_id, workOrderId: wo.work_order_id, location: 'qa/factory/two_machine_scheduling.mjs', scenario: 'wave', payload: { nodeId: myNode, hostname: HOST, role, kind: wo.title.split(' ').pop(), head: COMMIT } });
         console.log('  claimed ' + wo.title.split(' ').pop() + ' as run ' + run.run_id.slice(0, 8));
+        await beatHeld();
       }
     }
     // heartbeat what is held; complete what has been held long enough
-    for (const h of held.filter((x) => !x.completed)) {
-      await claim.heartbeat({ runId: h.run, nodeId: myNode, leaseSeconds: 60 });
+    await beatHeld();
+    for (const h of held.filter((x) => !x.completed && !x.lost)) {
       if (Date.now() - h.at >= hold * 1000) {
         // a verifier node, on the verifier work order, records a verification of a run authored elsewhere for this stamp
         let verified = null;
@@ -144,12 +155,12 @@ if (mode === 'wave') {
           else verified = 'no finished run from another node to verify before the wave ended';
           console.log('  verification: ' + verified);
         }
-        await claim.completeRun({ runId: h.run, status: 'done', summary: h.kind + ' by ' + myNode + ' on ' + HOST + (verified ? '; verified ' + verified : ''), terminationReason: 'two_machine_scheduling_completed' });
+        const fin = await claim.completeRun({ runId: h.run, nodeId: myNode, status: 'done', summary: h.kind + ' by ' + myNode + ' on ' + HOST + (verified ? '; verified ' + verified : ''), terminationReason: 'two_machine_scheduling_completed' });
         h.completed = true;
-        console.log('  completed ' + h.kind);
+        console.log(fin && fin.superseded ? '  NOT completed ' + h.kind + ': its lease had been taken over - the plane did not record this completion' : '  completed ' + h.kind);
       }
     }
-    if (held.length && held.every((x) => x.completed)) {
+    if (held.length && held.every((x) => x.completed || x.lost)) {
       const remaining = (await db.read("select count(*)::int n from factory.work_orders where title like $1 and status <> 'done'", [TITLE + ' ' + stampArg + ' %'])).rows[0].n;
       if (remaining === 0) break;
     }

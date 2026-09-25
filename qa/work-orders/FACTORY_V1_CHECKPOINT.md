@@ -128,8 +128,9 @@ Its Work-PC probe added (reproduced by a refuter): [medium] a transient plane lo
   TLS 1.3 **verify-full** against the pinned Supabase Root 2021 CA. `factory.plane_identity = npvhuoozkbexddnvkqsj`.
 - Credential: `C:\Users\Dell\.brain-factory\runner.env` (one line, `FACTORY_RUNNER_PG_URL=…`; ACL: this user only) and the CA
   `C:\Users\Dell\.brain-factory\supabase-root-2021-ca.crt`. **Never print, copy into arguments, or commit the URL.**
-  `FACTORY_RUNNER_PG_URL` is NOT in the user environment; every tool loads it from the file (`--env-file`, or
-  `export $(grep '^FACTORY_RUNNER_PG_URL=' ~/.brain-factory/runner.env | tr -d '\r' | xargs)` in a shell).
+  `FACTORY_RUNNER_PG_URL` is NOT in the user environment; every tool loads it from the file: `--runner-env <file>` for node.mjs,
+  plane-health.mjs and the runbook's scripts (the supervisor's `--runner-env`/`--env-file`), which resolves a copied file's CA path to
+  the copy beside it. A URL exported into a shell by hand has its CA path resolved the same way by db.mjs.
 - Provisioned by `scripts/factory-runner/provision-control-plane.mjs --allow-dedicated-supabase npvhuoozkbexddnvkqsj
   --write-env …` (re-run rotates the password; the accessor refuses the production project by name everywhere).
 - Brain OS production: **untouched**. No Edge verifier round since #105 (campaign CLOSED under the ruling).
