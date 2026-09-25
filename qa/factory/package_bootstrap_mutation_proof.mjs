@@ -70,7 +70,7 @@ const results = [];
     ['scripts/factory-runner/url-judge.mjs', '  if (/ |%[^a-f0-9]|%[a-f0-9][^a-f0-9]/i.test(String(url))) {'],
     ['scripts/factory-runner/install-autostart.ps1', "    $nodeLine = & $NodeExe (Join-Path $Root 'scripts\\factory-runner\\node.mjs') status --runner-env $envPath"],
     ['scripts/factory-runner/bootstrap-node.sh', 'ROLE=""\nENV_FILE=""'],
-    ['scripts/factory-runner/install-autostart.ps1', 'return ($plane.head -eq $CheckoutHead) }'],
+    ['scripts/factory-runner/install-autostart.ps1', 'return (($plane.head -eq $CheckoutHead) -and ([bool]$plane.dirty -eq $CheckoutDirty)) }'],
     ['scripts/factory-runner/install-autostart.ps1', "foreach ($d in @($Root) + @(if ($owner -and (Test-OtherCheckout $owner)) { $owner })) {"],
     ['scripts/factory-runner/bootstrap-node.sh', 'NOTE_FILE="$(mktemp 2>/dev/null || echo "$' + '{TMPDIR:-/tmp}/factory-env-note.$$")"']];
   const missing = need.filter(([f, s]) => readFileSync(join(ROOT, f), 'utf8').split('\r\n').join('\n').split(s).length !== 2);
@@ -177,8 +177,10 @@ try {
       expectRed('F-REENCODE', 'a URL with a bare % passes the judge (pg re-encodes it and corrupts the CA path)', d, ['F10'], ['--skip', 'F6,F7,F8,F11,F12,F13,F14,F15']); }
     { const d = clone('fownerstatus'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("    $nodeLine = & $NodeExe (Join-Path $Root 'scripts\\factory-runner\\node.mjs') status --runner-env $envPath", "    $nodeLine = & $NodeExe (Join-Path $dir 'scripts\\factory-runner\\node.mjs') status --runner-env $envPath")); commitAll(d, 'mutant: -Status -EnvFile runs the owner checkout\'s node.mjs');
       expectRed('F-OWNERSTATUS', '-Status -EnvFile on another checkout\'s task runs that checkout\'s node.mjs', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11,F12,F13,F14,F15']); }
-    { const d = clone('fheadcheck'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace('return ($plane.head -eq $CheckoutHead) }', 'return $true }')); commitAll(d, 'mutant: the installer never compares the node\'s commit with the checkout');
+    { const d = clone('fheadcheck'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace('return (($plane.head -eq $CheckoutHead) -and ([bool]$plane.dirty -eq $CheckoutDirty)) }', 'return $true }')); commitAll(d, 'mutant: the installer never compares the node\'s commit with the checkout');
       expectRed('F-HEADCHECK', 'a node on another commit than its checkout passes -Verify and -Start leaves it running', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11,F12,F13,F14,F15']); }
+    { const d = clone('fdirtycheck'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace('return (($plane.head -eq $CheckoutHead) -and ([bool]$plane.dirty -eq $CheckoutDirty)) }', 'return ($plane.head -eq $CheckoutHead) }')); commitAll(d, 'mutant: the installer ignores uncommitted changes');
+      expectRed('F-DIRTYCHECK', 'a node recorded dirty beside a clean checkout (or the reverse) passes -Verify and -Start leaves it', d, ['F6'], ['--skip', 'F7,F8,F9,F10,F11,F12,F13,F14,F15']); }
     { const d = clone('fbootrole'); edit(d, 'scripts/factory-runner/bootstrap-node.sh', (s) => s.split('\r\n').join('\n').replace('ROLE=""\nENV_FILE=""', 'ROLE=generic\nENV_FILE=""')); commitAll(d, 'mutant: the bootstrap without --role registers generic');
       expectRed('F-BOOTROLE', 'bootstrap-node.sh without --role demotes a verifier to generic', d, ['F7'], ['--skip', 'F6,F8,F9,F10,F11,F12,F13,F14,F15']); }
     { const d = clone('fhand'); edit(d, 'scripts/factory-runner/install-autostart.ps1', (s) => s.replace("foreach ($d in @($Root) + @(if ($owner -and (Test-OtherCheckout $owner)) { $owner })) {", 'foreach ($d in @(if ($task) { if ($owner) { $owner } else { $Root } })) {')); commitAll(d, 'mutant: install leaves a hand-started supervisor running');
@@ -195,5 +197,5 @@ try {
 }
 const killed = results.filter((r) => r.killed).length;
 console.log('');
-console.log('package_bootstrap_mutation_proof: ' + killed + ' of ' + results.length + ' (control green + mutants killed)' + (FRESH ? '' : '  (static mutants only; --fresh adds the original defect and thirty-three fresh-clone mutants)'));
+console.log('package_bootstrap_mutation_proof: ' + killed + ' of ' + results.length + ' (control green + mutants killed)' + (FRESH ? '' : '  (static mutants only; --fresh adds the original defect and thirty-four fresh-clone mutants)'));
 process.exit(killed === results.length ? 0 : 1);

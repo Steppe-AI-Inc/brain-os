@@ -758,6 +758,34 @@ try {
       JSON.stringify({ dupErr: dupErr.slice(0, 80), first: first && first.work_order_id, dup, dupLocks, nulErr: nulErr.slice(0, 80), second: second && second.work_order_id, behind2, nulStatus, behind1 }));
   }
 
+  // ---- S3. a surface too large IN BYTES never ends a claim (UTF8 plane) --------------------------------------------------------
+  // The exclusion counted characters; the lock's key limit is in bytes. On a UTF8 database (the live plane) a 1000-character multibyte
+  // surface still failed the lock insert (54000) and ended every claimer (final verification 3, 2026-09-25). The disposable plane here
+  // is single-byte, so this row makes a UTF8 database of its own and claims through a child process pointed at it.
+  {
+    const { spawnSync } = await import('node:child_process');
+    await admin.query("create database fac_utf8 with template template0 encoding 'UTF8' lc_collate 'C' lc_ctype 'C'");
+    const su8 = new URL(pg.superUrl); su8.pathname = '/fac_utf8';
+    const a8 = new pgLib.Client({ connectionString: su8.toString() }); await a8.connect();
+    try {
+      for (const f of ['001_factory_control_plane.sql', '003_resource_governance.sql']) await a8.query(readFileSync(join(ROOT, 'supabase/control-plane', f), 'utf8'));
+      await a8.query('grant usage on schema factory to ' + pg.runnerRole);
+      await a8.query('grant select, insert, update, delete on all tables in schema factory to ' + pg.runnerRole);
+      await a8.query("insert into factory.nodes (node_id, capabilities, security_role, platform, agent_version) values ('node-s3', '[]'::jsonb, 'generic', 'test', 'v')");
+      const cjk = Array.from({ length: 1000 }, (_, i) => String.fromCharCode(0x4e00 + (i % 5000))).join('');
+      await a8.query("insert into factory.work_orders (work_order_id, title, owned_surface, priority, status) values ($1, 'S3: 1000 characters, 3000 bytes', ARRAY[$2]::text[], 'high', 'queued')", [randomUUID(), cjk]);
+      const good = randomUUID();
+      await a8.query("insert into factory.work_orders (work_order_id, title, owned_surface, priority, status) values ($1, 'S3: behind it', ARRAY['qa/s3.txt']::text[], 'low', 'queued')", [good]);
+      const ru8 = new URL(pg.runnerUrl); ru8.pathname = '/fac_utf8';
+      const probe = "const c = await import(" + JSON.stringify(pathToFileURL(join(ROOT, 'scripts/factory-runner/claim.mjs')).href) + "); try { const r = await c.claimWork({ nodeId: 'node-s3', leaseSeconds: 60 }); console.log('CLAIMED ' + (r ? r.work_order_id : 'null')); } catch (e) { console.log('THREW ' + (e.code || '') + ' ' + String(e.message).slice(0, 100)); } process.exit(0);";
+      const r = spawnSync(process.execPath, ['--input-type=module', '-e', probe], { cwd: ROOT, encoding: 'utf8', timeout: 60000, env: { ...process.env, FACTORY_RUNNER_PG_URL: ru8.toString(), FACTORY_ADMISSION: 'off' } });
+      const health = spawnSync(process.execPath, [join(ROOT, 'scripts/factory-runner/node.mjs'), 'health'], { cwd: ROOT, encoding: 'utf8', timeout: 90000, env: { ...process.env, FACTORY_RUNNER_PG_URL: ru8.toString(), FACTORY_STATE_DIR: join(pg.dir, 'state-s3') } });
+      check('S3 a surface too large in BYTES (1000 characters, 3000 bytes, UTF8) is never picked: the work order behind it is claimed, and health names it',
+        new RegExp('CLAIMED ' + good).test(r.stdout || '') && /NULL, empty or oversized surface.*S3: 1000 characters/.test(health.stdout || ''),
+        String(r.stdout || '') + String(r.stderr || '').slice(0, 200) + '\n' + String(health.stdout || '').split('\n').filter((l) => /oversized|FAIL/.test(l)).join('\n'));
+    } finally { try { await a8.end(); } catch { /* ignore */ } }
+  }
+
   // ---- K. no ambient production credential path exists ----------------------------------------------
   //
   // IN A CHILD PROCESS, because db.mjs captures FACTORY_RUNNER_PG_URL at MODULE LOAD. A process that

@@ -91,9 +91,13 @@ if (mode === 'wave') {
         // a verifier node, on the verifier work order, records a verification of a run authored elsewhere for this stamp
         let verified = null;
         if (h.kind === 'verifier' && role === 'verifier') {
-          const others = (await db.read("select r.run_id, r.node_id, n.platform from factory.agent_runs r join factory.work_orders w on w.work_order_id = r.work_order_id join factory.nodes n on n.node_id = r.node_id where w.title like $1 and r.node_id <> $2 and r.status in ('in_progress','done') order by r.started_at limit 1", [TITLE + ' ' + stampArg + ' conflict-%', myNode])).rows;
+          // ONLY A FINISHED RUN by another node can be verified (the runner refuses anything else): the oldest run, still in progress when the
+          // verifier's wave started first, was refused and the instrument failed (final verification 3, 2026-09-25). Until one is done, the
+          // verifier keeps its run open, up to the wave's deadline.
+          const others = (await db.read("select r.run_id, r.node_id, n.platform from factory.agent_runs r join factory.work_orders w on w.work_order_id = r.work_order_id join factory.nodes n on n.node_id = r.node_id where w.title like $1 and r.node_id <> $2 and r.status = 'done' order by r.finished_at limit 1", [TITLE + ' ' + stampArg + ' conflict-%', myNode])).rows;
+          if (!others.length && Date.now() < until - 15000) continue;
           if (others.length) { const v = await claim.recordVerification({ authoringRunId: others[0].run_id, verificationRunId: h.run }); verified = v.accepted ? others[0].run_id : 'REJECTED ' + v.reason; }
-          else verified = 'no run from another node to verify yet';
+          else verified = 'no finished run from another node to verify before the wave ended';
           console.log('  verification: ' + verified);
         }
         await claim.completeRun({ runId: h.run, status: 'done', summary: h.kind + ' by ' + myNode + ' on ' + HOST + (verified ? '; verified ' + verified : ''), terminationReason: 'two_machine_scheduling_completed' });

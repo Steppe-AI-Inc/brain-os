@@ -469,8 +469,19 @@ if (!STATIC_ONLY) {
       // said "already running" and the node stayed on the old commit - final verification 2, 2026-09-25). The clone moves one commit.
       run('git', ['-c', 'user.name=qa', '-c', 'user.email=qa@example.invalid', 'commit', '--allow-empty', '--quiet', '-m', 'qa: the checkout moves'], cloneA);
       cyc.verifyMoved = psT(['-Verify']);
+      cyc.statusMoved = psT(['-Status']);
       cyc.startMoved = psT(['-Start']);
       cyc.verifyAfterMove = psT(['-Verify']);
+      // ...and uncommitted changes on either side: a dirty checkout against a clean node, then a clean one against a dirty node (both passed
+      // -Verify, and -Start said "already running" - final verification 3, 2026-09-25)
+      const touched = join(cloneA, 'qa', 'factory', 'local_pg.mjs');
+      writeFileSync(touched, readFileSync(touched, 'utf8') + '\n// qa: the checkout has an uncommitted change\n');
+      cyc.verifyDirty = psT(['-Verify']);
+      cyc.startDirty = psT(['-Start']);
+      run('git', ['checkout', '--', 'qa/factory/local_pg.mjs'], cloneA);
+      cyc.verifyCleanAgain = psT(['-Verify']);
+      cyc.startCleanAgain = psT(['-Start']);
+      cyc.verifyAfterClean = psT(['-Verify']);
       cyc.execute = run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName '" + scratchTask + "' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).Execute}else{'NONE'}"], ROOT).out.trim();
       cyc.stop = psT(['-Stop']);
       cyc.verifyStopped = psT(['-Verify']);
@@ -563,7 +574,9 @@ if (!STATIC_ONLY) {
         && cyc.roleAfterHealth === 'verifier' && cyc.verifyAfterHealth.rc === 0 && /plane\s+ALIVE .*role verifier/.test(cyc.verifyAfterHealth.out)
         && cyc.verifyMoved.rc === 1 && /the node runs commit [0-9a-f]{40} but this checkout is at [0-9a-f]{40}/.test(cyc.verifyMoved.out)
         && cyc.startMoved.rc === 0 && /running commit [0-9a-f]{40} while this checkout is at [0-9a-f]{40}\) - restarting it/.test(cyc.startMoved.out) && /started: supervisor pid \d+/.test(cyc.startMoved.out)
-        && cyc.verifyAfterMove.rc === 0
+        && cyc.verifyAfterMove.rc === 0 && /^commit\s+the node runs [0-9a-f]{12} but this checkout is at [0-9a-f]{12}/m.test(cyc.statusMoved.out)
+        && cyc.verifyDirty.rc === 1 && /but this checkout is at [0-9a-f]{40}\+dirty/.test(cyc.verifyDirty.out) && cyc.startDirty.rc === 0 && /started: supervisor pid \d+/.test(cyc.startDirty.out)
+        && cyc.verifyCleanAgain.rc === 1 && /the node runs commit [0-9a-f]{40}\+dirty but this checkout is at [0-9a-f]{40} /.test(cyc.verifyCleanAgain.out) && cyc.startCleanAgain.rc === 0 && cyc.verifyAfterClean.rc === 0
         && (Number(String(os.release()).split('.')[2] || 0) < 17763 || /\\conhost\.exe$/i.test(cyc.execute))
         && cyc.stop.rc === 0 && cyc.verifyStopped.rc === 1 && /task is disabled/.test(cyc.verifyStopped.out)
         && cyc.start.rc === 0 && /nothing re-installed/.test(cyc.start.out) && /started: supervisor pid \d+/.test(cyc.start.out) && /--role verifier/.test(cyc.argsAfterStart)

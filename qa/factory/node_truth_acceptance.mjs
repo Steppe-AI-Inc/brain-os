@@ -43,6 +43,10 @@
 //      counted as a claim cycle)
 //   N12 only a finished, successful run can be verified: a verify of a FAILED run is refused by name and writes nothing (it was
 //      recorded as verified and reported 'completed_with_verdict'); a done run authored elsewhere is still verified
+// and from the final verification of 2026-09-25 (18bce497):
+//   N24 health says "can claim work" only while the supervised node is claiming: not over a refused admission or a busy claim lock
+//   N25 a lease renewal that lands after its run completed is not a lost lease: the run is not logged LOST or ABORTED (a renewal in
+//      flight at the completion was read as a takeover)
 import { startLocalPg } from './local_pg.mjs';
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync, rmSync } from 'node:fs';
@@ -355,6 +359,28 @@ try {
     const bare = await runStart(S3);
     check('N9b a bare worker does not start beside a supervisor that runs the same node (exit ' + bare.code + ')',
       bare.code === 4 && /NOT STARTED - a supervisor \(pid \d+, role generic\) already runs the node/.test(bare.out), bare.out.slice(-600));
+
+    // ---- N24. health says "can claim work" only while the node's own records say it is claiming -------------------------------------
+    // Beside THIS supervisor, whose worker is ready: health asks the node's supervisor, so a bare worker's state dir never says "can
+    // claim work" at all. The worker writes these records only when they change, so a steady worker leaves the ones written here alone.
+    currentRow = 'N24';
+    {
+      await waitFor(async () => { const s = status(); return s.state === 'running' && s.childPid && s.readyAt ? s : null; }, 40000);
+      // (readyAt is set on the worker's first completed claim cycle, which has written both records already)
+      const hOf = () => String(spawnSync(process.execPath, [NODE, 'health'], { cwd: ROOT, encoding: 'utf8', timeout: 90000, env: { ...process.env, FACTORY_RUNNER_PG_URL: pg.runnerUrl, FACTORY_STATE_DIR: S3, FACTORY_NODE_ROLE: '' } }).stdout || '');
+      const base = hOf();
+      writeFileSync(join(S3, 'node-admission.json'), JSON.stringify({ admit: false, reason: 'qa: free memory below the floor', at: new Date().toISOString() }));
+      const refused = hOf();
+      writeFileSync(join(S3, 'node-admission.json'), JSON.stringify({ admit: true, reason: 'qa', at: new Date().toISOString() }));
+      writeFileSync(join(S3, 'node-claim-busy.json'), JSON.stringify({ since: new Date().toISOString(), at: new Date().toISOString() }));
+      const busy = hOf();
+      writeFileSync(join(S3, 'node-claim-busy.json'), JSON.stringify({ since: null, at: new Date().toISOString() }));
+      const pick = (t) => t.split('\n').filter((l) => /supervisor|HEALTHY/.test(l)).join(' | ');
+      check('N24 health says "can claim work" only while the supervised node is claiming: not with its admission refused, nor with the claim lock busy',
+        /this node can claim work/.test(base) && /NOT CLAIMING: admission refused/.test(refused) && !/this node can claim work/.test(refused) && /NOT CLAIMING: .*claim lock busy/.test(busy) && !/this node can claim work/.test(busy),
+        'base: ' + pick(base) + '\nrefused: ' + pick(refused) + '\nbusy: ' + pick(busy));
+    }
+    currentRow = 'N7';
     spawn(process.execPath, [SUP, '--stop'], { cwd: ROOT, env, stdio: 'ignore', windowsHide: true });
     const exit = await new Promise((r) => { if (sup.exitCode !== null) return r(sup.exitCode); const t = setTimeout(() => r('timeout'), 25000); sup.on('exit', (c) => { clearTimeout(t); r(c); }); });
     check('N7 the supervisor\'s backoff resets once a worker completed a claim cycle: two workers killed after that were restarted after ' + backoffs.join(', ') + ' (not 5 s then 10 s), and --stop ends it (exit ' + exit + ')',
@@ -394,11 +420,17 @@ try {
     await new Promise((r) => relay.listen(0, '127.0.0.1', r));
     const relayUrl = pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + relay.address().port + '/');
     const S5 = join(WORK, 'state-w3');
-    const w3 = spawnWorker({ state: S5, role: 'generic', url: relayUrl, extra: { FACTORY_LEASE_SECONDS: '15', FACTORY_PG_CONNECT_TIMEOUT_MS: '3000', FACTORY_PG_QUERY_TIMEOUT_MS: '4000', FACTORY_PG_CLOSE_TIMEOUT_MS: '1000' } });
+    const w3 = spawnWorker({ state: S5, role: 'generic', url: relayUrl, extra: { FACTORY_LEASE_SECONDS: '15', FACTORY_PG_CONNECT_TIMEOUT_MS: '3000', FACTORY_PG_QUERY_TIMEOUT_MS: '30000', FACTORY_PG_LOCK_TIMEOUT_MS: '30000', FACTORY_PG_CLOSE_TIMEOUT_MS: '1000' } });
     await waitFor(async () => /\] ready: first claim cycle completed/.test(w3.out), 30000);
     const w3id = idOf(S5);
     const surface = 'qa/nodetruth/n13-shared';
+    // THE CLAIM WAITS ON THE CLAIM LOCK FIRST (another claimer holds it): the plane stamps the lease at the claim transaction's BEGIN, and a
+    // guard timed from the claim's return let the run overlap its successor by the length of that wait (final verification 3)
+    const holder = new pgLib.Client({ connectionString: pg.superUrl }); holder.on('error', () => {});
+    await holder.connect(); await holder.query('begin'); await holder.query("select pg_advisory_xact_lock(hashtext('factory.claim'))");
     const a = await seed('N13 held by the cut-off node', { type: 'factory_acceptance', handoff: JSON.stringify({ action: 'hold', seconds: 60 }), caps: ['factory_acceptance', 'node:' + w3id], surface });
+    await sleep(12000);
+    await holder.query('rollback'); await holder.end();
     await waitFor(async () => /holding [0-9a-f]{8} for 60 s/.test(w3.out), 30000, 200);
     const runA = (await runsOf(a))[0];
     hole = true; for (const x of socks) { try { x.destroy(); } catch { /* gone */ } }
@@ -454,6 +486,54 @@ try {
     relay.close(); for (const x of socks) { try { x.destroy(); } catch { /* gone */ } }
     check('N21 over a slow link (300 ms each way) one failed lease renewal does not abort a healthy run: it is retried in seconds and the hold completes (' + (done ? 'done' : 'NOT done') + ', ' + runsH.length + ' run(s), ' + Math.round((Date.now() - t0) / 1000) + ' s)',
       !!done && runsH.length === 1 && runsH[0].status === 'done' && !/ABORTED/.test(w4.out), JSON.stringify(runsH.map((r) => r.status + ':' + r.termination_reason)) + '\n' + w4.out.slice(-900));
+  }
+
+  // ---- N25. a renewal that lands after its run completed is not a lost lease -------------------------------------------------------
+  // Deterministic, through a relay that reads the worker's statements: the renewal due just before the run ends is HELD until the
+  // completion has committed, and the completion's reply is delayed on its way back - so the renewal finds the run done while the
+  // worker still waits for its completion, the window in which it was read as a takeover.
+  currentRow = 'N25';
+  {
+    const net = await import('node:net');
+    const socks = []; let armed = false; const release = []; const seen = { held: 0, fin: 0 };
+    const relay = net.createServer((c) => {
+      c.on('error', () => {}); socks.push(c);
+      const u = net.connect(pg.port, '127.0.0.1'); u.on('error', () => {}); socks.push(u);
+      let held = null, down = 0;
+      c.on('data', (d) => {
+        if (held) { held.push(d); return; }
+        const t = d.toString('latin1');
+        if (armed && t.includes('with run as (')) {
+          armed = false; seen.held++; held = [d];
+          release.push(() => { const q = held || []; held = null; for (const x of q) if (!u.destroyed) u.write(x); });
+          return;
+        }
+        if (t.includes('with fin as (')) { seen.fin++; down = 3000; setTimeout(() => { for (const f of release.splice(0)) f(); }, 1000); }
+        if (!u.destroyed) u.write(d);
+      });
+      u.on('data', (d) => { if (down) setTimeout(() => { if (!c.destroyed) c.write(d); }, down); else if (!c.destroyed) c.write(d); });
+      c.on('close', () => u.destroy()); u.on('close', () => setTimeout(() => c.destroy(), down));
+    });
+    await new Promise((r) => relay.listen(0, '127.0.0.1', r));
+    const relayUrl = pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + relay.address().port + '/');
+    const S9 = join(WORK, 'state-settle');
+    // lease 15 s: renewals every 5 s; the run holds 12 s, so the renewal at 10 s is the one in flight when it ends
+    const w6 = spawnWorker({ state: S9, role: 'generic', url: relayUrl, extra: { FACTORY_LEASE_SECONDS: '15' } });
+    await waitFor(async () => /\] ready: first claim cycle completed/.test(w6.out), 60000);
+    const w6id = idOf(S9);
+    const h = await seed('N25 a hold whose last renewal lands after its completion', { type: 'factory_acceptance', handoff: JSON.stringify({ action: 'hold', seconds: 12 }), caps: ['factory_acceptance', 'node:' + w6id] });
+    await waitFor(async () => /holding [0-9a-f]{8} for 12 s/.test(w6.out), 60000, 100);
+    await sleep(7500); armed = true;
+    const done = await waitFor(async () => (await woStatus(h)) === 'done', 40000, 500);
+    await waitFor(async () => /completed run/.test(w6.out), 15000, 300);
+    await sleep(2000);
+    const runsH = await runsOf(h);
+    try { w6.kill(); } catch { /* gone */ }
+    relay.close(); for (const x of socks) { try { x.destroy(); } catch { /* gone */ } }
+    const after = w6.out.split(/holding [0-9a-f]{8} for 12 s/)[1] || '';
+    check('N25 a lease renewal that lands after its run completed is not a lost lease: the run completes and is not logged LOST or ABORTED (renewal held ' + seen.held + ', completion seen ' + seen.fin + ', ' + (done ? 'done' : 'NOT done') + ')',
+      seen.held === 1 && seen.fin >= 1 && !!done && runsH.length === 1 && runsH[0].status === 'done' && /completed run/.test(after) && !/LOST its lease|ABORTED/.test(after),
+      JSON.stringify({ seen, runs: runsH.map((r) => r.status + ':' + r.termination_reason) }) + '\n' + after.slice(-900));
   }
 
   // ---- N22. an admission-only cycle is not a claim cycle ------------------------------------------------------------------------

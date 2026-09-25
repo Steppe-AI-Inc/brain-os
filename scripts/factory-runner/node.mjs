@@ -238,15 +238,20 @@ export function ensureWorktree({ runId, baseCommit, branch }) {
 
 /** 8. Renew the lease on a timer for as long as the work is running (the heartbeat also stamps the node record - claim.mjs).
  *  Returns { stop, signal }: the signal ABORTS the run when its lease cannot be kept (see below). */
-export function startHeartbeat({ runId, id, leaseSeconds = DEFAULT_LEASE_SECONDS, reg = null }) {
+// claimedFrom: when the claim began (before its connect and BEGIN). The plane stamps the lease at the claim transaction's BEGIN; timed
+// from the moment the claim RETURNED, a claim that had waited on the claim lock was aborted after its lease lapsed and another node
+// had taken its surface (final verification 3, 2026-09-25). Earlier than BEGIN is the safe side.
+export function startHeartbeat({ runId, id, leaseSeconds = DEFAULT_LEASE_SECONDS, reg = null, claimedFrom = Date.now() }) {
   const leaseMs = leaseSeconds * 1000;
   const everyMs = Math.max(5000, Math.floor(leaseMs / 3));
   // the lease the plane holds runs from the START of the last renewal that landed (the server stamps it while the statement runs)
-  let lost = false, stopped = false, inFlight = false, leaseFrom = Date.now(), retry = null;
+  let lost = false, stopped = false, inFlight = false, leaseFrom = claimedFrom, retry = null;
+  // settled: the run's work is over and only its completion is left (see settle below)
+  let finishing = false;
   const ac = new AbortController();
   const say = (m) => console.log('[' + String(id).slice(0, 13) + '] run ' + String(runId).slice(0, 8) + ' ' + m);
   const abort = (why) => {
-    if (ac.signal.aborted || stopped) return;
+    if (ac.signal.aborted || stopped || finishing) return;
     say('ABORTED: ' + why);
     ac.abort(new Error('run aborted: ' + why));
     // ...and its lease is given back at once, so the plane and the Home PC do not show an abandoned run as a live claim (best effort:
@@ -261,7 +266,7 @@ export function startHeartbeat({ runId, id, leaseSeconds = DEFAULT_LEASE_SECONDS
     heartbeat({ runId, nodeId: id, leaseSeconds })
       // a lost lease is said once; the completion fence (claim.mjs completeRun) keeps this run's result off the work order
       // (never said of a run this node has already finished - its beat may land after the completion)
-      .then((ok) => { if (stopped) return; if (ok) { leaseFrom = startedAt; return; } if (!lost) { lost = true; say('LOST its lease (taken over by another node); its result will not complete the work order'); abort('its lease was taken over by another node'); } })
+      .then((ok) => { if (stopped) return; if (ok) { leaseFrom = startedAt; return; } if (finishing) return; if (!lost) { lost = true; say('LOST its lease (taken over by another node); its result will not complete the work order'); abort('its lease was taken over by another node'); } })
       // A FAILED RENEWAL IS RETRIED IN SECONDS, not at the next tick: one failure left the next attempt racing the abort guard, and
       // over the internet (a renewal takes ~1.5 s through a remote pooler) it lost - a healthy run was aborted (final verification 2)
       .catch(() => { if (!stopped && !retry) { retry = setTimeout(() => { retry = null; renew(); }, 5000); if (typeof retry.unref === 'function') retry.unref(); } })
@@ -281,7 +286,11 @@ export function startHeartbeat({ runId, id, leaseSeconds = DEFAULT_LEASE_SECONDS
   const margin = Math.min(5000, leaseMs / 3);
   const guard = setInterval(() => { if (!stopped && Date.now() - leaseFrom > leaseMs - margin) abort('no lease renewal for ' + Math.round((Date.now() - leaseFrom) / 1000) + ' s (lease ' + leaseSeconds + ' s) - stopped before the lease can lapse and another node takes its surface'); }, 1000);
   for (const t of [timer, guard]) if (typeof t.unref === 'function') t.unref();
-  return { stop: () => { stopped = true; clearInterval(timer); clearInterval(guard); if (retry) clearTimeout(retry); }, signal: ac.signal };
+  // SETTLE: THE WORK IS OVER, ONLY ITS COMPLETION IS LEFT. A renewal still in flight when the completion committed found no run in
+  // progress and was read as a takeover: a run that completed normally was logged LOST and ABORTED (final verification 3, 2026-09-25,
+  // over a slow link). Settled, the renewals go on (a slow completion keeps its lease), but a renewal that finds no run is no longer a
+  // takeover and the guard no longer aborts: the completion is fenced by itself (claim.mjs completeRun - a run taken over is superseded).
+  return { stop: () => { stopped = true; clearInterval(timer); clearInterval(guard); if (retry) clearTimeout(retry); }, settle: () => { finishing = true; }, signal: ac.signal };
 }
 
 /**
@@ -354,7 +363,8 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
   };
   let ready = false;
   for (let i = 0; i < maxIterations; i++) {
-    const run = await retryTransient(() => claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel, workTypes, baseCommit: commit }), 'claim', log);
+    let claimStart = Date.now();
+    const run = await retryTransient(() => { claimStart = Date.now(); return claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel, workTypes, baseCommit: commit }); }, 'claim', log);
     noteAdmission();
     noteBusy();
     // READY = ONE COMPLETED CLAIM CYCLE. Only now is liveness stamped, and the line below is what the supervisor resets its
@@ -386,7 +396,7 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
     }
     claimed++;
     log('claimed work order ' + String(run.work_order_id).slice(0, 8) + ' as run ' + String(run.run_id).slice(0, 8));
-    const hb = startHeartbeat({ runId: run.run_id, id, leaseSeconds, reg });
+    const hb = startHeartbeat({ runId: run.run_id, id, leaseSeconds, reg, claimedFrom: claimStart });
     const stopBeat = hb.stop;
     try {
       // The work order itself: its type decides whether a checkout is needed. A factory_acceptance work order has no code
@@ -407,6 +417,8 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
           checkpoint({ runId: run.run_id, workOrderId: run.work_order_id, location, scenario, payload, nodeId: id }) });
       // an aborted run (its lease could not be kept) is not reported, whatever its worker returned
       if (hb.signal.aborted) throw hb.signal.reason || new Error('run aborted');
+      // the work is over: only its completion is left (startHeartbeat - settle)
+      hb.settle();
 
       // THE TERMINAL CONDITION COMES FROM THE WORKER, and where the worker reports none the fallback NAMES
       // THAT ABSENCE rather than claiming a clean finish. completeRun requires the field; defaulting it to
@@ -441,6 +453,7 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
         log('run ' + String(run.run_id).slice(0, 8) + ' not completed: it was aborted (' + errText(hb.signal.reason || e).slice(0, 140) + '); its lease is left to expire - the work is recoverable');
       } else if (/^22/.test(code)) {
         try {
+          hb.settle();
           await completeRun({ runId: run.run_id, nodeId: id, status: 'failed', terminationReason: 'data_exception_' + code, summary: errText(e).slice(0, 300) });
           log('FAILED run ' + String(run.run_id).slice(0, 8) + ' (data exception ' + code + ': ' + errText(e).slice(0, 120) + ') - the same input fails every time; its work order is failed');
         } catch (e2) { log('run ' + String(run.run_id).slice(0, 8) + ' hit a data exception and could not be recorded failed: ' + errText(e2).slice(0, 120)); }
@@ -671,7 +684,7 @@ export async function health() {
       + stranded.rows.map((x) => String(x.work_order_id).slice(0, 8) + " " + JSON.stringify(String(x.title).slice(0, 40))).join("; "));
     if (cnt.failed) lines.push("  note " + cnt.failed + " work order(s) FAILED - their dependents wait; each run's termination_reason says why");
     // queued work no node will ever pick (a NULL, empty or oversized surface - the claim excludes it), by id
-    const bad = (await db.read("select wo.work_order_id, wo.title from factory.work_orders wo where wo.status = 'queued' and exists (select 1 from unnest(wo.owned_surface) s where s is null or btrim(s) = '' or length(s) > 1000) order by wo.created_at limit 5")).rows;
+    const bad = (await db.read("select wo.work_order_id, wo.title from factory.work_orders wo where wo.status = 'queued' and exists (select 1 from unnest(wo.owned_surface) s where s is null or btrim(s) = '' or octet_length(s) > 1000) order by wo.created_at limit 5")).rows;
     if (bad.length) lines.push("  note queued work order(s) with a NULL, empty or oversized surface - no node will claim them, fix or remove them: "
       + bad.map((x) => String(x.work_order_id).slice(0, 8) + " " + JSON.stringify(String(x.title).slice(0, 40))).join("; "));
   } catch (e) { say(false, "cannot read claims and leases", errText(e).slice(0, 100)); }
@@ -684,11 +697,18 @@ export async function health() {
   // ...and a supervisor is not a working node: "can claim work" was also printed while it sat in backoff with no worker (final
   // verification 2, 2026-09-25). Only a running worker that has completed a claim cycle claims.
   const working = !!(sup && sup.state === 'running' && sup.childPid && sup.readyAt);
-  console.log(working ? "  ok   a supervisor runs this node here (pid " + sup.pid + ", role " + sup.role + "; worker " + sup.childPid + " claiming since " + sup.readyAt + ")"
+  // ...and a ready worker that is refused by admission, or cannot take the claim lock, is not claiming either: the node's own records say
+  // so (node.mjs status reads them) - health said "can claim work" over them (final verification 3, 2026-09-25)
+  let notClaiming = null;
+  try { const a = JSON.parse(readFileSync(join(STATE_DIR, 'node-admission.json'), 'utf8')); if (a && a.admit === false) notClaiming = 'admission refused since ' + a.at + ' (' + a.reason + ')'; } catch { /* never recorded */ }
+  try { const b = JSON.parse(readFileSync(join(STATE_DIR, 'node-claim-busy.json'), 'utf8')); if (b && b.since) notClaiming = (notClaiming ? notClaiming + '; ' : '') + 'the plane-wide claim lock busy since ' + b.since; } catch { /* never recorded */ }
+  const claiming = working && !notClaiming;
+  console.log(claiming ? "  ok   a supervisor runs this node here (pid " + sup.pid + ", role " + sup.role + "; worker " + sup.childPid + " claiming since " + sup.readyAt + ")"
+    : working ? "  note a supervisor runs this node here (pid " + sup.pid + ", role " + sup.role + ", worker " + sup.childPid + ") but it is NOT CLAIMING: " + notClaiming
     : sup ? "  note a supervisor runs this node here (pid " + sup.pid + ", role " + sup.role + ") but NO WORKER CLAIMS: it is " + sup.state + (sup.nextStartAt ? " until " + sup.nextStartAt : "") + (sup.state === 'running' ? ", its worker has not completed a claim cycle" : "") + " - install-autostart.ps1 -Status names why"
     : "  note no supervisor runs this node here - nothing on this machine claims its work (install-autostart.ps1 -Start)");
   console.log("");
-  console.log(ok ? (working ? "HEALTHY — this node can claim work." : sup ? "HEALTHY — the plane is reachable and usable; this node's worker is not claiming (see the note above)." : "HEALTHY — the plane is reachable and usable; start the node to claim work.") : "NOT HEALTHY — see the failing line above.");
+  console.log(ok ? (claiming ? "HEALTHY — this node can claim work." : sup ? "HEALTHY — the plane is reachable and usable; this node's worker is not claiming (see the note above)." : "HEALTHY — the plane is reachable and usable; start the node to claim work.") : "NOT HEALTHY — see the failing line above.");
   return { ok, host, database };
 }
 if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
@@ -728,7 +748,7 @@ if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
   else if (cmd === 'status') {
     const s = await nodeStatus();
     const age = s.neverBeaten ? ' (never beaten: registered, but no worker has completed a claim cycle)' : s.ageMs == null ? '' : ' (heartbeat ' + Math.round(s.ageMs / 1000) + ' s ago)';
-    console.log(s.state + age + ' — node ' + (s.nodeId ? s.nodeId.slice(0, 13) : '(none yet)') + (s.role ? ', role ' + s.role : '') + (s.host ? ', host ' + s.host : '')
+    console.log(s.state + age + ' — node ' + (s.nodeId ? s.nodeId.slice(0, 13) : '(none yet)') + (s.role ? ', role ' + s.role : '') + (s.head ? ', commit ' + s.head.slice(0, 12) + (s.dirty ? '+dirty' : '') : '') + (s.host ? ', host ' + s.host : '')
       + ', plane ' + s.plane + (s.tls == null ? '' : ', tls ' + (s.tls ? 'on' : 'OFF')) + (s.error ? ' — ' + s.error : '')
       + (s.admission && s.admission.admit === false ? ' — NOT CLAIMING: admission refused since ' + s.admission.at + ' (' + s.admission.reason + ')' : '')
       + (s.claimBusySince ? ' — NOT CLAIMING: the plane-wide claim lock has been busy since ' + s.claimBusySince : ''));

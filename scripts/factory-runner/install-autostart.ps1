@@ -72,7 +72,11 @@ $NodeExe = (Get-Command node -ErrorAction Stop).Source
 # the commit the node recorded (head:<sha>) with this, so "put that PC on the commit and restart its node" does what it says (final
 # verification 2, 2026-09-25: -Start said "already running" and the node stayed on the old commit).
 $CheckoutHead = $null; try { $CheckoutHead = ((& git -C $Root rev-parse HEAD 2>$null) | Select-Object -First 1) } catch { }
-function Test-SameCommit($plane) { if (-not $plane -or -not $plane.head -or -not $CheckoutHead) { return $true }; return ($plane.head -eq $CheckoutHead) }
+# ...clean or dirty too: a node that recorded 'dirty' beside a clean checkout at the same commit (or the reverse) passed -Verify, and the fix
+# two_machine_real printed for it did nothing (final verification 3, 2026-09-25)
+$CheckoutDirty = $false; try { $CheckoutDirty = [bool]((& git -C $Root status --porcelain --untracked-files=no 2>$null) | Select-Object -First 1) } catch { }
+function Test-SameCommit($plane) { if (-not $plane -or -not $plane.head -or -not $CheckoutHead) { return $true }; return (($plane.head -eq $CheckoutHead) -and ([bool]$plane.dirty -eq $CheckoutDirty)) }
+function Get-CommitText($head, $dirty) { return ([string]$head) + $(if ($dirty) { '+dirty' } else { '' }) }
 $taskHint = if ($TaskName -ne 'BrainOS Factory Node') { " -TaskName '$TaskName'" } else { '' }
 
 # ---- the task and its owner ------------------------------------------------------------------------------------------------
@@ -165,6 +169,14 @@ function Get-LastWorkerError($ld) {
   if (-not $l) { $l = $tail | Where-Object { $_ -notmatch '^\s+(at |[a-zA-Z]+: )' -and $_ -match 'Error|REFUSED|FAIL|ECONN|ETIMEDOUT|ENOTFOUND|password|certificate|refused' } | Select-Object -Last 1 }
   if ($l) { return ([string]$l).Trim().Substring(0, [Math]::Min(220, ([string]$l).Trim().Length)) } else { return 'nothing logged that names it (' + $f + ')' }
 }
+# The worker's latest admission verdict in its log, when it is a refusal (an older error line of a previous worker must not mask it).
+function Get-AdmissionRefusal($ld) {
+  $f = Get-TaskLogFile $ld
+  if (-not (Test-Path -LiteralPath $f)) { return $null }
+  $l = Get-Content -LiteralPath $f -Tail 200 | Where-Object { $_ -match 'admission (REFUSED|: claiming)' } | Select-Object -Last 1
+  if ($l -and ($l -match 'admission REFUSED')) { return ([string]$l).Trim() }
+  return $null
+}
 # The plane's view of this checkout's node, read with the task's own env file. Returns the status object, or $null.
 function Get-NodeOnPlane($dir) {
   $envPath = Get-TaskArg (Get-FactoryTask) 'env'; if (-not $envPath) { $envPath = $EnvFile }
@@ -206,7 +218,11 @@ function Confirm-TaskSupervisor($dir, $since) {
         $upFor = ((Get-Date) - $first.at).TotalSeconds
         if ($upFor -ge 12) {
           $plane = Get-NodeOnPlane $dir
-          if ($plane -and $plane.state -eq 'ALIVE' -and $plane.ageMs -ne $null -and ([double]$plane.ageMs / 1000) -le ($upFor + 14) -and $plane.role -eq $i.role) {
+          # THE WORKER NOW RUNNING must have completed a claim cycle (readyAt, set for this worker only) and the plane must have heard from
+          # it since it started: a beat older than the worker (its predecessor's) confirmed a worker admission kept refusing (final
+          # verification 3, 2026-09-25)
+          $sinceChild = if ($i.childStartedAt) { ((Get-Date) - [datetime]$i.childStartedAt).TotalSeconds } else { $upFor }
+          if ($i.readyAt -and $plane -and $plane.state -eq 'ALIVE' -and $plane.ageMs -ne $null -and ([double]$plane.ageMs / 1000) -le ($sinceChild + 2) -and $plane.role -eq $i.role) {
             return "started: supervisor pid $($i.pid), worker pid $($i.childPid), role $($i.role); the node is ALIVE on the plane (heartbeat $([Math]::Round([double]$plane.ageMs / 1000)) s ago, role $($plane.role), tls $(if ($plane.tls) { 'on' } else { 'off' }))"
           }
         }
@@ -220,6 +236,7 @@ function Confirm-TaskSupervisor($dir, $since) {
   $why = if ((& $fresh $st) -and $st.refusal) { 'the supervisor refused - ' + $st.refusal }
     elseif ((& $fresh $st) -and $st.dependencies -and $st.state -eq 'dependencies_missing') { 'the supervisor refused - ' + $st.dependencies }
     elseif ($last -and $last.state -eq 'backoff') { 'the supervisor (pid ' + $last.pid + ') runs, but its worker cannot run - ' + (Get-LastWorkerError $last.logDir) }
+    elseif ($last -and $last.state -eq 'running' -and -not $last.readyAt -and (Get-AdmissionRefusal $last.logDir)) { 'its worker runs but admission refuses its claims (' + (Get-AdmissionRefusal $last.logDir) + ') - it starts claiming when the load allows; -Status shows NOT CLAIMING until then' }
     elseif ($last -and $plane -and $plane.state -eq 'ALIVE' -and $plane.role -ne $last.role) { 'the worker runs as ' + $last.role + ', but the plane holds role ' + $plane.role + ' for this node' }
     elseif ($last -and $plane) { 'the worker runs, but the plane has not heard from it since it started: ' + $plane.state + $(if ($plane.error) { ' - ' + $plane.error } else { '' }) }
     elseif ($last) { 'the supervisor (pid ' + $last.pid + ') runs, but its worker did not stay up - ' + (Get-LastWorkerError $last.logDir) }
@@ -254,12 +271,17 @@ if ($Preflight) {
 if ($Stop) {
   if ((Test-OtherCheckout $owner) -and -not $ReplaceOtherCheckout) { Deny-OtherCheckout 'stopped' }
   $dir = if ($owner) { $owner } else { $Root }
+  # DISABLED FIRST, or the watchdog trigger can start a new supervisor between the old one ending and the disable - -Stop reported the node
+  # stopped while a new one ran (final verification 3, 2026-09-25)
+  $t = Get-FactoryTask
+  if ($t) { Disable-ScheduledTask -TaskName $TaskName | Out-Null; "task '$TaskName' disabled - the watchdog will not restart it; -Start enables and starts it again" }
   $stopped = Stop-CheckoutSupervisor $dir
   $stopped | Where-Object { $_ -is [string] }
   $t = Get-FactoryTask
   if ($t -and $t.State -eq 'Running') { Stop-ScheduledTask -TaskName $TaskName; "task '$TaskName' stopped" }
-  # disabled, or the watchdog trigger would start it again within minutes
-  if ($t) { Disable-ScheduledTask -TaskName $TaskName | Out-Null; "task '$TaskName' disabled - the watchdog will not restart it; -Start enables and starts it again" }
+  # ...and checked: no supervisor may answer for this checkout afterwards
+  $still = Get-SupervisorInfo $dir
+  if ($still) { "FAIL a supervisor of $dir still runs (pid $($still.pid)) after -Stop"; exit 4 }
   if ($stopped[-1] -eq $true) { "supervisor of $dir stopped (or was not running)"; exit 0 }
   "FAIL the supervisor of $dir did not stop within 20 s"; exit 4
 }
@@ -297,6 +319,10 @@ if ($Status) {
     if (-not $live) { "node      DOWN here (no supervisor is running) - the plane's last word: $nodeLine" }
     elseif ($live.state -ne 'running' -or -not $live.childPid) { "node      NOT RUNNING here (supervisor $($live.state)$(if ($live.nextStartAt) { ', next start ' + $live.nextStartAt } else { '' }); last worker error: $(Get-LastWorkerError $live.logDir)) - the plane's last word: $nodeLine" }
     else { "node      $nodeLine" }
+    # the commit the node runs, against this checkout (it read ALIVE for a node -Verify failed on a moved checkout - final verification 3)
+    if (-not (Test-OtherCheckout $owner) -and $CheckoutHead -and ($nodeLine -match 'commit ([0-9a-f]{12})(\+dirty)?')) {
+      if (($Matches[1] -ne $CheckoutHead.Substring(0, 12)) -or ([bool]$Matches[2] -ne $CheckoutDirty)) { "commit    the node runs $($Matches[1])$($Matches[2]) but this checkout is at $($CheckoutHead.Substring(0, 12))$(if ($CheckoutDirty) { '+dirty' } else { '' }) - install-autostart.ps1 -Start$taskHint restarts it on the checkout's commit" }
+    }
   } else { "node      (no env file at $envPath - liveness not read)" }
   exit 0
 }
@@ -360,7 +386,7 @@ if ($Verify) {
     # this said OK (a health check from a plain shell had re-registered it; verification round 4). The worker re-asserts its role
     # on every beat, so a mismatch that lasts is a fault.
     elseif (-not $plane.head) { 'the plane''s record of this node carries no commit (overwritten by a script that registered this node id?) - its worker restores it within a beat; if this stays: install-autostart.ps1 -Stop' + $taskHint + ', then -Start' + $taskHint }
-    elseif (-not (Test-SameCommit $plane)) { 'the node runs commit ' + $plane.head + ' but this checkout is at ' + $CheckoutHead + ' - install-autostart.ps1 -Start' + $taskHint + ' restarts it on the checkout''s commit' }
+    elseif (-not (Test-SameCommit $plane)) { 'the node runs commit ' + (Get-CommitText $plane.head $plane.dirty) + ' but this checkout is at ' + (Get-CommitText $CheckoutHead $CheckoutDirty) + ' - install-autostart.ps1 -Start' + $taskHint + ' restarts it on the checkout''s commit' }
     elseif ($plane.role -ne (Get-TaskArg $task 'role')) { 'the plane holds role ' + $plane.role + ' for this node, the task says ' + (Get-TaskArg $task 'role') + ' - the worker re-asserts its role within a minute; if this stays, install-autostart.ps1 -Start' + $taskHint }
     else { $null }
   if (-not $problem) { "OK   the task is enabled, watched, and running this checkout's supervisor (pid $supPid) whose worker the plane sees ALIVE; its env file, CA and dependencies pass the preflight"; exit 0 }
@@ -396,7 +422,7 @@ if ($Start -and -not $RoleGiven -and -not $EnvGiven -and -not $ChangeGiven -and 
     # (verification round 4). The plane must see the node ALIVE; otherwise it is restarted and the start confirmed.
     $plane = Get-NodeOnPlane $Root
     if ($plane -and $plane.state -eq 'ALIVE' -and $plane.role -eq $want -and ((Test-HeardSinceStart $sv $plane) -ne $false) -and (Test-SameCommit $plane)) { "already running: supervisor pid $($sv.pid) (task '$TaskName', role $($sv.role), state $($sv.state); the plane sees the node ALIVE as $($plane.role); nothing re-installed)"; exit 0 }
-    "the supervisor (pid $($sv.pid)) runs, but the plane does not see its current worker ALIVE as $want ($(if ($plane) { $plane.state + ', role ' + $plane.role + $(if ((Test-HeardSinceStart $sv $plane) -eq $false) { ', not heard from the worker now running' } else { '' }) + $(if (-not (Test-SameCommit $plane)) { ', running commit ' + $plane.head + ' while this checkout is at ' + $CheckoutHead } else { '' }) + $(if ($plane.error) { ' - ' + $plane.error } else { '' }) } else { 'no answer' })) - restarting it"
+    "the supervisor (pid $($sv.pid)) runs, but the plane does not see its current worker ALIVE as $want ($(if ($plane) { $plane.state + ', role ' + $plane.role + $(if ((Test-HeardSinceStart $sv $plane) -eq $false) { ', not heard from the worker now running' } else { '' }) + $(if (-not (Test-SameCommit $plane)) { ', running commit ' + (Get-CommitText $plane.head $plane.dirty) + ' while this checkout is at ' + (Get-CommitText $CheckoutHead $CheckoutDirty) } else { '' }) + $(if ($plane.error) { ' - ' + $plane.error } else { '' }) } else { 'no answer' })) - restarting it"
     $s4 = Stop-CheckoutSupervisor $Root; $s4 | Where-Object { $_ -is [string] }
     if ($s4[-1] -ne $true) { "REFUSED - that supervisor is still running 20 s after the stop request"; exit 4 }
     if ((Get-FactoryTask).State -eq 'Running') { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue }

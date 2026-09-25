@@ -222,7 +222,9 @@ async function claimInTransaction({ nodeId, lease, capabilities,
             -- to be declined one pick at a time, and eight of them at the head of the queue used up every attempt - nothing behind them
             -- was ever claimed, on any node; an oversized one ended the worker (final verification 2, 2026-09-25). node.mjs health
             -- names them by id.
-            and not exists (select 1 from unnest(wo.owned_surface) s where s is null or btrim(s) = '' or length(s) > 1000)
+            -- (BYTES, not characters: the lock's key limit is in bytes, and a 1000-character multibyte surface on the UTF8 plane still
+            -- crash-looped every node - final verification 3, 2026-09-25)
+            and not exists (select 1 from unnest(wo.owned_surface) s where s is null or btrim(s) = '' or octet_length(s) > 1000)
             -- this node must BE enough: its role must rank at or above what the work order requires
             and (case wo.requires_security_role when 'release_broker' then 2 when 'verifier' then 1 else 0 end) <= $1
             -- ...and must HAVE every capability the work order names
@@ -336,6 +338,9 @@ async function claimInTransaction({ nodeId, lease, capabilities,
       try { await client.query('rollback'); } catch { /* already aborted */ }
       // A surface collision is an ordinary race, not a failure: the other node won.
       if (String(e && e.code) === '23505') return null;
+      // a surface the lock's key cannot hold (54000) never ends the worker: nothing is claimed this time, and it is said once (the pick
+      // excludes such surfaces; this is the second line of defence)
+      if (String(e && e.code) === '54000') { if (!claimWork.saidOversized) { claimWork.saidOversized = true; console.log('[claim] a work order\'s surface is too large for the lock key (54000) - nothing claimed; node.mjs health names it'); } return null; }
       // The claim lock was held longer than lock_timeout (another claimer, perhaps one whose connection died): nothing was
       // claimed this time; the next loop tries again, and the server ends the dead holder's idle transaction.
       if (String(e && e.code) === '55P03') { claimWork.lastBusy = claimWork.lastBusy || new Date().toISOString(); return null; }

@@ -188,8 +188,9 @@ an older checkout passed it before (final verification 2026-09-24) - and seeds w
 can claim; every scenario checks its runs came from the home or work node at exactly that commit (a third node's runs passed S3).
 A run from a tree with uncommitted changes is stamped `<sha>+dirty`, which is no commit. The composer's rows 1-4 count only evidence at
 the commit: machines whose node runs it cleanly, runs and checkpoints stamped with it, verifications whose verifying run completed.
-A node keeps running the commit it started on when its checkout moves: `-Verify` fails naming both commits, and `-Start` alone
-restarts it on the checkout's commit - so "put that PC on the commit and restart its node" is `git checkout <sha>; npm ci;
+A node keeps running the commit it started on when its checkout moves: `-Verify` fails naming both commits - clean or dirty
+counts too (a node recorded dirty beside a clean checkout at the same commit passed, and the fix two_machine_real printed did nothing) -
+`-Status` says so on a `commit` line, and `-Start` alone restarts it on the checkout's commit - so "put that PC on the commit and restart its node" is `git checkout <sha>; npm ci;
 install-autostart.ps1 -Start`.
 
 A worker completes only an instruction it carried out: an action its checkout does not know (a newer seeder, a typo, a wrong
@@ -239,10 +240,13 @@ node, and `-Status` / `-Verify` report it.
 **A watchdog, not "restart on failure".** Task Scheduler's restart-on-failure never fires for an action that exits, and the
 headless host reports 0x0 whatever happened. So the task also carries a time trigger that repeats every 5 minutes
 (`-WatchdogMinutes`). While a supervisor runs the start is ignored (one instance); a dead one is started again. `-Stop` DISABLES the
-task so the watchdog cannot undo a deliberate stop; `-Start` re-enables it after the preflight passes.
+task FIRST so the watchdog cannot undo a deliberate stop (disabled after the stop, the watchdog could start a new supervisor in between
+and `-Stop` reported the node stopped while it ran), then stops it, and fails (exit 4) while any supervisor still answers for
+the checkout; `-Start` re-enables it after the preflight passes.
 
-**A start is confirmed by the node.** `-Start` succeeds only when the same worker has stayed up for 12 s AND the plane has heard
-from it since it started. Otherwise it fails (exit 5) and says why: the refusal the supervisor recorded, or the error its worker
+**A start is confirmed by the node.** `-Start` succeeds only when the same worker has stayed up for 12 s, has completed a claim
+cycle, AND the plane has heard from it since it started (the previous worker's heartbeat confirmed a restarted one that never claimed);
+a worker whose admission refuses its claims is named as such. Otherwise it fails (exit 5) and says why: the refusal the supervisor recorded, or the error its worker
 keeps failing on (a password, a certificate, a host that does not answer). `-Verify` names the failing part: disabled, no
 watchdog, preflight, task not running, no supervisor, wrong role, worker failing (with its error and the next start), the plane
 not seeing the node, or the plane holding another role. `-Status` says DOWN when no supervisor answers here, and NOT RUNNING while
@@ -267,23 +271,28 @@ order): all or nothing.
 - *One worker per node identity.* A worker holds a lock for its state dir; a second one, or a bare `node.mjs start` beside a
   supervisor, does not start (exit 4).
 - *A run that cannot keep its lease stops before it lapses.* A failed renewal is retried within seconds; only when the lease the
-  plane holds (from the start of the last renewal that landed) is about to lapse - a third of the lease, at most 5 s, before - or
+  plane holds (from the start of the last renewal that landed, and first from before the claim began: the plane stamps the lease at
+  the claim's BEGIN, and a claim that had waited on the claim lock was aborted only after another node took its surface) is about to lapse - a third of the lease, at most 5 s, before - or
   when the lease was taken over, is the run aborted, its lease given back, and its work left recoverable from its checkpoints, so
   another node takes the surface only after it stopped (a cut-off node kept working and two machines worked one surface; an earlier
-  guard at two thirds of the lease aborted healthy runs over a slow link). An abandoned run
+  guard at two thirds of the lease aborted healthy runs over a slow link). Once the run's work is over, a renewal that finds no run in
+  progress is not a takeover (one in flight at the completion logged a completed run LOST and ABORTED): the completion is fenced by
+  itself. An abandoned run
   keeps the node that ran it and its last heartbeat, so an overlap would be visible; `two_machine_real` S3 compares every
   execution, abandoned ones included.
 - *Nothing waits forever on the plane.* A connection close is bounded too (5 s, then the socket is destroyed): a close the other side
   never answered left a worker hung after a successful statement while its heartbeat kept it looking healthy.
 - *A malformed work order is never picked.* A NULL, empty or oversized surface is excluded by the claim itself, however many there are
-  (eight of them used up the claim's attempts and starved every node; an oversized one crash-looped them), and `node.mjs health` names
+  (eight of them used up the claim's attempts and starved every node; an oversized one crash-looped them - oversized in BYTES, over
+  1000: a multibyte surface of 1000 characters still crash-looped them on a UTF8 plane), and `node.mjs health` names
   them by id; a repeated surface is one surface (it collided with itself and starved the queue); an acceptance action
   with a malformed argument fails by name; a data exception (SQLSTATE class 22) inside a run fails it - the same input fails every time.
 - *Only a finished, successful run can be verified.* A `verify` of a failed or unfinished run is refused by name and writes
   nothing (it was recorded as verified and counted as milestone-4 evidence); the independence constraints still refuse a run
   verifying itself, or its authoring node, by their own names. The composer counts only done authoring runs.
 - *"Can claim work" means a worker that claims.* `node.mjs health` says it only when this node's supervisor runs a worker that has
-  completed a claim cycle; a supervisor in backoff is named as not claiming (it said "can claim work" then). A record deleted from the
+  completed a claim cycle, and not while that worker's own records say NOT CLAIMING (admission refused, claim lock busy); a supervisor
+  in backoff is named as not claiming (it said "can claim work" then). A record deleted from the
   plane is registered and stamped again at once by the running worker.
 - *Not claiming is said.* A refused admission, and a plane-wide claim lock held past the lock timeout, are logged and shown by
   `node.mjs status`, `-Status` and `-Verify` (NOT CLAIMING, with since when).
@@ -329,7 +338,7 @@ in any log, the live task verified) — and on the live plane the Home node was 
 |---|---|---|
 | real 2-node takeover | `two_machine_real.mjs run` from the Home PC (§I), both directions, no commands on the Work PC — **waits on the Work-PC bootstrap (gate A)** | none |
 | real 3-node / conflict-aware scheduling | `qa/factory/two_machine_scheduling.mjs seed` on either PC, then `wave <stamp>` on EACH PC within a minute, then `verify <stamp>`: two work orders on one surface never overlap in time, the free one completes, four runs from two hostnames (exit 0 TWO MACHINES / 3 SAME MACHINE / 1 FAIL; rehearsed on one machine) | none |
-| role/run-based verifier independence | the same `two_machine_scheduling.mjs` run: the verifier-role work order is claimable only by the Work PC (`FACTORY_NODE_ROLE=verifier`), which records a verification of a Home-PC run; `verify` requires the verifier node and hostname to differ from the author's and that no generic node ever held the verifier work order | none |
+| role/run-based verifier independence | the same `two_machine_scheduling.mjs` run: the verifier-role work order is claimable only by the Work PC (`FACTORY_NODE_ROLE=verifier`), which records a verification of a FINISHED Home-PC run (it waits for one, up to the wave's deadline: an unfinished run is refused, and the instrument failed whenever the verifier's wave came first); `verify` requires the verifier node and hostname to differ from the author's and that no generic node ever held the verifier work order | none |
 | cheap QA / DeepSeek | `DEEPSEEK_API_KEY` in the environment of the node that will serve it; the HTTP provider path exists (`provider-http.mjs`, `http_provider_acceptance.mjs` 9/9 on a stub) | the key |
 | BUG-036 read-only diagnosis | **prepared**: `qa/verification/bug036_auth_inspection.mjs` on `wo/invitation-delivery` (GET only, redacted record, selftest 7/7; `BUG036_READONLY_INSPECTION.md`) — one command with `SUPABASE_ACCESS_TOKEN` in the process environment | the token, once |
 | 202609110001 production gate | **SATISFIED**: `qa/verification/gate_202609110001.mjs` 6/6 (draft still a draft, certified digests, 26/26 on PGlite and on a disposable real PostgreSQL, rollback J1–J5); record `GATE_202609110001.json`; the gate prints the founder step and performs none of it | moving the file into `supabase/migrations/` |
