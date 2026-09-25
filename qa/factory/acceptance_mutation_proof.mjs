@@ -113,11 +113,11 @@ for (const m of chosen) {
   const r = spawnSync(process.execPath, [join(S, m.suite)], { cwd: S, encoding: 'utf8', timeout: 1200000, maxBuffer: 1 << 26, env: { ...process.env, FACTORY_RUNNER_PG_URL: '', FACTORY_STATE_DIR: '', FACTORY_NT_ROWS: m.suite === NT ? m.id : '' } });
   const out = (r.stdout || '') + (r.stderr || '');
   const red = new RegExp('^FAIL ' + m.id + ' ', 'm').test(out);
-  const summary = (out.match(/(factory acceptance|node_truth_acceptance|tls_plane_acceptance): d+ passed.*/) || ['no summary (exit ' + r.status + ')'])[0];
+  const summary = (out.match(/(factory acceptance|node_truth_acceptance|tls_plane_acceptance): \d+ passed.*/) ||['no summary (exit ' + r.status + ')'])[0];
   results.push({ id: m.label || m.id, killed: red });
   console.log((red ? 'KILLED   ' : 'SURVIVED ') + (m.label || m.id) + ' (' + m.what + ') - ' + summary);
   // a suite that ended with no summary is never a kill, and says why (a crash in a sparse clone printed nothing to diagnose it by)
-  if (!/(factory acceptance|node_truth_acceptance|tls_plane_acceptance): d+ passed/.test(out)) console.log('         its output ended:\n' + out.slice(-1500).split('\n').map((l) => '         ' + l).join('\n'));
+  if (!/(factory acceptance|node_truth_acceptance|tls_plane_acceptance): \d+ passed/.test(out)) console.log('         its output ended:\n' + out.slice(-1500).split('\n').map((l) => '         ' + l).join('\n'));
   if (process.platform === 'win32') spawnSync('powershell', ['-NoProfile', '-Command', "(Get-Item -LiteralPath '" + join(S, 'node_modules') + "').Delete()"]);
   try { rmSync(S, { recursive: true, force: true }); } catch { /* windows lock */ }
 }
