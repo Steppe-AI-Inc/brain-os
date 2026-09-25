@@ -210,7 +210,9 @@ while (!stopRequested()) {
       log('the env file changed: the next worker uses it (' + again.note + ')');
     }
   }
-  const started = Date.now();
+  // (durations on the monotonic clock: a wall-clock step back during a backoff kept the node down for the length of the step - final
+  // verification 5, the class the lease guard was fixed for)
+  const started = performance.now();
   child = spawn(process.execPath, [join(HERE, 'node.mjs'), 'start', '--supervisor-instance', INSTANCE], {
     cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true,
     env: workerEnv(),
@@ -232,7 +234,7 @@ while (!stopRequested()) {
   const watcher = setInterval(() => { if (stopRequested() && child && child.exitCode === null) { stopping = true; try { child.kill(); } catch { /* gone */ } } }, 2000);
   const exit = await new Promise((r) => { child.on('exit', (code, signal) => r({ code, signal })); child.on('error', (e) => r({ code: null, signal: null, error: e.message })); });
   clearInterval(watcher);
-  const lived = Date.now() - started;
+  const lived = performance.now() - started;
   status.lastExit = { ...exit, at: new Date().toISOString(), livedMs: lived };
   status.lastChildPid = status.childPid; status.childPid = null; // an exited worker's pid is not left behind for a reused number
   if (lived >= HEALTHY_RUN_MS) status.consecutiveFailures = 0;
@@ -251,8 +253,8 @@ while (!stopRequested()) {
   const backoff = Math.min(MAX_BACKOFF_MS, MIN_BACKOFF_MS * 2 ** (status.consecutiveFailures - 1));
   status.state = 'backoff'; status.nextStartAt = new Date(Date.now() + backoff).toISOString(); writeStatus(status);
   log('node exited (' + JSON.stringify(exit) + ') after ' + Math.round(lived / 1000) + ' s; restart ' + status.restarts + ' in ' + Math.round(backoff / 1000) + ' s');
-  const until = Date.now() + backoff;
-  while (Date.now() < until && !stopRequested()) await sleep(Math.min(2000, until - Date.now()));
+  const until = performance.now() + backoff;
+  while (performance.now() < until && !stopRequested()) await sleep(Math.min(2000, until - performance.now()));
 }
 status.state = 'stopped'; status.childPid = null; status.stoppedAt = new Date().toISOString(); writeStatus(status);
 try { unlinkSync(PID_FILE); } catch { /* gone */ }

@@ -32,8 +32,15 @@ const argv = process.argv.slice(2);
 const envArgAt = argv.indexOf('--runner-env');
 const envArg = envArgAt > -1 ? argv.splice(envArgAt, 2)[1] : null;
 // ...and a failure is one line, not a stack (one dropped connection ended a wave with an uncaught 'Connection terminated unexpectedly')
-const oneLine = (e) => { console.log('FAILED: ' + String((e && e.message) || e).split('\n')[0].slice(0, 200) + ' - nothing more was done; run the same command again'); process.exit(1); };
-process.on('uncaughtException', oneLine); process.on('unhandledRejection', oneLine);
+// An error it cannot get past (after the retries below) ends the run INCONCLUSIVE, exit 4 - or, when a row has already failed, VERDICT: FAIL,
+// exit 1. It ended with exit 1, the FAIL verdict's code, on ONE transient error (final verification 5).
+let judgedFail = false;
+const cutShort = (e) => {
+  const m = String((e && e.message) || e).split('\n')[0].slice(0, 200);
+  if (judgedFail) { console.log('VERDICT: FAIL - the rows above failed; the run was then cut short by a plane error it could not get past (' + m + ')'); process.exit(1); }
+  console.log('INCONCLUSIVE: ' + m + ' - nothing was judged; run the same command again'); process.exit(4);
+};
+process.on('uncaughtException', cutShort); process.on('unhandledRejection', cutShort);
 const [mode, stampArg, holdArg] = argv;
 const TITLE = 'TM-sched';
 if (!mode) { console.log('usage: two_machine_scheduling.mjs seed | wave <stamp> [holdSec] | verify <stamp> | cleanup [<stamp>|all] | rehearse'); process.exit(2); }
@@ -45,9 +52,25 @@ if (!mode) { console.log('usage: two_machine_scheduling.mjs seed | wave <stamp> 
     process.env.FACTORY_RUNNER_PG_URL = r.url;
   } else process.env.FACTORY_RUNNER_PG_URL = resolveCaPath(process.env.FACTORY_RUNNER_PG_URL).url;
 }
-const db = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/db.mjs')).href);
-const claim = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/claim.mjs')).href);
+const dbRaw = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/db.mjs')).href);
+const claimRaw = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/claim.mjs')).href);
 const nodeMod = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/node.mjs')).href);
+// AS TOLERANT AS THE NODES IT MEASURES: a transient plane error is retried (up to FACTORY_TMS_RETRY_MS, 2 min) for its own statements and
+// the idempotent plane calls - a checkpoint carries its own id, so it is written once. A claim is not retried (a retried claim can orphan a
+// run): its error ends the run INCONCLUSIVE (final verification 5).
+const RETRY_MS = Math.max(1000, Number(process.env.FACTORY_TMS_RETRY_MS) || 120000);
+const retrying = (fn) => async (...a) => {
+  const until = Date.now() + RETRY_MS; let wait = 1000;
+  for (;;) {
+    try { return await fn(...a); } catch (e) {
+      if (!nodeMod.isTransientPlaneError(e) || Date.now() > until) throw e;
+      await new Promise((r) => setTimeout(r, wait)); wait = Math.min(10000, wait * 2);
+    }
+  }
+};
+const db = { ...dbRaw, read: retrying(dbRaw.read), write: retrying(dbRaw.write) };
+const claim = { ...claimRaw, registerNode: retrying(claimRaw.registerNode), heartbeat: retrying(claimRaw.heartbeat), completeRun: retrying(claimRaw.completeRun),
+  recordVerification: retrying(claimRaw.recordVerification), checkpoint: (o) => retrying(claimRaw.checkpoint)({ ...o, checkpointId: (o && o.checkpointId) || randomUUID() }) };
 // ITS OWN NODE ID, never the checkout's: it registered the checkout's id with its own capabilities and a liveness stamp, erasing the
 // running node's commit, handler and acceptance capabilities - that node silently stopped claiming acceptance work while every check
 // read healthy, and a stopped node read ALIVE (final verification 2, 2026-09-25). And the commit it runs, clean or '+dirty', on
@@ -144,7 +167,7 @@ if (mode === 'verify') {
   const kind = (r) => r.title.split(' ').pop();
   const host = (p) => String(p || '').split(' ')[1] || '';
   let ok = true;
-  const say = (good, label, detail) => { if (!good) ok = false; console.log((good ? 'OK   ' : 'FAIL ') + label + (detail ? '  — ' + detail : '')); };
+  const say = (good, label, detail) => { if (!good) { ok = false; judgedFail = true; } console.log((good ? 'OK   ' : 'FAIL ') + label + (detail ? '  — ' + detail : '')); };
   say(wos.length === 4 && wos.every((w) => w.status === 'done'), 'all four work orders are done', wos.map((w) => kind(w) + ':' + w.status).join(', '));
   const a = runs.find((r) => kind(r) === 'conflict-a'), b = runs.find((r) => kind(r) === 'conflict-b');
   const disjoint = a && b && (new Date(a.finished_at) <= new Date(b.started_at) || new Date(b.finished_at) <= new Date(a.started_at));

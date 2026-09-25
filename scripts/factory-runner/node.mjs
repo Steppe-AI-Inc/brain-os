@@ -102,12 +102,12 @@ async function retryTransient(fn, what, log) {
   for (;;) {
     try {
       const v = await fn();
-      if (since) log(what + ': the plane answers again after ' + Math.round((Date.now() - since) / 1000) + ' s of transient errors');
+      if (since) log(what + ': the plane answers again after ' + Math.round((monoNow() - since) / 1000) + ' s of transient errors');
       return v;
     } catch (e) {
       if (!isTransientPlaneError(e)) throw e;
-      if (!since) since = Date.now();
-      if (Date.now() - since >= TRANSIENT_GIVE_UP_MS) { log(what + ': transient plane errors for ' + Math.round((Date.now() - since) / 1000) + ' s - given up' + (/^(claim|registration)$/.test(what) ? ': the worker exits to its supervisor' : '')); throw e; }
+      if (!since) since = monoNow();
+      if (monoNow() - since >= TRANSIENT_GIVE_UP_MS) { log(what + ': transient plane errors for ' + Math.round((monoNow() - since) / 1000) + ' s - given up' + (/^(claim|registration)$/.test(what) ? ': the worker exits to its supervisor' : '')); throw e; }
       log(what + ' failed on a transient plane error (' + errText(e).slice(0, 120) + ') - retrying in ' + Math.round(wait / 1000) + ' s');
       await new Promise((r) => setTimeout(r, wait));
       wait = Math.min(30_000, wait * 2);
@@ -380,7 +380,8 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
   // days with nothing to claim looked dead on the plane (2026-09-22: last heartbeat four days old while nothing was wrong
   // but the absence of a worker after a reboot - two facts one timestamp could not tell apart). Every NODE_BEAT_MS the
   // idle loop stamps last_heartbeat_at; `node.mjs status` reads it back.
-  let lastBeat = Date.now();
+  // (the idle beat on the monotonic clock too: stepped back, the wall clock stopped the beat and a healthy node read STALE - final verification 5)
+  let lastBeat = monoNow();
   // A CLAIM LOCK THAT STAYS BUSY IS SAID, like a refused admission: a claim that cannot take the plane-wide claim lock returns
   // "nothing claimed", and a node behind a claimer holding it read ALIVE and idle while nothing was claimed (final verification
   // 2026-09-24). Changes are logged; the state is written to <state dir>/node-claim-busy.json, which status prints.
@@ -398,6 +399,9 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
   // the runs this process claimed (with when): any other run of this node in progress, found while this node is idle, is an orphan (below).
   // Only a run within a few leases can still be in progress, so older entries are dropped - a worker running for months keeps a short list.
   const mine = new Map();
+  // after a claim that met a transient error, every cycle looks for an orphan for two leases: a COMMIT held up on the way can land after
+  // the retry has looked, and it stood unworked for a whole lease (final verification 5)
+  let orphanCheckUntil = 0;
   for (let i = 0; i < maxIterations; i++) {
     let claimStart = monoNow(), claimTries = 0;
     const run = await retryTransient(async () => {
@@ -405,9 +409,10 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
       // A CLAIM RETRIED AFTER A TRANSIENT ERROR may have committed before its reply was lost: its run stood in progress on this node,
       // unworked and never mentioned, for a whole lease (final verification 4, adversarial probe). This node is idle here, so a run of
       // its own in progress that this process did not claim is such an orphan: its lease is given back first, and the plane requeues it.
-      if (claimTries++ > 0) await giveBackOrphans(id, mine, log);
+      if (claimTries++ > 0 || monoNow() < orphanCheckUntil) await giveBackOrphans(id, mine, log);
       return claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel, workTypes, baseCommit: commit });
     }, 'claim', log);
+    if (claimTries > 1) orphanCheckUntil = monoNow() + 2 * leaseSeconds * 1000;
     if (run) { mine.set(run.run_id, monoNow()); for (const [k, t] of mine) if (monoNow() - t > 3 * leaseSeconds * 1000) mine.delete(k); }
     noteAdmission();
     noteBusy();
@@ -417,12 +422,12 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
     // at all read ALIVE and reset its supervisor's backoff whenever its first cycle was refused - final verification 2, 2026-09-25)
     const admitted = !(claimWork.lastAdmission && claimWork.lastAdmission.admit === false);
     if (!ready && admitted) {
-      try { await nodeBeat(id, nodeRole(), reg); ready = true; lastBeat = Date.now(); log('ready: first claim cycle completed - the node reads ALIVE on the plane'); }
+      try { await nodeBeat(id, nodeRole(), reg); ready = true; lastBeat = monoNow(); log('ready: first claim cycle completed - the node reads ALIVE on the plane'); }
       catch (e) { log('node heartbeat failed: ' + errText(e).slice(0, 100)); }
     }
     if (!run) {
       if (once) { log('nothing eligible'); break; }
-      if (ready && Date.now() - lastBeat >= NODE_BEAT_MS) {
+      if (ready && monoNow() - lastBeat >= NODE_BEAT_MS) {
         try {
           const b = await nodeBeat(id, nodeRole(), reg);
           // a record removed from the plane is written again; a role or registration changed by anything but this worker is re-asserted, and said
@@ -432,7 +437,7 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
             if (b.was !== nodeRole()) log('the plane held role ' + b.was + ' for this node - re-asserted ' + nodeRole());
             if (b.recordChanged) log('the plane held a different registration for this node (capabilities or version - another script registered this node id?) - re-asserted: head ' + String(repo.head).slice(0, 12) + ', handler ' + HANDLER_VERSION);
           }
-          lastBeat = Date.now();
+          lastBeat = monoNow();
         } catch (e) { log('node heartbeat failed: ' + errText(e).slice(0, 100)); }
       }
       await new Promise((r) => setTimeout(r, idleMs));

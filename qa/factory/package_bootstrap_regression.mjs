@@ -446,7 +446,8 @@ if (!STATIC_ONLY) {
       // an env file whose URL names a CA that exists nowhere on this machine: a verify-full connection would fail closed on every start
       const noCa = ps(['-Preflight', '-EnvFile', noCaEnv]);
       let guard = { rc: 'skipped', out: 'no live task on this machine; the other-checkout guard is not exercised (an install here would create one)' }, stopGuard = guard, uninstallGuard = guard;
-      if (liveTaskBefore !== 'NONE' && !liveTaskBefore.startsWith(cloneA)) { guard = ps(['-Role', 'verifier', '-EnvFile', envFile]); stopGuard = ps(['-Stop']); uninstallGuard = ps(['-Uninstall']); }
+      let startGuard = guard;
+      if (liveTaskBefore !== 'NONE' && !liveTaskBefore.startsWith(cloneA)) { guard = ps(['-Role', 'verifier', '-EnvFile', envFile]); stopGuard = ps(['-Stop']); uninstallGuard = ps(['-Uninstall']); startGuard = ps(['-Start']); }
       let statusOther = { rc: 'skipped', out: '' }, verifyOther = statusOther;
       if (liveTaskBefore !== 'NONE' && !liveTaskBefore.startsWith(cloneA)) statusOther = ps(['-Status']);
       // ...and -Verify stops at "another checkout's": it read that checkout's env file and probed its plane (final verification 4)
@@ -604,6 +605,8 @@ if (!STATIC_ONLY) {
         started.push(h6);
         let st6 = null;
         for (let i = 0; i < 40; i++) { await sleep(1000); const w = whois(); if (w.running && w.pid === h6.pid && w.state === 'backoff' && w.restarts >= 2) break; }
+        // a worker the supervisor starts between the state read and the log read: the backoff's error is its predecessor's (final verification 5)
+        appendFileSync(join(work, 'logs-hand-bad', 'node-' + new Date().toISOString().slice(0, 10) + '.log'), '[supervisor 0] node started (pid 999999)\n');
         for (let i = 0; i < 4 && !st6; i++) { const s = psT(['-Status', '-EnvFile', envFile]); if (/^running\s+supervisor pid \d+, state backoff/m.test(s.out)) st6 = s; }
         cyc.statusBackoff = st6 || { rc: 'no sample in backoff', out: '' };
         run(process.execPath, [join(cloneA, 'scripts/factory-runner/node-supervisor.mjs'), '--stop'], cloneA, cleanEnv);
@@ -683,10 +686,12 @@ if (!STATIC_ONLY) {
       const liveTaskAfter = run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName 'BrainOS Factory Node' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).WorkingDirectory + '|' + ($t.Actions|Select-Object -First 1).Arguments + '|' + $t.Settings.Enabled}else{'NONE'}"], ROOT).out.trim();
       const refused = (g) => g.rc === 'skipped' || (g.rc === 3 && /belongs to another checkout/.test(g.out));
       const guardOk = refused(guard) && refused(stopGuard) && refused(uninstallGuard) && (statusOther.rc === 'skipped' || (/ANOTHER checkout/.test(statusOther.out) && /run -Status there/.test(statusOther.out)))
+        // -Start alone on it is refused FIRST: its role, env file and watchdog were read and its env file judged before (final verification 5)
+        && (startGuard.rc === 'skipped' || (startGuard.rc === 3 && /belongs to another checkout/.test(startGuard.out) && !/kept from the installed task|yields a usable runner URL|PREFLIGHT/i.test(startGuard.out)))
         && (verifyOther.rc === 'skipped' || (verifyOther.rc === 1 && /belongs to another checkout .* - run -Verify there/.test(verifyOther.out) && !/^preflight/m.test(verifyOther.out) && !/^plane /m.test(verifyOther.out)));
       check('F6 install-autostart.ps1: -Preflight refuses the broken clone (exit ' + broken.rc + ') and a missing CA (exit ' + noCa.rc + ') and passes the repaired one (exit ' + fixed.rc + '); from the clone install/-Stop/-Uninstall refuse another checkout\'s task (' + guard.rc + '/' + stopGuard.rc + '/' + uninstallGuard.rc + ') and -Status names its owner; the scratch-task Work-PC cycle (install+start, -Verify, -Stop, -Start still verifier, a hand-started supervisor replaced, -Uninstall) ' + (cycleOk ? 'holds' : 'FAILS') + '; the live task is untouched',
         broken.rc === 1 && /PREFLIGHT FAILED/.test(broken.out) && /npm ci/.test(broken.out) && noCa.rc === 1 && /copy the CA file/.test(noCa.out) && fixed.rc === 0 && /PREFLIGHT OK/.test(fixed.out) && guardOk && cycleOk && liveTaskAfter === liveTaskBefore,
-        'broken: ' + broken.out + '\nno CA: ' + noCa.out + '\nfixed: ' + fixed.out + '\nguard: ' + guard.out + '\nstop: ' + stopGuard.out + '\nuninstall: ' + uninstallGuard.out + '\nstatus: ' + statusOther.out + '\nverify (another checkout): ' + verifyOther.out
+        'broken: ' + broken.out + '\nno CA: ' + noCa.out + '\nfixed: ' + fixed.out + '\nguard: ' + guard.out + '\nstop: ' + stopGuard.out + '\nuninstall: ' + uninstallGuard.out + '\nstatus: ' + statusOther.out + '\nverify (another checkout): ' + verifyOther.out + '\nstart (another checkout): ' + startGuard.out
         + '\n--- cycle ' + Object.entries(cyc).map(([k, v]) => k + ': ' + (typeof v === 'string' ? v : 'rc ' + v.rc + ' ' + v.out)).join('\n') + '\nhand-started supervisor pid ' + hand.pid + ' gone ' + handGone
         + '\ntask before: ' + liveTaskBefore + '\ntask after: ' + liveTaskAfter + (cycleOk ? '' : '\nCYCLE PART DETAILS: ' + cycleFailed.join('\n  ') + '\nCYCLE PARTS FAILED: ' + cycleParts.filter((p) => !p[2]).map((p) => p[0]).join(', ')));
     } else {

@@ -168,15 +168,22 @@ function Get-LastWorkerError($ld) {
   $f = Get-TaskLogFile $ld
   if (-not (Test-Path -LiteralPath $f)) { return 'no log at ' + $f }
   $tail = @(Get-Content -LiteralPath $f -Tail 400)
-  # only the lines of the worker the supervisor started last: an earlier worker's error was quoted for one still starting (the class of
-  # the admission verdict - final verification 4)
-  $from = -1; for ($i = $tail.Count - 1; $i -ge 0; $i--) { if ($tail[$i] -match 'node started \(pid \d+\)') { $from = $i; break } }
-  if ($from -ge 0) { $tail = $tail[$from..($tail.Count - 1)] }
-  # the worker's own one-line verdict first ('error: ...' / REFUSED), then anything naming a failure - never a field of pg's
-  # error-object dump ("routine: 'auth_failed'" was quoted as the cause; verification round 4)
-  $l = $tail | Where-Object { $_ -match '^(error: |REFUSED)' -or $_ -match '\] (error: |REFUSED)' } | Select-Object -Last 1
-  if (-not $l) { $l = $tail | Where-Object { $_ -notmatch '^\s+(at |[a-zA-Z]+: )' -and $_ -match 'Error|REFUSED|FAIL|ECONN|ETIMEDOUT|ENOTFOUND|password|certificate|refused' } | Select-Object -Last 1 }
-  if ($l) { return ([string]$l).Trim().Substring(0, [Math]::Min(220, ([string]$l).Trim().Length)) } else { return 'nothing logged that names it (' + $f + ')' }
+  # the lines of the worker the supervisor started last (an earlier worker's error was quoted for one still starting - final verification 4),
+  # and when it has logged no error yet, those of the worker before it: the supervisor can start a new worker between the state read and
+  # this one, and the error a backoff is about is its predecessor's (final verification 5)
+  $marks = @(); for ($i = 0; $i -lt $tail.Count; $i++) { if ($tail[$i] -match 'node started \(pid \d+\)') { $marks += $i } }
+  $segs = @()
+  if ($marks.Count -ge 1) { $segs += ,@($tail[$marks[-1]..($tail.Count - 1)]) }
+  if ($marks.Count -ge 2) { $segs += ,@($tail[$marks[-2]..($marks[-1] - 1)]) }
+  if (-not $segs.Count) { $segs += ,@($tail) }
+  foreach ($seg in $segs) {
+    # the worker's own one-line verdict first ('error: ...' / REFUSED), then anything naming a failure - never a field of pg's
+    # error-object dump ("routine: 'auth_failed'" was quoted as the cause; verification round 4)
+    $l = $seg | Where-Object { $_ -match '^(error: |REFUSED)' -or $_ -match '\] (error: |REFUSED)' } | Select-Object -Last 1
+    if (-not $l) { $l = $seg | Where-Object { $_ -notmatch '^\s+(at |[a-zA-Z]+: )' -and $_ -match 'Error|REFUSED|FAIL|ECONN|ETIMEDOUT|ENOTFOUND|password|certificate|refused' } | Select-Object -Last 1 }
+    if ($l) { return ([string]$l).Trim().Substring(0, [Math]::Min(220, ([string]$l).Trim().Length)) }
+  }
+  return 'nothing logged that names it (' + $f + ')'
 }
 # The CURRENT worker's latest admission verdict in its log, when it is a refusal. Only the lines since the supervisor started that worker
 # count, and a later 'admission: claiming' ends a refusal: the pattern missed 'admission: claiming' (no space before the colon), and an
@@ -478,6 +485,9 @@ if ($Start -and -not $RoleGiven -and -not $EnvGiven -and -not $ChangeGiven -and 
 }
 
 # ---- install: preflight first, and nothing is touched unless it passes -------------------------------------------------------
+# ANOTHER CHECKOUT'S TASK IS REFUSED FIRST, before its role, env file or watchdog interval is read and before its env file is judged: install
+# and -Start read and judged that checkout's credential file, and refused for the wrong reason when it was unusable (final verification 5)
+if ((Test-OtherCheckout $owner) -and -not $ReplaceOtherCheckout) { Deny-OtherCheckout 'changed' }
 # On a re-install without -Role / -EnvFile the existing task's own values are kept.
 if (-not $RoleGiven -and (Get-TaskArg $task 'role')) { $Role = Get-TaskArg $task 'role'; "role      $Role (kept from the installed task; pass -Role to change it)" }
 if (-not $EnvGiven -and (Get-TaskArg $task 'env')) { $EnvFile = Get-TaskArg $task 'env' }

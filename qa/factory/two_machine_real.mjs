@@ -43,8 +43,14 @@ const retrying = (fn) => async (...a) => {
   }
 };
 const db = { ...dbRaw, read: retrying(dbRaw.read), write: retrying(dbRaw.write) };
-let stampForCleanup = null;
-const inconclusive = (e) => { console.log('INCONCLUSIVE: ' + String((e && e.message) || e).split('\n')[0].slice(0, 200) + ' - nothing was judged' + (stampForCleanup ? '; its work orders carry stamp ' + stampForCleanup + ' (two_machine_real.mjs cleanup)' : '') + '; run it again'); process.exit(4); };
+let stampForCleanup = null, judgedFail = false;
+// ...but a run cut short AFTER a row has failed is a FAIL, not "nothing was judged": a real failover failure read as a benign re-run
+// (final verification 5)
+const inconclusive = (e) => {
+  const m = String((e && e.message) || e).split('\n')[0].slice(0, 200);
+  if (judgedFail) { console.log('VERDICT: FAIL' + (stampForCleanup ? ' (stamp ' + stampForCleanup + ')' : '') + ' - the rows above failed; the run was then cut short by a plane error it could not get past (' + m + '), and the remaining scenarios were not run'); process.exit(1); }
+  console.log('INCONCLUSIVE: ' + m + ' - nothing was judged' + (stampForCleanup ? '; its work orders carry stamp ' + stampForCleanup + ' (two_machine_real.mjs cleanup)' : '') + '; run it again'); process.exit(4);
+};
 process.on('uncaughtException', inconclusive); process.on('unhandledRejection', inconclusive);
 const argv = process.argv.slice(2);
 const mode = argv[0];
@@ -105,18 +111,20 @@ const seed = async (name, payload, { caps = ['factory_acceptance', HANDLER_CAP],
   return id;
 };
 const status = async (id) => (await db.read('select status from factory.work_orders where work_order_id = $1', [id])).rows[0]?.status;
+// FACTORY_TMR_WAIT_MS: every scenario's wait, for a test that needs a scenario to fail quickly (the waits are minutes)
+const waitMs = (ms) => Number(process.env.FACTORY_TMR_WAIT_MS) || ms;
 const waitDone = async (ids, ms) => { const until = Date.now() + ms; while (Date.now() < until) { const st = await Promise.all(ids.map(status)); if (st.every((s) => s === 'done')) return true; await sleep(5000); } return false; };
 const cps = async (id) => (await db.read('select scenario, payload, created_at from factory.checkpoints where work_order_id = $1 order by created_at', [id])).rows;
 const runsOf = async (id) => (await db.read("select r.run_id, r.status, r.node_id, r.started_at, r.finished_at, r.last_heartbeat_at, r.base_commit, r.termination_reason, r.verification_node_id, r.authoring_node_id, n.platform from factory.agent_runs r left join factory.nodes n on n.node_id = r.node_id where r.work_order_id = $1 order by r.started_at", [id])).rows;
 let ok = true;
 // a run is evidence only if one of the two nodes under test ran it at exactly the commit ('<sha>+dirty' is not the commit)
 const ours = (r) => !!r && [home.nodeId, work.nodeId].includes(r.node_id) && r.base_commit === EXPECTED;
-const say = (good, label, detail) => { if (!good) ok = false; console.log((good ? 'OK   ' : 'FAIL ') + label + (detail ? '  — ' + detail : '')); };
+const say = (good, label, detail) => { if (!good) { ok = false; judgedFail = true; } console.log((good ? 'OK   ' : 'FAIL ') + label + (detail ? '  — ' + detail : '')); };
 
 const failover = async (label, from, to) => {
   const wo = await seed('failover ' + from.host + '>' + to.host, { action: 'die', dieOn: from.nodeId, takeoverNode: to.nodeId }, { caps: ['factory_acceptance', HANDLER_CAP, 'node:' + from.nodeId] });
   console.log('  seeded ' + label + ' (' + wo.slice(0, 8) + '); waiting for the die, the lease lapse and the takeover...');
-  const done = await waitDone([wo], 6 * 60000);
+  const done = await waitDone([wo], waitMs(6 * 60000));
   const c = await cps(wo);
   const p1 = c.find((x) => x.scenario === 'phase-1-hold'), p2 = c.find((x) => x.scenario === 'phase-2-takeover');
   const runs = await runsOf(wo);
@@ -138,7 +146,7 @@ const s2 = await failover('S2 work→home', work, home);
   const b = await seed('conflict-b', { action: 'hold', seconds: 25 }, { surface });
   const f = await seed('free', { action: 'hold', seconds: 25 });
   console.log('  seeded S3 (3 work orders, two on one surface, held 25 s each); waiting...');
-  const done = await waitDone([a, b, f], 6 * 60000);
+  const done = await waitDone([a, b, f], waitMs(6 * 60000));
   const runsA = await runsOf(a), runsB = await runsOf(b);
   const ra = runsA.find((r) => r.status === 'done'), rb = runsB.find((r) => r.status === 'done'), rf = (await runsOf(f)).find((r) => r.status === 'done');
   // EVERY EXECUTION, not only the done ones: a run abandoned by a node cut off from the plane is an execution too, and comparing
@@ -158,7 +166,7 @@ const s2 = await failover('S2 work→home', work, home);
   const authored = s2.doneRun && s2.doneRun.run_id;
   const v = await seed('verify', { action: 'verify', authoringRunId: authored }, { role: 'verifier' });
   console.log('  seeded S4 (a verifier-role work order verifying run ' + String(authored).slice(0, 8) + ' completed on ' + home.host + '); waiting...');
-  const done = await waitDone([v], 4 * 60000);
+  const done = await waitDone([v], waitMs(4 * 60000));
   const c = (await cps(v)).find((x) => x.scenario === 'verify');
   const rv = (await runsOf(v)).find((r) => r.status === 'done');
   const auth = authored ? (await db.read('select a.verification_node_id, a.authoring_node_id, nv.platform vp, na.platform ap from factory.agent_runs a left join factory.nodes nv on nv.node_id = a.verification_node_id left join factory.nodes na on na.node_id = a.authoring_node_id where a.run_id = $1', [authored])).rows[0] : null;

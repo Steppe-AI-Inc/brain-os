@@ -68,6 +68,12 @@
 //   N36 node.mjs status asks the plane three times before it says UNREACHABLE (one reset read a healthy node UNREACHABLE)
 //   N20 also: the failover row counts only COMPLETED failovers (a takeover whose completion never landed was counted)
 //   N37 two_machine_real.mjs retries a transient plane error, and one it cannot get past ends INCONCLUSIVE (exit 4), never as a FAIL
+// and from the final verification of 2026-09-25 (a11e63fb):
+//   N29b a claim whose COMMIT lands AFTER the retry looked for orphans is given back on a later cycle (it stood unworked for a lease)
+//   N35 also: the scripts retry a transient error (a reset first connection), and one they cannot get past is INCONCLUSIVE (exit 4)
+//   N37b a two_machine_real run cut short after a row FAILED ends VERDICT: FAIL (exit 1), not INCONCLUSIVE
+//   N38 the supervisor's restart backoff runs on a monotonic clock (a wall-clock step back kept the node down for the step)
+//   N39 the idle liveness beat runs on a monotonic clock (a wall-clock step back made a healthy node read STALE)
 import { startLocalPg } from './local_pg.mjs';
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync, rmSync } from 'node:fs';
@@ -710,6 +716,43 @@ try {
       JSON.stringify({ seen, runs: runsH.map((r) => r.status + ':' + r.termination_reason) }) + '\n' + w9.out.slice(-900));
   }
 
+  // ---- N29b. a COMMIT that lands after the retry looked for orphans is still given back ----------------------------------------------
+  // Deterministic, through a relay: on the connection that inserted a run, the worker's side is cut the moment its COMMIT arrives, and the
+  // COMMIT is passed to the plane 6 s later - after the retried claim has looked for orphans and found none.
+  currentRow = 'N29b';
+  if (want('N29b')) {
+    const net = await import('node:net');
+    const COMMIT_Q = Buffer.concat([Buffer.from('Q'), Buffer.from([0, 0, 0, 11]), Buffer.from('commit\0', 'latin1')]);
+    const socks = []; const seen = { late: 0 };
+    const relay = net.createServer((c) => {
+      c.on('error', () => {}); socks.push(c);
+      const u = net.connect(pg.port, '127.0.0.1'); u.on('error', () => {}); socks.push(u);
+      let inserted = false, late = false;
+      c.on('data', (d) => {
+        if (d.toString('latin1').includes('insert into factory.agent_runs')) inserted = true;
+        if (inserted && !seen.late && d.includes(COMMIT_Q)) { seen.late++; late = true; c.destroy(); setTimeout(() => { if (!u.destroyed) u.write(d); setTimeout(() => u.destroy(), 1000); }, 6000); return; }
+        if (!u.destroyed) u.write(d);
+      });
+      u.on('data', (d) => { if (!late && !c.destroyed) c.write(d); });
+      c.on('close', () => { if (!late) u.destroy(); }); u.on('close', () => { if (!c.destroyed) c.destroy(); });
+    });
+    await new Promise((r) => relay.listen(0, '127.0.0.1', r));
+    const relayUrl = pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + relay.address().port + '/');
+    const S18 = join(WORK, 'state-latecommit');
+    const w15 = spawnWorker({ state: S18, role: 'generic', url: relayUrl, extra: { FACTORY_LEASE_SECONDS: '60' } });
+    await waitFor(async () => /\] ready: first claim cycle completed/.test(w15.out), 60000);
+    const h = await seed('N29b a claim whose COMMIT lands late', { type: 'factory_acceptance', handoff: JSON.stringify({ action: 'hold', seconds: 2 }), caps: ['factory_acceptance', 'node:' + idOf(S18)] });
+    const t0 = Date.now();
+    const done = await waitFor(async () => (await woStatus(h)) === 'done', 90000, 500);
+    const took = Math.round((Date.now() - t0) / 1000);
+    const runsH = await runsOf(h);
+    try { w15.kill(); } catch { /* gone */ }
+    relay.close(); for (const x of socks) { try { x.destroy(); } catch { /* gone */ } }
+    check('N29b a claim whose COMMIT lands after the retry looked for orphans is given back on a later cycle: done in ' + took + ' s (lease 60 s), runs ' + runsH.map((r) => r.status).join(',') + (seen.late ? '' : ' - NO COMMIT WAS HELD'),
+      seen.late === 1 && !!done && took < 40 && /gave back the lease of run [0-9a-f]{8}/.test(w15.out),
+      JSON.stringify({ seen, runs: runsH.map((r) => r.status + ':' + r.termination_reason) }) + '\n' + w15.out.slice(-900));
+  }
+
   // ---- N30. the work-order read right after a claim is retried --------------------------------------------------------------------
   currentRow = 'N30';
   if (want('N30')) {
@@ -853,6 +896,7 @@ try {
   // ---- N35. the runbook's scripts read the env file as the node does, and end on one line --------------------------------------------
   currentRow = 'N35';
   if (want('N35')) {
+    const net = await import('node:net');
     const tms = join(ROOT, 'qa/factory/two_machine_scheduling.mjs');
     const E = join(WORK, 'env-n35'); mkdirSync(E, { recursive: true });
     const pemB64 = (readFileSync(join(ROOT, 'scripts/factory-runner/runner-env.regression.test.mjs'), 'utf8').match(/'-----BEGIN CERTIFICATE-----',([\s\S]*?)'-----END CERTIFICATE-----'/) || [, ''])[1].replace(/[',\s]/g, '');
@@ -860,15 +904,20 @@ try {
     // the other machine's CA path, as a copied runner.env carries it; the copy sits beside the env file
     const otherCa = 'C:\\Users\\OtherPC\\.brain-factory\\qa-n35-ca.crt';
     writeFileSync(join(E, 'runner.env'), 'FACTORY_RUNNER_PG_URL=' + pg.runnerUrl + '?sslmode=disable&sslrootcert=' + encodeURIComponent(otherCa) + '\n');
-    const net = await import('node:net');
     const dead = await new Promise((r) => { const srv = net.createServer(); srv.listen(0, '127.0.0.1', () => { const p = srv.address().port; srv.close(() => r(p)); }); });
     writeFileSync(join(E, 'dead.env'), 'FACTORY_RUNNER_PG_URL=' + pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + dead + '/') + '\n');
     const envNoUrl = { ...process.env, FACTORY_RUNNER_PG_URL: '', FACTORY_STATE_DIR: join(WORK, 'state-n35') };
     const good = spawnSync(process.execPath, [tms, 'seed', '--runner-env', join(E, 'runner.env')], { cwd: ROOT, encoding: 'utf8', timeout: 60000, env: envNoUrl });
-    const bad = spawnSync(process.execPath, [tms, 'seed', '--runner-env', join(E, 'dead.env')], { cwd: ROOT, encoding: 'utf8', timeout: 120000, env: envNoUrl });
+    const bad = spawnSync(process.execPath, [tms, 'seed', '--runner-env', join(E, 'dead.env')], { cwd: ROOT, encoding: 'utf8', timeout: 120000, env: { ...envNoUrl, FACTORY_TMS_RETRY_MS: '4000' } });
+    // ...and one reset is retried, not the end of the run: the first connection through this relay is reset
+    const socks35 = []; let conns35 = 0;
+    const relay35 = net.createServer((c) => { c.on('error', () => {}); socks35.push(c); if (++conns35 === 1) { c.destroy(); return; } const u = net.connect(pg.port, '127.0.0.1'); u.on('error', () => {}); socks35.push(u); c.pipe(u); u.pipe(c); c.on('close', () => u.destroy()); u.on('close', () => c.destroy()); });
+    await new Promise((r) => relay35.listen(0, '127.0.0.1', r));
+    const resetOnce = await new Promise((r) => { const c = spawn(process.execPath, [tms, 'seed'], { cwd: ROOT, env: { ...envNoUrl, FACTORY_RUNNER_PG_URL: pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + relay35.address().port + '/') }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }); let o = ''; c.stdout.on('data', (d) => { o += d; }); c.stderr.on('data', (d) => { o += d; }); const t = setTimeout(() => { try { c.kill(); } catch { /* gone */ } }, 60000); c.on('exit', (code) => { clearTimeout(t); r({ code, out: o }); }); });
+    relay35.close(); for (const x of socks35) { try { x.destroy(); } catch { /* gone */ } }
     const badOut = String(bad.stdout || '') + String(bad.stderr || '');
-    check('N35 the runbook\'s scripts read the env file as the node does (seed with the other machine\'s CA path: exit ' + good.status + ') and end on one line when the plane cannot be reached (exit ' + bad.status + ')',
-      good.status === 0 && /STAMP \S+/.test(good.stdout || '') && bad.status === 1 && /^FAILED: /m.test(badOut) && !/^\s+at /m.test(badOut),
+    check('N35 the runbook\'s scripts read the env file as the node does (seed with the other machine\'s CA path: exit ' + good.status + '), retry a reset connection (exit ' + resetOnce.code + ') and end INCONCLUSIVE on one line when the plane cannot be reached (exit ' + bad.status + ')',
+      good.status === 0 && /STAMP \S+/.test(good.stdout || '') && resetOnce.code === 0 && /STAMP \S+/.test(resetOnce.out) && conns35 >= 2 && bad.status === 4 && /^INCONCLUSIVE: /m.test(badOut) && !/^\s+at /m.test(badOut),
       String(good.stdout || '').slice(-300) + String(good.stderr || '').slice(-300) + '\n--- dead\n' + badOut.slice(-500));
   }
 
@@ -902,7 +951,10 @@ try {
   if (want('N37')) {
     // a work node on another commit: the run refuses it (exit 1, REFUSED) - through a relay that resets the first two connections
     await claim.registerNode({ nodeId: 'node-n37-older', capabilities: ['factory_acceptance', 'handler:factory-acceptance/2', 'head:' + '0'.repeat(40), 'node:node-n37-older'], securityRole: 'verifier', platform: 'test other-host' });
-    await admin.query("update factory.nodes set capabilities = capabilities - 'dirty' where node_id = $1", [w1id]);
+    // (a home node of its own, clean at this commit: w1 runs from this checkout, and on an uncommitted tree its beat puts 'dirty' back on
+    // its record within seconds - the retries here read the home record late enough to see it)
+    const homeRec = () => claim.registerNode({ nodeId: 'node-n37-home', capabilities: ['factory_acceptance', 'handler:factory-acceptance/2', 'head:' + HEAD, 'node:node-n37-home'], securityRole: 'generic', platform: 'test home-host' });
+    await homeRec();
     const net = await import('node:net');
     const socks = []; let conns = 0;
     const relay = net.createServer((c) => {
@@ -913,12 +965,13 @@ try {
     });
     await new Promise((r) => relay.listen(0, '127.0.0.1', r));
     const relayUrl = pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + relay.address().port + '/');
-    const tmr = (url, extra = {}) => new Promise((r) => { const c = spawn(process.execPath, [join(ROOT, 'qa/factory/two_machine_real.mjs'), 'run', '--home', w1id, '--work', 'node-n37-older'], { cwd: ROOT, env: { ...process.env, FACTORY_RUNNER_PG_URL: url, FACTORY_STATE_DIR: S1, ...extra }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }); let o = ''; c.stdout.on('data', (d) => { o += d; }); c.stderr.on('data', (d) => { o += d; }); const t = setTimeout(() => { try { c.kill(); } catch { /* gone */ } }, 90000); c.on('exit', (code) => { clearTimeout(t); r({ code, out: o }); }); });
+    const tmr = (url, extra = {}) => new Promise((r) => { const c = spawn(process.execPath, [join(ROOT, 'qa/factory/two_machine_real.mjs'), 'run', '--home', 'node-n37-home', '--work', 'node-n37-older'], { cwd: ROOT, env: { ...process.env, FACTORY_RUNNER_PG_URL: url, FACTORY_STATE_DIR: S1, ...extra }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }); let o = ''; c.stdout.on('data', (d) => { o += d; }); c.stderr.on('data', (d) => { o += d; }); const t = setTimeout(() => { try { c.kill(); } catch { /* gone */ } }, 90000); c.on('exit', (code) => { clearTimeout(t); r({ code, out: o }); }); });
     const through = await tmr(relayUrl);
+    await homeRec();
     const dead = await new Promise((r) => { const srv = net.createServer(); srv.listen(0, '127.0.0.1', () => { const p = srv.address().port; srv.close(() => r(p)); }); });
     const down = await tmr(pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + dead + '/'), { FACTORY_TMR_RETRY_MS: '4000' });
     relay.close(); for (const x of socks) { try { x.destroy(); } catch { /* gone */ } }
-    await admin.query("update factory.nodes set last_heartbeat_at = now() - interval '1 day' where node_id = 'node-n37-older'");
+    await admin.query("update factory.nodes set last_heartbeat_at = now() - interval '1 day' where node_id in ('node-n37-older', 'node-n37-home')");
     check('N37 two_machine_real retries a transient plane error (two resets: exit ' + through.code + ', ' + (/REFUSED - the work node node-n37-older/.test(through.out) ? 'the same refusal' : 'NOT the refusal') + ') and a plane it cannot reach ends INCONCLUSIVE (exit ' + down.code + '), not FAIL',
       conns >= 3 && through.code === 1 && /REFUSED - the work node node-n37-older.* runs 0{40}/.test(through.out) && !/ECONNRESET/.test(through.out)
         && down.code === 4 && /^INCONCLUSIVE: /m.test(down.out) && !/^\s+at /m.test(down.out),
@@ -1028,6 +1081,71 @@ try {
         !!r1 && r1[1].trim().split(/,\s*/).sort().join(',') === 'HOST-A,HOST-B' && !!r2 && r2[1].trim() === 'HOST-A>HOST-B' && !!r3 && r3[1] === '2' && !!r4 && r4[1] === '1',
         out.split('\n').filter((l) => /\[[1-4]\]/.test(l)).join('\n'));
     } finally { try { await a2.end(); } catch { /* ignore */ } await pg2.stop(); }
+  }
+
+  // a preload that steps the wall clock (Date.now) back by QA_STEP_BY_MS once QA_STEP_AT_MS have passed - a time-sync correction, in one process
+  const clockStep = join(WORK, 'clockstep.mjs');
+  writeFileSync(clockStep, "const real = Date.now.bind(Date); const t0 = real(); const at = Number(process.env.QA_STEP_AT_MS), by = Number(process.env.QA_STEP_BY_MS); Date.now = () => real() - (real() - t0 > at ? by : 0);\n");
+  const clockStepOpt = '--import=' + pathToFileURL(clockStep).href;
+
+  // ---- N38. the supervisor's restart backoff runs on a monotonic clock ------------------------------------------------------------
+  currentRow = 'N38';
+  if (want('N38')) {
+    const S38 = join(WORK, 'state-sup-clock'); const L38 = join(WORK, 'logs-sup-clock'); mkdirSync(S38, { recursive: true });
+    const bad = new URL(pg.runnerUrl); bad.password = 'wrong-' + randomUUID().slice(0, 6);
+    const env38 = join(WORK, 'env38.env'); writeFileSync(env38, 'FACTORY_RUNNER_PG_URL=' + bad.toString() + '\n');
+    const env = { ...process.env, FACTORY_RUNNER_PG_URL: '', FACTORY_STATE_DIR: S38, FACTORY_ADMISSION: 'off', NODE_OPTIONS: clockStepOpt, QA_STEP_AT_MS: '12000', QA_STEP_BY_MS: '3600000' };
+    const sup = spawn(process.execPath, [SUP, '--runner-env', env38, '--role', 'generic', '--log-dir', L38], { cwd: ROOT, env, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+    sup.out = ''; sup.stdout.on('data', (d) => { sup.out += d; }); sup.stderr.on('data', (d) => { sup.out += d; }); procs.push(sup);
+    await sleep(40000);
+    const starts = (sup.out.match(/node started \(pid \d+\)/g) || []).length;
+    spawn(process.execPath, [SUP, '--stop'], { cwd: ROOT, env: { ...env, NODE_OPTIONS: '' }, stdio: 'ignore', windowsHide: true });
+    await new Promise((r) => { if (sup.exitCode !== null) return r(); const t = setTimeout(() => { try { sup.kill(); } catch { /* gone */ } r(); }, 25000); sup.on('exit', () => { clearTimeout(t); r(); }); });
+    check('N38 the supervisor\'s restart backoff runs on a monotonic clock: with the wall clock stepped back an hour at 12 s, ' + starts + ' workers were started in 40 s (backoff 5 s, 10 s, 20 s)',
+      starts >= 3, (sup.out.match(/.*(node started|restart \d+ in).*/g) || []).join('\n').slice(-900));
+  }
+
+  // ---- N39. the idle liveness beat runs on a monotonic clock ------------------------------------------------------------------------
+  currentRow = 'N39';
+  if (want('N39')) {
+    const S39 = join(WORK, 'state-beat-clock');
+    const w16 = spawnWorker({ state: S39, role: 'generic', extra: { NODE_OPTIONS: clockStepOpt, QA_STEP_AT_MS: '8000', QA_STEP_BY_MS: '300000' } });
+    await waitFor(async () => /\] ready: first claim cycle completed/.test(w16.out), 60000);
+    await sleep(24000);
+    const st = statusOf(S39);
+    try { w16.kill(); } catch { /* gone */ }
+    const j = (() => { try { return JSON.parse(String(st).trim().split(/\r?\n/).filter((l) => l.startsWith('{')).pop()); } catch { return null; } })();
+    check('N39 the idle liveness beat runs on a monotonic clock: 24 s after a 5-minute wall-clock step back the node reads ' + (j ? j.state : '?') + ' (beat 2 s, stale window 8 s)',
+      !!j && j.state === 'ALIVE', String(st).slice(-400) + '\n' + w16.out.slice(-400));
+  }
+
+  // ---- N37b. a two_machine_real run cut short after a row FAILED is a FAIL -------------------------------------------------------------
+  // The home and work nodes are records, no workers: nobody takes S1's die, so S1 fails after a short wait; the plane is then cut and the
+  // next statement cannot get through.
+  currentRow = 'N37b';
+  if (want('N37b')) {
+    await claim.registerNode({ nodeId: 'node-n37b-work', capabilities: ['factory_acceptance', 'handler:factory-acceptance/2', 'head:' + HEAD, 'node:node-n37b-work'], securityRole: 'verifier', platform: 'test other-host' });
+    await claim.registerNode({ nodeId: 'node-n37b-home', capabilities: ['factory_acceptance', 'handler:factory-acceptance/2', 'head:' + HEAD, 'node:node-n37b-home'], securityRole: 'generic', platform: 'test home-host' });
+    const net = await import('node:net');
+    let cut = false; const socks = [];
+    const relay = net.createServer((c) => {
+      c.on('error', () => {}); socks.push(c);
+      if (cut) { c.destroy(); return; }
+      const u = net.connect(pg.port, '127.0.0.1'); u.on('error', () => {}); socks.push(u);
+      c.pipe(u); u.pipe(c); c.on('close', () => u.destroy()); u.on('close', () => c.destroy());
+    });
+    await new Promise((r) => relay.listen(0, '127.0.0.1', r));
+    const relayUrl = pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + relay.address().port + '/');
+    const r = await new Promise((res) => {
+      const c = spawn(process.execPath, [join(ROOT, 'qa/factory/two_machine_real.mjs'), 'run', '--home', 'node-n37b-home', '--work', 'node-n37b-work'], { cwd: ROOT, env: { ...process.env, FACTORY_RUNNER_PG_URL: relayUrl, FACTORY_STATE_DIR: S1, FACTORY_TMR_WAIT_MS: '15000', FACTORY_TMR_RETRY_MS: '3000' }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+      let o = ''; const on = (d) => { o += d; if (!cut && /^FAIL S1/m.test(o)) { cut = true; for (const x of socks) { try { x.destroy(); } catch { /* gone */ } } } };
+      c.stdout.on('data', on); c.stderr.on('data', on);
+      const t = setTimeout(() => { try { c.kill(); } catch { /* gone */ } }, 150000); c.on('exit', (code) => { clearTimeout(t); res({ code, out: o }); });
+    });
+    relay.close(); for (const x of socks) { try { x.destroy(); } catch { /* gone */ } }
+    await admin.query("update factory.nodes set last_heartbeat_at = now() - interval '1 day' where node_id in ('node-n37b-work', 'node-n37b-home')");
+    check('N37b a two_machine_real run cut short after a row FAILED ends VERDICT: FAIL (exit ' + r.code + '), not INCONCLUSIVE',
+      cut && r.code === 1 && /^FAIL S1/m.test(r.out) && /VERDICT: FAIL .*cut short/.test(r.out) && !/INCONCLUSIVE/.test(r.out), r.out.slice(-900));
   }
 
   // ---- N8. a worker that reaches the plane but fails every claim backs off and never reads ALIVE (last: it revokes a grant) ------
