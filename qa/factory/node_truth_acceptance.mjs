@@ -118,6 +118,11 @@ const waitFor = async (fn, ms, every = 500) => { const until = Date.now() + ms; 
 // the row running now: a crash anywhere is that row's FAIL (a thrown error used to end the suite with no summary, which a mutation
 // proof could not attribute to any row)
 let currentRow = 'setup';
+// FACTORY_NT_ROWS=N31,N33: only those rows' blocks run (the shared setup always does). The mutation proof runs one row per mutant: the
+// suite grew to about twenty minutes, and some forty-five mutants over the whole suite were fifteen hours.
+const ONLY = String(process.env.FACTORY_NT_ROWS || '').split(',').map((x) => x.trim()).filter(Boolean);
+const want = (...ids) => !ONLY.length || ids.some((x) => ONLY.includes(x));
+if (ONLY.length) console.log('node_truth_acceptance: only rows ' + ONLY.join(', ') + ' (FACTORY_NT_ROWS)');
 const procs = [];
 // A real worker process: `node.mjs start` exactly as a supervisor runs it (the URL in its environment only, never an argument).
 const spawnWorker = ({ state, role, url = pg.runnerUrl, extra = {} }) => {
@@ -142,7 +147,7 @@ const idOf = (state) => { try { return readFileSync(join(state, 'node-id'), 'utf
 try {
   // ---- N1. a health check keeps the role the plane holds ---------------------------------------------------------------------
   currentRow = 'N1';
-  {
+  if (want('N1')) {
     const me = nodeMod.nodeId();
     await claim.registerNode({ nodeId: me, capabilities: [], securityRole: 'verifier', platform: 'test' });
     // a node whose worker has been dead for an hour
@@ -169,7 +174,7 @@ try {
   const w1 = spawnWorker({ state: S1, role: 'verifier', extra: { FACTORY_PG_LOCK_TIMEOUT_MS: '1500' } });
   const w1Up = await waitFor(async () => /\] ready: first claim cycle completed/.test(w1.out), 30000);
   const w1id = idOf(S1);
-  {
+  if (want('N2')) {
     await admin.query("update factory.nodes set security_role = 'generic' where node_id = $1", [w1id]);
     const t0 = Date.now();
     const back = await waitFor(async () => (await roleOf(w1id)) === 'verifier', 15000, 300);
@@ -182,7 +187,7 @@ try {
 
   // ---- N9. one worker per node identity ------------------------------------------------------------------------------------------
   currentRow = 'N9';
-  {
+  if (want('N9')) {
     const second = await runStart(S1);
     const roleAfter = await roleOf(w1id);
     check('N9 one worker per node identity: a second worker on the same state dir does not start (exit ' + second.code + ') and the node stays verifier',
@@ -192,7 +197,7 @@ try {
   // ---- N14. a node records the commit it runs; a health check leaves the worker's record alone ------------------------------------
   currentRow = 'N14';
   const HEAD = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).stdout.trim();
-  {
+  if (want('N14')) {
     const rec = (await admin.query('select capabilities, agent_version from factory.nodes where node_id = $1', [w1id])).rows[0];
     const caps = rec.capabilities || [];
     await admin.query("update factory.nodes set capabilities = capabilities || '[\"qa-marker\"]'::jsonb where node_id = $1", [w1id]);
@@ -206,7 +211,7 @@ try {
 
   // ---- N15. the two-machine acceptance refuses a node on another commit -------------------------------------------------------------
   currentRow = 'N15';
-  {
+  if (want('N15')) {
     const tmr = (work) => spawnSync(process.execPath, [join(ROOT, 'qa/factory/two_machine_real.mjs'), 'run', '--home', w1id, '--work', work], { cwd: ROOT, encoding: 'utf8', timeout: 60000, env: { ...process.env, FACTORY_RUNNER_PG_URL: pg.runnerUrl, FACTORY_STATE_DIR: S1 } });
     await claim.registerNode({ nodeId: 'node-n15-unrecorded', capabilities: ['factory_acceptance', 'node:node-n15-unrecorded'], securityRole: 'verifier', platform: 'test other-host' });
     await claim.registerNode({ nodeId: 'node-n15-older', capabilities: ['factory_acceptance', 'handler:factory-acceptance/2', 'head:' + '0'.repeat(40), 'node:node-n15-older'], securityRole: 'verifier', platform: 'test other-host' });
@@ -223,7 +228,7 @@ try {
 
   // ---- N3. the acceptance handler completes only what it carried out ----------------------------------------------------------
   currentRow = 'N3';
-  {
+  if (want('N3')) {
     const authored = await seed('N3 authored', { type: 'qa_none' });
     const u1 = await seed('N3 unknown action', { type: 'factory_acceptance', handoff: JSON.stringify({ action: 'verify-v2', authoringRunId: authored }) });
     const u2 = await seed('N3 not JSON', { type: 'factory_acceptance', handoff: 'hold 30 seconds, then verify' });
@@ -247,7 +252,7 @@ try {
 
   // ---- N11. a claim lock held past the lock timeout is said ---------------------------------------------------------------------
   currentRow = 'N11';
-  {
+  if (want('N11')) {
     const holder = new pgLib.Client({ connectionString: pg.superUrl }); holder.on('error', () => {});
     await holder.connect();
     await holder.query('begin'); await holder.query("select pg_advisory_xact_lock(hashtext('factory.claim'))");
@@ -261,7 +266,7 @@ try {
 
   // ---- N16. a stale claim-lock record is replaced ------------------------------------------------------------------------------
   currentRow = 'N16';
-  {
+  if (want('N16')) {
     const S6 = join(WORK, 'state-stale-busy'); mkdirSync(S6, { recursive: true });
     writeFileSync(join(S6, 'node-claim-busy.json'), JSON.stringify({ since: '2026-01-01T00:00:00.000Z', at: '2026-01-01T00:00:00.000Z' }));
     const before = statusOf(S6);
@@ -273,7 +278,7 @@ try {
 
   // ---- N4. a failed run fails its work order, atomically ----------------------------------------------------------------------
   currentRow = 'N4';
-  {
+  if (want('N4')) {
     const wf = await seed('N4 fails', { type: 'qa_n4' });
     const wd = await seed('N4 depends on it', { type: 'qa_n4' });
     await admin.query('insert into factory.work_order_dependencies (work_order_id, depends_on) values ($1, $2)', [wd, wf]);
@@ -302,7 +307,7 @@ try {
 
   // ---- N5. a busy node reads ALIVE --------------------------------------------------------------------------------------------
   currentRow = 'N5';
-  {
+  if (want('N5')) {
     // the heartbeat alone stamps the node record (the canonical path every runner uses)
     await claim.registerNode({ nodeId: 'node-n5', capabilities: [], securityRole: 'generic', platform: 'test' });
     const w5 = await seed('N5 heartbeat', { type: 'qa_n5' });
@@ -325,7 +330,7 @@ try {
 
   // ---- N6. a worker survives a transient plane loss ---------------------------------------------------------------------------
   currentRow = 'N6';
-  {
+  if (want('N6')) {
     const net = await import('node:net');
     let down = false; const pairs = [];
     const relay = net.createServer((c) => {
@@ -358,7 +363,7 @@ try {
 
   // ---- N7. the supervisor's backoff resets once a worker completed a claim cycle -------------------------------------------------
   currentRow = 'N7';
-  {
+  if (want('N7', 'N9b', 'N24')) {
     const S3 = join(WORK, 'state-sup'); const L3 = join(WORK, 'logs-sup');
     const env = { ...process.env, FACTORY_RUNNER_PG_URL: '', FACTORY_STATE_DIR: S3, FACTORY_NODE_BEAT_MS: '2000', FACTORY_ADMISSION: 'off' };
     const sup = spawn(process.execPath, [SUP, '--runner-env', envFile, '--role', 'generic', '--log-dir', L3], { cwd: ROOT, env, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
@@ -409,7 +414,7 @@ try {
 
   // ---- N10. a malformed argument fails by name; a data exception is terminal ------------------------------------------------------
   currentRow = 'N10';
-  {
+  if (want('N10')) {
     const v = await seed('N10 verify naming a run id that is not a uuid', { type: 'factory_acceptance', handoff: JSON.stringify({ action: 'verify', authoringRunId: 'run-abc' }) });
     const h = await seed('N10 hold of "30 seconds"', { type: 'factory_acceptance', handoff: JSON.stringify({ action: 'hold', seconds: '30 seconds' }) });
     const settled = await waitFor(async () => (await seq([v, h], woStatus)).every((x) => x === 'failed' || x === 'done'), 40000);
@@ -426,7 +431,7 @@ try {
 
   // ---- N13. a run whose lease cannot be renewed stops before the lease lapses ---------------------------------------------------
   currentRow = 'N13';
-  {
+  if (want('N13')) {
     const net = await import('node:net');
     let hole = false; const socks = [];
     const relay = net.createServer((c) => {
@@ -476,7 +481,7 @@ try {
 
   // ---- N21. one failed renewal over a slow link does not abort a healthy run -------------------------------------------------------
   currentRow = 'N21';
-  {
+  if (want('N21')) {
     const net = await import('node:net');
     let hole = false; const socks = [];
     const DELAY = 300; // ms each way
@@ -512,7 +517,7 @@ try {
   // completion has committed, and the completion's reply is delayed on its way back - so the renewal finds the run done while the
   // worker still waits for its completion, the window in which it was read as a takeover.
   currentRow = 'N25';
-  {
+  if (want('N25')) {
     const net = await import('node:net');
     const socks = []; let armed = false; const release = []; const seen = { held: 0, fin: 0 };
     const relay = net.createServer((c) => {
@@ -561,7 +566,7 @@ try {
   // third passes. The retry after the lost reply must find the checkpoint already written (one row) and the run already completed by this
   // node (a completion, not a takeover).
   currentRow = 'N26';
-  {
+  if (want('N26')) {
     const net = await import('node:net');
     const socks = []; const seen = { cp: 0, fin: 0 };
     const relay = net.createServer((c) => {
@@ -605,7 +610,7 @@ try {
 
   // ---- N27. the scheduling instrument passes whichever wave starts first --------------------------------------------------------
   currentRow = 'N27';
-  {
+  if (want('N27', 'N27b')) {
     const tms = join(ROOT, 'qa/factory/two_machine_scheduling.mjs');
     const envOf = (extra) => ({ ...process.env, FACTORY_RUNNER_PG_URL: pg.runnerUrl, FACTORY_STATE_DIR: join(WORK, 'state-tms'), FACTORY_ADMISSION: 'off', ...extra });
     const seeded = spawnSync(process.execPath, [tms, 'seed'], { cwd: ROOT, encoding: 'utf8', timeout: 60000, env: envOf({}) });
@@ -639,7 +644,7 @@ try {
 
   // ---- N28. an earlier worker's claiming records are gone once the next worker holds its lock ------------------------------------
   currentRow = 'N28';
-  {
+  if (want('N28')) {
     const S11 = join(WORK, 'state-stale'); mkdirSync(S11, { recursive: true });
     writeFileSync(join(S11, 'node-id'), 'node-n28-' + randomUUID().slice(0, 8));
     writeFileSync(join(S11, 'node-admission.json'), JSON.stringify({ admit: false, reason: 'qa: an earlier worker was refused', at: new Date().toISOString() }));
@@ -661,7 +666,7 @@ try {
   // Deterministic, through a relay that reads the worker's statements: on the connection that inserted a run, the reply to its COMMIT is
   // dropped (the server has committed) and the connection cut - the worker retries its claim as a transient error.
   currentRow = 'N29';
-  {
+  if (want('N29')) {
     const net = await import('node:net');
     const COMMIT_Q = Buffer.concat([Buffer.from('Q'), Buffer.from([0, 0, 0, 11]), Buffer.from('commit\0', 'latin1')]);
     const socks = []; const seen = { dropped: 0 };
@@ -698,7 +703,7 @@ try {
 
   // ---- N30. the work-order read right after a claim is retried --------------------------------------------------------------------
   currentRow = 'N30';
-  {
+  if (want('N30')) {
     const net = await import('node:net');
     const socks = []; const seen = { dropped: 0 };
     const relay = net.createServer((c) => {
@@ -728,7 +733,7 @@ try {
 
   // ---- N31. a slow claim is not aborted before its first renewal ------------------------------------------------------------------
   currentRow = 'N31';
-  {
+  if (want('N31')) {
     const S14 = join(WORK, 'state-slowclaim');
     // (its connections carry application_name=n31, so the wait below is THIS worker's - other workers here wait on the claim lock too, and
     // one of theirs made the row measure a shorter wait than it meant)
@@ -751,7 +756,7 @@ try {
 
   // ---- N32. a run's own statements are retried: the verification write meets a transient loss -----------------------------------
   currentRow = 'N32';
-  {
+  if (want('N32')) {
     const net = await import('node:net');
     const socks = []; const seen = { dropped: 0 };
     const relay = net.createServer((c) => {
@@ -790,7 +795,7 @@ try {
   // Deterministic, through a relay: the connection that carries the FIRST renewal is held - nothing forwarded, nothing closed - so that
   // renewal fails only at the statement timeout (60 s). The lease is 30 s; the run holds 40 s.
   currentRow = 'N33';
-  {
+  if (want('N33')) {
     const net = await import('node:net');
     const socks = []; const seen = { stalled: 0 };
     const relay = net.createServer((c) => {
@@ -820,7 +825,7 @@ try {
   // In its own process: startHeartbeat against a plane nothing answers for (every renewal fails), and at 5 s the wall clock is stepped
   // back 60 s. The guard must abort 25 s after the claim (lease 30 s), measured on the monotonic clock - not 60 s later.
   currentRow = 'N34';
-  {
+  if (want('N34')) {
     const net = await import('node:net');
     const dead = await new Promise((r) => { const srv = net.createServer(); srv.listen(0, '127.0.0.1', () => { const p = srv.address().port; srv.close(() => r(p)); }); });
     const deadUrl = pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + dead + '/');
@@ -838,7 +843,7 @@ try {
 
   // ---- N35. the runbook's scripts read the env file as the node does, and end on one line --------------------------------------------
   currentRow = 'N35';
-  {
+  if (want('N35')) {
     const tms = join(ROOT, 'qa/factory/two_machine_scheduling.mjs');
     const E = join(WORK, 'env-n35'); mkdirSync(E, { recursive: true });
     const pemB64 = (readFileSync(join(ROOT, 'scripts/factory-runner/runner-env.regression.test.mjs'), 'utf8').match(/'-----BEGIN CERTIFICATE-----',([\s\S]*?)'-----END CERTIFICATE-----'/) || [, ''])[1].replace(/[',\s]/g, '');
@@ -860,7 +865,7 @@ try {
 
   // ---- N36. status asks the plane three times -------------------------------------------------------------------------------------
   currentRow = 'N36';
-  {
+  if (want('N36')) {
     const S17 = join(WORK, 'state-status3');
     const w14 = spawnWorker({ state: S17, role: 'generic' });
     await waitFor(async () => /\] ready: first claim cycle completed/.test(w14.out), 60000);
@@ -885,7 +890,7 @@ try {
 
   // ---- N22. an admission-only cycle is not a claim cycle ------------------------------------------------------------------------
   currentRow = 'N22';
-  {
+  if (want('N22')) {
     const S8 = join(WORK, 'state-refused');
     const w5 = spawnWorker({ state: S8, role: 'verifier', extra: { FACTORY_ADMISSION: '', FACTORY_MIN_FREE_MB: '99999999' } });
     await waitFor(async () => /admission REFUSED/.test(w5.out), 30000, 200);
@@ -899,7 +904,7 @@ try {
 
   // ---- N12. only a finished, successful run can be verified ---------------------------------------------------------------------
   currentRow = 'N12';
-  {
+  if (want('N12')) {
     await claim.registerNode({ nodeId: 'node-author-n12', capabilities: [], securityRole: 'generic', platform: 'test other-host' });
     const authored = async (status, reason) => {
       const w = await seed('N12 authored ' + status, { type: 'qa_none' });
@@ -922,7 +927,7 @@ try {
 
   // ---- N19. a running worker whose record was deleted is ALIVE again at once ----------------------------------------------------
   currentRow = 'N19';
-  {
+  if (want('N19')) {
     await admin.query('delete from factory.nodes where node_id = $1', [w1id]);
     const back = await waitFor(async () => (await admin.query('select 1 from factory.nodes where node_id = $1', [w1id])).rows.length === 1, 20000, 200);
     await sleep(1500);
@@ -933,7 +938,7 @@ try {
 
   // ---- N23. a script beside the worker leaves its record alone; an overwritten record is restored whole ---------------------------
   currentRow = 'N23';
-  {
+  if (want('N23')) {
     const capsOf = async () => (await admin.query('select capabilities from factory.nodes where node_id = $1', [w1id])).rows[0].capabilities || [];
     const before = await capsOf();
     const seedRun = spawnSync(process.execPath, [join(ROOT, 'qa/factory/two_machine_scheduling.mjs'), 'seed'], { cwd: ROOT, encoding: 'utf8', timeout: 60000, env: { ...process.env, FACTORY_RUNNER_PG_URL: pg.runnerUrl, FACTORY_STATE_DIR: S1, FACTORY_NODE_ROLE: 'verifier' } });
@@ -951,7 +956,7 @@ try {
 
   // ---- N20. the composer's plane rows count only evidence at the commit under acceptance -----------------------------------------
   currentRow = 'N20';
-  {
+  if (want('N20')) {
     const pg2 = await startLocalPg();
     const a2 = new pgLib.Client({ connectionString: pg2.superUrl }); await a2.connect();
     try {
@@ -986,7 +991,7 @@ try {
 
   // ---- N8. a worker that reaches the plane but fails every claim backs off and never reads ALIVE (last: it revokes a grant) ------
   currentRow = 'N8';
-  {
+  if (want('N8')) {
     try { w1.kill(); } catch { /* gone */ }
     await admin.query('revoke select on factory.work_order_dependencies from ' + pg.runnerRole);
     const S4 = join(WORK, 'state-sup-bad'); const L4 = join(WORK, 'logs-sup-bad');

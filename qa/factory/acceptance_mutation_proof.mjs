@@ -106,7 +106,8 @@ for (const m of chosen) {
   if (process.platform === 'win32') spawnSync('powershell', ['-NoProfile', '-Command', "New-Item -ItemType Junction -Path '" + join(S, 'node_modules') + "' -Target '" + join(ROOT, 'node_modules') + "' | Out-Null"]);
   else spawnSync('ln', ['-s', join(ROOT, 'node_modules'), join(S, 'node_modules')]);
   for (const [file, from, to] of m.edits) { const p = join(S, file); writeFileSync(p, lf(readFileSync(p, 'utf8')).replace(from, () => to)); }
-  const r = spawnSync(process.execPath, [join(S, m.suite)], { cwd: S, encoding: 'utf8', timeout: 1200000, maxBuffer: 1 << 26, env: { ...process.env, FACTORY_RUNNER_PG_URL: '', FACTORY_STATE_DIR: '' } });
+  // node_truth runs only the mutant's row (FACTORY_NT_ROWS); the other suites run whole
+  const r = spawnSync(process.execPath, [join(S, m.suite)], { cwd: S, encoding: 'utf8', timeout: 1200000, maxBuffer: 1 << 26, env: { ...process.env, FACTORY_RUNNER_PG_URL: '', FACTORY_STATE_DIR: '', FACTORY_NT_ROWS: m.suite === NT ? m.id : '' } });
   const out = (r.stdout || '') + (r.stderr || '');
   const red = new RegExp('^FAIL ' + m.id + ' ', 'm').test(out);
   const summary = (out.match(/(factory acceptance|node_truth_acceptance|tls_plane_acceptance): .*/) || ['no summary (exit ' + r.status + ')'])[0];
