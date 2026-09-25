@@ -62,7 +62,7 @@
 //      through the junction stops it (identity by a path spelling let two supervisors share one node id - verification round 3)
 // F1 and F8 also require the committed lock to be byte-for-byte unchanged by the install (npm 10's `npm install` rewrites it).
 import { spawn, spawnSync, execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync, mkdirSync, statfsSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync, mkdirSync, statfsSync } from 'node:fs';
 import { builtinModules } from 'node:module';
 import { tmpdir } from 'node:os';
 import os from 'node:os';
@@ -543,6 +543,14 @@ if (!STATIC_ONLY) {
       writeFileSync(envFile, envSaved);
       cyc.unreachable = (envDead !== envSaved ? 'env pointed at a dead port' : 'ENV NOT CHANGED') + '; supervisor ' + supBeforeUnreach.supervisorPid + ' -> ' + supAfterUnreach.supervisorPid + ', worker ' + supBeforeUnreach.childPid + ' -> ' + supAfterUnreach.childPid;
       cyc.verifyAfterUnreachable = psT(['-Verify']);
+      // A WORKER THAT CANNOT REACH THE PLANE IS NOT "REFUSED BY ADMISSION" because an earlier worker was (final verification 4): the task's
+      // log carries an earlier worker's refusal, and the task is started on an env file whose port nothing listens on
+      appendFileSync(join(work, 'logs-task', 'node-' + new Date().toISOString().slice(0, 10) + '.log'), '[node-qa] admission REFUSED - not claiming: qa: an earlier worker was refused\n');
+      cyc.stopForDead = psT(['-Stop']);
+      writeFileSync(envFile, envDead);
+      cyc.startDead = psT(['-Start']);
+      writeFileSync(envFile, envSaved);
+      cyc.startRevived = psT(['-Start']);
       cyc.execute = run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName '" + scratchTask + "' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).Execute}else{'NONE'}"], ROOT).out.trim();
       cyc.stop = psT(['-Stop']);
       cyc.verifyStopped = psT(['-Verify']);
@@ -648,6 +656,7 @@ if (!STATIC_ONLY) {
           && cyc.startNodeOnly.rc === 0 && /running commit [0-9a-f]{40} while this checkout is at [0-9a-f]{40}\) - restarting it/.test(cyc.startNodeOnly.out) && cyc.verifyAfterNodeOnly.rc === 0],
         ["nodeDirtyOnly", ["nodeDirtyOnly","verifyNodeDirtyOnly","startNodeDirtyOnly","verifyAfterNodeDirtyOnly"], /ready true; checkout clean again true$/.test(cyc.nodeDirtyOnly) && cyc.verifyNodeDirtyOnly.rc === 1 && /the node runs commit [0-9a-f]{40}\+dirty but this checkout is at [0-9a-f]{40} /.test(cyc.verifyNodeDirtyOnly.out)
           && cyc.startNodeDirtyOnly.rc === 0 && /running commit [0-9a-f]{40}\+dirty while this checkout is at [0-9a-f]{40}\) - restarting it/.test(cyc.startNodeDirtyOnly.out) && cyc.verifyAfterNodeDirtyOnly.rc === 0],
+        ["startDead", ["stopForDead","startDead","startRevived"], cyc.stopForDead.rc === 0 && cyc.startDead.rc === 5 && !/admission refuses/.test(cyc.startDead.out) && /ECONNREFUSED|transient plane error/.test(cyc.startDead.out) && cyc.startRevived.rc === 0 && /started: supervisor pid \d+/.test(cyc.startRevived.out)],
         ["unready", ["unready","statusUnready"], /ready false/.test(cyc.unready) && /^node\s+NOT CONFIRMED here \(the worker now running/m.test(cyc.statusUnready.out) && !/^node\s+ALIVE/m.test(cyc.statusUnready.out)],
         ["verifyUnready", ["verifyUnready","verifyReadyAgain"], cyc.verifyUnready.rc === 1 && /has not completed a claim cycle/.test(cyc.verifyUnready.out) && cyc.verifyReadyAgain.rc === 0],
         ["unreachable", ["unreachable","startUnreachable","verifyAfterUnreachable"], /^env pointed at a dead port; supervisor (\d+) -> \1, worker (\d+) -> \2$/.test(cyc.unreachable) && cyc.startUnreachable.rc === 5 && /cannot judge: the plane did not answer this PC's status probe/.test(cyc.startUnreachable.out) && cyc.verifyAfterUnreachable.rc === 0],

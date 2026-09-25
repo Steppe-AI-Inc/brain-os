@@ -50,6 +50,12 @@
 //   N26 a checkpoint and a completion that meet a transient plane loss are retried: a first attempt that never reaches the plane, and a
 //      second that lands but whose reply is lost, end in ONE checkpoint and ONE completed run - not a run thrown away, its claim left
 //      looking live for a lease, and the work done again (Work-PC probe of the final verification of 18bce497)
+// and from the final verification of 2026-09-25 (9e0af976):
+//   N27 the runbook's scheduling instrument passes with the verifier's wave started first (it gave up waiting for a finished run)
+//   N28 a previous worker's admission refusal and busy-claim-lock records are gone once the next worker holds its lock, even when it
+//      never reaches a claim cycle (status repeated them for a worker that could not reach the plane)
+//   N29 a claim that committed but whose reply was lost is given back at once: the plane requeues it and the work is done within
+//      seconds, not after a whole lease with a live claim nothing held
 import { startLocalPg } from './local_pg.mjs';
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync, rmSync } from 'node:fs';
@@ -587,6 +593,86 @@ try {
       JSON.stringify({ seen, cps, runs: runsH.map((r) => r.status + ':' + r.termination_reason) }) + '\n' + w7.out.slice(-1400));
   }
 
+  // ---- N27. the scheduling instrument passes whichever wave starts first --------------------------------------------------------
+  currentRow = 'N27';
+  {
+    const tms = join(ROOT, 'qa/factory/two_machine_scheduling.mjs');
+    const envOf = (extra) => ({ ...process.env, FACTORY_RUNNER_PG_URL: pg.runnerUrl, FACTORY_STATE_DIR: join(WORK, 'state-tms'), FACTORY_ADMISSION: 'off', ...extra });
+    const seeded = spawnSync(process.execPath, [tms, 'seed'], { cwd: ROOT, encoding: 'utf8', timeout: 60000, env: envOf({}) });
+    const stamp = (String(seeded.stdout).match(/STAMP (\S+)/) || [])[1];
+    const wave = (id, role) => new Promise((r) => { const c = spawn(process.execPath, [tms, 'wave', stamp], { cwd: ROOT, env: envOf({ FACTORY_NODE_ID: id, FACTORY_NODE_ROLE: role }), stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }); let o = ''; c.stdout.on('data', (d) => { o += d; }); c.stderr.on('data', (d) => { o += d; }); const t = setTimeout(() => { try { c.kill(); } catch { /* gone */ } }, 240000); c.on('exit', (code) => { clearTimeout(t); r({ code, out: o }); }); procs.push(c); });
+    let vr = { code: 'no stamp', out: String(seeded.stdout || '') + String(seeded.stderr || '') }, gr = vr, verified = vr;
+    if (stamp) {
+      // the verifier's wave first, the generic one 3 s later: the verifier takes the first conflict work order
+      const vp = wave('node-n27-verifier', 'verifier'); await sleep(3000); const gp = wave('node-n27-generic', 'generic');
+      [vr, gr] = await Promise.all([vp, gp]);
+      verified = spawnSync(process.execPath, [tms, 'verify', stamp], { cwd: ROOT, encoding: 'utf8', timeout: 60000, env: envOf({}) });
+      verified = { code: verified.status, out: String(verified.stdout || '') + String(verified.stderr || '') };
+    }
+    check('N27 the scheduling instrument passes with the verifier\'s wave started first (verify exit ' + verified.code + ', ' + ((verified.out.match(/VERDICT: [A-Z ]+/) || ['no verdict'])[0]).trim() + ')',
+      !!stamp && verified.code === 3 && /VERDICT: SAME MACHINE/.test(verified.out) && !/^FAIL /m.test(verified.out) && /verification: [0-9a-f]{8}-/.test(vr.out),
+      verified.out.slice(-700) + '\n--- verifier wave\n' + vr.out.slice(-500) + '\n--- generic wave\n' + gr.out.slice(-300));
+  }
+
+  // ---- N28. an earlier worker's claiming records are gone once the next worker holds its lock ------------------------------------
+  currentRow = 'N28';
+  {
+    const S11 = join(WORK, 'state-stale'); mkdirSync(S11, { recursive: true });
+    writeFileSync(join(S11, 'node-id'), 'node-n28-' + randomUUID().slice(0, 8));
+    writeFileSync(join(S11, 'node-admission.json'), JSON.stringify({ admit: false, reason: 'qa: an earlier worker was refused', at: new Date().toISOString() }));
+    writeFileSync(join(S11, 'node-claim-busy.json'), JSON.stringify({ since: new Date().toISOString(), at: new Date().toISOString() }));
+    const net = await import('node:net');
+    const dead = await new Promise((r) => { const srv = net.createServer(); srv.listen(0, '127.0.0.1', () => { const p = srv.address().port; srv.close(() => r(p)); }); });
+    const deadUrl = pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + dead + '/');
+    // a worker that cannot reach the plane: it holds its lock and retries its registration, and never reaches a claim cycle
+    const w8 = spawnWorker({ state: S11, role: 'generic', url: deadUrl });
+    await waitFor(async () => /failed on a transient plane error/.test(w8.out), 30000, 300);
+    const st = statusOf(S11);
+    try { w8.kill(); } catch { /* gone */ }
+    check('N28 an earlier worker\'s admission refusal and busy-claim-lock records are gone once the next worker holds its lock, though it never reached a claim cycle (status: ' + (/NOT CLAIMING/.test(st) ? 'NOT CLAIMING repeated' : 'no stale verdict') + ')',
+      /failed on a transient plane error/.test(w8.out) && !/NOT CLAIMING/.test(st) && !existsSync(join(S11, 'node-admission.json')) && !existsSync(join(S11, 'node-claim-busy.json')),
+      st.slice(-500) + '\n' + w8.out.slice(-400));
+  }
+
+  // ---- N29. a claim whose reply was lost is given back at once ------------------------------------------------------------------
+  // Deterministic, through a relay that reads the worker's statements: on the connection that inserted a run, the reply to its COMMIT is
+  // dropped (the server has committed) and the connection cut - the worker retries its claim as a transient error.
+  currentRow = 'N29';
+  {
+    const net = await import('node:net');
+    const COMMIT_Q = Buffer.concat([Buffer.from('Q'), Buffer.from([0, 0, 0, 11]), Buffer.from('commit\0', 'latin1')]);
+    const socks = []; const seen = { dropped: 0 };
+    const relay = net.createServer((c) => {
+      c.on('error', () => {}); socks.push(c);
+      const u = net.connect(pg.port, '127.0.0.1'); u.on('error', () => {}); socks.push(u);
+      let inserted = false, loseReply = false;
+      c.on('data', (d) => {
+        if (d.toString('latin1').includes('insert into factory.agent_runs')) inserted = true;
+        if (inserted && !seen.dropped && d.includes(COMMIT_Q)) { seen.dropped++; loseReply = true; }
+        if (!u.destroyed) u.write(d);
+      });
+      u.on('data', (d) => { if (loseReply) { setTimeout(() => { c.destroy(); u.destroy(); }, 300); return; } if (!c.destroyed) c.write(d); });
+      c.on('close', () => u.destroy()); u.on('close', () => c.destroy());
+    });
+    await new Promise((r) => relay.listen(0, '127.0.0.1', r));
+    const relayUrl = pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + relay.address().port + '/');
+    const S12 = join(WORK, 'state-orphan');
+    const w9 = spawnWorker({ state: S12, role: 'generic', url: relayUrl, extra: { FACTORY_LEASE_SECONDS: '90' } });
+    await waitFor(async () => /\] ready: first claim cycle completed/.test(w9.out), 60000);
+    const w9id = idOf(S12);
+    const h = await seed('N29 a claim whose reply is lost', { type: 'factory_acceptance', handoff: JSON.stringify({ action: 'hold', seconds: 2 }), caps: ['factory_acceptance', 'node:' + w9id] });
+    const t0 = Date.now();
+    const done = await waitFor(async () => (await woStatus(h)) === 'done', 60000, 500);
+    const took = Math.round((Date.now() - t0) / 1000);
+    const runsH = await runsOf(h);
+    try { w9.kill(); } catch { /* gone */ }
+    relay.close(); for (const x of socks) { try { x.destroy(); } catch { /* gone */ } }
+    check('N29 a claim that committed but whose reply was lost is given back at once and the work is done in ' + took + ' s (lease 90 s): runs ' + runsH.map((r) => r.status).join(',') + (seen.dropped ? '' : ' - NO COMMIT REPLY WAS DROPPED'),
+      seen.dropped === 1 && !!done && took < 45 && runsH.length === 2 && runsH.filter((r) => r.status === 'done').length === 1 && runsH.every((r) => r.node_id === w9id)
+        && /gave back the lease of run [0-9a-f]{8}: a claim of this node committed but its reply was lost/.test(w9.out),
+      JSON.stringify({ seen, runs: runsH.map((r) => r.status + ':' + r.termination_reason) }) + '\n' + w9.out.slice(-900));
+  }
+
   // ---- N22. an admission-only cycle is not a claim cycle ------------------------------------------------------------------------
   currentRow = 'N22';
   {
@@ -642,7 +728,8 @@ try {
     const before = await capsOf();
     const seedRun = spawnSync(process.execPath, [join(ROOT, 'qa/factory/two_machine_scheduling.mjs'), 'seed'], { cwd: ROOT, encoding: 'utf8', timeout: 60000, env: { ...process.env, FACTORY_RUNNER_PG_URL: pg.runnerUrl, FACTORY_STATE_DIR: S1, FACTORY_NODE_ROLE: 'verifier' } });
     const afterSeed = await capsOf();
-    const harnessNode = (await admin.query("select node_id from factory.nodes where node_id like 'node-tms-%'")).rows.map((r) => r.node_id);
+    // this seed's own harness node (the script's id for this state dir) - other rows seed through the script too
+    const harnessNode = (await admin.query('select node_id from factory.nodes where node_id = $1', ['node-tms-' + w1id.slice(5, 17)])).rows.map((r) => r.node_id);
     // ...and overwritten anyway (an older checkout's script, a hand-written update): the worker restores it on its next beat
     await admin.query("update factory.nodes set capabilities = '[\"two-machine-scheduling\"]'::jsonb, agent_version = 'v0' where node_id = $1", [w1id]);
     const restored = await waitFor(async () => { const c = await capsOf(); return c.includes('head:' + HEAD) && c.includes('handler:factory-acceptance/2') && c.includes('factory_acceptance'); }, 15000, 300);

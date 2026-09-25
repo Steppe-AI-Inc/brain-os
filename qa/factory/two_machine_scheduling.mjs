@@ -69,8 +69,10 @@ if (mode === 'wave') {
   const wos = await stampWos(stampArg);
   if (wos.length !== 4) { console.log('expected 4 stamped work orders, found ' + wos.length + ' - run seed first'); process.exit(1); }
   const held = [];
-  const until = Date.now() + (hold + 60) * 1000;
-  console.log('wave on ' + HOST + ' as ' + myNode.slice(0, 13) + ' (' + role + '); trying each stamped work order for up to ' + (hold + 60) + ' s, holding claims ' + hold + ' s');
+  // TWICE THE HOLD, AND A MINUTE: the second conflict work order can start only after the first has been held, so a run by the other node
+  // can end near twice the hold - a verifier wave that started first gave up waiting for a finished run to verify (final verification 4)
+  const until = Date.now() + (2 * hold + 60) * 1000;
+  console.log('wave on ' + HOST + ' as ' + myNode.slice(0, 13) + ' (' + role + '); trying each stamped work order for up to ' + (2 * hold + 60) + ' s, holding claims ' + hold + ' s');
   // claim what this node MAY (role, surface lock): each work order is tried by id so nothing else on the plane is touched
   while (Date.now() < until) {
     for (const wo of wos) {

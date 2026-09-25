@@ -174,11 +174,16 @@ function Get-LastWorkerError($ld) {
   if (-not $l) { $l = $tail | Where-Object { $_ -notmatch '^\s+(at |[a-zA-Z]+: )' -and $_ -match 'Error|REFUSED|FAIL|ECONN|ETIMEDOUT|ENOTFOUND|password|certificate|refused' } | Select-Object -Last 1 }
   if ($l) { return ([string]$l).Trim().Substring(0, [Math]::Min(220, ([string]$l).Trim().Length)) } else { return 'nothing logged that names it (' + $f + ')' }
 }
-# The worker's latest admission verdict in its log, when it is a refusal (an older error line of a previous worker must not mask it).
-function Get-AdmissionRefusal($ld) {
+# The CURRENT worker's latest admission verdict in its log, when it is a refusal. Only the lines since the supervisor started that worker
+# count, and a later 'admission: claiming' ends a refusal: the pattern missed 'admission: claiming' (no space before the colon), and an
+# earlier worker's refusal was quoted for a worker that could not reach the plane (final verification 4, adversarial probe).
+function Get-AdmissionRefusal($ld, $childPid) {
   $f = Get-TaskLogFile $ld
-  if (-not (Test-Path -LiteralPath $f)) { return $null }
-  $l = Get-Content -LiteralPath $f -Tail 200 | Where-Object { $_ -match 'admission (REFUSED|: claiming)' } | Select-Object -Last 1
+  if (-not $childPid -or -not (Test-Path -LiteralPath $f)) { return $null }
+  $tail = @(Get-Content -LiteralPath $f -Tail 400)
+  $from = -1; for ($i = $tail.Count - 1; $i -ge 0; $i--) { if ($tail[$i] -match ('node started \(pid ' + $childPid + '\)')) { $from = $i; break } }
+  $mine = if ($from -ge 0) { $tail[$from..($tail.Count - 1)] } else { @() }
+  $l = $mine | Where-Object { $_ -match 'admission( REFUSED|: claiming)' } | Select-Object -Last 1
   if ($l -and ($l -match 'admission REFUSED')) { return ([string]$l).Trim() }
   return $null
 }
@@ -248,7 +253,7 @@ function Confirm-TaskSupervisor($dir, $since) {
   $why = if ((& $fresh $st) -and $st.refusal) { 'the supervisor refused - ' + $st.refusal }
     elseif ((& $fresh $st) -and $st.dependencies -and $st.state -eq 'dependencies_missing') { 'the supervisor refused - ' + $st.dependencies }
     elseif ($last -and $last.state -eq 'backoff') { 'the supervisor (pid ' + $last.pid + ') runs, but its worker cannot run - ' + (Get-LastWorkerError $last.logDir) }
-    elseif ($last -and $last.state -eq 'running' -and -not $last.readyAt -and (Get-AdmissionRefusal $last.logDir)) { 'its worker runs but admission refuses its claims (' + (Get-AdmissionRefusal $last.logDir) + ') - it starts claiming when the load allows; -Status shows NOT CLAIMING until then' }
+    elseif ($last -and $last.state -eq 'running' -and -not $last.readyAt -and (Get-AdmissionRefusal $last.logDir $last.childPid)) { 'its worker runs but admission refuses its claims (' + (Get-AdmissionRefusal $last.logDir $last.childPid) + ') - it starts claiming when the load allows; -Status shows NOT CLAIMING until then' }
     elseif ($last -and $plane -and $plane.state -eq 'ALIVE' -and $plane.role -ne $last.role) { 'the worker runs as ' + $last.role + ', but the plane holds role ' + $plane.role + ' for this node' }
     elseif ($last -and $plane) { 'the worker runs, but the plane has not heard from it since it started: ' + $plane.state + $(if ($plane.error) { ' - ' + $plane.error } else { '' }) }
     elseif ($last) { 'the supervisor (pid ' + $last.pid + ') runs, but its worker did not stay up - ' + (Get-LastWorkerError $last.logDir) }

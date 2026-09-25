@@ -27,7 +27,7 @@
 // the claim is leased and the progress is checkpointed: another node — or this one, restarted — picks the
 // work up from the last checkpoint. Killing a node is not an error path here. It is the ordinary case the
 // design is built around.
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { hostname } from 'node:os';
@@ -236,6 +236,16 @@ export function ensureWorktree({ runId, baseCommit, branch }) {
   return { path, branch: wtBranch, recovered: false, head: git(['rev-parse', 'HEAD'], path) };
 }
 
+/** An orphaned claim's lease, given back: a run of this node in progress that this process does not hold (see nodeStart). */
+async function giveBackOrphans(nodeId, mine, log) {
+  const r = await db.write(
+    "with runs as (update factory.agent_runs set lease_expires_at = now() where node_id = $1 and status = 'in_progress' and lease_expires_at > now()"
+    + " and not (run_id = any($2::uuid[])) returning run_id),"
+    + " locks as (update factory.surface_locks set lease_expires_at = now() where run_id in (select run_id from runs))"
+    + ' select run_id from runs', [nodeId, [...mine]]);
+  for (const x of r.rows) log('gave back the lease of run ' + String(x.run_id).slice(0, 8) + ': a claim of this node committed but its reply was lost - the plane requeues it');
+}
+
 /** 8. Renew the lease on a timer for as long as the work is running (the heartbeat also stamps the node record - claim.mjs).
  *  Returns { stop, signal }: the signal ABORTS the run when its lease cannot be kept (see below). */
 // claimedFrom: when the claim began (before its connect and BEGIN). The plane stamps the lease at the claim transaction's BEGIN; timed
@@ -362,9 +372,19 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
     try { mkdirSync(STATE_DIR, { recursive: true }); writeFileSync(join(STATE_DIR, 'node-claim-busy.json'), JSON.stringify({ since, at: new Date().toISOString() })); } catch { /* status only */ }
   };
   let ready = false;
+  // the runs this process claimed: any other run of this node in progress, found while this node is idle, is an orphan (below)
+  const mine = new Set();
   for (let i = 0; i < maxIterations; i++) {
-    let claimStart = Date.now();
-    const run = await retryTransient(() => { claimStart = Date.now(); return claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel, workTypes, baseCommit: commit }); }, 'claim', log);
+    let claimStart = Date.now(), claimTries = 0;
+    const run = await retryTransient(async () => {
+      claimStart = Date.now();
+      // A CLAIM RETRIED AFTER A TRANSIENT ERROR may have committed before its reply was lost: its run stood in progress on this node,
+      // unworked and never mentioned, for a whole lease (final verification 4, adversarial probe). This node is idle here, so a run of
+      // its own in progress that this process did not claim is such an orphan: its lease is given back first, and the plane requeues it.
+      if (claimTries++ > 0) await giveBackOrphans(id, mine, log);
+      return claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel, workTypes, baseCommit: commit });
+    }, 'claim', log);
+    if (run) mine.add(run.run_id);
     noteAdmission();
     noteBusy();
     // READY = ONE COMPLETED CLAIM CYCLE. Only now is liveness stamped, and the line below is what the supervisor resets its
@@ -786,6 +806,10 @@ if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
       const lockDir = join(STATE_DIR, 'worker-lock'); mkdirSync(lockDir, { recursive: true });
       const wl = await holdControlPipe(lockDir, () => ({ pid: process.pid, kind: 'worker', role: nodeRole(), instance: mine }), () => { /* the supervisor stops its worker */ });
       if (!wl.held) { const other = await askSupervisor(lockDir, 'whois', 1500); console.log('NOT STARTED - another worker already runs the node of ' + STATE_DIR + (other ? ' (pid ' + other.pid + ', role ' + other.role + ')' : '') + ': one worker per node identity.'); process.exit(4); }
+      // THE NODE'S CLAIMING RECORDS ARE THIS WORKER'S: a previous worker's admission refusal (or busy claim lock) was repeated by status
+      // and quoted by -Start for a worker that had not reached its first claim cycle (final verification 4, adversarial probe). Removed
+      // here - the lock is held - and written again by this worker's first claim cycle.
+      for (const f of ['node-admission.json', 'node-claim-busy.json']) { try { rmSync(join(STATE_DIR, f), { force: true }); } catch { /* none */ } }
     }
     const { factoryAcceptance } = await import('./handlers/factory-acceptance.mjs');
     // THE WORK TYPES THIS NODE CAN DO, and nothing else is claimed. factory_acceptance: the Factory's own acceptance
