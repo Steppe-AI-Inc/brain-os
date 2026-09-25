@@ -133,10 +133,13 @@ export async function nodeStatus() {
   if (!process.env.FACTORY_RUNNER_PG_URL) return { state: 'URL NOT SET', ageMs: null, role: null, host: null, tls: null, plane, nodeId: id, error: 'FACTORY_RUNNER_PG_URL is not set in this shell - pass --runner-env <runner.env>, or run install-autostart.ps1 -Status (it reads the task\'s env file)' };
   if (!id) return { state: 'NOT REGISTERED', ageMs: null, role: null, host: null, tls: null, plane, nodeId: null, error: 'this checkout has no node identity yet (' + NODE_ID_FILE + ')' };
   try {
-    const r = await db.read(
-      "select security_role, platform, capabilities, last_heartbeat_at, extract(epoch from (now() - last_heartbeat_at)) * 1000 as age_ms from factory.nodes where node_id = $1", [id]);
-    let tls = null;
-    try { tls = (await db.withClient((c) => c.query('select ssl from pg_stat_ssl where pid = pg_backend_pid()'))).rows[0].ssl === true; } catch { tls = null; }
+    // ONE CONNECTION for the record and the TLS state: a second connection that met a reset dropped 'tls on' from a node read ALIVE
+    // (final verification 4, Work-PC probe)
+    const { r, tls } = await db.withClient(async (c) => {
+      const t = (await c.query('select ssl from pg_stat_ssl where pid = pg_backend_pid()')).rows[0];
+      const q = await c.query("select security_role, platform, capabilities, last_heartbeat_at, extract(epoch from (now() - last_heartbeat_at)) * 1000 as age_ms from factory.nodes where node_id = $1", [id]);
+      return { r: q, tls: t ? t.ssl === true : null };
+    });
     if (!r.rows.length) return { state: 'NOT REGISTERED', ageMs: null, role: null, host: null, tls, plane, nodeId: id };
     const row = r.rows[0];
     const ageMs = Number(row.age_ms);
@@ -242,20 +245,30 @@ async function giveBackOrphans(nodeId, mine, log) {
     "with runs as (update factory.agent_runs set lease_expires_at = now() where node_id = $1 and status = 'in_progress' and lease_expires_at > now()"
     + " and not (run_id = any($2::uuid[])) returning run_id),"
     + " locks as (update factory.surface_locks set lease_expires_at = now() where run_id in (select run_id from runs))"
-    + ' select run_id from runs', [nodeId, [...mine]]);
+    + ' select run_id from runs', [nodeId, [...mine.keys()]]);
   for (const x of r.rows) log('gave back the lease of run ' + String(x.run_id).slice(0, 8) + ': a claim of this node committed but its reply was lost - the plane requeues it');
 }
+
+// THE LEASE IS TIMED WITH A MONOTONIC CLOCK: a wall-clock step (a time-sync correction, a manual change) moved Date.now() under the
+// guard - stepped back 60 s, a cut-off node kept working 55 s after its lease had lapsed on the plane; stepped forward, a healthy run was
+// aborted (final verification 4, Work-PC probe). Durations only; the plane's lease runs on server time.
+export const monoNow = () => performance.now();
 
 /** 8. Renew the lease on a timer for as long as the work is running (the heartbeat also stamps the node record - claim.mjs).
  *  Returns { stop, signal }: the signal ABORTS the run when its lease cannot be kept (see below). */
 // claimedFrom: when the claim began (before its connect and BEGIN). The plane stamps the lease at the claim transaction's BEGIN; timed
 // from the moment the claim RETURNED, a claim that had waited on the claim lock was aborted after its lease lapsed and another node
 // had taken its surface (final verification 3, 2026-09-25). Earlier than BEGIN is the safe side.
-export function startHeartbeat({ runId, id, leaseSeconds = DEFAULT_LEASE_SECONDS, reg = null, claimedFrom = Date.now() }) {
+export function startHeartbeat({ runId, id, leaseSeconds = DEFAULT_LEASE_SECONDS, reg = null, claimedFrom = monoNow() }) {
   const leaseMs = leaseSeconds * 1000;
   const everyMs = Math.max(5000, Math.floor(leaseMs / 3));
   // the lease the plane holds runs from the START of the last renewal that landed (the server stamps it while the statement runs)
-  let lost = false, stopped = false, inFlight = false, leaseFrom = claimedFrom, retry = null;
+  let lost = false, stopped = false, inFlightSince = 0, leaseFrom = claimedFrom, retry = null;
+  // A RENEWAL THAT HANGS DOES NOT HOLD THE NEXT ONE BACK: one renewal stalled on a path that stopped forwarding fails only at the statement
+  // timeout (60 s), and it kept every later renewal from starting - the guard aborted a healthy run whose next renewal would have landed,
+  // and the work started again from zero (final verification 4, Work-PC probe). A renewal in flight longer than this is left to finish on
+  // its own and another is sent: a renewal is idempotent, and the lease start only moves forward.
+  const hungMs = Math.max(10000, Math.floor(leaseMs / 6));
   // settled: the run's work is over and only its completion is left (see settle below)
   let finishing = false;
   const ac = new AbortController();
@@ -270,17 +283,18 @@ export function startHeartbeat({ runId, id, leaseSeconds = DEFAULT_LEASE_SECONDS
       .then(() => db.write('update factory.surface_locks set lease_expires_at = now() where run_id = $1', [runId])).catch(() => { /* the lease lapses by itself */ });
   };
   const renew = () => {
-    if (stopped || inFlight || ac.signal.aborted) return;
-    inFlight = true;
-    const startedAt = Date.now();
+    if (stopped || ac.signal.aborted) return;
+    if (inFlightSince && monoNow() - inFlightSince < hungMs) return;
+    if (inFlightSince) say('a lease renewal has not answered for ' + Math.round((monoNow() - inFlightSince) / 1000) + ' s - another one is sent');
+    const startedAt = monoNow(); inFlightSince = startedAt;
     heartbeat({ runId, nodeId: id, leaseSeconds })
       // a lost lease is said once; the completion fence (claim.mjs completeRun) keeps this run's result off the work order
       // (never said of a run this node has already finished - its beat may land after the completion)
-      .then((ok) => { if (stopped) return; if (ok) { leaseFrom = startedAt; return; } if (finishing) return; if (!lost) { lost = true; say('LOST its lease (taken over by another node); its result will not complete the work order'); abort('its lease was taken over by another node'); } })
+      .then((ok) => { if (stopped) return; if (ok) { if (startedAt > leaseFrom) leaseFrom = startedAt; return; } if (finishing) return; if (!lost) { lost = true; say('LOST its lease (taken over by another node); its result will not complete the work order'); abort('its lease was taken over by another node'); } })
       // A FAILED RENEWAL IS RETRIED IN SECONDS, not at the next tick: one failure left the next attempt racing the abort guard, and
       // over the internet (a renewal takes ~1.5 s through a remote pooler) it lost - a healthy run was aborted (final verification 2)
       .catch(() => { if (!stopped && !retry) { retry = setTimeout(() => { retry = null; renew(); }, 5000); if (typeof retry.unref === 'function') retry.unref(); } })
-      .finally(() => { inFlight = false; });
+      .finally(() => { if (inFlightSince === startedAt) inFlightSince = 0; });
   };
   // THE FIRST RENEWAL IS DUE A THIRD OF THE LEASE AFTER THE LEASE BEGAN (claimedFrom), not after the claim returned: a slow claim was
   // aborted while its first renewal, scheduled from the claim's return, was still in flight - and the node re-claimed and aborted the
@@ -292,14 +306,18 @@ export function startHeartbeat({ runId, id, leaseSeconds = DEFAULT_LEASE_SECONDS
     // ...and the role, while busy too (a long run no longer leaves a demotion standing until it ends)
     nodeBeat(id, nodeRole(), reg).then((b) => { if (b.found && b.was !== nodeRole()) console.log('[' + String(id).slice(0, 13) + '] the plane held role ' + b.was + ' for this node - re-asserted ' + nodeRole()); if (b.recordChanged) console.log('[' + String(id).slice(0, 13) + '] the plane held a different registration for this node - re-asserted'); }, () => { /* the next beat */ });
   };
-  const first = setTimeout(() => { if (stopped) return; tick(); timer = setInterval(tick, everyMs); if (typeof timer.unref === 'function') timer.unref(); }, Math.max(0, claimedFrom + everyMs - Date.now()));
+  const first = setTimeout(() => { if (stopped) return; tick(); timer = setInterval(tick, everyMs); if (typeof timer.unref === 'function') timer.unref(); }, Math.max(0, claimedFrom + everyMs - monoNow()));
   // A RUN THAT CANNOT RENEW ITS LEASE STOPS BEFORE THE LEASE CAN LAPSE. A node cut off from the plane kept working after its lease
   // lapsed and another node had taken the surface: two machines worked one surface at once, and the work ran twice (final
   // verification 2026-09-24). The run is aborted when its lease - as the plane holds it, from the start of the last renewal that landed -
   // is about to lapse: a third of the lease, at most 5 s, before it does. Not at two thirds of the lease: that aborted healthy runs
   // whose next renewal was still landing over a slow link (final verification 2, 2026-09-25).
   const margin = Math.min(5000, leaseMs / 3);
-  const guard = setInterval(() => { if (!stopped && Date.now() - leaseFrom > leaseMs - margin) abort('no lease renewal for ' + Math.round((Date.now() - leaseFrom) / 1000) + ' s (lease ' + leaseSeconds + ' s) - stopped before the lease can lapse and another node takes its surface'); }, 1000);
+  const guard = setInterval(() => {
+    // (a renewal that hangs is followed by another, not waited for - see hungMs)
+    if (!stopped && inFlightSince && monoNow() - inFlightSince >= hungMs) renew();
+    if (!stopped && monoNow() - leaseFrom > leaseMs - margin) abort('no lease renewal for ' + Math.round((monoNow() - leaseFrom) / 1000) + ' s (lease ' + leaseSeconds + ' s) - stopped before the lease can lapse and another node takes its surface');
+  }, 1000);
   for (const t of [first, guard]) if (typeof t.unref === 'function') t.unref();
   // SETTLE: THE WORK IS OVER, ONLY ITS COMPLETION IS LEFT. A renewal still in flight when the completion committed found no run in
   // progress and was read as a takeover: a run that completed normally was logged LOST and ABORTED (final verification 3, 2026-09-25,
@@ -377,19 +395,20 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
     try { mkdirSync(STATE_DIR, { recursive: true }); writeFileSync(join(STATE_DIR, 'node-claim-busy.json'), JSON.stringify({ since, at: new Date().toISOString() })); } catch { /* status only */ }
   };
   let ready = false;
-  // the runs this process claimed: any other run of this node in progress, found while this node is idle, is an orphan (below)
-  const mine = new Set();
+  // the runs this process claimed (with when): any other run of this node in progress, found while this node is idle, is an orphan (below).
+  // Only a run within a few leases can still be in progress, so older entries are dropped - a worker running for months keeps a short list.
+  const mine = new Map();
   for (let i = 0; i < maxIterations; i++) {
-    let claimStart = Date.now(), claimTries = 0;
+    let claimStart = monoNow(), claimTries = 0;
     const run = await retryTransient(async () => {
-      claimStart = Date.now();
+      claimStart = monoNow();
       // A CLAIM RETRIED AFTER A TRANSIENT ERROR may have committed before its reply was lost: its run stood in progress on this node,
       // unworked and never mentioned, for a whole lease (final verification 4, adversarial probe). This node is idle here, so a run of
       // its own in progress that this process did not claim is such an orphan: its lease is given back first, and the plane requeues it.
       if (claimTries++ > 0) await giveBackOrphans(id, mine, log);
       return claimWork({ nodeId: id, leaseSeconds, requestedProvider, requestedModel, workTypes, baseCommit: commit });
     }, 'claim', log);
-    if (run) mine.add(run.run_id);
+    if (run) { mine.set(run.run_id, monoNow()); for (const [k, t] of mine) if (monoNow() - t > 3 * leaseSeconds * 1000) mine.delete(k); }
     noteAdmission();
     noteBusy();
     // READY = ONE COMPLETED CLAIM CYCLE. Only now is liveness stamped, and the line below is what the supervisor resets its
@@ -445,6 +464,9 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
       // ran it, and the work was done again (final verification 3, Work-PC probe). A checkpoint carries its own id, so a retry after one
       // that landed writes it once; a retry stops as soon as the run is aborted (its lease could not be kept).
       const result = await runWork({ run, workOrder: woRow, worktree: wt, nodeId: id, log, head: commit, signal: hb.signal,
+        // ...and the run's own statements on the plane go through the same retry (the acceptance handler's verification and takeover
+        // writes threw the run away on one transient loss - the class the checkpoint and completion retries closed)
+        retry: (fn, what) => retryTransient(() => { if (hb.signal.aborted) throw hb.signal.reason || new Error('run aborted'); return fn(); }, (what || 'a statement') + ' of run ' + short, log),
         checkpoint: (location, scenario, payload) => {
           const checkpointId = randomUUID();
           return retryTransient(() => {
@@ -479,8 +501,8 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
       }); }, 'completion of run ' + short, log);
       let superseded = !!(fin && fin.superseded);
       if (superseded && completionAttempts > 1) {
-        const mine = (await retryTransient(() => db.read('select status, node_id from factory.agent_runs where run_id = $1', [run.run_id]), 'completion check of run ' + short, log)).rows[0];
-        if (mine && mine.node_id === id && mine.status === finished) { superseded = false; log('run ' + short + ': an earlier attempt of its completion had landed (its reply was lost)'); }
+        const landed = (await retryTransient(() => db.read('select status, node_id from factory.agent_runs where run_id = $1', [run.run_id]), 'completion check of run ' + short, log)).rows[0];
+        if (landed && landed.node_id === id && landed.status === finished) { superseded = false; log('run ' + short + ': an earlier attempt of its completion had landed (its reply was lost)'); }
       }
       if (superseded) log('run ' + String(run.run_id).slice(0, 8) + ' finished AFTER its lease was taken over - its result is not recorded as the work order\'s (the node that holds it completes it)');
       // a failure is said as one ('completed run' was logged for failed runs too - verification round 4)
@@ -791,7 +813,10 @@ if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
   else if (cmd === 'health') { const r = await health(); process.exit(r.ok ? 0 : 1); }
   else if (cmd === 'capabilities') { console.log(JSON.stringify(capabilities(), null, 2)); }
   else if (cmd === 'status') {
-    const s = await nodeStatus();
+    // ONE PROBE IS NOT A VERDICT, here too: -Status printed UNREACHABLE for a healthy node on a single reset (final verification 4,
+    // Work-PC probe). Asked three times, 2 s apart, before the plane is said to be unreachable.
+    let s = await nodeStatus();
+    for (let i = 1; i < 3 && s.state === 'UNREACHABLE'; i++) { await new Promise((r) => setTimeout(r, 2000)); s = await nodeStatus(); }
     const age = s.neverBeaten ? ' (never beaten: registered, but no worker has completed a claim cycle)' : s.ageMs == null ? '' : ' (heartbeat ' + Math.round(s.ageMs / 1000) + ' s ago)';
     console.log(s.state + age + ' — node ' + (s.nodeId ? s.nodeId.slice(0, 13) : '(none yet)') + (s.role ? ', role ' + s.role : '') + (s.head ? ', commit ' + s.head.slice(0, 12) + (s.dirty ? '+dirty' : '') : '') + (s.host ? ', host ' + s.host : '')
       + ', plane ' + s.plane + (s.tls == null ? '' : ', tls ' + (s.tls ? 'on' : 'OFF')) + (s.error ? ' — ' + s.error : '')
@@ -827,9 +852,9 @@ if (process.argv[1] && /node\.mjs$/.test(process.argv[1])) {
     // with the fix instead of an uncaught stack; the supervisor provides the URL from the env file, a bare shell does not
     try {
     await nodeStart({
-      runWork: async ({ run, workOrder, checkpoint: cp, nodeId: nid, log: l, head, signal }) => {
+      runWork: async ({ run, workOrder, checkpoint: cp, nodeId: nid, log: l, head, signal, retry }) => {
         // The Factory's own acceptance work is the one thing the generic bootstrap runs itself (handlers/factory-acceptance.mjs).
-        if (workOrder && workOrder.work_type === 'factory_acceptance') return factoryAcceptance({ run, workOrder, checkpoint: cp, nodeId: nid, log: l, head, signal });
+        if (workOrder && workOrder.work_type === 'factory_acceptance') return factoryAcceptance({ run, workOrder, checkpoint: cp, nodeId: nid, log: l, head, signal, retry });
         if (workOrder && workOrder.work_type === 'bootstrap_probe') {
           await cp('qa/verification/CHECKPOINT.md', 'bootstrap_probe');
           return { status: 'done', terminationReason: 'bootstrap_probe_completed', summary: 'bootstrap probe ' + run.work_order_id + ' claimed and completed; a probe does no work by definition' };

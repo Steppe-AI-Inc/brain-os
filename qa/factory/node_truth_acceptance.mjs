@@ -60,6 +60,12 @@
 //   N30 the work-order read right after a claim is retried through a transient loss (the run was thrown away)
 //   N31 a slow claim (it waited on the claim lock) is not aborted before its first renewal: that renewal is due a third of the lease
 //      after the lease began, not after the claim returned (a node re-claimed and aborted the same work order forever)
+//   N32 a run's own statements (the acceptance handler's verification) are retried through a transient loss, once, with one verdict
+//   N33 a lease renewal that HANGS (a path that stopped forwarding) does not hold the next one back: another is sent, the run completes
+//   N34 the lease guard runs on a monotonic clock: a wall-clock step back of 60 s does not keep a cut-off run working past its lease
+//   N35 the runbook's scripts read the env file as the node does (--runner-env, the CA path resolved to the local copy) and end on one
+//      line when the plane cannot be reached
+//   N36 node.mjs status asks the plane three times before it says UNREACHABLE (one reset read a healthy node UNREACHABLE)
 import { startLocalPg } from './local_pg.mjs';
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync, rmSync } from 'node:fs';
@@ -724,13 +730,15 @@ try {
   currentRow = 'N31';
   {
     const S14 = join(WORK, 'state-slowclaim');
-    const w11 = spawnWorker({ state: S14, role: 'generic', extra: { FACTORY_LEASE_SECONDS: '30', FACTORY_PG_LOCK_TIMEOUT_MS: '40000', FACTORY_PG_QUERY_TIMEOUT_MS: '40000' } });
+    // (its connections carry application_name=n31, so the wait below is THIS worker's - other workers here wait on the claim lock too, and
+    // one of theirs made the row measure a shorter wait than it meant)
+    const w11 = spawnWorker({ state: S14, role: 'generic', url: pg.runnerUrl + '?application_name=n31', extra: { FACTORY_LEASE_SECONDS: '30', FACTORY_PG_LOCK_TIMEOUT_MS: '40000', FACTORY_PG_QUERY_TIMEOUT_MS: '40000' } });
     await waitFor(async () => /\] ready: first claim cycle completed/.test(w11.out), 60000);
     const holder = new pgLib.Client({ connectionString: pg.superUrl }); holder.on('error', () => {}); await holder.connect();
     await holder.query('begin'); await holder.query("select pg_advisory_xact_lock(hashtext('factory.claim'))");
     const h = await seed('N31 a hold claimed after an 18 s wait on the claim lock', { type: 'factory_acceptance', handoff: JSON.stringify({ action: 'hold', seconds: 15 }), caps: ['factory_acceptance', 'node:' + idOf(S14)] });
     // the worker's claim is waiting on the lock; it waits 18 s more
-    const waiting = await waitFor(async () => Number((await admin.query("select count(*)::int n from pg_locks where locktype = 'advisory' and not granted")).rows[0].n) > 0, 20000, 200);
+    const waiting = await waitFor(async () => Number((await admin.query("select count(*)::int n from pg_locks l join pg_stat_activity a on a.pid = l.pid where l.locktype = 'advisory' and not l.granted and a.application_name = 'n31'")).rows[0].n) > 0, 20000, 200);
     await sleep(18000);
     await holder.query('rollback'); await holder.end();
     const done = await waitFor(async () => (await woStatus(h)) === 'done', 90000, 500);
@@ -739,6 +747,140 @@ try {
     check('N31 a claim that waited 18 s on the claim lock is not aborted before its first renewal (lease 30 s): ' + (done ? 'done' : 'NOT done') + ', ' + runsH.length + ' run(s), ' + (/ABORTED/.test(w11.out) ? 'ABORTED' : 'not aborted'),
       !!waiting && !!done && runsH.length === 1 && runsH[0].status === 'done' && !/ABORTED/.test(w11.out),
       JSON.stringify({ waiting: !!waiting, runs: runsH.map((r) => r.status + ':' + r.termination_reason) }) + '\n' + w11.out.slice(-900));
+  }
+
+  // ---- N32. a run's own statements are retried: the verification write meets a transient loss -----------------------------------
+  currentRow = 'N32';
+  {
+    const net = await import('node:net');
+    const socks = []; const seen = { dropped: 0 };
+    const relay = net.createServer((c) => {
+      c.on('error', () => {}); socks.push(c);
+      const u = net.connect(pg.port, '127.0.0.1'); u.on('error', () => {}); socks.push(u);
+      let loseReply = false;
+      c.on('data', (d) => { if (!seen.dropped && d.toString('latin1').includes('set verification_run_id = $2')) { seen.dropped++; loseReply = true; } if (!u.destroyed) u.write(d); });
+      u.on('data', (d) => { if (loseReply) { setTimeout(() => { c.destroy(); u.destroy(); }, 300); return; } if (!c.destroyed) c.write(d); });
+      c.on('close', () => u.destroy()); u.on('close', () => c.destroy());
+    });
+    await new Promise((r) => relay.listen(0, '127.0.0.1', r));
+    const relayUrl = pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + relay.address().port + '/');
+    const S15 = join(WORK, 'state-verifyretry');
+    const w12 = spawnWorker({ state: S15, role: 'verifier', url: relayUrl, extra: { FACTORY_LEASE_SECONDS: '90' } });
+    await waitFor(async () => /\] ready: first claim cycle completed/.test(w12.out), 60000);
+    const w12id = idOf(S15);
+    await claim.registerNode({ nodeId: 'node-author-n32', capabilities: [], securityRole: 'generic', platform: 'test other-host' });
+    const aw = await seed('N32 authored done', { type: 'qa_none' });
+    const authoredRun = (await admin.query("insert into factory.agent_runs (work_order_id, node_id, status, termination_reason, authoring_node_id, started_at, finished_at) values ($1, 'node-author-n32', 'done', 'completed', 'node-author-n32', now(), now()) returning run_id", [aw])).rows[0].run_id;
+    await admin.query('update factory.agent_runs set authoring_run_id = run_id where run_id = $1', [authoredRun]);
+    const h = await seed('N32 a verification whose write meets a transient loss', { type: 'factory_acceptance', handoff: JSON.stringify({ action: 'verify', authoringRunId: authoredRun }), caps: ['factory_acceptance', 'node:' + w12id] });
+    const t0 = Date.now();
+    const done = await waitFor(async () => (await woStatus(h)) === 'done', 60000, 500);
+    const took = Math.round((Date.now() - t0) / 1000);
+    const runsH = await runsOf(h);
+    const cols = (await admin.query('select verification_run_id, verification_node_id from factory.agent_runs where run_id = $1', [authoredRun])).rows[0];
+    try { w12.kill(); } catch { /* gone */ }
+    relay.close(); for (const x of socks) { try { x.destroy(); } catch { /* gone */ } }
+    check('N32 a run\'s own verification write is retried through a transient loss: done in ' + took + ' s (lease 90 s), ' + runsH.map((r) => r.status + ':' + r.termination_reason).join(',') + ', verified by ' + (cols.verification_node_id === w12id ? 'this node' : cols.verification_node_id) + (seen.dropped ? '' : ' - NO REPLY WAS DROPPED'),
+      seen.dropped === 1 && !!done && took < 45 && runsH.length === 1 && runsH[0].termination_reason === 'completed_with_verdict' && cols.verification_node_id === w12id && cols.verification_run_id === runsH[0].run_id
+        && /verification of run [0-9a-f]{8} failed on a transient plane error/.test(w12.out) && !/threw/.test(w12.out),
+      JSON.stringify({ seen, cols, runs: runsH.map((r) => r.status + ':' + r.termination_reason) }) + '\n' + w12.out.slice(-800));
+  }
+
+  // ---- N33. a renewal that hangs does not hold the next one back ---------------------------------------------------------------------
+  // Deterministic, through a relay: the connection that carries the FIRST renewal is held - nothing forwarded, nothing closed - so that
+  // renewal fails only at the statement timeout (60 s). The lease is 30 s; the run holds 40 s.
+  currentRow = 'N33';
+  {
+    const net = await import('node:net');
+    const socks = []; const seen = { stalled: 0 };
+    const relay = net.createServer((c) => {
+      c.on('error', () => {}); socks.push(c);
+      const u = net.connect(pg.port, '127.0.0.1'); u.on('error', () => {}); socks.push(u);
+      let stalled = false;
+      c.on('data', (d) => { if (stalled) return; if (!seen.stalled && d.toString('latin1').includes('with run as (')) { seen.stalled++; stalled = true; return; } if (!u.destroyed) u.write(d); });
+      u.on('data', (d) => { if (!stalled && !c.destroyed) c.write(d); });
+      c.on('close', () => u.destroy()); u.on('close', () => { if (!stalled) c.destroy(); });
+    });
+    await new Promise((r) => relay.listen(0, '127.0.0.1', r));
+    const relayUrl = pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + relay.address().port + '/');
+    const S16 = join(WORK, 'state-hung');
+    const w13 = spawnWorker({ state: S16, role: 'generic', url: relayUrl, extra: { FACTORY_LEASE_SECONDS: '30' } });
+    await waitFor(async () => /\] ready: first claim cycle completed/.test(w13.out), 60000);
+    const h = await seed('N33 a hold whose first renewal hangs', { type: 'factory_acceptance', handoff: JSON.stringify({ action: 'hold', seconds: 40 }), caps: ['factory_acceptance', 'node:' + idOf(S16)] });
+    const done = await waitFor(async () => (await woStatus(h)) === 'done', 120000, 500);
+    const runsH = await runsOf(h);
+    try { w13.kill(); } catch { /* gone */ }
+    relay.close(); for (const x of socks) { try { x.destroy(); } catch { /* gone */ } }
+    check('N33 a lease renewal that hangs does not hold the next one back: another is sent and the 40 s hold completes on a 30 s lease (' + (done ? 'done' : 'NOT done') + ', ' + runsH.length + ' run(s), ' + (/ABORTED/.test(w13.out) ? 'ABORTED' : 'not aborted') + ')',
+      seen.stalled === 1 && !!done && runsH.length === 1 && runsH[0].status === 'done' && !/ABORTED/.test(w13.out) && /a lease renewal has not answered for \d+ s - another one is sent/.test(w13.out),
+      JSON.stringify({ seen, runs: runsH.map((r) => r.status + ':' + r.termination_reason) }) + '\n' + w13.out.slice(-900));
+  }
+
+  // ---- N34. the lease guard runs on a monotonic clock ----------------------------------------------------------------------------
+  // In its own process: startHeartbeat against a plane nothing answers for (every renewal fails), and at 5 s the wall clock is stepped
+  // back 60 s. The guard must abort 25 s after the claim (lease 30 s), measured on the monotonic clock - not 60 s later.
+  currentRow = 'N34';
+  {
+    const net = await import('node:net');
+    const dead = await new Promise((r) => { const srv = net.createServer(); srv.listen(0, '127.0.0.1', () => { const p = srv.address().port; srv.close(() => r(p)); }); });
+    const deadUrl = pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + dead + '/');
+    const probe = "const { startHeartbeat } = await import(" + JSON.stringify(pathToFileURL(NODE).href) + ");"
+      + " const t0 = performance.now(); const realNow = Date.now.bind(Date);"
+      + " const hb = startHeartbeat({ runId: '00000000-0000-4000-8000-000000000034', id: 'node-n34', leaseSeconds: 30 });"
+      + " setTimeout(() => { Date.now = () => realNow() - 60000; }, 5000);"
+      + " hb.signal.addEventListener('abort', () => { console.log('ABORTED_AT ' + ((performance.now() - t0) / 1000).toFixed(1)); process.exit(0); });"
+      + " setTimeout(() => { console.log('NOT_ABORTED within 45 s'); process.exit(0); }, 45000);";
+    const r = spawnSync(process.execPath, ['--input-type=module', '-e', probe], { cwd: ROOT, encoding: 'utf8', timeout: 90000, env: { ...process.env, FACTORY_RUNNER_PG_URL: deadUrl, FACTORY_STATE_DIR: join(WORK, 'state-n34') } });
+    const at = Number((String(r.stdout).match(/ABORTED_AT ([\d.]+)/) || [])[1]);
+    check('N34 the lease guard runs on a monotonic clock: with the wall clock stepped back 60 s it still aborts the cut-off run at ' + (at ? at + ' s' : 'NEVER') + ' (lease 30 s)',
+      at >= 24 && at <= 28, String(r.stdout || '').slice(-400) + String(r.stderr || '').slice(-400));
+  }
+
+  // ---- N35. the runbook's scripts read the env file as the node does, and end on one line --------------------------------------------
+  currentRow = 'N35';
+  {
+    const tms = join(ROOT, 'qa/factory/two_machine_scheduling.mjs');
+    const E = join(WORK, 'env-n35'); mkdirSync(E, { recursive: true });
+    const pemB64 = (readFileSync(join(ROOT, 'scripts/factory-runner/runner-env.regression.test.mjs'), 'utf8').match(/'-----BEGIN CERTIFICATE-----',([\s\S]*?)'-----END CERTIFICATE-----'/) || [, ''])[1].replace(/[',\s]/g, '');
+    writeFileSync(join(E, 'qa-n35-ca.crt'), '-----BEGIN CERTIFICATE-----\n' + (pemB64.match(/.{1,64}/g) || []).join('\n') + '\n-----END CERTIFICATE-----\n');
+    // the other machine's CA path, as a copied runner.env carries it; the copy sits beside the env file
+    const otherCa = 'C:\\Users\\OtherPC\\.brain-factory\\qa-n35-ca.crt';
+    writeFileSync(join(E, 'runner.env'), 'FACTORY_RUNNER_PG_URL=' + pg.runnerUrl + '?sslmode=disable&sslrootcert=' + encodeURIComponent(otherCa) + '\n');
+    const net = await import('node:net');
+    const dead = await new Promise((r) => { const srv = net.createServer(); srv.listen(0, '127.0.0.1', () => { const p = srv.address().port; srv.close(() => r(p)); }); });
+    writeFileSync(join(E, 'dead.env'), 'FACTORY_RUNNER_PG_URL=' + pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + dead + '/') + '\n');
+    const envNoUrl = { ...process.env, FACTORY_RUNNER_PG_URL: '', FACTORY_STATE_DIR: join(WORK, 'state-n35') };
+    const good = spawnSync(process.execPath, [tms, 'seed', '--runner-env', join(E, 'runner.env')], { cwd: ROOT, encoding: 'utf8', timeout: 60000, env: envNoUrl });
+    const bad = spawnSync(process.execPath, [tms, 'seed', '--runner-env', join(E, 'dead.env')], { cwd: ROOT, encoding: 'utf8', timeout: 120000, env: envNoUrl });
+    const badOut = String(bad.stdout || '') + String(bad.stderr || '');
+    check('N35 the runbook\'s scripts read the env file as the node does (seed with the other machine\'s CA path: exit ' + good.status + ') and end on one line when the plane cannot be reached (exit ' + bad.status + ')',
+      good.status === 0 && /STAMP \S+/.test(good.stdout || '') && bad.status === 1 && /^FAILED: /m.test(badOut) && !/^\s+at /m.test(badOut),
+      String(good.stdout || '').slice(-300) + String(good.stderr || '').slice(-300) + '\n--- dead\n' + badOut.slice(-500));
+  }
+
+  // ---- N36. status asks the plane three times -------------------------------------------------------------------------------------
+  currentRow = 'N36';
+  {
+    const S17 = join(WORK, 'state-status3');
+    const w14 = spawnWorker({ state: S17, role: 'generic' });
+    await waitFor(async () => /\] ready: first claim cycle completed/.test(w14.out), 60000);
+    const net = await import('node:net');
+    const socks = []; let conns = 0;
+    const relay = net.createServer((c) => {
+      c.on('error', () => {}); socks.push(c);
+      if (++conns === 1) { c.destroy(); return; }   // the first connection is reset
+      const u = net.connect(pg.port, '127.0.0.1'); u.on('error', () => {}); socks.push(u);
+      c.pipe(u); u.pipe(c); c.on('close', () => u.destroy()); u.on('close', () => c.destroy());
+    });
+    await new Promise((r) => relay.listen(0, '127.0.0.1', r));
+    const relayUrl = pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + relay.address().port + '/');
+    // (spawned, not spawnSync: the relay runs in this process, and a blocked event loop would accept no connection at all)
+    const st = await new Promise((r) => { const c = spawn(process.execPath, [NODE, 'status', '--json'], { cwd: ROOT, env: { ...process.env, FACTORY_RUNNER_PG_URL: relayUrl, FACTORY_STATE_DIR: S17 }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true }); let o = ''; c.stdout.on('data', (d) => { o += d; }); c.stderr.on('data', (d) => { o += d; }); const t = setTimeout(() => { try { c.kill(); } catch { /* gone */ } }, 60000); c.on('exit', () => { clearTimeout(t); r({ stdout: o }); }); });
+    const j = (() => { try { return JSON.parse(String(st.stdout || '').trim().split(/\r?\n/).filter((l) => l.startsWith('{')).pop()); } catch { return null; } })();
+    try { w14.kill(); } catch { /* gone */ }
+    relay.close(); for (const x of socks) { try { x.destroy(); } catch { /* gone */ } }
+    check('N36 node.mjs status asks the plane three times before it says UNREACHABLE: with the first connection reset it reads ' + (j ? j.state + ', tls ' + j.tls : 'nothing'),
+      !!j && j.state === 'ALIVE' && j.tls === false && conns >= 2, String(st.stdout || '').slice(-400));
   }
 
   // ---- N22. an admission-only cycle is not a claim cycle ------------------------------------------------------------------------

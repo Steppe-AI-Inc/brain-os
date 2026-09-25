@@ -27,10 +27,26 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..', '..');
-const [mode, stampArg, leaseArg] = process.argv.slice(2);
+const argv = process.argv.slice(2);
+// --runner-env <file>: the env file AS THE NODE READS IT (runner-env.mjs) - the copied runner.env names the other machine's CA path, which
+// the node resolves to the copy beside the file; this script read FACTORY_RUNNER_PG_URL raw and failed with ENOENT on the Work PC
+// (final verification 4, Work-PC probe). Without it: FACTORY_RUNNER_PG_URL (its CA path resolved the same way), else ~/.brain-factory/runner.env.
+const envArgAt = argv.indexOf('--runner-env');
+const envArg = envArgAt > -1 ? argv.splice(envArgAt, 2)[1] : null;
+// ...and a failure is one line, not a stack (one dropped connection ended a wave with an uncaught 'Connection terminated unexpectedly')
+const oneLine = (e) => { console.log('FAILED: ' + String((e && e.message) || e).split('\n')[0].slice(0, 200) + ' - nothing more was done; run the same command again'); process.exit(1); };
+process.on('uncaughtException', oneLine); process.on('unhandledRejection', oneLine);
+const [mode, stampArg, leaseArg] = argv;
 const TITLE = 'TM-failover';
 if (!mode) { console.log('usage: two_machine_failover.mjs seed | hold <stamp> [leaseSec] | takeover <stamp> | verify <stamp> | cleanup [<stamp>|all] | rehearse'); process.exit(2); }
-if (!process.env.FACTORY_RUNNER_PG_URL) { console.log('FACTORY_RUNNER_PG_URL is not set (the designed refusal)'); process.exit(2); }
+{
+  const { loadRunnerUrl, resolveCaPath } = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/runner-env.mjs')).href);
+  if (envArg || !process.env.FACTORY_RUNNER_PG_URL) {
+    const r = loadRunnerUrl(envArg);
+    if (!r.usable) { console.log('no usable runner URL: ' + r.note + ' (pass --runner-env <runner.env>, or set FACTORY_RUNNER_PG_URL) - the designed refusal'); process.exit(2); }
+    process.env.FACTORY_RUNNER_PG_URL = r.url;
+  } else process.env.FACTORY_RUNNER_PG_URL = resolveCaPath(process.env.FACTORY_RUNNER_PG_URL).url;
+}
 
 const db = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/db.mjs')).href);
 const claim = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/claim.mjs')).href);

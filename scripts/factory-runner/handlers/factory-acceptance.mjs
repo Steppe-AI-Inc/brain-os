@@ -34,7 +34,8 @@ export const HANDLER_VERSION = 'factory-acceptance/2';
 export const ACTIONS = ['hold', 'die', 'verify', 'complete'];
 
 // head: the commit this node runs (stamped in every checkpoint - the evidence names the code that produced it). signal: aborts a hold.
-export async function factoryAcceptance({ run, workOrder, checkpoint, nodeId, log = () => {}, head = null, signal = null }) {
+// retry: the node's transient-loss retry for this run's own statements on the plane (node.mjs); each of them is idempotent
+export async function factoryAcceptance({ run, workOrder, checkpoint, nodeId, log = () => {}, head = null, signal = null, retry = (fn) => fn() }) {
   const host = hostname();
   // DONE ONLY FOR AN INSTRUCTION ACTUALLY CARRIED OUT. A handoff that did not parse became {} and any action other than
   // hold/die/verify fell through to 'complete' - 'verify-v2', 'Verify' and 'hold 30 seconds' were all reported done within a
@@ -69,14 +70,14 @@ export async function factoryAcceptance({ run, workOrder, checkpoint, nodeId, lo
   }
 
   if (p.action === 'die') {
-    const prior = (await db.read("select payload from factory.checkpoints where work_order_id = $1 and scenario = 'phase-1-hold' order by created_at desc limit 1", [run.work_order_id])).rows;
+    const prior = (await retry(() => db.read("select payload from factory.checkpoints where work_order_id = $1 and scenario = 'phase-1-hold' order by created_at desc limit 1", [run.work_order_id]), 'takeover read')).rows;
     if (!prior.length && p.dieOn === nodeId) {
       // phase 1: this node was named to die. Hand the work order to the takeover node, make the lease lapse in seconds
       // rather than minutes, checkpoint, and crash the worker. The supervisor restarts this node; the takeover node claims.
       await checkpoint('handlers/factory-acceptance.mjs', 'phase-1-hold', { ...base, phase: 1, lease: 10, takeoverNode: p.takeoverNode });
-      if (p.takeoverNode) await db.write('update factory.work_orders set requires_capabilities = $2::text[], updated_at = now() where work_order_id = $1', [run.work_order_id, ['factory_acceptance', 'handler:' + HANDLER_VERSION, 'node:' + p.takeoverNode]]);
-      await db.write("update factory.agent_runs set lease_expires_at = now() + interval '10 seconds' where run_id = $1", [run.run_id]);
-      await db.write("update factory.surface_locks set lease_expires_at = now() + interval '10 seconds' where run_id = $1", [run.run_id]);
+      if (p.takeoverNode) await retry(() => db.write('update factory.work_orders set requires_capabilities = $2::text[], updated_at = now() where work_order_id = $1', [run.work_order_id, ['factory_acceptance', 'handler:' + HANDLER_VERSION, 'node:' + p.takeoverNode]]), 'takeover hand-over');
+      await retry(() => db.write("update factory.agent_runs set lease_expires_at = now() + interval '10 seconds' where run_id = $1", [run.run_id]), 'takeover lease');
+      await retry(() => db.write("update factory.surface_locks set lease_expires_at = now() + interval '10 seconds' where run_id = $1", [run.run_id]), 'takeover lease');
       log('DYING on purpose for ' + String(run.work_order_id).slice(0, 8) + ' (factory_acceptance die); the lease lapses in 10 s; the supervisor restarts this worker');
       await sleep(300);
       process.exit(3);
@@ -93,7 +94,8 @@ export async function factoryAcceptance({ run, workOrder, checkpoint, nodeId, lo
   }
 
   if (p.action === 'verify') {
-    const v = await recordVerification({ authoringRunId: p.authoringRunId, verificationRunId: run.run_id });
+    // (an UPDATE setting the same two columns: a retry after one whose reply was lost finds the same row and records the same verdict)
+    const v = await retry(() => recordVerification({ authoringRunId: p.authoringRunId, verificationRunId: run.run_id }), 'verification');
     await checkpoint('handlers/factory-acceptance.mjs', 'verify', { ...base, authoringRunId: p.authoringRunId, accepted: v.accepted, reason: v.reason || null });
     return v.accepted
       ? { status: 'done', terminationReason: 'completed_with_verdict', summary: 'verified ' + p.authoringRunId + ' on ' + host + ' by ' + nodeId }

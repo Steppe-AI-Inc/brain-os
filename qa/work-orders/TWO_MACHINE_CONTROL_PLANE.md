@@ -145,6 +145,10 @@ node qa/factory/two_machine_failover.mjs verify <s>
 instrument works, the milestone is not proved), **1 FAIL** (a row failed: it says which). Run it the other way round too
 (Work PC dies, Home PC takes over) — the plane has no notion of which machine is primary.
 
+Both scripts read the node's own env file, as the node does: `~/.brain-factory/runner.env` by default, or `--runner-env <file>` (or
+FACTORY_RUNNER_PG_URL when it is set) - the CA path a copied runner.env names is resolved to the copy beside it, so nothing is
+exported or edited on the Work PC; a plane that does not answer ends the script with one FAILED line.
+
 Rehearsed on one machine with `rehearse` (two node ids, real child processes): it must end in exit 3.
 
 **Milestones 3 and 4 on real machines** use `qa/factory/two_machine_scheduling.mjs` the same way: `seed` on either PC, `wave <stamp>` on
@@ -278,7 +282,9 @@ order): all or nothing.
   the worker running NOW, not from its predecessor.
 - *One worker per node identity.* A worker holds a lock for its state dir; a second one, or a bare `node.mjs start` beside a
   supervisor, does not start (exit 4).
-- *A run that cannot keep its lease stops before it lapses.* A failed renewal is retried within seconds; only when the lease the
+- *A run that cannot keep its lease stops before it lapses.* A failed renewal is retried within seconds, and one that hangs (a path
+  that stopped forwarding fails only at the 60 s statement timeout) no longer holds the next one back - another is sent after at most a
+  sixth of the lease (10 s at least); the lease is timed on a monotonic clock, so a wall-clock step moves nothing; only when the lease the
   plane holds (from the start of the last renewal that landed, and first from before the claim began: the plane stamps the lease at
   the claim's BEGIN, and a claim that had waited on the claim lock was aborted only after another node took its surface; and the first
   renewal is due a third of the lease after the lease began, not after the claim returned - a slow claim was aborted while that renewal was
@@ -317,7 +323,8 @@ order): all or nothing.
 - *Short losses do not take a node down.* A transient plane error (a reset, a refused or timed-out connection, a server
   restart) is retried inside the worker, 2 s doubling to 30 s, and it says so - the registration, the claim, and a run's checkpoints
   and completion (a completion that did not reach the plane threw a finished run away: its claim looked live for a lease while nothing
-  ran it, and the work was done again) - and the reads a run makes right after its claim. A checkpoint carries its own id, so a retry after one that landed writes it once; a retried
+  ran it, and the work was done again) - and the reads a run makes right after its claim, and a run's own statements (the acceptance
+  handler's verification and takeover writes, each idempotent). A checkpoint carries its own id, so a retry after one that landed writes it once; a retried
   completion that finds the run already finished by this node is its own completion, not a takeover. A claim retried after a
   transient error first gives back the lease of any run of this node in progress that the worker does not hold - a claim whose
   commit landed but whose reply was lost stood as a live claim nothing worked, for a whole lease. Only five minutes of nothing

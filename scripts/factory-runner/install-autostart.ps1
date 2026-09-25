@@ -167,7 +167,11 @@ function Get-TaskLogFile($ld) { if (-not $ld) { $ld = Get-TaskArg (Get-FactoryTa
 function Get-LastWorkerError($ld) {
   $f = Get-TaskLogFile $ld
   if (-not (Test-Path -LiteralPath $f)) { return 'no log at ' + $f }
-  $tail = Get-Content -LiteralPath $f -Tail 120
+  $tail = @(Get-Content -LiteralPath $f -Tail 400)
+  # only the lines of the worker the supervisor started last: an earlier worker's error was quoted for one still starting (the class of
+  # the admission verdict - final verification 4)
+  $from = -1; for ($i = $tail.Count - 1; $i -ge 0; $i--) { if ($tail[$i] -match 'node started \(pid \d+\)') { $from = $i; break } }
+  if ($from -ge 0) { $tail = $tail[$from..($tail.Count - 1)] }
   # the worker's own one-line verdict first ('error: ...' / REFUSED), then anything naming a failure - never a field of pg's
   # error-object dump ("routine: 'auth_failed'" was quoted as the cause; verification round 4)
   $l = $tail | Where-Object { $_ -match '^(error: |REFUSED)' -or $_ -match '\] (error: |REFUSED)' } | Select-Object -Last 1
@@ -192,19 +196,15 @@ function Get-NodeOnPlane($dir) {
   $envPath = Get-TaskArg (Get-FactoryTask) 'env'; if (-not $envPath) { $envPath = $EnvFile }
   if (-not (Test-Path -LiteralPath $envPath)) { return $null }
   # ONE PROBE IS NOT A VERDICT: a single reset on a flaky path read UNREACHABLE, and -Start restarted a healthy, busy node - abandoning its
-  # run (final verification 3, Work-PC probe). A probe that gets no answer from the plane is asked again: three times in all, 3 s apart.
-  $v = $null
-  for ($try = 1; $try -le 3; $try++) {
-    $prev = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
-    Remove-Item Env:FACTORY_RUNNER_PG_URL -ErrorAction SilentlyContinue
-    $out = & $NodeExe (Join-Path $dir 'scripts\factory-runner\node.mjs') status --json --runner-env $envPath 2>$null
-    $ErrorActionPreference = $prev
-    $j = $out | Where-Object { "$_" -like '{*' } | Select-Object -Last 1
-    $v = $null; if ($j) { try { $v = ($j | ConvertFrom-Json) } catch { } }
-    if ($v -and $v.state -ne 'UNREACHABLE') { return $v }
-    if ($try -lt 3) { Start-Sleep -Seconds 3 }
-  }
-  return $v
+  # run (final verification 3, Work-PC probe). node.mjs status (this checkout's own) asks the plane three times before it says UNREACHABLE;
+  # asking it three times here too made nine probes - minutes, on a host that does not answer.
+  $prev = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+  Remove-Item Env:FACTORY_RUNNER_PG_URL -ErrorAction SilentlyContinue
+  $out = & $NodeExe (Join-Path $dir 'scripts\factory-runner\node.mjs') status --json --runner-env $envPath 2>$null
+  $ErrorActionPreference = $prev
+  $j = $out | Where-Object { "$_" -like '{*' } | Select-Object -Last 1
+  if ($j) { try { return ($j | ConvertFrom-Json) } catch { } }
+  return $null
 }
 # THE PLANE MUST HAVE HEARD FROM THE CURRENT WORKER. A worker that registers and then fails every claim is restarted every few
 # seconds; each sample of "running" found a fresh worker, and the plane's ALIVE was the previous worker's (final verification
