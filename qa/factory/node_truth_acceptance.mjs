@@ -435,18 +435,25 @@ try {
   currentRow = 'N13';
   if (want('N13')) {
     const net = await import('node:net');
+    // THE LINK IS CUT THE MOMENT THE CLAIM'S COMMIT REPLY HAS BEEN PASSED ON: no renewal lands after the claim, so the guard has only its
+    // starting point to go by. (Cut later - at 'holding' - the first renewal, sent at once after a long claim, landed and re-based the
+    // lease, and a guard timed from the claim's return passed as well: its mutant survived with this row run alone.)
     let hole = false; const socks = [];
+    const COMMIT_Q = Buffer.concat([Buffer.from('Q'), Buffer.from([0, 0, 0, 11]), Buffer.from('commit\0', 'latin1')]);
     const relay = net.createServer((c) => {
       c.on('error', () => {}); socks.push(c);
       if (hole) return; // held: nothing is forwarded, the client's connect times out
       const u = net.connect(pg.port, '127.0.0.1'); u.on('error', () => {}); socks.push(u);
-      c.on('data', (d) => { if (!hole) u.write(d); }); u.on('data', (d) => { if (!hole) c.write(d); });
+      let inserted = false, committing = false;
+      c.on('data', (d) => { if (hole) return; if (d.toString('latin1').includes('insert into factory.agent_runs')) inserted = true; if (inserted && d.includes(COMMIT_Q)) committing = true; u.write(d); });
+      u.on('data', (d) => { if (hole) return; c.write(d); if (committing) { committing = false; hole = true; setTimeout(() => { for (const x of socks) { try { x.destroy(); } catch { /* gone */ } } }, 1000); } });
       c.on('close', () => u.destroy()); u.on('close', () => c.destroy());
     });
     await new Promise((r) => relay.listen(0, '127.0.0.1', r));
     const relayUrl = pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + relay.address().port + '/');
     const S5 = join(WORK, 'state-w3');
-    const w3 = spawnWorker({ state: S5, role: 'generic', url: relayUrl, extra: { FACTORY_LEASE_SECONDS: '15', FACTORY_PG_CONNECT_TIMEOUT_MS: '3000', FACTORY_PG_QUERY_TIMEOUT_MS: '30000', FACTORY_PG_LOCK_TIMEOUT_MS: '30000', FACTORY_PG_CLOSE_TIMEOUT_MS: '1000' } });
+    // (application_name=n13: the wait below is measured on THIS worker's connection - other workers here claim too)
+    const w3 = spawnWorker({ state: S5, role: 'generic', url: relayUrl + '?application_name=n13', extra: { FACTORY_LEASE_SECONDS: '15', FACTORY_PG_CONNECT_TIMEOUT_MS: '3000', FACTORY_PG_QUERY_TIMEOUT_MS: '30000', FACTORY_PG_LOCK_TIMEOUT_MS: '30000', FACTORY_PG_CLOSE_TIMEOUT_MS: '1000' } });
     await waitFor(async () => /\] ready: first claim cycle completed/.test(w3.out), 30000);
     const w3id = idOf(S5);
     const surface = 'qa/nodetruth/n13-shared';
@@ -455,11 +462,11 @@ try {
     const holder = new pgLib.Client({ connectionString: pg.superUrl }); holder.on('error', () => {});
     await holder.connect(); await holder.query('begin'); await holder.query("select pg_advisory_xact_lock(hashtext('factory.claim'))");
     const a = await seed('N13 held by the cut-off node', { type: 'factory_acceptance', handoff: JSON.stringify({ action: 'hold', seconds: 60 }), caps: ['factory_acceptance', 'node:' + w3id], surface });
+    const waiting = await waitFor(async () => Number((await admin.query("select count(*)::int n from pg_locks l join pg_stat_activity x on x.pid = l.pid where l.locktype = 'advisory' and not l.granted and x.application_name = 'n13'")).rows[0].n) > 0, 20000, 200);
     await sleep(12000);
     await holder.query('rollback'); await holder.end();
-    await waitFor(async () => /holding [0-9a-f]{8} for 60 s/.test(w3.out), 30000, 200);
+    await waitFor(async () => hole, 30000, 100);
     const runA = (await runsOf(a))[0];
-    hole = true; for (const x of socks) { try { x.destroy(); } catch { /* gone */ } }
     let abortedAt = 0;
     const b = await seed('N13 the same surface, another node', { type: 'qa_n13', surface });
     await registerOther();
@@ -477,8 +484,8 @@ try {
     relay.close(); for (const x of socks) { try { x.destroy(); } catch { /* gone */ } }
     if (taken) await claim.completeRun({ runId: taken.run_id, nodeId: 'node-n13-other', status: 'done', terminationReason: 'completed' });
     check('N13 a run whose lease cannot be renewed is aborted before the lease lapses (' + (abortedAt ? Math.round((takenAt - abortedAt) / 1000) + ' s before' : 'NOT aborted before') + ' another node took its surface), and the abandoned run keeps the node that ran it (' + (runAafter && runAafter.node_id === w3id ? 'kept' : 'lost') + ')',
-      !!taken && abortedAt > 0 && abortedAt < takenAt && runAafter && runAafter.status === 'queued' && runAafter.node_id === w3id && !/completed run/.test(w3.out.split('holding')[1] || ''),
-      JSON.stringify({ taken: !!taken, abortedAt, takenAt, runAafter }) + '\n' + w3.out.slice(-900));
+      !!waiting && !!runA && !!taken && abortedAt > 0 && abortedAt < takenAt && runAafter && runAafter.status === 'queued' && runAafter.node_id === w3id && !/completed run/.test(w3.out.split('claimed work order')[1] || ''),
+      JSON.stringify({ waiting: !!waiting, taken: !!taken, abortedAt, takenAt, runAafter }) + '\n' + w3.out.slice(-900));
   }
 
   // ---- N21. one failed renewal over a slow link does not abort a healthy run -------------------------------------------------------
