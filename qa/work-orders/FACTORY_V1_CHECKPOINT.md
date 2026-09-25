@@ -1,6 +1,6 @@
 # FACTORY V1 — DURABLE CHECKPOINT (for a fresh Claude Code session)
 
-## 0. RESUME HERE — 2026-09-25, packaging fix: final verification 3 applied, certification protocol running (NOTHING PUSHED since `ee2fce2b`)
+## 0. RESUME HERE — 2026-09-25, packaging fix: final verification 4 applied, certification protocol running (NOTHING PUSHED since `ee2fce2b`)
 
 - **Published remote** `factory/computer-agnostic-control-plane` = `ee2fce2b` (the founder found it cannot `npm ci`: no lock, `pg`
   undeclared). **No SHA goes to the Work PC until the certification protocol below has finished and the REMOTE is re-verified
@@ -85,6 +85,24 @@ Its Work-PC probe added (reproduced by a refuter): [medium] a transient plane lo
   finding above, closed by timing the lease from before the claim began (N13, N13c).
   Unit suites: RS-C6 (round-state) reads the closed Edge campaign's worktree and fails there whatever this branch holds - registered,
   not touched.
+- **The final verification of `9e0af976`** (wf_e3e30106-da6; every agent inspected exactly `9e0af976`) found, reproduced by refuters
+  where medium, no high defect but: [medium] -Start blamed "admission refuses its claims" for a worker that could not reach the plane
+  (the pattern missed 'admission: claiming', and a previous worker's admission record and refusal were repeated) -> only the current
+  worker's log lines and records count, each worker removes its predecessor's records (N28, F6 startDead; mutants N28, N16, F-ADMISSIONLOG);
+  [medium] two_machine_scheduling failed with the verifier's wave first -> the wave runs twice the hold and a minute, and each node takes at
+  most one conflict work order (N27, N27b); [medium] one lease renewal that HUNG (a path that stopped forwarding fails only at the 60 s
+  statement timeout) held every later one back and a healthy run was aborted and restarted from zero -> a renewal in flight longer than
+  max(10 s, lease/6) is followed by another (N33); and lows: a claim whose COMMIT reply was lost, and the reads right after a claim, and the
+  acceptance handler's own statements, threw a run away or left it unworked for a lease -> given back / retried (N29, N30, N32); the first
+  renewal was due a third of the lease after the claim RETURNED, so a slow claim was aborted again and again -> after the lease began
+  (N31); the lease guard ran on the wall clock -> monotonic (N34); -Verify read another checkout's env file and probed its plane -> it
+  stops there (F6; F-VERIFYOTHER); status and -Status read the plane once -> three tries in node.mjs status, one connection for the record
+  and TLS (N36); the runbook's scripts read FACTORY_RUNNER_PG_URL raw (the copied runner.env's CA path failed) and crashed on one reset ->
+  they read the env file as the node does and end on one line (N35); the TLS suite's teardown could leave an io worker -> local_pg's
+  stopServer (T9). The node's supervisor-commit, node-only commit/dirty checks gained F6 steps so each installer check keeps a mutant.
+  Its critic added: [low] two_machine_real crashed on one transient error with exit 1 (the code of FAIL) -> retried, INCONCLUSIVE exit 4
+  (N37); [low] composer row 2 counted a failover whose takeover never completed -> completed failovers only (N20; N20d). node_truth rows
+  run one at a time for the mutation proof (FACTORY_NT_ROWS): the suite takes about twenty minutes whole.
 - **Live state**: plane `npvhuoozkbexddnvkqsj` healthy; Home node `node-4d4a74dd` generic under the task (conhost --headless,
   control pipe, watchdog), to be restarted on the frozen SHA (APPLIED). Local plane on 54329. Backups:
   `C:\Users\Dell\dev\backups\factory-cp-2026-09-24-*.bundle`.
@@ -135,13 +153,13 @@ Its Work-PC probe added (reproduced by a refuter): [medium] a transient plane lo
 | suite | count | engine |
 |---|---|---|
 | `qa/factory/acceptance.mjs` | 58/58 (A-S3) | disposable PostgreSQL 18 |
-| `qa/factory/node_truth_acceptance.mjs` | 25/25 (N1-N26) | disposable plane, real worker and supervisor processes |
-| `qa/factory/acceptance_mutation_proof.mjs` | every mutant killed (M-S3, N1-N26, T8), run from factory-cp | sparse clones with one fix reverted each |
+| `qa/factory/node_truth_acceptance.mjs` | 37/37 (N1-N37) | disposable plane, real worker and supervisor processes |
+| `qa/factory/acceptance_mutation_proof.mjs` | every mutant killed (M-S3, N1-N37, T8), run from factory-cp; node_truth mutants one row each | sparse clones with one fix reverted each |
 | `qa/factory/health_check.mjs` | 10/10 | disposable |
 | `qa/factory/founder_poke_not_required.mjs` | 12/12 | disposable |
 | `scripts/factory-runner/db.regression.test.mjs` + `runner-env.regression.test.mjs` | 32 tests | pure |
 | `qa/factory/shared_control_plane_acceptance.mjs` | 18/18 | local embedded plane, real processes |
-| `qa/factory/tls_plane_acceptance.mjs` | 8/8 (T1-T8) | disposable TLS server on the LAN address |
+| `qa/factory/tls_plane_acceptance.mjs` | 9/9 (T1-T9) | disposable TLS server on the LAN address |
 | `qa/factory/dedicated_supabase_provisioning.mjs` | 11/11 | disposable TLS server dressed as Supabase |
 | `qa/factory/http_provider_acceptance.mjs` | 9/9 | stub provider + disposable plane |
 | `qa/factory/reboot_recovery_acceptance.mjs` | 9/9 | disposable plane + the live scheduled task |
