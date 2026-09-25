@@ -1,6 +1,6 @@
 # FACTORY V1 — DURABLE CHECKPOINT (for a fresh Claude Code session)
 
-## 0. RESUME HERE — 2026-09-25, packaging fix: final verification 4 applied, certification protocol running (NOTHING PUSHED since `ee2fce2b`)
+## 0. RESUME HERE — 2026-09-25, packaging fix: final verification 5 applied, certification protocol running (NOTHING PUSHED since `ee2fce2b`)
 
 - **Published remote** `factory/computer-agnostic-control-plane` = `ee2fce2b` (the founder found it cannot `npm ci`: no lock, `pg`
   undeclared). **No SHA goes to the Work PC until the certification protocol below has finished and the REMOTE is re-verified
@@ -103,6 +103,18 @@ Its Work-PC probe added (reproduced by a refuter): [medium] a transient plane lo
   Its critic added: [low] two_machine_real crashed on one transient error with exit 1 (the code of FAIL) -> retried, INCONCLUSIVE exit 4
   (N37); [low] composer row 2 counted a failover whose takeover never completed -> completed failovers only (N20; N20d). node_truth rows
   run one at a time for the mutation proof (FACTORY_NT_ROWS): the suite takes about twenty minutes whole.
+- **The final verification of `a11e63fb`** (wf_931dabf8-d04; every agent inspected exactly `a11e63fb`; the mediums reproduced by refuters)
+  found no high defect but: [medium] a correct schedule read as an overlap (a run's started_at was its claim transaction's BEGIN; a claim
+  that waited on the claim lock "started" before the run it waited for ended) -> started_at at the INSERT (N40); [medium] a scheduling wave
+  lost its own lease on a slow link before its first heartbeat and still said 'completed' -> it renews every lease it holds after each
+  claim and checkpoint, says LOST / NOT completed (N41); [medium] a node that admission refused read ALIVE indefinitely and the Home PC
+  picked it (17 minutes to a FAIL naming no cause - the registered limitation, shown to do harm) -> it stamps no liveness while refused and
+  reads STALE, the refusal said (N42); and lows: a COMMIT landing after the retry had looked for orphans (N29b); two_machine_real's
+  INCONCLUSIVE after rows had failed (N37b: FAIL); the manual scripts ending with exit 1 on one transient error (retried, INCONCLUSIVE
+  exit 4 - N35); the supervisor's backoff and the idle beat on the wall clock (N38, N39; the worker's uptime for the installer too, N38u;
+  the installer's deadlines on a Stopwatch); the backoff's error hidden by a newly started worker (F6; F-LASTERROR2); install/-Start reading
+  another checkout's env file first (F6; F-GUARDFIRST); plane-health ignoring --runner-env and a copied URL's CA path (N35b); a bare
+  worker's NOT STARTED read as "nothing logged" (F6; F-NOTSTARTED); nothing saying the Work PC's sleep timeout (F6; F-POWER).
 - **Live state**: plane `npvhuoozkbexddnvkqsj` healthy; Home node `node-4d4a74dd` generic under the task (conhost --headless,
   control pipe, watchdog), to be restarted on the frozen SHA (APPLIED). Local plane on 54329. Backups:
   `C:\Users\Dell\dev\backups\factory-cp-2026-09-24-*.bundle`.
@@ -154,8 +166,8 @@ Its Work-PC probe added (reproduced by a refuter): [medium] a transient plane lo
 | suite | count | engine |
 |---|---|---|
 | `qa/factory/acceptance.mjs` | 58/58 (A-S3) | disposable PostgreSQL 18 |
-| `qa/factory/node_truth_acceptance.mjs` | 37/37 (N1-N37) | disposable plane, real worker and supervisor processes |
-| `qa/factory/acceptance_mutation_proof.mjs` | every mutant killed (M-S3, N1-N37, T8), run from factory-cp; node_truth mutants one row each | sparse clones with one fix reverted each |
+| `qa/factory/node_truth_acceptance.mjs` | 46/46 (N1-N42) | disposable plane, real worker and supervisor processes |
+| `qa/factory/acceptance_mutation_proof.mjs` | every mutant killed (M-S3, N1-N42, T8), run from factory-cp; node_truth mutants one row each | sparse clones with one fix reverted each |
 | `qa/factory/health_check.mjs` | 10/10 | disposable |
 | `qa/factory/founder_poke_not_required.mjs` | 12/12 | disposable |
 | `scripts/factory-runner/db.regression.test.mjs` + `runner-env.regression.test.mjs` | 32 tests | pure |
