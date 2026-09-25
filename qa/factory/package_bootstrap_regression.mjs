@@ -562,7 +562,7 @@ if (!STATIC_ONLY) {
       for (let i = 0; i < 60 && !/ready: first claim cycle completed/.test(bareOut); i++) await sleep(500);
       cyc.startBesideBare = psT(['-Start']);
       try { bare.kill(); } catch { /* gone */ }
-      await gone(bare);
+      await new Promise((r) => { if (bare.exitCode !== null) return r(); const t = setTimeout(r, 20000); bare.on('exit', () => { clearTimeout(t); r(); }); });
       cyc.startAfterBare = psT(['-Start']);
       cyc.execute = run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName '" + scratchTask + "' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).Execute}else{'NONE'}"], ROOT).out.trim();
       cyc.stop = psT(['-Stop']);
