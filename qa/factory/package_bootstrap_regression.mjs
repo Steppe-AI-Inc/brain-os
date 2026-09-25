@@ -482,6 +482,50 @@ if (!STATIC_ONLY) {
       cyc.verifyCleanAgain = psT(['-Verify']);
       cyc.startCleanAgain = psT(['-Start']);
       cyc.verifyAfterClean = psT(['-Verify']);
+      // THE SUPERVISOR IS PART OF THE NODE (final verification 3, Work-PC probe): the checkout moves, and the worker is restarted by the
+      // supervisor still running the old commit - the new worker records the new commit, so only the supervisor's own record tells.
+      const stA = () => (existsSync(join(cloneA, '.factory', 'node-status.json')) ? readJson(join(cloneA, '.factory', 'node-status.json')) : {});
+      const killWorkerAndWait = async (ready) => {
+        const before = stA();
+        if (before.childPid) run('taskkill', ['/F', '/PID', String(before.childPid)], ROOT);
+        let now = {};
+        for (let i = 0; i < 60; i++) { await sleep(1000); now = stA(); if (now.state === 'running' && now.childPid && now.childPid !== before.childPid && (!ready || now.readyAt)) break; }
+        return { before, now };
+      };
+      run('git', ['-c', 'user.name=qa', '-c', 'user.email=qa@example.invalid', 'commit', '--allow-empty', '--quiet', '-m', 'qa: the checkout moves under a running supervisor'], cloneA);
+      const supMove = await killWorkerAndWait(true);
+      cyc.supMove = 'supervisor ' + supMove.before.supervisorPid + ' -> ' + supMove.now.supervisorPid + ', worker ' + supMove.before.childPid + ' -> ' + supMove.now.childPid + ', ready ' + !!supMove.now.readyAt;
+      cyc.verifySupMoved = psT(['-Verify']);
+      cyc.statusSupMoved = psT(['-Status']);
+      cyc.startSupMoved = psT(['-Start']);
+      cyc.verifyAfterSupMove = psT(['-Verify']);
+      // A WORKER THAT HAS NOT COMPLETED A CLAIM CYCLE is not the one the plane's ALIVE is about (final verification 3, Work-PC probe: -Status
+      // said ALIVE for crash-looping workers, from their predecessor's heartbeat). A superuser holds this node's record, so the next worker's
+      // registration waits: it runs, and has not completed a claim cycle, for as long as the record is held.
+      const holder = new admin.constructor({ connectionString: pg.superUrl }); holder.on('error', () => {}); await holder.connect();
+      const nodeIdA = readFileSync(join(cloneA, '.factory', 'node-id'), 'utf8').trim();
+      await holder.query('begin'); await holder.query('select 1 from factory.nodes where node_id = $1 for update', [nodeIdA]);
+      const unready = await killWorkerAndWait(false);
+      cyc.unready = 'worker ' + unready.before.childPid + ' -> ' + unready.now.childPid + ', ready ' + !!unready.now.readyAt;
+      cyc.statusUnready = psT(['-Status']);
+      cyc.verifyUnready = psT(['-Verify']);
+      await holder.query('rollback'); await holder.end();
+      for (let i = 0; i < 90 && !stA().readyAt; i++) await sleep(1000);
+      cyc.verifyReadyAgain = psT(['-Verify']);
+      // A PLANE THIS PC CANNOT REACH IS NO VERDICT (final verification 3, Work-PC probe: one reset read UNREACHABLE and -Start restarted a
+      // healthy, busy node, abandoning its run). The task's env file names a port nothing listens on: this PC's status probe cannot reach the
+      // plane, while the running worker keeps the URL it loaded. -Start must leave that node alone, and say why.
+      const net = await import('node:net');
+      const deadPort = await new Promise((r) => { const srv = net.createServer(); srv.listen(0, '127.0.0.1', () => { const p = srv.address().port; srv.close(() => r(p)); }); });
+      const envSaved = readFileSync(envFile, 'utf8');
+      const envDead = envSaved.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + deadPort + '/');
+      writeFileSync(envFile, envDead);
+      const supBeforeUnreach = stA();
+      cyc.startUnreachable = psT(['-Start']);
+      const supAfterUnreach = stA();
+      writeFileSync(envFile, envSaved);
+      cyc.unreachable = (envDead !== envSaved ? 'env pointed at a dead port' : 'ENV NOT CHANGED') + '; supervisor ' + supBeforeUnreach.supervisorPid + ' -> ' + supAfterUnreach.supervisorPid + ', worker ' + supBeforeUnreach.childPid + ' -> ' + supAfterUnreach.childPid;
+      cyc.verifyAfterUnreachable = psT(['-Verify']);
       cyc.execute = run('powershell', ['-NoProfile', '-Command', "$t=Get-ScheduledTask -TaskName '" + scratchTask + "' -ErrorAction SilentlyContinue; if($t){($t.Actions|Select-Object -First 1).Execute}else{'NONE'}"], ROOT).out.trim();
       cyc.stop = psT(['-Stop']);
       cyc.verifyStopped = psT(['-Verify']);
@@ -577,6 +621,12 @@ if (!STATIC_ONLY) {
         && cyc.verifyAfterMove.rc === 0 && /^commit\s+the node runs [0-9a-f]{12} but this checkout is at [0-9a-f]{12}/m.test(cyc.statusMoved.out)
         && cyc.verifyDirty.rc === 1 && /but this checkout is at [0-9a-f]{40}\+dirty/.test(cyc.verifyDirty.out) && cyc.startDirty.rc === 0 && /started: supervisor pid \d+/.test(cyc.startDirty.out)
         && cyc.verifyCleanAgain.rc === 1 && /the node runs commit [0-9a-f]{40}\+dirty but this checkout is at [0-9a-f]{40} /.test(cyc.verifyCleanAgain.out) && cyc.startCleanAgain.rc === 0 && cyc.verifyAfterClean.rc === 0
+        && /ready true/.test(cyc.supMove) && cyc.verifySupMoved.rc === 1 && /the supervisor runs commit [0-9a-f]{40} but this checkout is at [0-9a-f]{40}/.test(cyc.verifySupMoved.out)
+        && /^commit\s+the supervisor runs commit [0-9a-f]{40} but this checkout is at [0-9a-f]{40}/m.test(cyc.statusSupMoved.out)
+        && cyc.startSupMoved.rc === 0 && /runs commit [0-9a-f]{40} but this checkout is at [0-9a-f]{40} - restarting it/.test(cyc.startSupMoved.out) && /started: supervisor pid \d+/.test(cyc.startSupMoved.out) && cyc.verifyAfterSupMove.rc === 0
+        && /ready false/.test(cyc.unready) && /^node\s+NOT CONFIRMED here \(the worker now running/m.test(cyc.statusUnready.out) && !/^node\s+ALIVE/m.test(cyc.statusUnready.out)
+        && cyc.verifyUnready.rc === 1 && /has not completed a claim cycle/.test(cyc.verifyUnready.out) && cyc.verifyReadyAgain.rc === 0
+        && /^env pointed at a dead port; supervisor (\d+) -> \1, worker (\d+) -> \2$/.test(cyc.unreachable) && cyc.startUnreachable.rc === 5 && /cannot judge: the plane did not answer this PC's status probe/.test(cyc.startUnreachable.out) && cyc.verifyAfterUnreachable.rc === 0
         && (Number(String(os.release()).split('.')[2] || 0) < 17763 || /\\conhost\.exe$/i.test(cyc.execute))
         && cyc.stop.rc === 0 && cyc.verifyStopped.rc === 1 && /task is disabled/.test(cyc.verifyStopped.out)
         && cyc.start.rc === 0 && /nothing re-installed/.test(cyc.start.out) && /started: supervisor pid \d+/.test(cyc.start.out) && /--role verifier/.test(cyc.argsAfterStart)

@@ -191,7 +191,9 @@ the commit: machines whose node runs it cleanly, runs and checkpoints stamped wi
 A node keeps running the commit it started on when its checkout moves: `-Verify` fails naming both commits - clean or dirty
 counts too (a node recorded dirty beside a clean checkout at the same commit passed, and the fix two_machine_real printed did nothing) -
 `-Status` says so on a `commit` line, and `-Start` alone restarts it on the checkout's commit - so "put that PC on the commit and restart its node" is `git checkout <sha>; npm ci;
-install-autostart.ps1 -Start`.
+install-autostart.ps1 -Start`. The supervisor is part of the node: it records the commit it started on too, and `-Verify`, `-Status`
+and `-Start` compare that as well (after the checkout moved, a worker restarted by the old supervisor ran the new commit under the old
+supervisor's code, and `-Verify` passed).
 
 A worker completes only an instruction it carried out: an action its checkout does not know (a newer seeder, a typo, a wrong
 case) or a handoff that is not a JSON object FAILS the run and its work order by name (`factory_acceptance_unknown_action`,
@@ -249,8 +251,12 @@ cycle, AND the plane has heard from it since it started (the previous worker's h
 a worker whose admission refuses its claims is named as such. Otherwise it fails (exit 5) and says why: the refusal the supervisor recorded, or the error its worker
 keeps failing on (a password, a certificate, a host that does not answer). `-Verify` names the failing part: disabled, no
 watchdog, preflight, task not running, no supervisor, wrong role, worker failing (with its error and the next start), the plane
-not seeing the node, or the plane holding another role. `-Status` says DOWN when no supervisor answers here, and NOT RUNNING while
-the supervisor waits out a backoff, whatever the plane's last heartbeat says.
+not seeing the node, or the plane holding another role. `-Status` says DOWN when no supervisor answers here, NOT RUNNING while
+the supervisor waits out a backoff, and NOT CONFIRMED while the worker now running has not completed a claim cycle, whatever the
+plane's last heartbeat says (it read ALIVE for crash-looping workers, from their predecessor's heartbeat); `-Verify` fails then too.
+**One status probe is not a verdict.** A probe the plane does not answer is asked again, three times in all; and a node whose
+worker has completed its claim cycles is never restarted because this PC could not reach the plane - `-Start` says "cannot judge"
+(exit 5) and leaves it running (one reset on a flaky path restarted a healthy, busy node and abandoned its run).
 
 **No connection and no claim can hang or hold the plane.** Every plane connection has a connect timeout (20 s), a statement
 timeout (60 s) and TCP keepalive, set on the client because the Supabase pooler drops startup settings. Every claim transaction
@@ -305,8 +311,11 @@ order): all or nothing.
 - *A busy node is ALIVE.* The run heartbeat stamps the node record too (one statement with the lease and the locks); a node
   working longer than three minutes used to read STALE.
 - *Short losses do not take a node down.* A transient plane error (a reset, a refused or timed-out connection, a server
-  restart) is retried inside the worker, 2 s doubling to 30 s, and it says so; only five minutes of nothing but such errors hand
-  the node to its supervisor. The supervisor's backoff resets as soon as a worker has completed a claim cycle.
+  restart) is retried inside the worker, 2 s doubling to 30 s, and it says so - the registration, the claim, and a run's checkpoints
+  and completion (a completion that did not reach the plane threw a finished run away: its claim looked live for a lease while nothing
+  ran it, and the work was done again). A checkpoint carries its own id, so a retry after one that landed writes it once; a retried
+  completion that finds the run already finished by this node is its own completion, not a takeover. Only five minutes of nothing
+  but such errors during a claim hand the node to its supervisor. The supervisor's backoff resets as soon as a worker has completed a claim cycle.
 - *A failed run fails its work order,* in the same statement: nothing is left `claimed` with no run holding it, and its
   dependents are visibly blocked. `node.mjs health` names any stranded or failed work order.
 - *The URL judge refuses what pg would misread:* a space or a `%` that is not an escape (pg re-encodes such a URL whole and

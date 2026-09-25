@@ -379,7 +379,9 @@ export async function heartbeat({ runId, nodeId, leaseSeconds = DEFAULT_LEASE_SE
 export class LeaseLost extends Error { constructor(msg) { super(msg); this.name = 'LeaseLost'; } }
 
 /** Persist progress. The row is a pointer; the evidence lives in the repository. */
-export async function checkpoint({ runId, workOrderId, location, scenario = null, payload = {}, nodeId = null }) {
+// checkpointId: the caller's id for this checkpoint, so a retry after an insert that landed (its reply lost) writes ONE row - node.mjs
+// retries a checkpoint on a transient plane error (final verification 3, Work-PC probe). Without one, the plane makes an id.
+export async function checkpoint({ runId, workOrderId, location, scenario = null, payload = {}, nodeId = null, checkpointId = null }) {
   // FENCED: a run whose lease was taken over (its row requeued, or given to another node) writes no more progress - its
   // checkpoints used to interleave with the new owner's (verification 2026-09-24, round 3). With a nodeId the run must still
   // be in progress AND this node's; the caller learns it lost the lease and stops.
@@ -388,9 +390,10 @@ export async function checkpoint({ runId, workOrderId, location, scenario = null
     if (!own.rows.length) throw new LeaseLost('run ' + String(runId).slice(0, 8) + ' is no longer this node\'s (its lease was taken over); checkpoint not written');
   }
   await db.write(
-    `insert into factory.checkpoints (run_id, work_order_id, location, scenario, payload)
-     values ($1, $2, $3, $4, $5::jsonb)`,
-    [runId, workOrderId, location, scenario, JSON.stringify(payload)]);
+    `insert into factory.checkpoints (checkpoint_id, run_id, work_order_id, location, scenario, payload)
+     values (coalesce($6::uuid, gen_random_uuid()), $1, $2, $3, $4, $5::jsonb)
+     on conflict (checkpoint_id) do nothing`,
+    [runId, workOrderId, location, scenario, JSON.stringify(payload), checkpointId]);
   await db.write(
     `update factory.agent_runs
         set checkpoint_location = $2, last_completed_scenario = coalesce($3, last_completed_scenario),

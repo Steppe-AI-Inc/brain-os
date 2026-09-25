@@ -107,7 +107,7 @@ async function retryTransient(fn, what, log) {
     } catch (e) {
       if (!isTransientPlaneError(e)) throw e;
       if (!since) since = Date.now();
-      if (Date.now() - since >= TRANSIENT_GIVE_UP_MS) { log(what + ': transient plane errors for ' + Math.round((Date.now() - since) / 1000) + ' s - the worker exits to its supervisor'); throw e; }
+      if (Date.now() - since >= TRANSIENT_GIVE_UP_MS) { log(what + ': transient plane errors for ' + Math.round((Date.now() - since) / 1000) + ' s - given up' + (/^(claim|registration)$/.test(what) ? ': the worker exits to its supervisor' : '')); throw e; }
       log(what + ' failed on a transient plane error (' + errText(e).slice(0, 120) + ') - retrying in ' + Math.round(wait / 1000) + ' s');
       await new Promise((r) => setTimeout(r, wait));
       wait = Math.min(30_000, wait * 2);
@@ -412,9 +412,19 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
           [run.run_id, wt.path, wt.branch, repo.head]);
       }
 
+      // A CHECKPOINT OR A COMPLETION THAT DID NOT REACH THE PLANE IS RETRIED, like a claim: one transient loss while a run recorded its
+      // progress, or while a finished run was being completed, threw the run away - its claim looked live for a whole lease while nothing
+      // ran it, and the work was done again (final verification 3, Work-PC probe). A checkpoint carries its own id, so a retry after one
+      // that landed writes it once; a retry stops as soon as the run is aborted (its lease could not be kept).
+      const short = String(run.run_id).slice(0, 8);
       const result = await runWork({ run, workOrder: woRow, worktree: wt, nodeId: id, log, head: commit, signal: hb.signal,
-        checkpoint: (location, scenario, payload) =>
-          checkpoint({ runId: run.run_id, workOrderId: run.work_order_id, location, scenario, payload, nodeId: id }) });
+        checkpoint: (location, scenario, payload) => {
+          const checkpointId = randomUUID();
+          return retryTransient(() => {
+            if (hb.signal.aborted) throw hb.signal.reason || new Error('run aborted');
+            return checkpoint({ runId: run.run_id, workOrderId: run.work_order_id, location, scenario, payload, nodeId: id, checkpointId });
+          }, 'checkpoint of run ' + short, log);
+        } });
       // an aborted run (its lease could not be kept) is not reported, whatever its worker returned
       if (hb.signal.aborted) throw hb.signal.reason || new Error('run aborted');
       // the work is over: only its completion is left (startHeartbeat - settle)
@@ -426,7 +436,10 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
       // exists for. The 2026-08-24 failures were eight HTTP 200s whose bodies never terminated, and a runner
       // that writes 'completed' because its worker said nothing reproduces that defect in a new place.
       const finished = result && result.status === 'failed' ? 'failed' : 'done';
-      const fin = await completeRun({
+      // (a retry after a completion that DID land - its reply lost - finds the run no longer in progress: that is this node's own
+      // completion, not a takeover, when the run stands finished by this node; see below)
+      let completionAttempts = 0;
+      const fin = await retryTransient(() => { completionAttempts++; return completeRun({
         runId: run.run_id, nodeId: id, status: finished,
         summary: result && result.summary, headCommit: result && result.headCommit,
         terminationReason: (result && result.terminationReason)
@@ -436,8 +449,13 @@ export async function nodeStart({ runWork, once = false, leaseSeconds = DEFAULT_
         actualModel: result && result.actualModel,
         fallbackReason: result && result.fallbackReason,
         usage: result && result.usage,
-      });
-      if (fin && fin.superseded) log('run ' + String(run.run_id).slice(0, 8) + ' finished AFTER its lease was taken over - its result is not recorded as the work order\'s (the node that holds it completes it)');
+      }); }, 'completion of run ' + short, log);
+      let superseded = !!(fin && fin.superseded);
+      if (superseded && completionAttempts > 1) {
+        const mine = (await retryTransient(() => db.read('select status, node_id from factory.agent_runs where run_id = $1', [run.run_id]), 'completion check of run ' + short, log)).rows[0];
+        if (mine && mine.node_id === id && mine.status === finished) { superseded = false; log('run ' + short + ': an earlier attempt of its completion had landed (its reply was lost)'); }
+      }
+      if (superseded) log('run ' + String(run.run_id).slice(0, 8) + ' finished AFTER its lease was taken over - its result is not recorded as the work order\'s (the node that holds it completes it)');
       // a failure is said as one ('completed run' was logged for failed runs too - verification round 4)
       else if (finished === 'failed') log('FAILED run ' + String(run.run_id).slice(0, 8) + ' (' + ((result && result.terminationReason) || 'no terminal condition stated') + ') - its work order is failed; ' + String((result && result.summary) || '').slice(0, 160));
       else log('completed run ' + String(run.run_id).slice(0, 8));

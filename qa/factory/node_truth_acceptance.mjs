@@ -47,6 +47,9 @@
 //   N24 health says "can claim work" only while the supervised node is claiming: not over a refused admission or a busy claim lock
 //   N25 a lease renewal that lands after its run completed is not a lost lease: the run is not logged LOST or ABORTED (a renewal in
 //      flight at the completion was read as a takeover)
+//   N26 a checkpoint and a completion that meet a transient plane loss are retried: a first attempt that never reaches the plane, and a
+//      second that lands but whose reply is lost, end in ONE checkpoint and ONE completed run - not a run thrown away, its claim left
+//      looking live for a lease, and the work done again (Work-PC probe of the final verification of 18bce497)
 import { startLocalPg } from './local_pg.mjs';
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync, rmSync } from 'node:fs';
@@ -534,6 +537,54 @@ try {
     check('N25 a lease renewal that lands after its run completed is not a lost lease: the run completes and is not logged LOST or ABORTED (renewal held ' + seen.held + ', completion seen ' + seen.fin + ', ' + (done ? 'done' : 'NOT done') + ')',
       seen.held === 1 && seen.fin >= 1 && !!done && runsH.length === 1 && runsH[0].status === 'done' && /completed run/.test(after) && !/LOST its lease|ABORTED/.test(after),
       JSON.stringify({ seen, runs: runsH.map((r) => r.status + ':' + r.termination_reason) }) + '\n' + after.slice(-900));
+  }
+
+  // ---- N26. a checkpoint and a completion are retried through a transient loss, once each ------------------------------------------
+  // Deterministic, through a relay that reads the worker's statements: for the checkpoint insert and for the completion, the FIRST attempt
+  // is cut before it reaches the plane, the SECOND reaches it and commits but its reply is lost (the connection cut on the way back), the
+  // third passes. The retry after the lost reply must find the checkpoint already written (one row) and the run already completed by this
+  // node (a completion, not a takeover).
+  currentRow = 'N26';
+  {
+    const net = await import('node:net');
+    const socks = []; const seen = { cp: 0, fin: 0 };
+    const relay = net.createServer((c) => {
+      c.on('error', () => {}); socks.push(c);
+      const u = net.connect(pg.port, '127.0.0.1'); u.on('error', () => {}); socks.push(u);
+      let loseReply = false;
+      c.on('data', (d) => {
+        const t = d.toString('latin1');
+        const kind = t.includes('insert into factory.checkpoints') ? 'cp' : t.includes('with fin as (') ? 'fin' : null;
+        if (kind) {
+          const n = ++seen[kind];
+          if (n === 1) { c.destroy(); u.destroy(); return; }           // never reaches the plane
+          if (n === 2) loseReply = true;                                 // reaches it; the reply is lost
+        }
+        if (!u.destroyed) u.write(d);
+      });
+      u.on('data', (d) => { if (loseReply) { setTimeout(() => { c.destroy(); u.destroy(); }, 300); return; } if (!c.destroyed) c.write(d); });
+      c.on('close', () => u.destroy()); u.on('close', () => c.destroy());
+    });
+    await new Promise((r) => relay.listen(0, '127.0.0.1', r));
+    const relayUrl = pg.runnerUrl.replace(/@127\.0\.0\.1:\d+\//, '@127.0.0.1:' + relay.address().port + '/');
+    const S10 = join(WORK, 'state-retry');
+    const w7 = spawnWorker({ state: S10, role: 'generic', url: relayUrl });
+    await waitFor(async () => /\] ready: first claim cycle completed/.test(w7.out), 60000);
+    const w7id = idOf(S10);
+    const h = await seed('N26 a hold whose checkpoint and completion meet a transient loss', { type: 'factory_acceptance', handoff: JSON.stringify({ action: 'hold', seconds: 5 }), caps: ['factory_acceptance', 'node:' + w7id] });
+    const done = await waitFor(async () => (await woStatus(h)) === 'done', 90000, 500);
+    await waitFor(async () => /completed run|finished AFTER|threw/.test(w7.out), 30000, 300);
+    const runsH = await runsOf(h);
+    const cps = (await admin.query("select c.scenario, count(*)::int n from factory.checkpoints c join factory.agent_runs r on r.run_id = c.run_id where r.work_order_id = $1 group by c.scenario", [h])).rows;
+    try { w7.kill(); } catch { /* gone */ }
+    relay.close(); for (const x of socks) { try { x.destroy(); } catch { /* gone */ } }
+    const retriedCp = (w7.out.match(/checkpoint of run [0-9a-f]{8} failed on a transient plane error/g) || []).length;
+    const retriedFin = (w7.out.match(/completion of run [0-9a-f]{8} failed on a transient plane error/g) || []).length;
+    check('N26 a checkpoint and a completion that meet a transient loss are retried: ' + retriedCp + ' checkpoint and ' + retriedFin + ' completion retries, ' + JSON.stringify(cps) + ' checkpoint row(s), ' + runsH.length + ' run(s) ' + runsH.map((r) => r.status).join(',') + (done ? ', done' : ', NOT done'),
+      seen.cp >= 3 && seen.fin >= 3 && retriedCp === 2 && retriedFin === 2 && !!done && runsH.length === 1 && runsH[0].status === 'done'
+        && cps.length === 1 && cps[0].scenario === 'wave' && cps[0].n === 1
+        && /an earlier attempt of its completion had landed/.test(w7.out) && /completed run/.test(w7.out) && !/threw|finished AFTER its lease/.test(w7.out),
+      JSON.stringify({ seen, cps, runs: runsH.map((r) => r.status + ':' + r.termination_reason) }) + '\n' + w7.out.slice(-1400));
   }
 
   // ---- N22. an admission-only cycle is not a claim cycle ------------------------------------------------------------------------

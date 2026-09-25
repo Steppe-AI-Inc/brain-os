@@ -29,7 +29,7 @@
 // not a URL, a URL the accessor refuses, a CA file missing here, not PEM or not a certificate - or a worker that REFUSED its
 // configuration (exit 2 with "REFUSED", which no restart can fix); 3 another supervisor already runs for this state dir;
 // 5 the runtime dependencies are not installed at their locked versions or do not load (deps.mjs) - `npm ci` fixes it.
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -97,12 +97,19 @@ const refuse = (code, state, why) => {
 // (no status record: before the lock is held, the status file may belong to a supervisor that IS running - verification round 4)
 if (!['generic', 'verifier', 'release_broker'].includes(ROLE)) refuse(2, null, 'role must be generic | verifier | release_broker, not ' + ROLE);
 
+// THE COMMIT THIS SUPERVISOR RUNS (and whether its tracked files were changed), for the installer to compare with the checkout: after
+// the checkout moved, a worker restarted by the old supervisor ran the new commit under the old supervisor's code, and -Verify passed
+// (final verification 3, Work-PC probe). Read once, at start - it is the code this process loaded.
+const gitOut = (args) => { try { return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true, timeout: 15000 }).trim(); } catch { return null; } };
+const SUP_HEAD = gitOut(['rev-parse', 'HEAD']) || null;
+const SUP_DIRTY = SUP_HEAD ? !!gitOut(['status', '--porcelain', '--untracked-files=no']) : null;
+
 // ---- one supervisor per state dir, by lock ----------------------------------------------------------------------------------
 const INSTANCE = randomUUID();
 let status = null, child = null, stopping = false;
 const shutdown = (why) => { if (stopping) return; stopping = true; log('stopping: ' + why); if (child && child.exitCode === null) { try { child.kill(); } catch { /* gone */ } } };
 const held = await holdControlPipe(STATE_DIR,
-  () => ({ pid: process.pid, instance: INSTANCE, root: ROOT, stateDir: STATE_DIR, role: ROLE, envFile: ENV_FILE, logDir: LOG_DIR,
+  () => ({ pid: process.pid, instance: INSTANCE, root: ROOT, stateDir: STATE_DIR, role: ROLE, envFile: ENV_FILE, logDir: LOG_DIR, head: SUP_HEAD, dirty: SUP_DIRTY,
     state: status ? status.state : 'starting', childPid: status ? status.childPid : null, restarts: status ? status.restarts : 0, startedAt: status ? status.startedAt : null,
     nextStartAt: status && status.state === 'backoff' ? status.nextStartAt : null, readyAt: status ? status.readyAt || null : null,
     childStartedAt: status && status.childPid ? status.childStartedAt : null }),
@@ -145,7 +152,7 @@ writeFileSync(PID_FILE, String(process.pid)); // for people to read; never trust
 if (existsSync(STOP_FILE)) unlinkSync(STOP_FILE); // a stale stop request from before does not stop a fresh start
 const rotate = () => { try { const keep = 14; const files = readdirSync(LOG_DIR).filter((f) => /^node-\d{4}-\d{2}-\d{2}\.log$/.test(f)).sort(); for (const f of files.slice(0, Math.max(0, files.length - keep))) rmSync(join(LOG_DIR, f), { force: true }); } catch { /* best effort */ } };
 
-status = { supervisorPid: process.pid, instance: INSTANCE, role: ROLE, envFile: ENV_FILE, logDir: LOG_DIR, stateDir: STATE_DIR, startedAt: new Date().toISOString(), childPid: null, childStartedAt: null, restarts: 0, consecutiveFailures: 0, lastExit: null, state: 'starting' };
+status = { supervisorPid: process.pid, instance: INSTANCE, role: ROLE, envFile: ENV_FILE, logDir: LOG_DIR, stateDir: STATE_DIR, head: SUP_HEAD, dirty: SUP_DIRTY, startedAt: new Date().toISOString(), childPid: null, childStartedAt: null, restarts: 0, consecutiveFailures: 0, lastExit: null, state: 'starting' };
 writeStatus(status);
 log('supervisor started; role ' + ROLE + '; env file ' + ENV_FILE + ' (URL not printed; ' + loaded.note + '); state dir ' + STATE_DIR);
 
