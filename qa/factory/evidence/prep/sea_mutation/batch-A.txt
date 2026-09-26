@@ -1,0 +1,18 @@
+command   node qa/factory/sea_package_mutation_proof.mjs P1 P2 P3 U1 U2 U3
+batch     A of A-D (serial, concurrency 1, own control)
+commit    c763ef550d1e56add5952b03484b826afa53c5ca
+started   2026-09-26T14:46:43Z
+
+sea_package_mutation_proof: 6 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ c763ef550d1e56add5952b03484b826afa53c5ca - the 15 copied files are identical to HEAD
+CONTROL  passed - 23 passed, 0 failed (199 s)
+CAUGHT   P1   expected FAIL B3|B19; seen FAIL [B3 B19]; 21 passed, 2 failed (206 s) - bundlePolicyViolations no longer judges the inputs: neither scripts/factory-runner/db.mjs nor a pg / postgres package is refused
+CAUGHT   P2   expected FAIL B19; seen FAIL [B19]; 22 passed, 1 failed (209 s) - the build ignores the policy verdict: bundleEntry no longer throws (exit 4) on a bundle with violations
+CAUGHT   P3   expected FAIL B19; seen FAIL [B19]; 22 passed, 1 failed (215 s) - bundlePolicyViolations no longer refuses a non-builtin run-time require (a SEA can only require builtins)
+CAUGHT   U1   expected FAIL B19; seen FAIL [B19]; 22 passed, 1 failed (214 s) - the build's database-URL refusal is removed: forbiddenStringHits finds nothing (bundle and exe gates both open)
+CAUGHT   U2   expected FAIL B1|B4; seen FAIL [B1 X0]; 4 passed, 2 failed (10 s) - the runtime source carries a database URL ("postgresql://..." in main.mjs), the build gate intact
+CAUGHT   U3   expected FAIL B4; seen FAIL [B19 B4]; 21 passed, 2 failed (211 s) - a database URL in main.mjs AND the build's refusal removed: only the regression's own scan of the exe stands
+
+sea_package_mutation_proof: 6 of 6 mutants killed
+
+exit      0
+ended     2026-09-26T15:07:48Z
