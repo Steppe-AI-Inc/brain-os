@@ -521,7 +521,7 @@ create function factory.node_report_state(p_token_hash bytea, p_body jsonb) retu
   as $$
   declare a record; ctx factory.node_ctx; enr record; step text := p_body ->> 'enrollment_step'; phase text := p_body ->> 'phase';
   begin
-    select * into a from factory._node_session(p_token_hash, false, 'report-state');
+    select * into a from factory._node_session(p_token_hash, false, 'report_state');
     if a.refusal is not null then return a.refusal; end if;
     ctx := a.ctx;
     if step is not null then

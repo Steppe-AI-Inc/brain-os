@@ -59,7 +59,7 @@ create function factory.node_session_open(p_thumbprint text, p_jti text, p_iat t
 
 -- CREDENTIAL ROTATE (node-initiated; contract §8 "rotate -> the old credential is superseded"). The session proves the OLD key;
 -- the Edge verified the NEW key's signature over the rotate message. The new credential is bound to the SAME principal (S-13: a
--- node can never mint a principal), the old one is superseded and its sessions end. The credential row is locked EXCLUSIVELY, so
+-- node can never mint a principal), the old one is superseded (its sessions then fail the per-call re-check: credential_superseded). The credential row is locked EXCLUSIVELY, so
 -- a rotate and a revoke of the same credential serialize: whichever commits second sees the first.
 create function factory.node_credential_rotate(p_token_hash bytea, p_new_thumbprint text, p_new_public_key bytea) returns jsonb
   language plpgsql volatile security definer set search_path = '' set lock_timeout = '15s'
@@ -80,7 +80,6 @@ create function factory.node_credential_rotate(p_token_hash bytea, p_new_thumbpr
     insert into factory.node_credentials (credential_id, tenant_id, computer_id, principal_id, public_key, key_thumbprint, issued_via,
                                           replaces_credential_id)
     values (newc, ctx.tenant_id, ctx.computer_id, ctx.principal_id, p_new_public_key, p_new_thumbprint, 'rotate', ctx.credential_id);
-    update factory.node_sessions set revoked_at = now() where credential_id = ctx.credential_id and revoked_at is null;
     perform factory._audit(ctx.tenant_id, 'node', ctx.principal_id::text, 'node.credential_rotate', 'credential', newc::text, 'ok', null,
                            jsonb_build_object('replaces', ctx.credential_id));
     return jsonb_build_object('ok', true, 'credential_id', newc, 'principal_id', ctx.principal_id, 'replaces', ctx.credential_id,

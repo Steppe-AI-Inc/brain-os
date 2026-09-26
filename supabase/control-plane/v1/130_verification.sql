@@ -18,7 +18,7 @@ create function factory.node_verification_claim(p_token_hash bytea, p_body jsonb
   as $$
   declare a record; r jsonb; w factory.work_orders; cand factory.agent_runs;
   begin
-    select * into a from factory._node_session(p_token_hash, false, 'verification-claim');
+    select * into a from factory._node_session(p_token_hash, false, 'verification_claim');
     if a.refusal is not null then return a.refusal; end if;
     r := factory._claim(a.ctx, p_body, 'verification');
     if coalesce(r -> 'claimed', 'null'::jsonb) = 'null'::jsonb then return r; end if;

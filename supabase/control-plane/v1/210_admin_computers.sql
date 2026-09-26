@@ -204,24 +204,41 @@ create function factory.admin_drain(p_actor uuid, p_live_role text, p_body jsonb
 -- ---------------------------------------------------------------------------------------------------
 -- REVOKE (S-3): the credential row is locked EXCLUSIVELY, so every node call (a SHARE lock on the same row) either commits before
 -- this, or waits and is refused. A credential superseded by a rotation is followed to its active successor: a node never escapes a
--- revoke by rotating first. The node's sessions end; its leases lapse into the certified takeover; its evidence stays.
+-- revoke by rotating first. Its sessions are NOT ended here, on purpose: the per-call credential re-check is the one enforcement
+-- (S-3) and refuses every call by name (credential_revoked). Its leases lapse into the certified takeover; its evidence stays.
 -- Without principal_id: every active credential of the computer.
 -- ---------------------------------------------------------------------------------------------------
 create function factory._revoke_principal(p_ctx factory.admin_ctx, p_principal uuid, p_reason text) returns integer
   language plpgsql volatile set search_path = ''
   as $$
-  declare c record; n integer := 0;
+  -- ONE CREDENTIAL AT A TIME, EACH FOUND BY A FRESH STATEMENT. A rotate that commits while this revoke waits on the old credential's
+  -- row leaves that row superseded and a NEW active credential this statement's snapshot cannot see; re-reading until no active
+  -- credential is left means the revoke always ends on the principal's current credential - a node never escapes a revoke by
+  -- rotating (R-4: a rotate races the revoke).
+  declare cid uuid; ten uuid; comp uuid; n integer := 0; guard integer := 0; empty integer := 0;
   begin
-    for c in select x.credential_id, x.tenant_id, x.computer_id from factory.node_credentials x
-              where x.principal_id = p_principal and x.status = 'active' for update loop
+    loop
+      cid := null;
+      select x.credential_id, x.tenant_id, x.computer_id into cid, ten, comp from factory.node_credentials x
+       where x.principal_id = p_principal and x.status = 'active' order by x.issued_at limit 1 for update;
+      -- an EMPTY read may be the re-check of a row a concurrent rotate just superseded: read once more under a new snapshot
+      if cid is null then
+        empty := empty + 1;
+        exit when empty >= 2;
+        continue;
+      end if;
+      empty := 0;
       update factory.node_credentials set status = 'revoked', revoked_at = now(), revoked_by_kind = 'admin', revoked_by = p_ctx.actor,
-             revoke_reason = p_reason where credential_id = c.credential_id;
-      update factory.node_sessions set revoked_at = now() where credential_id = c.credential_id and revoked_at is null;
-      perform factory._enrollment_step(e.enrollment_id, 'CREDENTIAL_REVOKED', 'admin', p_reason)
-         from factory.enrollments e where e.credential_id = c.credential_id and e.state <> 'CREDENTIAL_REVOKED';
-      perform factory._audit(c.tenant_id, 'admin', p_ctx.actor::text, 'credential.revoked', 'credential', c.credential_id::text, 'ok', p_reason,
-                             jsonb_build_object('computer_id', c.computer_id, 'principal_id', p_principal));
-      n := n + 1;
+             revoke_reason = p_reason where credential_id = cid and status = 'active';
+      if found then
+        perform factory._enrollment_step(e.enrollment_id, 'CREDENTIAL_REVOKED', 'admin', p_reason)
+           from factory.enrollments e where e.credential_id = cid and e.state <> 'CREDENTIAL_REVOKED';
+        perform factory._audit(ten, 'admin', p_ctx.actor::text, 'credential.revoked', 'credential', cid::text, 'ok', p_reason,
+                               jsonb_build_object('computer_id', comp, 'principal_id', p_principal));
+        n := n + 1;
+      end if;
+      guard := guard + 1;
+      if guard > 64 then raise exception 'factory: revoke did not converge for principal %', p_principal; end if;
     end loop;
     return n;
   end $$;
