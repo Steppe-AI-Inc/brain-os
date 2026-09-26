@@ -5,7 +5,7 @@
 // Serial (one heavy job at a time), disposable resources only; each suite's full output goes to <out dir>/<name>.txt with the command,
 // commit, start, duration and exit; SUMMARY.txt lists every suite, and every suite that is NOT RUN says why - nothing is skipped
 // silently. The suite files themselves must be byte-identical to 69df2f52 (checked first; a changed file is recorded, not run).
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -40,28 +40,42 @@ const SUITES = [
   ...['db.regression.test', 'plugin-attach.regression.test', 'provider.regression.test', 'round-state.regression.test', 'runner-env.regression.test',
     'scheduler.regression.test', 'supervisor.injection.test', 'supervisor.regression.test', 'supervisor.injection.mutation']
     .map((n) => ['scripts/factory-runner/' + n, ['scripts/factory-runner/' + n + '.mjs'], 30]),
-  ['acceptance_mutation_proof', ['qa/factory/acceptance_mutation_proof.mjs'], 240],
 ];
+// acceptance_mutation_proof runs in labelled chunks (tools/run_acceptance_mutation_chunks.mjs), its files beside these ones
 const NOT_RUN = [
   ['package_bootstrap_regression (fresh-clone rows)', 'S-15: its F6 restore path re-registers this PC\'s live "BrainOS Factory Node" task, and it needs the npm registry; the static rows run above'],
   ['package_bootstrap_mutation_proof --fresh', 'S-15: the same installer path on this PC; the static mutants run above'],
   ['reboot_recovery_acceptance (disposable-plane rows)', 'BLOCKED - EXTERNAL: VERIFICATION_SPEC §3.7 runs it only in a separate disposable Windows VM with no live task; this PC holds the live task and has no hypervisor or Windows Sandbox'],
   ['factory_v1_acceptance --local-only', 'BLOCKED - EXTERNAL: the same VM-only rule as reboot_recovery_acceptance'],
   ['shared_plane_live_acceptance, two_machine_real, two_machine_failover, two_machine_scheduling', 'excluded by S-15 (they read or drive live state); VERIFICATION_SPEC §3.7'],
+  ['acceptance_mutation_proof mutants N37x and N19', 'BASELINE FINDING: at 69df2f52 ITSELF their anchors are absent from the files they mutate (two_machine_real.mjs:52, node.mjs:440 differ from the anchor text), so the unchanged proof refuses to run whole; the other mutants run by label (acceptance_mutation_proof.chunk-*.txt)'],
 ];
 
 const summary = ['reference suites at ' + head + ' (the suite files compared with ' + BASELINE + ')', ''];
 for (const [name, args, minutes] of SUITES) {
-  if (only && !only.some((o) => name.startsWith(o))) continue;
+  if (only && !only.includes(name)) continue;
   const file = args[0];
   const changed = git('diff', '--quiet', BASELINE, head, '--', file).status !== 0;
   if (changed) { summary.push(name.padEnd(52) + ' NOT RUN: the file differs from ' + BASELINE.slice(0, 8) + ' (a successor needs a ratified change request)'); continue; }
+  // shared_control_plane_acceptance needs its shared plane provisioned (this worktree's .factory/control-plane, a port that is never 54329)
+  const shared = name === 'shared_control_plane_acceptance';
+  if (shared) {
+    const dir = join(ROOT, '.factory', 'control-plane'); mkdirSync(dir, { recursive: true });
+    const pf = join(dir, 'port'); let port = 0; try { port = Number(readFileSync(pf, 'utf8').trim()); } catch { /* none */ }
+    if (!port || port === 54329) writeFileSync(pf, '55439\n');
+    const st = spawn(process.execPath, [join(ROOT, 'qa/factory/shared_local_pg.mjs'), 'start'], { cwd: ROOT, detached: true, stdio: 'ignore', windowsHide: true }); st.unref();
+    for (let i = 0; i < 60; i++) { const r0 = spawnSync(process.execPath, [join(ROOT, 'qa/factory/shared_local_pg.mjs'), 'status'], { cwd: ROOT, encoding: 'utf8' }); if (r0.status === 0) break; spawnSync(process.execPath, ['-e', 'setTimeout(()=>{},2000)']); }
+  }
   const t0 = Date.now();
   const r = spawnSync(process.execPath, args, { cwd: ROOT, encoding: 'utf8', timeout: minutes * 60000, maxBuffer: 1 << 28, windowsHide: true,
     env: { ...process.env, FACTORY_RUNNER_PG_URL: '', FACTORY_RUNNER_ENV_FILE: '' } });
   const out = (r.stdout || '') + (r.stderr ? '\n--- stderr ---\n' + r.stderr : '');
   const secs = Math.round((Date.now() - t0) / 1000);
-  const last = out.trim().split('\n').filter((l) => /passed|failed|killed|PASS|FAIL|OK\b/i.test(l)).slice(-1)[0] || '(no summary line)';
+  if (shared) spawnSync(process.execPath, [join(ROOT, 'qa/factory/shared_local_pg.mjs'), 'stop'], { cwd: ROOT, encoding: 'utf8' });
+  // the suite's own count line first ("<suite>: N passed, M failed", "N/N", "N pass, M fail", "killed"); else the last row-like line
+  const lines = out.trim().split('\n');
+  const last = lines.filter((l) => /: \d+ passed|\d+ passed, \d+ failed|\d+ pass, \d+ fail|\d+\/\d+ (OK|passed)|mutants killed|rc=\d+ ::/i.test(l)).slice(-1)[0]
+    || lines.filter((l) => /passed|failed|killed|PASS|FAIL|OK\b/i.test(l)).slice(-1)[0] || '(no summary line)';
   writeFileSync(join(OUT, name.replace(/[^A-Za-z0-9._-]+/g, '_') + '.txt'), ['suite ' + name, 'command node ' + args.join(' '), 'cwd ' + ROOT, 'commit ' + head,
     'suite file identical to ' + BASELINE + ': yes', 'environment disposable (local): FACTORY_RUNNER_PG_URL and FACTORY_RUNNER_ENV_FILE emptied',
     'started ' + new Date(t0).toISOString(), 'seconds ' + secs, 'exit ' + r.status + (r.error ? ' error ' + r.error.code : ''), 'summary ' + last.trim(), '', out].join('\n'));
