@@ -223,7 +223,8 @@ create function factory._claim(p_ctx factory.node_ctx, p_body jsonb, p_kind text
     perform factory._record_fingerprint(p_ctx, fp);
     select n.* into me from factory.nodes n where n.node_id = p_ctx.node_id;
 
-    if only_wo is not null and not exists (select 1 from factory.work_orders x where x.work_order_id = only_wo
+    -- another tenant's work order answers exactly like one that does not exist (no existence leak, S-9)
+    if only_wo is not null and not exists (select 1 from factory.work_orders x where x.work_order_id = only_wo and x.tenant_id = p_ctx.tenant_id
                                              and factory._new_model_capabilities(x.requires_capabilities)) then
       return factory._refusal('not_enrolled_work', 403,
         'the claim front door takes only new-model work orders (factory-enrolled-v1); this one is not, or does not exist');
