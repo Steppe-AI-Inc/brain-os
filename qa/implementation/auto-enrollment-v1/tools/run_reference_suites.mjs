@@ -6,7 +6,7 @@
 // commit, start, duration and exit; SUMMARY.txt lists every suite, and every suite that is NOT RUN says why - nothing is skipped
 // silently. The suite files themselves must be byte-identical to 69df2f52 (checked first; a changed file is recorded, not run).
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -69,7 +69,13 @@ for (const [name, args, minutes] of SUITES) {
   summary.push(line);
   console.log(line);
 }
-summary.push('', 'NOT RUN (by rule, with the reason):');
-for (const [n, why] of NOT_RUN) summary.push('  ' + n + ' - ' + why);
-writeFileSync(join(OUT, 'SUMMARY.txt'), summary.join('\n') + '\n');
-console.log('\n' + summary.slice(-NOT_RUN.length - 2).join('\n'));
+// the SUMMARY covers every suite file in OUT (runs may be chunked: `only` lists), each with the commit it ran at
+const all = readdirSync(OUT).filter((f) => f.endsWith('.txt') && f !== 'SUMMARY.txt').sort().map((f) => {
+  const head5 = readFileSync(join(OUT, f), 'utf8').split('\n').slice(0, 10);
+  const get = (k) => (head5.find((l) => l.startsWith(k + ' ')) || '').slice(k.length + 1);
+  return get('suite').padEnd(52) + ' exit ' + get('exit').padEnd(4) + String(get('seconds')).padStart(5) + 's  @' + get('commit').slice(0, 8) + '  ' + get('summary');
+});
+const out = ['reference suites (the suite files compared with ' + BASELINE + '; each line names the commit it ran at)', '', ...all,
+  ...summary.filter((l) => /NOT RUN: the file differs/.test(l)), '', 'NOT RUN (by rule, with the reason):', ...NOT_RUN.map(([n, why]) => '  ' + n + ' - ' + why)];
+writeFileSync(join(OUT, 'SUMMARY.txt'), out.join('\n') + '\n');
+console.log('\n' + out.join('\n'));
