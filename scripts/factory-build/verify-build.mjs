@@ -113,7 +113,7 @@ let cleanupDir = null;
 try {
   const o = parseArgs(process.argv.slice(2));
   const runtimeVersion = JSON.parse(readFileSync(join(ROOT, 'scripts/factory-runner/sea/runtime-version.json'), 'utf8')).runtime_version;
-  const against = resolve(o.against || join(ROOT, 'dist', 'brain-factory', String(runtimeVersion)));
+  const against = resolve(o.against || join(ROOT, 'dist', 'brain-factory', String(runtimeVersion), 'dev'));
   const { ref, signed: refSigned, imageSha: refImageSha } = loadReference(against);
 
   if (o.rebuildDir && sameFile(resolve(o.rebuildDir), against)) cannot('--rebuild-dir ' + resolve(o.rebuildDir) + ' is the reference directory itself; build-sea would delete and replace the build being judged. Give another directory.');
@@ -124,7 +124,8 @@ try {
   const env = {};
   for (const [k, v] of Object.entries(process.env)) { const K = k.toUpperCase(); if (K !== 'BRAIN_FACTORY_SIGN_CMD' && K !== 'SOURCE_DATE_EPOCH') env[k] = v; }
   if (ref.built_at_source === 'SOURCE_DATE_EPOCH') env.SOURCE_DATE_EPOCH = String(ref.built_at_epoch);
-  const buildArgs = [join(HERE, 'build-sea.mjs'), '--out', rebuildDir];
+  // the rebuild is of the reference's channel: its trust set and mode are part of what is compared
+  const buildArgs = [join(HERE, 'build-sea.mjs'), '--channel', ref.channel || 'dev', '--out', rebuildDir];
   if (o.nodeExe) buildArgs.push('--node-exe', o.nodeExe);
 
   console.log('reference ' + against + '\n  sha256 ' + ref.sha256 + (refSigned ? ' (signed; unsigned ' + ref.exe.unsigned_sha256 + ')' : '') + '\n  commit ' + ref.source_commit + (ref.dirty ? ' (dirty)' : '') + ', built_at ' + ref.built_at + ' (' + ref.built_at_source + ')');
