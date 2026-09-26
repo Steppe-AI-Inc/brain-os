@@ -20,7 +20,7 @@ is practical; this file points, it does not duplicate.
 
 ```
 PRODUCT CONTRACT → STATE MACHINE → INVARIANTS → SECURITY / TENANCY → SHARED PRIMITIVES
-→ UX STATES → IMPLEMENTATION → DEVELOPER VERIFICATION → DEPLOY → INDEPENDENT WORK-PC ACCEPTANCE
+→ UX STATES → IMPLEMENTATION → DEVELOPER VERIFICATION → DEPLOY → INDEPENDENT ACCEPTANCE
 ```
 
 Product semantics are defined first (feature contract, `FEATURE_COMPLETENESS_CONTRACT.md`
@@ -130,16 +130,27 @@ items. Failures are never hidden in prose.
 
 ## 8. Ownership and boundaries
 
-**Home / Main PC** (implementation): architecture, implementation, migrations, developer
-testing, source invariants, fix reports, deployment *after* the founder boundary. May mark
-READY FOR DEPLOYMENT, DEPLOYED, READY FOR INDEPENDENT QA. May never mark PRODUCTION
-VERIFIED, CLOSED, or "production accepted".
+Roles are roles, not machines: hostname creates no authority and Home / Work / Laptop are
+labels. The machine-specific mapping is superseded by
+`docs/architecture/adr/ADR-2026-09-26-node-roles-are-labels.md`, which also records the
+current placement. The invariant it preserves: **the implementer never self-certifies.**
 
-**Work PC** (independent acceptance): deployed-browser acceptance, adversarial QA,
-production regressions, independent evidence; alone marks CLOSED / REOPENED. Owns
-`qa/BUG_QUEUE.json`, `qa/COVERAGE_LEDGER.json`, `qa/FIXTURE_REGISTRY.json`,
-`qa/HANDOFF_STATE.json` (single-writer; the Home PC reads, never edits). Fix reports go
-to branch `qa/home-pc-handoff` under `qa/home-pc-handoff/fixes/<BUG_ID>.json`.
+**Director** (canonical authority): product contract, invariants, binding Work Orders,
+binding acceptance criteria, verification specification; ratifies any proposal that
+changes what must be true (the implementer files a CHANGE REQUEST under
+`qa/work-orders/change-requests/` and does not implement it before ratification).
+
+**Implementer**: architecture, implementation, migrations, developer testing, source
+invariants, fix reports, deployment *after* the founder boundary. May mark READY FOR
+DEPLOYMENT, DEPLOYED, READY FOR INDEPENDENT QA. May never mark PRODUCTION VERIFIED,
+CLOSED, or "production accepted".
+
+**Independent acceptance**: deployed-browser acceptance, adversarial QA, production
+regressions, independent evidence, against criteria the implementer did not define; alone
+marks CLOSED / REOPENED. Owns `qa/BUG_QUEUE.json`, `qa/COVERAGE_LEDGER.json`,
+`qa/FIXTURE_REGISTRY.json`, `qa/HANDOFF_STATE.json` (single-writer; the implementer
+reads, never edits). Fix reports go to branch `qa/home-pc-handoff` under
+`qa/home-pc-handoff/fixes/<BUG_ID>.json` (a historical branch name).
 
 **Founder-only actions** (prepare the exact change, never execute): rotate or revoke the
 Supabase service-role key; change live Vercel production secrets or redeploy for
