@@ -16,7 +16,7 @@ parent/child policy: `governance/CANONICAL_WORK_CONTRACT.md`. Authorization cont
 
 ```
 PRODUCT CONTRACT → STATE MACHINE → INVARIANTS → SECURITY / TENANCY → SHARED PRIMITIVES
-→ UX STATES → IMPLEMENTATION → DEVELOPER VERIFICATION → DEPLOY → INDEPENDENT ACCEPTANCE
+→ UX STATES → IMPLEMENTATION → DEVELOPER VERIFICATION → DEPLOY → INDEPENDENT WORK-PC ACCEPTANCE
 ```
 
 Product semantics are defined first. Shared primitives enforce them. Code implements
@@ -152,13 +152,7 @@ Claude says "implemented", or Home-PC tests are green.
 
 ## 8. Ownership
 
-Roles, not machines (`docs/architecture/adr/ADR-2026-09-26-node-roles-are-labels.md`
-supersedes the Home-PC / Work-PC mapping and records the current placement). The Director
-owns what must be true; a proposal that changes it is a CHANGE REQUEST
-(`qa/work-orders/change-requests/`) and is not implemented before ratification. The
-implementer never self-certifies.
-
-| Implementer | Independent acceptance |
+| Home / Main PC (implementation) | Work PC (independent acceptance) |
 |---|---|
 | architecture, implementation, migrations, developer testing, source invariants, deployment after the founder boundary, fix reports | deployed-browser acceptance, adversarial QA, production regressions, independent evidence |
 | may mark READY FOR DEPLOYMENT, DEPLOYED, READY FOR INDEPENDENT QA (`ready_for_retest`) | alone marks CLOSED / REOPENED |

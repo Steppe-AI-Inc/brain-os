@@ -1,25 +1,113 @@
 {
-  "$comment": "State vocabulary of docs/architecture/features/factory-auto-enrollment.md. Binding names from Part A are listed exactly as the founder wrote them. qa/factory/state_vocabulary_contract.mjs pins this file to the SQL CHECK lists, the web state map (web/lib/factory/computer-states.ts) and the runtime constants.",
+  "$comment": "SUPERSEDED — NOT CANONICAL: implementer draft; the canonical state vocabulary belongs to the Director branch factory/auto-enrollment-v1-director. State vocabulary of docs/architecture/features/factory-auto-enrollment.md. Binding names from Part A are listed exactly as the founder wrote them. qa/factory/state_vocabulary_contract.mjs pins this file to the SQL CHECK lists, the web state map (web/lib/factory/computer-states.ts) and the runtime constants.",
   "enrollment": {
-    "happy_path": ["UNENROLLED", "PAIRING_CODE_ISSUED", "PAIRING_STARTED", "PAIRING_VERIFIED", "NODE_ID_ISSUED", "NODE_CREDENTIAL_ISSUED", "RUNTIME_INSTALLING", "REGISTERING", "ALIVE"],
-    "failure": ["PAIRING_EXPIRED", "PAIRING_REVOKED", "PAIRING_CONSUMED", "INSTALL_FAILED", "REGISTRATION_FAILED", "CREDENTIAL_REVOKED"],
-    "audit_milestones_only": ["PAIRING_VERIFIED", "NODE_ID_ISSUED"],
-    "code_states": ["issued", "started", "consumed", "expired", "revoked"]
+    "happy_path": [
+      "UNENROLLED",
+      "PAIRING_CODE_ISSUED",
+      "PAIRING_STARTED",
+      "PAIRING_VERIFIED",
+      "NODE_ID_ISSUED",
+      "NODE_CREDENTIAL_ISSUED",
+      "RUNTIME_INSTALLING",
+      "REGISTERING",
+      "ALIVE"
+    ],
+    "failure": [
+      "PAIRING_EXPIRED",
+      "PAIRING_REVOKED",
+      "PAIRING_CONSUMED",
+      "INSTALL_FAILED",
+      "REGISTRATION_FAILED",
+      "CREDENTIAL_REVOKED"
+    ],
+    "audit_milestones_only": [
+      "PAIRING_VERIFIED",
+      "NODE_ID_ISSUED"
+    ],
+    "code_states": [
+      "issued",
+      "started",
+      "consumed",
+      "expired",
+      "revoked"
+    ]
   },
   "runtime": {
-    "cycle": ["AVAILABLE", "CLAIMING", "BUSY", "CHECKPOINTING", "COMPLETING"],
-    "operational": ["DRAINING", "STALE", "OFFLINE", "RECOVERING"],
-    "reported_phases": ["AVAILABLE", "CLAIMING", "BUSY", "CHECKPOINTING", "COMPLETING", "DRAINING", "RECOVERING"],
-    "server_derived": ["STALE", "OFFLINE", "DRAINING"]
+    "cycle": [
+      "AVAILABLE",
+      "CLAIMING",
+      "BUSY",
+      "CHECKPOINTING",
+      "COMPLETING"
+    ],
+    "operational": [
+      "DRAINING",
+      "STALE",
+      "OFFLINE",
+      "RECOVERING"
+    ],
+    "reported_phases": [
+      "AVAILABLE",
+      "CLAIMING",
+      "BUSY",
+      "CHECKPOINTING",
+      "COMPLETING",
+      "DRAINING",
+      "RECOVERING"
+    ],
+    "server_derived": [
+      "STALE",
+      "OFFLINE",
+      "DRAINING"
+    ]
   },
   "verification": {
-    "path": ["IMPLEMENTED", "WAITING_FOR_INDEPENDENT_VERIFICATION", "VERIFICATION_CLAIMED", "VERIFIED", "COMPLETE"],
-    "pending_change_requests": { "CR-002": "no failure state is implemented; a FAIL verdict stays WAITING_FOR_INDEPENDENT_VERIFICATION with reason last_verification_failed:<run>" }
+    "path": [
+      "IMPLEMENTED",
+      "WAITING_FOR_INDEPENDENT_VERIFICATION",
+      "VERIFICATION_CLAIMED",
+      "VERIFIED",
+      "COMPLETE"
+    ],
+    "pending_change_requests": {
+      "CR-002": "no failure state is implemented; a FAIL verdict stays WAITING_FOR_INDEPENDENT_VERIFICATION with reason last_verification_failed:<run>"
+    }
   },
-  "computer_lifecycle": ["active", "archived"],
-  "enrollment_kind": ["enrolled", "legacy_manual"],
-  "credential_status": ["active", "superseded", "revoked"],
-  "security_roles": ["generic", "verifier", "release_broker"],
-  "preferred_work_class": ["implementation", "verification", "coordination"],
-  "eligibility_gates": ["valid_credential", "tenant_match", "company_scope", "authorization", "required_role", "required_capabilities", "independence", "surface_locks", "drain", "health", "max_concurrency", "min_resources"]
+  "computer_lifecycle": [
+    "active",
+    "archived"
+  ],
+  "enrollment_kind": [
+    "enrolled",
+    "legacy_manual"
+  ],
+  "credential_status": [
+    "active",
+    "superseded",
+    "revoked"
+  ],
+  "security_roles": [
+    "generic",
+    "verifier",
+    "release_broker"
+  ],
+  "preferred_work_class": [
+    "implementation",
+    "verification",
+    "coordination"
+  ],
+  "eligibility_gates": [
+    "valid_credential",
+    "tenant_match",
+    "company_scope",
+    "authorization",
+    "required_role",
+    "required_capabilities",
+    "independence",
+    "surface_locks",
+    "drain",
+    "health",
+    "max_concurrency",
+    "min_resources"
+  ]
 }

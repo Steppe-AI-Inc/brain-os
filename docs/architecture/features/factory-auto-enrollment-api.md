@@ -1,3 +1,5 @@
+> **SUPERSEDED — NOT CANONICAL.** This file is an implementer draft written on 2026-09-26 on branch `factory/auto-enrollment-v1-contract` under an instruction that the founder has since superseded. The canonical contract, state machines, invariants, security/tenancy contract, governance ADR, WO-1..WO-10, acceptance criteria and verification specification belong to the DIRECTOR on branch `factory/auto-enrollment-v1-director`. Implementation happens on `factory/auto-enrollment-v1-implementation`, based on the exact Director SHA. This file binds nothing. It is retained only as read-only mapping and analysis the Director may consult. Where it differs from the Director branch, the Director branch is right.
+
 # Factory auto-enrollment — Node API and Admin API wire contract (engineering, Part C of the feature contract)
 
 The implementer's interface specification. Every shape satisfies Part A of `factory-auto-enrollment.md` and implements nothing

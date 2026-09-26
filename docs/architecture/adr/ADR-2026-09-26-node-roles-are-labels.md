@@ -1,3 +1,5 @@
+> **SUPERSEDED — NOT CANONICAL.** This file is an implementer draft written on 2026-09-26 on branch `factory/auto-enrollment-v1-contract` under an instruction that the founder has since superseded. The canonical contract, state machines, invariants, security/tenancy contract, governance ADR, WO-1..WO-10, acceptance criteria and verification specification belong to the DIRECTOR on branch `factory/auto-enrollment-v1-director`. Implementation happens on `factory/auto-enrollment-v1-implementation`, based on the exact Director SHA. This file binds nothing. It is retained only as read-only mapping and analysis the Director may consult. Where it differs from the Director branch, the Director branch is right.
+
 # ADR 2026-09-26 — Node roles are labels; authority is role-based, never machine-based
 
 **Status:** ACCEPTED. Recorded by the implementer on the founder's explicit instruction ("GOVERNANCE EVOLUTION", 2026-09-26).
