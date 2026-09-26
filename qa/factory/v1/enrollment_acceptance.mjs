@@ -202,6 +202,9 @@ try {
   row('EN12 the 61st attempt for the tenant within the hour is refused (rate_limited_tenant) - unknown locators count, from any address',
     lastT && lastT.refused !== 'rate_limited_tenant' && t61.refused === 'rate_limited_tenant', 'tenant attempts ' + have + ', then ' + t61.refused);
   void postFrom; void other;
+} catch (e) {
+  // a crash is a named row, never a silent exit: the suite did not complete
+  row('X0 enrollment_acceptance did not complete', false, (e && e.stack) || String(e));
 } finally {
   await sup.end().catch(() => {});
   await node.stop().catch(() => {}); await admin.stop().catch(() => {}); await brain.stop().catch(() => {});

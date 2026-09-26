@@ -421,6 +421,9 @@ try {
   row('E9 policies: never deleted; every change is a new version, and every version is kept', !polDel.ok && !polNoVer.ok && polRev.ok && polVers === 3, 'versions ' + polVers);
   note('policy stricter-only through the Admin API (the API branch of the guard) is proved with the admin front doors (IMP-9)');
   row('E10 tenant_admins: the migration wrote no row, and the table refuses every writer that is not the engine', seeded.a === 0 && refused(await tryQuery(sup, `insert into factory.tenant_admins (tenant_id, auth_user_id, tier) values ($1, $2, 'admin')`, [OPERATOR, randomUUID()]), /factory_authority_refused/));
+} catch (e) {
+  // a crash is a named row, never a silent exit: the suite did not complete
+  row('X0 schema_acceptance did not complete', false, (e && e.stack) || String(e));
 } finally {
   if (sup) await sup.end().catch(() => {});
   await plane.stop();

@@ -163,6 +163,9 @@ try {
   const eLegacy = await a.op('claim', { only_work_order_id: L2 });
   row('X3 an enrolled node is refused a legacy work order (no factory-enrolled-v1): not_enrolled_work', eLegacy.refused === 'not_enrolled_work');
   await run.end();
+} catch (e) {
+  // a crash is a named row, never a silent exit: the suite did not complete
+  row('X0 takeover_acceptance did not complete', false, (e && e.stack) || String(e));
 } finally {
   for (const n of nodes) await n.close().catch(() => {});
   if (api) await api.stop().catch(() => {});

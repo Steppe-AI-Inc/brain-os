@@ -191,6 +191,9 @@ try {
     P2.ok && zreg.ok && g4r.before === 0 && g4r.zPublished === 0 && g4r.superseded === 4 && ad1.ok && g4r.adopted === 0 && g4r.keyRevoked === 4
       && ad2.refused === 'key_revoked' && g4r.otherKey === 0 && g4r.releaseRevoked === 4,
     JSON.stringify({ ...g4r, P2: P2.ok || P2.refused, zreg: zreg.ok || zreg.refused, ad1: ad1.ok || ad1.refused, ad2: ad2.refused || ad2.ok }));
+} catch (e) {
+  // a crash is a named row, never a silent exit: the suite did not complete
+  row('X0 eligibility_acceptance did not complete', false, (e && e.stack) || String(e));
 } finally {
   await W.stop();
 }

@@ -175,6 +175,9 @@ try {
   const jva = await vclaim(A, jd.verification_work_order_id); const jvb = await vclaim(B, jd.verification_work_order_id);
   const jvf = await vclaim(F, jd.verification_work_order_id);
   row('(j) after a takeover NO member of the authoring set (A or B) can certify; a third identity can', jb.claimed && jb.claimed.resume_from && gate7(jva) && gate7(jvb) && jvf.claimed);
+} catch (e) {
+  // a crash is a named row, never a silent exit: the suite did not complete
+  row('X0 independence_acceptance did not complete', false, (e && e.stack) || String(e));
 } finally {
   await W.stop();
 }

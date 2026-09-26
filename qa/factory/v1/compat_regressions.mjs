@@ -189,6 +189,9 @@ try {
   await freshReg.n.op('register', { runtime_version: '0.1.0', runtime_digest: W.rel.digest });
   const liv = (await admin.call('get-computer', { computer_id: freshReg.computer_id }, founder.token)).computer.principals[0].runtime.liveness;
   port('node_truth_acceptance.mjs:1299 N8 / claim.mjs:75 (stamp:false)', 'registration alone never reads ALIVE: liveness is stamped only by a heartbeat or a renewal', liv === 'OFFLINE', liv);
+} catch (e) {
+  // a crash is a named row, never a silent exit: the suite did not complete
+  port('X0', 'compat_regressions did not complete', false, (e && e.stack) || String(e));
 } finally {
   for (const d of direct) await d.close().catch(() => {});
   await W.stop();

@@ -270,6 +270,9 @@ try {
   const selfCap = await F.n.op('claim', { only_work_order_id: capWo, resources: { cpu_cores: 8, capabilities: ['gpu'], capabilities_present: ['gpu'] } });
   row('E2 the best resources, the preferred verifier\'s hostname, and a self-reported capability never make a node eligible: gate 5 (role) and gate 6 (capability from the envelope) refuse by name',
     /gate 5 required_role/.test(best.message || '') && /gate 6 required_capabilities/.test(selfCap.message || ''), best.message + ' | ' + selfCap.message);
+} catch (e) {
+  // a crash is a named row, never a silent exit: the suite did not complete
+  row('X0 admin_acceptance did not complete', false, (e && e.stack) || String(e));
 } finally {
   await W.stop();
 }

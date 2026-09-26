@@ -130,6 +130,9 @@ try {
   const wb = await W.submit({ title: 'B still works', owned_surface: ['i/b'], priority: 9 });
   const bc = await B.n.op('claim', { only_work_order_id: wb, resources: RES(64000) });
   row('I4 through every interleaving above, another computer kept working (heartbeat, claim)', bh.ok && bc.claimed);
+} catch (e) {
+  // a crash is a named row, never a silent exit: the suite did not complete
+  row('X0 revocation_interleaving did not complete', false, (e && e.stack) || String(e));
 } finally {
   for (const c of conns) await c.end().catch(() => {});
   await W.stop();
