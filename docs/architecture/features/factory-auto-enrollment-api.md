@@ -175,3 +175,32 @@ authoring_computer_display}`.
 | Brain OS Auth unreachable | edge (admin) | DETERMINISTIC REFUSAL `401 admin_identity_unverifiable`, nothing changed |
 | Ed25519 self-test | edge cold start | DETERMINISTIC REFUSAL `503 crypto_unavailable` |
 | Edge wall clock / CPU limits | platform | **UNMEASURED** until the founder's deploy |
+
+## 4. SQL front doors (the ONLY things the handlers call; one call = one transaction)
+
+Every front door returns `jsonb`:
+- success: `{"ok": true, …payload}`;
+- failure: `{"ok": false, "error": {"code", "message", "retry_after_s"?}}`.
+
+The edge maps `error.code` to HTTP with one table (`_shared/http.ts`, §0). Pairing outcomes are 200 with `ok: false`. Binary
+values are `bytea`, passed as `Buffer` / `Uint8Array` by postgres.js. Public keys and nonces are returned base64url-encoded.
+
+| Function | Grant | Called by |
+|---|---|---|
+| `factory_api.enroll_start(p_locator text, p_code_mac bytea, p_pepper_version int, p_ip_hash text, p_public_key bytea, p_fingerprint jsonb, p_client jsonb) → jsonb` | `factory_node_api` | `/v1/enroll/start` |
+| `factory_api.enroll_challenge(p_enrollment_id uuid) → jsonb {ok, public_key, nonce, state}` | `factory_node_api` | `/v1/enroll/complete` (before signature verification) |
+| `factory_api.enroll_complete(p_enrollment_id uuid, p_thumbprint text, p_nonce text) → jsonb` | `factory_node_api` | `/v1/enroll/complete` (after the edge verified the signature over that nonce) |
+| `factory_api.credential_key(p_credential_id uuid) → jsonb {ok, public_key, status, node_id}` | `factory_node_api` | `/v1/session` |
+| `factory_api.session_issue(p_credential_id uuid, p_jti uuid, p_assertion_exp timestamptz, p_session_hash bytea, p_ttl_s int) → jsonb {ok, expires_at, node_id}` | `factory_node_api` | `/v1/session` |
+| `factory_api.node_call(p_session_hash bytea, p_op text, p_request_id uuid, p_args jsonb) → jsonb` | `factory_node_api` | `/v1/node/<op>` (op names as in §1.5, with `-` and `/` → `_`: `give_back`, `run_context`, `run_setup`, `acceptance_handover`, `report_state`, `credential_rotate`, `credential_self_revoke`) |
+| `factory_legacy.node_call(p_node_id text, p_op text, p_request_id uuid, p_args jsonb) → jsonb` | `factory_runner` | the branch's direct-PG transport (certified suites); same ops, same core |
+| `factory_admin.admin_call(p_actor jsonb, p_op text, p_request_id uuid, p_args jsonb) → jsonb` | `factory_admin_api` | every admin route |
+
+- `p_actor` = `{auth_user_id, profile_id, role, brain_os_project_ref}`, re-derived by the edge on every call.
+- Admin ops: `list_computers`, `get_computer`, `add_computer`, `set_envelope`, `rename_computer`, `issue_pairing_code`,
+  `revoke_pairing_code`, `revoke_credential`, `re_pair`, `drain`, `undrain`, `archive_computer`, `restore_computer`,
+  `send_test_job`, `list_waiting_verifications`, `latest_release`, `publish_release`.
+- For `issue_pairing_code` and `re_pair` the edge generates the code and passes `{locator, code_mac, pepper_version,
+  ttl_minutes, purpose}`. SQL never sees the code or the pepper.
+- A `unique_violation` on the locator is returned as `error.code = 'locator_collision'`, and the edge retries with a new code
+  (at most 5 times).
