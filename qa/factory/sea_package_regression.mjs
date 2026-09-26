@@ -201,6 +201,32 @@ try {
       err + '\n' + v1.join('\n') + '\n' + v2.join('\n'));
   }
   {
+    // B19 (mutation proof 2026-09-26: P2, P3 and U1 survived B2-B4). The build's three refusals are exercised directly:
+    // bundleEntry must THROW a POLICY BuildError (exit 4) on an entry that pulls in db.mjs - not merely list violations;
+    // bundlePolicyViolations must refuse a non-builtin module left for run time; forbiddenStringHits must find every
+    // database-URL marker in ASCII and UTF-16LE (the exe gate B4 cannot see a gate that finds nothing on a clean tree).
+    const esbuild = createRequire(join(ROOT, 'package.json'))('esbuild');
+    const dbEntry = join(work, 'b19-imports-db.mjs');
+    writeFileSync(dbEntry, "import * as db from " + JSON.stringify(join(ROOT, 'scripts', 'factory-runner', 'db.mjs').replace(/\\/g, '/')) + ";\nconsole.log(Object.keys(db));\n");
+    let enforced = null;
+    try { await policy.bundleEntry(esbuild, { target: 'node24', define: {}, absWorkingDir: ROOT, entry: dbEntry }); enforced = 'NOT THROWN'; }
+    catch (e) { enforced = e; }
+    const extEntry = join(work, 'b19-runtime-require.mjs');
+    writeFileSync(extEntry, "import x from 'left-for-run-time-b19';\nconsole.log(x);\n");
+    let extViolations = []; let extErr = '';
+    try {
+      const m = (await esbuild.build({ absWorkingDir: ROOT, entryPoints: [extEntry], bundle: true, platform: 'node', format: 'cjs', target: 'node24', write: false, metafile: true, logLevel: 'silent', external: ['left-for-run-time-b19'] })).metafile;
+      extViolations = policy.bundlePolicyViolations(m);
+    } catch (e) { extErr = e && e.stack || String(e); }
+    const markers = ['postgresql://', 'postgres://', 'FACTORY_RUNNER_PG_URL'];
+    const stringHits = markers.map((s) => [policy.forbiddenStringHits(Buffer.from('x ' + s + ' y', 'latin1')).length, policy.forbiddenStringHits(Buffer.from('x ' + s + ' y', 'utf16le')).length]);
+    check('B19 the build refuses by itself: bundleEntry throws POLICY (exit ' + (enforced && enforced.code) + ') on an entry importing db.mjs; a non-builtin run-time require is a violation (' + extViolations.length + '); forbiddenStringHits finds ' + JSON.stringify(stringHits) + ' for ' + markers.join(', ') + ' (ascii, utf16le)',
+      enforced instanceof policy.BuildError && enforced.code === policy.EXIT.POLICY && /db\.mjs/.test(enforced.message)
+        && !extErr && extViolations.some((v) => /left-for-run-time-b19.*at run time/.test(v))
+        && stringHits.every(([a, u]) => a >= 1 && u >= 1),
+      (enforced && enforced.message ? String(enforced.message).slice(0, 300) : String(enforced)) + '\n' + extErr + '\n' + extViolations.join('\n'));
+  }
+  {
     const hits = [];
     for (const s of ['postgresql://', 'postgres://', 'FACTORY_RUNNER_PG_URL']) {
       for (const enc of ['latin1', 'utf16le']) { const at = exeBuf.indexOf(Buffer.from(s, enc)); if (at !== -1) hits.push(s + ' ' + enc + ' @' + at); }

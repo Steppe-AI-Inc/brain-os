@@ -64,18 +64,18 @@ const L = (...lines) => lines.join('\n');
 // { id, expect: rows (any one FAILing kills it), what, edits: [[file, exact anchor, replacement], ...] }
 const MUTANTS = [
   // 1. no PostgreSQL client and no database accessor in the runtime bundle
-  { id: 'P1', expect: ['B3'], what: 'bundlePolicyViolations no longer judges the inputs: neither scripts/factory-runner/db.mjs nor a pg / postgres package is refused', edits: [[BS,
+  { id: 'P1', expect: ['B3', 'B19'], what: 'bundlePolicyViolations no longer judges the inputs: neither scripts/factory-runner/db.mjs nor a pg / postgres package is refused', edits: [[BS,
     '  for (const input of Object.keys(metafile.inputs || {})) {',
     '  for (const input of []) {']] },
-  { id: 'P2', expect: ['B2', 'B3'], what: 'the build ignores the policy verdict: bundleEntry no longer throws (exit 4) on a bundle with violations', edits: [[BS,
+  { id: 'P2', expect: ['B19'], what: 'the build ignores the policy verdict: bundleEntry no longer throws (exit 4) on a bundle with violations', edits: [[BS,
     String.raw`  if (violations.length) throw new BuildError(EXIT.POLICY, 'the runtime bundle is refused:\n'`,
     String.raw`  if (false) throw new BuildError(EXIT.POLICY, 'the runtime bundle is refused:\n'`]] },
-  { id: 'P3', expect: ['B2', 'B3'], what: 'bundlePolicyViolations no longer refuses a non-builtin run-time require (a SEA can only require builtins)', edits: [[BS,
+  { id: 'P3', expect: ['B19'], what: 'bundlePolicyViolations no longer refuses a non-builtin run-time require (a SEA can only require builtins)', edits: [[BS,
     `      violations.push(out + ' requires "' + imp.path + '" at run time; a SEA can only require node builtins');`,
     '      // (planted) a non-builtin run-time require is no longer a violation']] },
 
   // 2. no database URL in the bundle or the exe
-  { id: 'U1', expect: ['B4'], what: 'the build\'s database-URL refusal is removed: forbiddenStringHits finds nothing (bundle and exe gates both open)', edits: [[BS,
+  { id: 'U1', expect: ['B19'], what: 'the build\'s database-URL refusal is removed: forbiddenStringHits finds nothing (bundle and exe gates both open)', edits: [[BS,
     L('  for (const s of FORBIDDEN_STRINGS) {', '    for (const [enc, needle] of'),
     L('  for (const s of []) {', '    for (const [enc, needle] of')]] },
   { id: 'U2', expect: ['B1', 'B4'], what: 'the runtime source carries a database URL ("postgresql://..." in main.mjs), the build gate intact', edits: [[MAIN,
