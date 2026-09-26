@@ -32,8 +32,10 @@ const runnable = labels.filter((l) => !STALE_AT_BASELINE.includes(l) && !notJudg
 if (process.argv.includes('--list')) { console.log(mutantCount + ' mutants, ' + labels.length + ' pick keys; stale at the baseline: ' + STALE_AT_BASELINE.join(' ') + '; not judgeable from a clone of this branch: ' + notJudged.join(' ') + '; ' + runnable.length + ' runnable: ' + runnable.join(' ')); process.exit(0); }
 const [outArg, nArg, sizeArg] = process.argv.slice(2);
 const OUT = resolve(outArg); mkdirSync(OUT, { recursive: true });
-const n = Number(nArg), size = Number(sizeArg);
-const pick = runnable.slice((n - 1) * size, n * size);
+// either <chunk number> <chunk size>, or --labels L1 L2 ... (named chunk)
+const li = process.argv.indexOf('--labels');
+const n = li > 0 ? process.argv.slice(li + 1).join('-') : Number(nArg), size = Number(sizeArg);
+const pick = li > 0 ? process.argv.slice(li + 1).filter((l) => runnable.includes(l)) : runnable.slice((n - 1) * size, n * size);
 if (!pick.length) { console.log('chunk ' + n + ' is empty (' + runnable.length + ' runnable labels)'); process.exit(0); }
 const head = spawnSync('git', ['-C', ROOT, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).stdout.trim();
 const same = spawnSync('git', ['-C', ROOT, 'diff', '--quiet', BASELINE, head, '--', PROOF], { encoding: 'utf8' }).status === 0;
