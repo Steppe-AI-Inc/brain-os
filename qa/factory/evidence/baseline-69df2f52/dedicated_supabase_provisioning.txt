@@ -1,0 +1,23 @@
+suite dedicated_supabase_provisioning
+command node qa/factory/dedicated_supabase_provisioning.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit dacda25ceed430677e8a72702b10a30d1eaeac04
+environment disposable (local)
+started 2026-09-26T06:22:29.753Z
+seconds 8
+exit 0
+summary dedicated_supabase_provisioning: 11 passed, 0 failed  (disposable TLS server dressed as a Supabase project; nothing reached any real project)
+
+OK   D1 an ordinary Supabase-shaped target without the flag is REFUSED on its platform schemas
+OK   D2 the flag with a different ref than the connection carries is REFUSED on identity
+OK   D9 the production ref cannot be declared dedicated, and --force is refused alongside the flag
+OK   D3 the exact dedicated ref with only platform schemas is ALLOWED: provisioned, boundary proved as the runner, env file written with verify-full and the CA path, URL not printed
+OK   D4 a business table appearing is REFUSED even with the flag
+OK   D5 the runner cannot read auth.users, storage.objects, realtime.subscription or the migration history
+OK   D6 the runner cannot create a schema or a table anywhere, cannot become service_role/postgres/supabase_admin, is a member of no platform role (only factory_runner), holds no privileged attribute
+OK   D7 the runner performs every control-plane operation: register, claim, checkpoint, heartbeat, complete, verify another run (verification accepted=true, done=2)
+OK   D8 re-running is idempotent (password rotated, identity kept = ref); a different ref against this plane is refused
+OK   D11 a CA that does not sign the server certificate is REFUSED (verify-full), and the refusal names the presented certificate for the rerun
+OK   D10 the runner URL passes the accessor's judgement, and the server refuses a plaintext session
+
+dedicated_supabase_provisioning: 11 passed, 0 failed  (disposable TLS server dressed as a Supabase project; nothing reached any real project)

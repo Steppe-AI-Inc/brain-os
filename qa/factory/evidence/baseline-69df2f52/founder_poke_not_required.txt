@@ -1,0 +1,31 @@
+suite founder_poke_not_required
+command node qa/factory/founder_poke_not_required.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit dacda25ceed430677e8a72702b10a30d1eaeac04
+environment disposable (local)
+started 2026-09-26T06:21:28.444Z
+seconds 29
+exit 0
+summary founder_poke_not_required: 12 passed, 0 failed
+
+OK   the control plane and the director state machine apply cleanly
+OK   the work order starts QUEUED and nothing has run
+OK   the director is a SEPARATE OS PROCESS
+OK   the director dispatched a worker with NO input from this process
+OK   FOUNDER_POKE_NOT_REQUIRED: the work order reached COMPLETED across worker boundaries, with no founder or chat input at any point
+OK   at least TWO real worker boundaries were crossed, each leaving a durable artifact
+OK   the artifacts were written by processes that are NOT the director and NOT this harness
+OK   with the director DEAD, new work does not advance — so the loop is what moves it, not this test
+OK   a RESTARTED director reconstructs state from the database and finishes the new work order
+OK   the completed work order was NOT re-run by the restarted director
+OK   no DUPLICATE worker ran for an already-finished round
+OK   no founder notification was raised for work that was never blocked
+
+founder_poke_not_required: 12 passed, 0 failed
+
+PROVED: the director is a separate OS process; work finishing outside it is noticed; the next
+run is dispatched with no input; killing and restarting it reconstructs state without
+duplicating a dispatch or losing a landed artifact.
+NOT PROVED HERE: machine-level independence of the DATABASE. embedded-postgres is bound to
+this harness process. With FACTORY_RUNNER_PG_URL pointing at a real server — the founder-
+blocked item — the same acceptance runs unchanged and that last dependency is gone.

@@ -1,0 +1,22 @@
+suite tls_plane_acceptance
+command node qa/factory/tls_plane_acceptance.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit dacda25ceed430677e8a72702b10a30d1eaeac04
+environment disposable (local)
+started 2026-09-26T06:22:06.595Z
+seconds 23
+exit 0
+summary tls_plane_acceptance: 9 passed, 0 failed  (plane served on 192.168.1.7:62340 with ssl=on, hostssl-only; disposable, removed)
+
+this machine: DESKTOP-8P5HVAO, LAN address 192.168.1.7 (the plane will listen there, not on loopback only)
+OK   T1 the accessor refuses a plaintext URL to 192.168.1.7 before a socket opens (health exits 1, names the rule)
+OK   T2 the SERVER rejects a plaintext session on 192.168.1.7 (pg_hba hostnossl reject)
+OK   T3 node.mjs health passes over TLS (verify-ca + sslrootcert) on 192.168.1.7 and registers as verifier
+OK   T4 plane-health passes over TLS: TLS IN USE, no privileged attribute, DDL refused (42501), 001-003 applied, clocks
+OK   T5 the chain is checked: the plane's certificate as sslrootcert connects over TLS; a different root is refused; verify-full on an IP host is refused by the driver (DNS name needed)
+OK   T6 a worker dies mid-claim over TLS on 192.168.1.7 and a second process resumes it with the dead one's checkpoint
+OK   T7 the accessor refuses the superuser over TLS on the LAN address
+OK   T8 with NODE_TLS_REJECT_UNAUTHORIZED=0 in its environment the runner still refuses a server certified by another root (UNREACHABLE - self-signed certificate; if the root CA is installed locally, try running Node.j)
+OK   T9 the teardown leaves nothing behind: 0 process(es) of the server (postmaster 18656 and its children), data directory removed
+
+tls_plane_acceptance: 9 passed, 0 failed  (plane served on 192.168.1.7:62340 with ssl=on, hostssl-only; disposable, removed)

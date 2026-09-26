@@ -1,0 +1,20 @@
+suite package_bootstrap_static
+command node qa/factory/package_bootstrap_regression.mjs --static
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit dacda25ceed430677e8a72702b10a30d1eaeac04
+environment disposable (local)
+started 2026-09-26T06:20:47.733Z
+seconds 1
+exit 0
+summary package_bootstrap_regression: 7 passed, 0 failed  (static rows only)
+
+package/bootstrap regression on impl-prep/auto-enrollment-v1 at dacda25ceed4
+OK   K1 package.json and package-lock.json are tracked by git, and the lock is not ignored
+OK   K2 the lock is in sync with the manifest (lockfileVersion 3; dependencies, devDependencies, engines equal)
+OK   K3 every package the Factory imports is declared (parsed, not grepped): runtime pg in dependencies; harness pg, embedded-postgres, acorn in dependencies or devDependencies
+OK   K4 the Factory's own packages are pinned exactly and locked at those versions (pg 8.23.0, embedded-postgres 18.4.0-beta.17, acorn 8.18.0; pg-connection-string 2.14.0)
+OK   K5 every locked package with an install script has an allowScripts decision (10 scripted: @embedded-postgres/darwin-arm64@18.4.0-beta.17, @embedded-postgres/darwin-x64@18.4.0-beta.17, @embedded-postgres/linux-arm@18.4.0-beta.17, @embedded-postgres/linux-arm64@18.4.0-beta.17, @embedded-postgres/linux-ia32@18.4.0-beta.17, @embedded-postgres/linux-ppc64@18.4.0-beta.17, @embedded-postgres/linux-x64@18.4.0-beta.17, @embedded-postgres/windows-x64@18.4.0-beta.17, esbuild@0.27.0, fsevents@2.3.3)
+OK   K6 the runtime closure (14 packages a --omit=dev node installs) runs no install scripts
+OK   K7 every package fetched at run time by npx / npm exec under scripts/factory-runner names an exact version (supabase@2.117.0 scripts/factory-runner/verify-deployed-bytes.sh:30)
+
+package_bootstrap_regression: 7 passed, 0 failed  (static rows only)

@@ -1,0 +1,20 @@
+Baseline of the certified Factory suites on the frozen code (69df2f52 + dev-dep pins), measured on DESKTOP-8P5HVAO, 2026-09-26.
+Disposable resources only. Excluded: live-plane suites (shared_plane_live, two_machine_*), reboot_recovery (R9 reads the live task/env/plane),
+package_bootstrap full mode (its restore path re-registers the live task), mutation proofs (to be re-anchored later).
+acceptance I2 needs the trunk ref origin/p1/execution-truth-governance locally (fetched read-only); round_state RS-C0 needs the closed
+Edge campaign's worktree (not on this machine; registered environmental failure).
+
+acceptance                               exit 0 | factory acceptance: 58 passed, 0 failed
+db_regression                            exit 0 | ℹ fail 0
+dedicated_supabase_provisioning          exit 0 | dedicated_supabase_provisioning: 11 passed, 0 failed  (disposable TLS server dressed as a Supabase project; nothing reached any real project)
+founder_poke_not_required                exit 0 | founder_poke_not_required: 12 passed, 0 failed
+health_check                             exit 0 | health_check: 10 passed, 0 failed
+http_provider_acceptance                 exit 0 | http_provider_acceptance: 9 passed, 0 failed  (stub provider on 127.0.0.1:62313, disposable plane; nothing reached a real provider)
+node_truth_acceptance                    exit 0 | node_truth_acceptance: 46 passed, 0 failed
+package_bootstrap_static                 exit 0 | package_bootstrap_regression: 7 passed, 0 failed  (static rows only)
+plugin_attach_regression                 exit 0 | ℹ fail 0
+provider_regression                      exit 0 | ℹ fail 0
+round_state_regression                   exit 1 | FAILURES:
+runner_env_regression                    exit 0 | ℹ fail 0
+scheduler_regression                     exit 0 | ℹ fail 0
+tls_plane_acceptance                     exit 0 | tls_plane_acceptance: 9 passed, 0 failed  (plane served on 192.168.1.7:62340 with ssl=on, hostssl-only; disposable, removed)

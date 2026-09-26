@@ -1,0 +1,40 @@
+suite scheduler_regression
+command node scripts/factory-runner/scheduler.regression.test.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit dacda25ceed430677e8a72702b10a30d1eaeac04
+environment disposable (local)
+started 2026-09-26T06:20:47.404Z
+seconds 0
+exit 0
+summary ℹ fail 0
+
+✔ isTaskReady: a task with no dependencies is always ready (1.1229ms)
+✔ isTaskReady: FACTORY_DEPENDENT_TASK_WAITS_FOR_PREREQUISITE - a task with an unfinished dependency is not ready (0.1454ms)
+✔ isTaskReady: a task becomes ready only once every dependency is genuinely done (0.1299ms)
+✔ isTaskReady: an archived dependency does NOT satisfy readiness (archived != done) (0.1204ms)
+✔ isTaskPermanentlyBlocked: a rejected dependency permanently blocks the dependent (0.1899ms)
+✔ selectAgentForTask: FACTORY_CAPABILITY_ROUTER_SELECTS_RELEVANT_AGENT - picks the agent whose capabilities actually match, never by name (0.2285ms)
+✔ selectAgentForTask: excludes an agent with zero capability overlap even if idle (0.1283ms)
+✔ selectAgentForTask: higher overlap wins over a partial match (0.1369ms)
+✔ selectAgentForTask: ties broken by least-loaded agent (do not pile onto a busy one) (0.1513ms)
+✔ selectAgentForTask: empty required_capabilities matches any active agent (tie-broken by load) (0.2148ms)
+✔ selectTasksToDispatch: FACTORY_INDEPENDENT_TASKS_EXECUTE_IN_PARALLEL - independent ready tasks are all selected together, not serialized (0.9525ms)
+✔ selectTasksToDispatch: a dependent task is excluded until its prerequisite is done, independents still proceed (0.1729ms)
+✔ selectTasksToDispatch: respects the concurrency cap, earliest-created first (0.1368ms)
+✔ selectTasksToDispatch: zero available slots dispatches nothing (concurrency cap enforced) (0.1266ms)
+✔ selectTasksToDispatch: FACTORY_DEPENDENT_TASK_WAITS_FOR_PREREQUISITE (real live bug, fixed) - a dependent task dispatches once its now-DONE prerequisites are included in the input, even though they are no longer themselves dispatch candidates (0.2127ms)
+✔ selectTasksToDispatch: a done/in_progress/archived task is never re-selected (0.1528ms)
+✔ FACTORY_PRODUCT_ARCHITECT_CAN_BE_DISPATCHED_WHEN_CAPABILITY_REQUIRED - a task requiring "architecture" routes to brain-os-product-architect, using the REAL registered capability list (sync-agents.mjs ALLOWLIST), not a synthetic mock (0.2442ms)
+✔ classifyQueuedTasks: ready / waiting / permanently blocked are three different answers (0.2322ms)
+✔ classifyQueuedTasks: only QUEUED tasks are classified; terminal and running tasks are inputs, not outputs (0.1176ms)
+✔ selectTasksToDispatch derives from classifyQueuedTasks - a permanently blocked task is never dispatched and never counted as ready (0.1521ms)
+✔ idleReason: a dead chain reads as permanently_blocked, a busy one as waiting_on_dependencies - never the same word (0.1466ms)
+✔ ABLATION: with the rejected-dependency check disabled, the dead chain collapses into waiting - the row above depends on the detector (0.1495ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12.7108

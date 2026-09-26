@@ -1,0 +1,24 @@
+suite http_provider_acceptance
+command node qa/factory/http_provider_acceptance.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit dacda25ceed430677e8a72702b10a30d1eaeac04
+environment disposable (local)
+started 2026-09-26T06:21:57.460Z
+seconds 9
+exit 0
+summary http_provider_acceptance: 9 passed, 0 failed  (stub provider on 127.0.0.1:62313, disposable plane; nothing reached a real provider)
+
+OK   H1 without DEEPSEEK_API_KEY the call is BLOCKED_BY_CREDENTIAL and no request reaches the server
+OK   H2 with the key: one POST with the bearer header and the requested model; the answer, usage and a completion come back
+OK   H2b the result carries no credential
+OK   H3 the server answered with a different model: the result names it, the plane refuses completeRun without a fallbackReason and accepts it with one
+OK   H4 429 → PROVIDER_CAPACITY_BLOCKED (quota); 503 → PROVIDER_TRANSIENT_ERROR; a refused key → BLOCKED_BY_CREDENTIAL (auth_error); none thrown
+OK   H5 a response that never terminates → STREAM_NEVER_TERMINATED, recorded as failed/stream_never_terminated, not a completion
+OK   H6 HTTP 200 whose body stopped for length is NOT a completion (truncated)
+[claim] declining 018bb99f: verifier_round needs PROVEN or better and this model is FAILING — 1 attempt(s), none reaching a completion terminal condition
+[claim] declining 018bb99f: verifier_round needs PROVEN or better and this model is FAILING — 1 attempt(s), none reaching a completion terminal condition
+[claim] declining 018bb99f: verifier_round needs PROVEN or better and this model is HISTORICAL — only one recent completion — one is an anecdote, not a record
+OK   H8 with the key present, deepseek-chat is declined verifier work while below PROVEN (FAILING after the hang, HISTORICAL after one completion) and admitted after two completed HTTP runs (PROVEN)
+OK   H7 the credential appears in no row of any control-plane table after the runs (8 tables searched)
+
+http_provider_acceptance: 9 passed, 0 failed  (stub provider on 127.0.0.1:62313, disposable plane; nothing reached a real provider)

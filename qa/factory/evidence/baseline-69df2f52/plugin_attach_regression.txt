@@ -1,0 +1,28 @@
+suite plugin_attach_regression
+command node scripts/factory-runner/plugin-attach.regression.test.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit dacda25ceed430677e8a72702b10a30d1eaeac04
+environment disposable (local)
+started 2026-09-26T06:20:47.598Z
+seconds 0
+exit 0
+summary ℹ fail 0
+
+✔ buildSkillInjectionPrompt: returns empty string for an agent with no attachments (no regression on the common case) (1.0688ms)
+✔ buildSkillInjectionPrompt: names the skill and its pinned origin for one attachment (0.2674ms)
+✔ buildSkillInjectionPrompt: FACTORY_SKILL_INJECTION_INCLUDES_DEFINITION_PATH — real bug fixed live during the Phase 6 Task Observer proof. The Skill tool only resolves skills that are ALSO installed as a real Claude Code marketplace plugin (confirmed live: Skill(task-observer) returned "Unknown skill" for a vendored-only component); reading definition_path directly is the reliable path regardless of marketplace-installation status, so it must be present and instructed (0.4814ms)
+✔ buildSkillInjectionPrompt: omits the "Read this file directly" clause when definition_path is absent (never prints "Read this file directly: undefined") (0.1979ms)
+✔ buildSkillInjectionPrompt: lists every attached skill, not just the first (0.1714ms)
+✔ buildSkillInjectionPrompt: omits the pinned-ref suffix when pinned_ref is null (never prints "@ null") (0.1396ms)
+✔ startRunByAgentId dispatch path: task text is only ever extended, never replaced, by the skill block (0.123ms)
+✔ hashFile: throws synchronously (no partial side effect possible) for a nonexistent file within an allowed root (0.6274ms)
+✔ assertPathWithinAllowedRoots: throws synchronously for a path outside every allowed root (0.2148ms)
+✔ applyUpdate/rollbackComponent source order: hashFile( is called before the first snapshotVersion( call in each function body (prevents the phantom-history-row class regressing) (0.6457ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11.7101

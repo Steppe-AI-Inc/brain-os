@@ -1,0 +1,39 @@
+suite runner_env_regression
+command node scripts/factory-runner/runner-env.regression.test.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit dacda25ceed430677e8a72702b10a30d1eaeac04
+environment disposable (local)
+started 2026-09-26T06:20:47.222Z
+seconds 0
+exit 0
+summary ℹ fail 0
+
+✔ the recorded CA path is kept when it exists here (2.1204ms)
+✔ a CA path from another machine is resolved to the copy beside the env file (0.3342ms)
+✔ a CA path that exists nowhere is left as is, flagged caMissing, and the note says what to copy (0.2349ms)
+✔ a URL without sslrootcert (loopback plane) is untouched (0.1439ms)
+✔ loadRunnerUrl reads the file and resolves the CA beside it (3.5651ms)
+✔ an env file saved with a UTF-8 byte-order mark is read (Windows PowerShell 5.1 adds one on re-save) (2.0779ms)
+✔ loadRunnerUrl flags a CA that exists nowhere on this machine (the preflight and supervisor refuse on it) (1.8282ms)
+✔ a URL with a real CA beside it is usable (3.3053ms)
+✔ a value in one pair of quotes is the URL inside them (2.8698ms)
+✔ a UTF-16LE file (Windows PowerShell 5.1 re-save) is decoded and usable (2.8732ms)
+✔ a UTF-16BE file is decoded and usable (2.7319ms)
+✔ NUL bytes without a byte-order mark are refused naming the encoding, not "no line" (2.52ms)
+✔ a key=value connection string is not a URL: refused, url null (1.9334ms)
+✔ the superuser is refused by the same rule the accessor applies (2.0352ms)
+✔ the production project is refused by name (1.6688ms)
+✔ plaintext across a network is refused (1.6536ms)
+✔ a DER-encoded CA (the Windows export default) is refused naming the conversion - pg reads the file as PEM text (3.2868ms)
+✔ what pg itself would throw on is refused by the judge: a missing client cert/key, verify-* with uselibpqcompat and no CA (3.5468ms)
+✔ the judge never throws: a directory where the CA should be is a refusal, not EISDIR (2.4105ms)
+✔ a CA file that is not a certificate is refused, naming the file (3.1335ms)
+✔ importing the loader first does not freeze db.mjs without a URL (ensureRunnerEnv, then db.mjs, sees the URL) (62.8489ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 114.9979

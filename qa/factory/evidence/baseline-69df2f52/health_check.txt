@@ -1,0 +1,22 @@
+suite health_check
+command node qa/factory/health_check.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit dacda25ceed430677e8a72702b10a30d1eaeac04
+environment disposable (local)
+started 2026-09-26T06:21:16.588Z
+seconds 12
+exit 0
+summary health_check: 10 passed, 0 failed
+
+OK   before the schema is applied, health names the missing schema and the file that fixes it
+OK   with the schema applied and privileges granted, the node reports HEALTHY, and that no supervisor runs it here
+OK   it reports each link separately: connection, superuser status, schema, queue, registration
+OK   it NEVER prints the password, and never prints the connection string
+OK   ...but it does print enough to identify the connection: host, database, sslmode
+OK   a superuser URL is refused, and the refusal explains why rather than just failing
+OK   with SELECT revoked, health fails and names permission rather than reporting a healthy node
+OK   an unreachable database reports a CONNECTION failure, not a schema one
+OK   on LOOPBACK, a missing sslmode is noted but does not fail the node
+OK   on a REMOTE host, a missing sslmode is a hard failure
+
+health_check: 10 passed, 0 failed

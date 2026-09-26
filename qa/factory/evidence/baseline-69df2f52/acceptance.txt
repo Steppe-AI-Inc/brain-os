@@ -1,0 +1,75 @@
+suite acceptance
+command node qa/factory/acceptance.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit dacda25ceed430677e8a72702b10a30d1eaeac04
+environment disposable (local)
+started 2026-09-26T06:23:06.942Z
+seconds 58
+exit 0
+summary factory acceptance: 58 passed, 0 failed
+
+OK   nodes register (no machine-specific identity anywhere in the row)
+OK   A  a queued work order is claimed
+OK   B  the claim takes an exclusive lock on the surface it will write
+OK   H  a second node cannot claim the same work order
+OK   I  a different work order wanting the SAME surface is not claimable while it is held
+OK   I2 a work order on a DIFFERENT surface is claimable concurrently
+OK   C  the worker progresses and each step is recorded
+OK   D  the checkpoint persists, and the run points at the latest one
+OK   E/G  a dead node's expired lease is recovered by another node
+OK   G2 the abandoned run is returned to queued and its attempt_count incremented
+OK   G3 the abandoned run keeps the node that ran it (node-alpha)
+OK   the owning node can renew its lease
+OK   a node that does NOT own the run cannot renew it
+OK   M1 claimWork records the REQUESTED provider, model and effort at claim time — before the call
+OK   M2 completeRun REFUSES a done/failed status with no terminationReason — HTTP SUCCESS IS NOT A VALID COMPLETED RUN
+OK   M3 completeRun REFUSES a model substitution with no fallbackReason, and names both models
+OK   M4 a STATED substitution is recorded with its reason, its terminal condition and its token and cost accounting
+OK   M5 NEGATIVE CONTROL: a run served by the model it requested needs no fallbackReason — M3 is refusing the substitution and not merely refusing to write actual_*
+[claim] declining 4906921d: verifier_round needs PROVEN or better and this model is UNVERIFIED — configured, never tried — unverified is not the same as broken, and not the same as working
+OK   N1 a verifier-role work order is DECLINED by a node whose model has no run evidence — the work order waits rather than being served by a model that has never finished a run
+OK   N2 ...and the SAME work order IS claimed once the model has two recent completions — the policy gates on evidence, it does not refuse everything
+OK   N3 a work order with no elevated role requirement is claimed by the unproven model — a policy that refuses everything saves nothing
+OK   N4 the claim path actually calls the assurance policy, with the work order's own role
+OK   J  a completed work order is not claimed again
+OK   J2 completing a run releases its surface
+OK   a work order whose dependency is unfinished is NOT claimed before it
+OK   the invariant tests are actually reaching a row
+OK   a run cannot be its own verification (enforced by a constraint, not a habit)
+OK   and for high-assurance acceptance, the verifying node cannot be the authoring node
+OK   an independent verification IS accepted
+OK   SEC1 a GENERIC node cannot claim work that requires a release broker
+OK   SEC2 nor can a VERIFIER — the roles are ordered, and verifier is below release_broker
+OK   SEC3 a RELEASE BROKER can
+OK   SEC4 a release broker can also do ordinary work: the roles RANK, they do not partition
+OK   CAP1 a node without a required capability cannot claim the work
+OK   CAP2 and the work WAITS rather than being handed to a node that cannot do it
+OK   CAP3 the node that HAS the capability claims it
+OK   SEC5 a node cannot talk its way up: the role comes from the control plane, not the call
+OK   INV1 no control-plane table references anything outside the factory schema
+OK   INV1b and the control plane holds no Brain OS business table at all
+OK   INV1c a work order referencing a business id that does not exist is still valid
+OK   I  with every row deleted, the queue is rebuilt from the repository alone
+OK   I2 and the rebuilt row carries the durable facts: base, head and candidate bytes
+OK   I3 reconstruction is idempotent
+OK   L  a fresh node claims the abandoned work order
+OK   L2 and it can see the work the dead node had already completed
+OK   L3 including what remained, so it resumes rather than restarts
+OK   L4 the abandoned run is returned to the queue with its attempt counted, not discarded
+OK   M  a run whose lease was taken over cannot complete the work order: its checkpoint (LeaseLost) and completion (superseded) are refused, the work order stays with the live run, the dependent stays blocked, and only the live run completes it (1 done run)
+OK   N  a claimer that died holding the claim lock cannot block the plane: another claim gives up within the lock timeout (1531 ms, busy true), the server ends the idle transaction (0 left), and the work order is claimed 2613 ms later
+OK   O  a plane connection that stalls fails within its timeout instead of hanging: mid-statement 2004 ms, at connect 2016 ms (limits 2000 ms)
+OK   P  a completion is all or nothing: with the work order update failing, the run stays in_progress with its lock (1) and the work order claimed; without the fault all three complete and the dependent is released
+OK   Q  a statement stalled between its Execute and its Sync cannot hold its lock: the server ends that session (1 stalled, 0 left) and another writer gets the row in 2345 ms (limit 3000 ms)
+OK   R  a close the server side never answers cannot hang the worker: the statement returned and its connection was given up after the close limit (returned 1 in 1650 ms; limit 1500 ms)
+OK   S2 nine malformed work orders at the head of the queue (NULL, empty, oversized surfaces) do not starve it: the work order behind them is claimed
+OK   S  a malformed work order cannot starve the plane: a repeated surface is claimed with one lock (1), a NULL surface is declined (still queued) and the work order behind it is claimed
+OK   S3 a surface too large in BYTES (1000 characters, 3000 bytes, UTF8) is never picked: the work order behind it is claimed, and health names it
+OK   K  with a production credential in the environment and no explicit URL, the runner REFUSES
+OK   K2 the same child WITH an explicit least-privilege URL does reach the database
+
+factory acceptance: 58 passed, 0 failed
+
+--- stderr ---
+fatal: Not a valid object name p1/execution-truth-governance
+fatal: Not a valid object name p1/execution-truth-governance

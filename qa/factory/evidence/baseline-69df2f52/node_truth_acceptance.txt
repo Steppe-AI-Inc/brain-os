@@ -1,0 +1,78 @@
+suite node_truth_acceptance
+command node qa/factory/node_truth_acceptance.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit dbca24df2e5b1eb6950c5c88f1a4efe0581471f3
+environment disposable (local)
+started 2026-09-26T07:47:39.421Z
+seconds 795
+exit 0
+summary node_truth_acceptance: 46 passed, 0 failed
+
+OK   N1 the health checks from a plain shell keep the role the plane holds (health: verifier, with a stale FACTORY_NODE_ROLE=generic: verifier, plane-health: verifier) and do not make a dead node ALIVE (heartbeat still 3604 s old)
+OK   N2 a running worker re-asserts its role on its beat: demoted to generic on the plane, verifier again in 4951 ms, and said
+OK   N9 one worker per node identity: a second worker on the same state dir does not start (exit 4) and the node stays verifier
+OK   N14 a node records the commit it runs and its acceptance handler (head:dbca24df2e5b, handler:factory-acceptance/2), and a health check leaves the running worker's record alone
+OK   N15 the two-machine acceptance refuses a Work node on an unrecorded commit (exit 1) or another commit (exit 1), naming it, and seeds nothing (0 work orders)
+OK   N3 the acceptance handler completes only what it carried out: an unknown action, a wrong case, a non-JSON and a missing handoff fail by name ({"u1":"failed:factory_acceptance_unknown_action","u2":"failed:factory_acceptance_bad_handoff","u3":"failed:factory_acceptance_unknown_action","u4":"failed:factory_acceptance_bad_handoff","c1":"done:factory_acceptance_completed"}), their work orders fail, the dependent is never released (queued, 0 runs) and the explicit complete is done
+OK   N11 a plane-wide claim lock held past the lock timeout is said: the worker logs it, its status says NOT CLAIMING, and it says when the lock is free again
+OK   N16 a claim-lock BUSY record left by an earlier worker is replaced by the next worker's first claim cycle (status no longer says NOT CLAIMING)
+OK   N4 a failed run fails its work order in the same statement (failed, 0 locks left), its dependent stays blocked, a "blocked" completion is refused, and health names a stranded work order by id
+[node-506886d3] security role generic (FACTORY_NODE_ROLE); host DESKTOP-8P5HVAO
+[node-506886d3] registered; capabilities ["software_development","git","node","worktree","factory_acceptance","node:node-506886d3-db19-4914-a658-091194485a24","head:dbca24df2e5b1eb6950c5c88f1a4efe0581471f3","handler:factory-acceptance/2"]; head dbca24df
+[node-506886d3] no FACTORY_MODEL set: claims carry no requested model, so the assurance gate and the no-silent-fallback constraints do not apply to this node
+[node-506886d3] claims only work types it can do: qa_busy
+[node-506886d3] admission: claiming (admission control is OFF by FACTORY_ADMISSION=off)
+[node-506886d3] claim lock free again - claiming
+[node-506886d3] ready: first claim cycle completed - the node reads ALIVE on the plane
+[node-506886d3] claimed work order e0e01b17 as run 5d36853a
+[node-506886d3] created worktree C:\Users\DELL\AppData\Local\Temp\factory-nodetruth-FdlI9V\no-worktree
+[node-506886d3] completed run 5d36853a
+OK   N5 a node busy on a run longer than its stale window reads ALIVE (ALIVE 1s, ALIVE 2s), and the run heartbeat alone stamps the node record (age 0 s after a beat)
+OK   N6 a worker survives a transient plane loss (7 s of reset and refused connections): the same process (still running) retried, said so, and claimed the work addressed to it afterwards
+OK   N9b a bare worker does not start beside a supervisor that runs the same node (exit 4)
+OK   N24 health says "can claim work" only while the supervised node is claiming: not with its admission refused, nor with the claim lock busy
+OK   N7 the supervisor's backoff resets once a worker completed a claim cycle: two workers killed after that were restarted after 1:5s, 2:5s (not 5 s then 10 s), and --stop ends it (exit 0)
+[node-506886d3] security role generic (FACTORY_NODE_ROLE); host DESKTOP-8P5HVAO
+[node-506886d3] registered; capabilities ["software_development","git","node","worktree","factory_acceptance","node:node-506886d3-db19-4914-a658-091194485a24","head:dbca24df2e5b1eb6950c5c88f1a4efe0581471f3","handler:factory-acceptance/2"]; head dbca24df
+[node-506886d3] no FACTORY_MODEL set: claims carry no requested model, so the assurance gate and the no-silent-fallback constraints do not apply to this node
+[node-506886d3] claims only work types it can do: qa_data
+[node-506886d3] admission: claiming (admission control is OFF by FACTORY_ADMISSION=off)
+[node-506886d3] claim lock free again - claiming
+[node-506886d3] ready: first claim cycle completed - the node reads ALIVE on the plane
+[node-506886d3] claimed work order b3074c3c as run 56804d4f
+[node-506886d3] created worktree C:\Users\DELL\AppData\Local\Temp\factory-nodetruth-FdlI9V\no-worktree
+[node-506886d3] FAILED run 56804d4f (data exception 22P02: invalid input syntax for type uuid: "x") - the same input fails every time; its work order is failed
+OK   N10 a malformed argument fails its run by name (failed:factory_acceptance_bad_argument | failed:factory_acceptance_bad_argument) and a data exception inside a run is terminal (failed:data_exception_22P02), their work orders failed
+OK   N13 a run whose lease cannot be renewed is aborted before the lease lapses (2 s before another node took its surface), and the abandoned run keeps the node that ran it (kept)
+OK   N21 over a slow link (300 ms each way) one failed lease renewal does not abort a healthy run: it is retried in seconds and the hold completes (done, 1 run(s), 32 s)
+OK   N25 a lease renewal that lands after its run completed is not a lost lease: the run completes and is not logged LOST or ABORTED (renewal held 1, completion seen 1, done)
+OK   N26 a checkpoint and a completion that meet a transient loss are retried: 2 checkpoint and 2 completion retries, [{"scenario":"wave","n":1}] checkpoint row(s), 1 run(s) done, done
+OK   N27b the scheduling instrument passes with a 25 s head start and a 5 s hold (verify exit 3, VERDICT: SAME MACHINE)
+OK   N27 the scheduling instrument passes with the verifier's wave started first (verify exit 3, VERDICT: SAME MACHINE)
+OK   N28 an earlier worker's admission refusal and busy-claim-lock records are gone once the next worker holds its lock, though it never reached a claim cycle (status: no stale verdict)
+OK   N29 a claim that committed but whose reply was lost is given back at once and the work is done in 10 s (lease 90 s): runs queued,done
+OK   N29b a claim whose COMMIT lands after the retry looked for orphans is given back on a later cycle: done in 18 s (lease 60 s), runs queued,done
+OK   N40 a run that waited on the claim lock starts after the run on its surface finished (finished 07:54:10.439, next started 07:54:10.968)
+OK   N41 a scheduling wave keeps the leases it holds while it claims over a slow link (150 ms each way, lease 14 s): the sweeper took 0 work order(s) from it, wave exit 0
+OK   N30 the work-order read right after a claim is retried through a transient loss: done in 8 s (lease 90 s), 1 run(s)
+OK   N31 a claim that waited 18 s on the claim lock is not aborted before its first renewal (lease 30 s): done, 1 run(s), not aborted
+OK   N32 a run's own verification write is retried through a transient loss: done in 7 s (lease 90 s), done:completed_with_verdict, verified by this node
+OK   N33 a lease renewal that hangs does not hold the next one back: another is sent and the 40 s hold completes on a 30 s lease (done, 1 run(s), not aborted)
+OK   N34 the lease guard runs on a monotonic clock: with the wall clock stepped back 60 s it still aborts the cut-off run at 25.2 s (lease 30 s)
+OK   N35 the runbook's scripts read the env file as the node does (seed with the other machine's CA path: exit 0), retry a reset connection (exit 0) and end INCONCLUSIVE on one line when the plane cannot be reached (exit 4)
+OK   N35b plane-health reads the env file as the node does (--runner-env: exit 0) and resolves a copied URL's CA path (raw URL: exit 0)
+OK   N42 a node that admission refuses stamps no liveness: ALIVE -> STALE (admission refused, said) -> ALIVE
+OK   N36 node.mjs status asks the plane three times before it says UNREACHABLE: with the first connection reset it reads ALIVE, tls false
+OK   N37 two_machine_real retries a transient plane error (two resets: exit 1, the same refusal) and a plane it cannot reach ends INCONCLUSIVE (exit 4), not FAIL
+OK   N22 a worker whose admission refuses every cycle never declares itself ready and never reads ALIVE (STALE (never beaten: registered, but no worker has completed a claim c)
+OK   N12 only a finished, successful run can be verified: a verify of a FAILED run is refused by name (failed:verification_refused) and writes nothing on it; a done run authored elsewhere is verified (done:completed_with_verdict)
+OK   N19 a running worker whose node record was deleted registers again and reads ALIVE at once (ALIVE (heartbeat 2 s ago) — node node-c47b1085, role verifier, commit )
+OK   N23 a runbook script beside the worker leaves its record alone (seed exit 0, the script registered node-tms-c47b1085-d68), and an overwritten record is restored whole by the next beat, and said
+OK   N20 the composer counts only evidence at the commit under acceptance: machines HOST-A, HOST-B, failovers HOST-A>HOST-B, done runs from 2 machine(s), 1 completed verification(s)
+OK   N38 the supervisor's restart backoff runs on a monotonic clock: with the wall clock stepped back an hour at 12 s, 4 workers were started in 40 s (backoff 5 s, 10 s, 20 s)
+OK   N38u the supervisor reports its worker's uptime on a monotonic clock: with its wall clock stepped back an hour, whois says up 12 s
+OK   N39 the idle liveness beat runs on a monotonic clock: 24 s after a 5-minute wall-clock step back the node reads ALIVE (beat 2 s, stale window 8 s)
+OK   N37b a two_machine_real run cut short after a row FAILED ends VERDICT: FAIL (exit 1), not INCONCLUSIVE
+OK   N8 a worker that reaches the plane but fails every claim is backed off with growing delays (1:5s, 2:10s) and never reads ALIVE (STALE (never beaten: registered, but no worker has completed a claim cycle) — node node-01)
+
+node_truth_acceptance: 46 passed, 0 failed
