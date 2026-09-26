@@ -43,7 +43,7 @@ for (const t of ['api', 'direct']) {
 }
 
 const migration = compose();
-const handler = readFileSync(join(ROOT, 'supabase/control-plane/edge/functions/_shared/node_api.ts'), 'utf8');
+const handler = readFileSync(join(ROOT, 'supabase/control-plane/edge/supabase/functions/_shared/node_api.ts'), 'utf8');
 const routes = new Set([...handler.matchAll(/^\s*'((?:GET|POST) \/v1\/[a-z/-]+)': 'select factory\./gm)].map((x) => x[1]));
 
 const rows = [];

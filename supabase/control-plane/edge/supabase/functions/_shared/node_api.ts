@@ -83,13 +83,15 @@ export const b64u = {
     try { const bin = atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)); return Uint8Array.from(bin, (c) => c.charCodeAt(0)); } catch { return null; }
   },
 };
+// WebCrypto takes an ArrayBuffer-backed view (TS 5.7+ types Uint8Array by its buffer): a copy when the view may sit on another buffer
+const own = (b: Uint8Array): Uint8Array<ArrayBuffer> => new Uint8Array(b);
 export const hex = (b: Uint8Array): string => Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
-export async function sha256(b: Uint8Array): Promise<Uint8Array> { return new Uint8Array(await crypto.subtle.digest('SHA-256', b)); }
+export async function sha256(b: Uint8Array): Promise<Uint8Array> { return new Uint8Array(await crypto.subtle.digest('SHA-256', own(b))); }
 
 export async function ed25519Verify(publicKey: Uint8Array, signature: Uint8Array, message: Uint8Array): Promise<boolean> {
   try {
-    const key = await crypto.subtle.importKey('raw', publicKey, { name: 'Ed25519' }, false, ['verify']);
-    return await crypto.subtle.verify({ name: 'Ed25519' }, key, signature, message);
+    const key = await crypto.subtle.importKey('raw', own(publicKey), { name: 'Ed25519' }, false, ['verify']);
+    return await crypto.subtle.verify({ name: 'Ed25519' }, key, own(signature), own(message));
   } catch { return false; }
 }
 

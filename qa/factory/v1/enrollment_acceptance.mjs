@@ -17,7 +17,7 @@ import { startBrainOsStub } from './brainos_stub.mjs';
 const results = [];
 const row = (id, ok, detail) => { results.push({ id, ok: !!ok, detail }); console.log((ok ? 'OK   ' : 'FAIL ') + id + (detail ? ' - ' + detail : '')); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const EDGE = join(ROOT, 'supabase/control-plane/edge/functions');
+const EDGE = join(ROOT, 'supabase/control-plane/edge/supabase/functions');
 const pairing = await import(pathToFileURL(join(EDGE, '_shared/pairing.ts')).href);
 const ENVELOPE = { roles: ['generic', 'verifier'], capabilities: [], max_concurrent_runs: 2, max_heavy: 1 };
 const norm = (display) => pairing.normalizeCode(display).normalized;

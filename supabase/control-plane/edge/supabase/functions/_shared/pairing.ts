@@ -42,7 +42,7 @@ export function normalizeCode(input: string): { locator: string; normalized: str
 /** The pepper, imported once as an HMAC key. FACTORY_PAIRING_PEPPER: base64 of at least 32 bytes. */
 export async function importPepper(b64: string | undefined): Promise<CryptoKey | null> {
   if (!b64) return null;
-  let raw: Uint8Array;
+  let raw: Uint8Array<ArrayBuffer>;
   try { raw = Uint8Array.from(atob(b64.trim()), (c) => c.charCodeAt(0)); } catch { return null; }
   if (raw.length < 32) return null;
   return crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);

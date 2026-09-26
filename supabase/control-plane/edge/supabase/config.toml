@@ -1,0 +1,16 @@
+# The Supabase CLI project for the FACTORY control plane's Edge Functions (the dedicated Factory project npvhuoozkbexddnvkqsj).
+# Deploying is a founder action, after independent verification of the exact SHA (ALLOW_FUNCTIONS_DEPLOY=1?), from the repository root:
+#   npx supabase functions deploy factory-node-api  --project-ref npvhuoozkbexddnvkqsj --workdir supabase/control-plane/edge --no-verify-jwt
+#   npx supabase functions deploy factory-admin-api --project-ref npvhuoozkbexddnvkqsj --workdir supabase/control-plane/edge --no-verify-jwt
+# This is NOT the Brain OS project (supabase/ at the repository root, pvphxgrtdfrudejjhzjk), whose master-push workflow deploys the root
+# supabase/functions/ only (qa/scenarios-runner/factory_v1_static_contract.mjs E2, E5).
+project_id = "brain-os-factory-control-plane"
+
+# verify_jwt = false: the platform gateway must hand every request to the handler, which authenticates it itself - a node presents its
+# own short session token (not a Supabase JWT), and the Admin API receives the caller's Brain OS token, signed by ANOTHER project. With
+# the default (true) the gateway would refuse every node call and every admin call: a whole-request gate (static contract E3).
+[functions.factory-node-api]
+verify_jwt = false
+
+[functions.factory-admin-api]
+verify_jwt = false

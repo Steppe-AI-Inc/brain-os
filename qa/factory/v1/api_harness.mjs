@@ -1,4 +1,4 @@
-// The Node API handler (supabase/control-plane/edge/functions/_shared/node_api.ts - the SAME file the Edge runtime serves) on a
+// The Node API handler (supabase/control-plane/edge/supabase/functions/_shared/node_api.ts - the SAME file the Edge runtime serves) on a
 // local node:http server, for the developer suites. The database client is postgres.js (the version pinned for the Edge runtime),
 // connected as the plane's factory_node_api login. The peer address is the TCP connection's remote address, as on the platform.
 // Each handler is mounted the way the Edge platform delivers it: under its function name (/factory-node-api/v1/..., route.ts), and
@@ -9,7 +9,7 @@ import { randomBytes } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const EDGE = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'supabase', 'control-plane', 'edge', 'functions', '_shared');
+const EDGE = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'supabase', 'control-plane', 'edge', 'supabase', 'functions', '_shared');
 
 export async function startApi(plane, { pepperB64 = randomBytes(32).toString('base64'), pepperVersion = 1, basePath = '/factory-node-api' } = {}) {
   const { createNodeApi } = await import(pathToFileURL(join(EDGE, 'node_api.ts')).href);
@@ -47,7 +47,7 @@ export async function startApi(plane, { pepperB64 = randomBytes(32).toString('ba
   };
 }
 
-/** The Admin API handler (supabase/control-plane/edge/functions/_shared/admin_api.ts) on node:http, against a Brain OS endpoint. */
+/** The Admin API handler (supabase/control-plane/edge/supabase/functions/_shared/admin_api.ts) on node:http, against a Brain OS endpoint. */
 export async function startAdminApi(plane, brainOs, { pepperB64, pepperVersion = 1, basePath = '/factory-admin-api' } = {}) {
   const { createAdminApi } = await import(pathToFileURL(join(EDGE, 'admin_api.ts')).href);
   const { importPepper } = await import(pathToFileURL(join(EDGE, 'pairing.ts')).href);
