@@ -23,8 +23,13 @@ for (const l of mutantLines) {
   if (!labels.includes(key)) labels.push(key);
 }
 const mutantCount = mutantLines.length;
-const runnable = labels.filter((l) => !STALE_AT_BASELINE.includes(l));
-if (process.argv.includes('--list')) { console.log(mutantCount + ' mutants, ' + labels.length + ' pick keys, ' + runnable.length + ' runnable: ' + runnable.join(' ')); process.exit(0); }
+// the acceptance.mjs mutants (suite ACC) cannot be JUDGED from a clone of this branch: acceptance.mjs:439 reconstructs the LOCAL branch
+// factory/computer-agnostic-control-plane, and a clone makes only its HEAD branch local (the certification ran FROM that branch). Their
+// clones crash before any row; they are listed NOT JUDGED with this reason, never counted as survivors. (acceptance.mjs itself runs
+// whole in the candidate worktree, where that branch is local: reference/acceptance.txt.)
+const notJudged = mutantLines.filter((l) => / suite: ACC,/.test(l)).map((l) => (/ label: '([A-Za-z0-9]+)'/.exec(l) || /{ id: '([A-Za-z0-9]+)'/.exec(l))[1]);
+const runnable = labels.filter((l) => !STALE_AT_BASELINE.includes(l) && !notJudged.includes(l));
+if (process.argv.includes('--list')) { console.log(mutantCount + ' mutants, ' + labels.length + ' pick keys; stale at the baseline: ' + STALE_AT_BASELINE.join(' ') + '; not judgeable from a clone of this branch: ' + notJudged.join(' ') + '; ' + runnable.length + ' runnable: ' + runnable.join(' ')); process.exit(0); }
 const [outArg, nArg, sizeArg] = process.argv.slice(2);
 const OUT = resolve(outArg); mkdirSync(OUT, { recursive: true });
 const n = Number(nArg), size = Number(sizeArg);
