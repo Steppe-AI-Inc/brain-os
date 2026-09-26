@@ -14,6 +14,7 @@
 // SECRETS (S-12): the session token is returned once, to the node that proved its key, and stored only as a hash; nothing here logs
 // a token, a code, a key or a body.
 import { enroll } from './enroll.ts';
+import { routePath } from './route.ts';
 
 export type Sql = (text: string, params: unknown[]) => Promise<Array<Record<string, unknown>>>;
 export type Deps = {
@@ -21,6 +22,7 @@ export type Deps = {
   randomBytes: (n: number) => Uint8Array;     // a CSPRNG
   pepper?: () => Promise<{ key: CryptoKey; version: number } | null>;  // enrollment (part 150): FACTORY_PAIRING_PEPPER, from the secret store
   log?: (event: Record<string, unknown>) => void;  // structured, secret-free
+  basePath?: string;                          // the function's own path prefix on the Edge platform ('/factory-node-api'; route.ts)
 };
 export type Peer = { address: string };
 
@@ -159,7 +161,7 @@ async function bearerHash(req: Request): Promise<string | null> {
 export function createNodeApi(deps: Deps): (req: Request, peer: Peer) => Promise<Response> {
   return async (req: Request, peer: Peer): Promise<Response> => {
     const url = new URL(req.url);
-    const route = req.method + ' ' + url.pathname;
+    const route = req.method + ' ' + routePath(url.pathname, deps.basePath);
     if (!(route in FRONT_DOORS)) return refuse(404, 'no_such_route', 'the Factory Node API has no ' + req.method + ' ' + url.pathname.slice(0, 80));
     if (!(await ed25519SelfTest())) return refuse(503, 'crypto_unavailable', 'Ed25519 self-test failed: this API serves nothing (fail closed)');
     try {

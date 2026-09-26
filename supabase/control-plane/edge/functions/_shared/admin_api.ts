@@ -11,6 +11,7 @@
 // CODE-ISSUING ACTIONS (Add Computer, issue code, re-pair, restore, create an agent principal) draw the pairing code HERE from the
 // CSPRNG, send the plane only its locator and HMAC-SHA256(FACTORY_PAIRING_PEPPER, code), and return the code to the admin ONCE.
 import { codeMac, generateCode } from './pairing.ts';
+import { routePath } from './route.ts';
 
 export type Sql = (text: string, params: unknown[]) => Promise<Array<Record<string, unknown>>>;
 export type AdminDeps = {
@@ -20,6 +21,7 @@ export type AdminDeps = {
   brainOs: { url: string; anonKey: string };
   fetch: typeof fetch;
   log?: (event: Record<string, unknown>) => void;
+  basePath?: string;   // the function's own path prefix on the Edge platform ('/factory-admin-api'; route.ts)
 };
 
 // op -> [front door, issues a code?, the body fields it accepts]
@@ -85,7 +87,7 @@ export async function liveIdentity(deps: AdminDeps, token: string): Promise<{ us
 export function createAdminApi(deps: AdminDeps): (req: Request) => Promise<Response> {
   return async (req: Request): Promise<Response> => {
     const url = new URL(req.url);
-    const m = /^\/v1\/admin\/([a-z-]{3,40})$/.exec(url.pathname);
+    const m = /^\/v1\/admin\/([a-z-]{3,40})$/.exec(routePath(url.pathname, deps.basePath));
     const op = m && req.method === 'POST' ? ADMIN_OPS[m[1]] : undefined;
     if (!op) return refuse(404, 'no_such_route', 'the Factory Admin API has no ' + req.method + ' ' + url.pathname.slice(0, 80));
     const auth = /^Bearer ([A-Za-z0-9._-]{20,4096})$/.exec(req.headers.get('authorization') || '');

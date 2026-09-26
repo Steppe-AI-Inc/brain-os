@@ -1,6 +1,8 @@
 // The Node API handler (supabase/control-plane/edge/functions/_shared/node_api.ts - the SAME file the Edge runtime serves) on a
 // local node:http server, for the developer suites. The database client is postgres.js (the version pinned for the Edge runtime),
 // connected as the plane's factory_node_api login. The peer address is the TCP connection's remote address, as on the platform.
+// Each handler is mounted the way the Edge platform delivers it: under its function name (/factory-node-api/v1/..., route.ts), and
+// baseUrl includes that prefix, so every suite calls the production path shape.
 // The pairing pepper is random per harness (a disposable plane's; never a production secret).
 import { createServer } from 'node:http';
 import { randomBytes } from 'node:crypto';
@@ -9,7 +11,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const EDGE = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'supabase', 'control-plane', 'edge', 'functions', '_shared');
 
-export async function startApi(plane, { pepperB64 = randomBytes(32).toString('base64'), pepperVersion = 1 } = {}) {
+export async function startApi(plane, { pepperB64 = randomBytes(32).toString('base64'), pepperVersion = 1, basePath = '/factory-node-api' } = {}) {
   const { createNodeApi } = await import(pathToFileURL(join(EDGE, 'node_api.ts')).href);
   const { importPepper } = await import(pathToFileURL(join(EDGE, 'pairing.ts')).href);
   const { default: postgres } = await import('postgres');
@@ -21,6 +23,7 @@ export async function startApi(plane, { pepperB64 = randomBytes(32).toString('ba
     randomBytes: (n) => new Uint8Array(randomBytes(n)),
     pepper: async () => ({ key, version: pepperVersion }),
     log: (e) => events.push(e),
+    basePath,
   });
   const server = createServer(async (req, res) => {
     try {
@@ -36,15 +39,16 @@ export async function startApi(plane, { pepperB64 = randomBytes(32).toString('ba
     }
   });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
-  const baseUrl = 'http://127.0.0.1:' + server.address().port;
+  const origin = 'http://127.0.0.1:' + server.address().port;
+  const baseUrl = origin + basePath;
   return {
-    baseUrl, events, pepperB64, pepperVersion, db,
+    baseUrl, origin, basePath, events, pepperB64, pepperVersion, db,
     async stop() { await new Promise((r) => server.close(r)); await db.end({ timeout: 2 }); },
   };
 }
 
 /** The Admin API handler (supabase/control-plane/edge/functions/_shared/admin_api.ts) on node:http, against a Brain OS endpoint. */
-export async function startAdminApi(plane, brainOs, { pepperB64, pepperVersion = 1 } = {}) {
+export async function startAdminApi(plane, brainOs, { pepperB64, pepperVersion = 1, basePath = '/factory-admin-api' } = {}) {
   const { createAdminApi } = await import(pathToFileURL(join(EDGE, 'admin_api.ts')).href);
   const { importPepper } = await import(pathToFileURL(join(EDGE, 'pairing.ts')).href);
   const { default: postgres } = await import('postgres');
@@ -58,6 +62,7 @@ export async function startAdminApi(plane, brainOs, { pepperB64, pepperVersion =
     brainOs: { url: brainOs.url, anonKey: brainOs.anonKey },
     fetch: (u, i) => fetch(u, i),
     log: (e) => events.push(e),
+    basePath,
   });
   const server = createServer(async (req, res) => {
     const chunks = []; for await (const c of req) chunks.push(c);
@@ -67,10 +72,11 @@ export async function startAdminApi(plane, brainOs, { pepperB64, pepperVersion =
     res.end(Buffer.from(await response.arrayBuffer()));
   });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
-  const baseUrl = 'http://127.0.0.1:' + server.address().port;
+  const origin = 'http://127.0.0.1:' + server.address().port;
+  const baseUrl = origin + basePath;
   const call = async (op, body, token) => {
     const r = await fetch(baseUrl + '/v1/admin/' + op, { method: 'POST', headers: { 'content-type': 'application/json', ...(token ? { authorization: 'Bearer ' + token } : {}) }, body: JSON.stringify(body || {}) });
     return { ...(await r.json()), http: r.status };
   };
-  return { baseUrl, events, db, call, async stop() { await new Promise((r) => server.close(r)); await db.end({ timeout: 2 }); } };
+  return { baseUrl, origin, basePath, events, db, call, async stop() { await new Promise((r) => server.close(r)); await db.end({ timeout: 2 }); } };
 }

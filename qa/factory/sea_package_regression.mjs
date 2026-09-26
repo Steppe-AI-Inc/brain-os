@@ -10,13 +10,16 @@
 //
 // STATIC
 //   S1 the pin for v24.19.0 win32-x64 is the official win-x64/node.exe sha256 from nodejs.org's SHASUMS256.txt; the SEA config
-//      template is {main, output, disableExperimentalSEAWarning:true, useSnapshot:false, useCodeCache:false}; /dist/ is ignored
-//   S2 main.mjs has no top-level await (acorn AST) and imports only node: builtins
+//      template is {main, output, disableExperimentalSEAWarning:true, useSnapshot:false, useCodeCache:false,
+//      execArgvExtension:"none"}; /dist/ is ignored
+//   S2 main.mjs and every module it reaches in scripts/factory-runner have no top-level await (acorn AST); each import is a node:
+//      builtin or a module inside scripts/factory-runner/{sea,enrolled,lib} (bundled), never db.mjs
 //   S3 under plain node: importing main.mjs runs nothing; `version` prints null build info; `selftest` passes and says plain node;
-//      no command and an unknown command each print "<cmd>: not available in this preparation build" and exit 64
+//      an unknown command is refused (exit 64, "not a Brain Factory command"); no command is setup, which refuses (exit 3) with no
+//      release manifest beside the program - nothing is enrolled or installed
 //   S4 the pe-strip-signature unit test passes on a copy of the real node.exe
 // BUILD
-//   B1 build-sea.mjs builds (exit 0) into dist/brain-factory/<version>/: the exe, build-info.json, bundle.metafile.json and a
+//   B1 build-sea.mjs --channel dev builds (exit 0) into dist/brain-factory/<version>/dev/: the exe, build-info.json, bundle.metafile.json and a
 //      SHA256SUMS that matches all three
 //   B2 the metafile: no pg / pg-* / pgpass / postgres / postgres-* / embedded-postgres input and not scripts/factory-runner/db.mjs;
 //      the bundle requires only node builtins at run time; build-info lists exactly the metafile's inputs
@@ -29,10 +32,11 @@
 //      lower-case source_date_epoch, which must not reach the rebuild (Windows environment names are case-insensitive)
 //   B6 verify-build.mjs catches a reference that is self-consistent but not what the tree builds (one exe byte changed, its
 //      build-info and SHA256SUMS rewritten to match): DIFFERENT, exit 1
-//   B7 `version` from the exe prints exactly {runtime_version, source_commit, dirty, built_at} = runtime-version.json, git HEAD,
-//      build-info's dirty, and HEAD's commit time
+//   B7 `version` from the exe prints exactly {runtime_version, source_commit, dirty, built_at, channel} = runtime-version.json, git
+//      HEAD, build-info's dirty, HEAD's commit time and "dev"
 //   B8 with PATH = C:\Windows\System32 only (where.exe finds no node, git or npm) a copy of the exe in a fresh temp dir passes
-//      `selftest` (exit 0, every line PASS, running as a SEA); with no command it exits 64 with the not-available line
+//      `selftest` (exit 0, every line PASS, running as a SEA); with no command it is setup, which refuses (exit 3): no release
+//      manifest beside it
 //   B9 the output's Authenticode directory is empty (parsed here), Windows says NotSigned, the PE checksum is valid, and build-info
 //      says authenticode.signed false
 //   B10 a node.exe whose sha256 is not pinned is refused (exit 3, nothing in --out): given as --node-exe, and as the node that runs
@@ -49,7 +53,8 @@
 //   B14 dirty is judged by content: in a disposable repository with one commit (core.autocrlf true), a CRLF checkout of an LF
 //      blob is clean, while edits hidden from git status by assume-unchanged and skip-worktree, a deletion, an untracked and an
 //      ignored file are each reported - by file and by directory
-//   B15 LF and CRLF copies of main.mjs give one bundle and one metafile through bundleEntry (unnormalized, esbuild's metafile
+//   B15 LF and CRLF copies of the runtime source (every bundle input of the B1 build, at its own path) give one bundle and one
+//      metafile through bundleEntry (unnormalized, esbuild's metafile
 //      records different byte counts, which made verify-build say DIFFERENT for an identical exe), and the normalization leaves
 //      the emitted code exactly as esbuild emits it
 //   B16 verify-build refuses, exit 2 and before any rebuild: --rebuild-dir equal to --against (directly or through a junction -
@@ -60,6 +65,9 @@
 //      PowerShell also treats as the end of a '...' string
 //   B18 a rebuild that fails (an unpinned --node-exe) is CANNOT VERIFY (exit 2) and leaves nothing in TEMP - checked in a
 //      private TEMP; verify-build used to exit from inside its try and leak the rebuild directory
+//   B20 NODE_OPTIONS=--require=<file> does NOT run that file inside the exe (SEA config execArgvExtension "none", recorded in
+//      build-info): nothing in the environment adds code to the runtime
+//   B21 build-sea.mjs without --channel is refused (usage, exit 2) and writes nothing: the trust set and mode are per channel
 import { spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync, appendFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -100,7 +108,8 @@ if (process.platform !== 'win32' || process.arch !== 'x64') {
 const policy = await import(pathToFileURL(BUILD).href); // exports only; its CLI does not run on import
 const pe = await import(pathToFileURL(join(ROOT, 'scripts', 'factory-build', 'pe-strip-signature.mjs')).href);
 const runtimeVersion = readJson(join(ROOT, 'scripts', 'factory-runner', 'sea', 'runtime-version.json')).runtime_version;
-const DIST = join(ROOT, 'dist', 'brain-factory', runtimeVersion);
+const DIST = join(ROOT, 'dist', 'brain-factory', runtimeVersion, 'dev');
+const CH = ['--channel', 'dev'];
 const git = (args) => run('git', ['--no-optional-locks', ...args]).stdout.trim();
 const HEAD = git(['rev-parse', 'HEAD']);
 const HEAD_TIME = new Date(Number(git(['log', '-1', '--format=%ct', 'HEAD'])) * 1000).toISOString();
@@ -117,18 +126,22 @@ try {
     const notOverIgnored = run('git', ['--no-optional-locks', 'check-ignore', '-q', 'web/dist/x.js']).rc !== 0; // anchored: only the root dist/
     check('S1 pin v24.19.0 win32-x64 = the official SHASUMS256 sha (' + (pin && pin.sha256.slice(0, 16)) + '); SEA config template has exactly the required settings; /dist/ is ignored (' + ignored + ') and only at the root (' + notOverIgnored + ')',
       pin && pin.sha256 === OFFICIAL_V24_19_0_WIN_X64 && pin.official_name === 'win-x64/node.exe' && /nodejs\.org\/dist\/v24\.19\.0\/SHASUMS256\.txt$/.test(pin.source)
-        && JSON.stringify(tpl) === JSON.stringify({ main: 'main.cjs', output: 'sea-prep.blob', disableExperimentalSEAWarning: true, useSnapshot: false, useCodeCache: false })
+        && JSON.stringify(tpl) === JSON.stringify({ main: 'main.cjs', output: 'sea-prep.blob', disableExperimentalSEAWarning: true, useSnapshot: false, useCodeCache: false, execArgvExtension: 'none' })
         && ignored && notOverIgnored, JSON.stringify({ pin, tpl }));
   }
   {
     const acorn = createRequire(join(ROOT, 'package.json'))('acorn');
-    const src = readFileSync(MAIN, 'utf8');
-    const ast = acorn.parse(src, { ecmaVersion: 'latest', sourceType: 'module' });
-    const tla = []; const imports = [];
+    const RUNNER = join(ROOT, 'scripts', 'factory-runner');
+    const allowed = (f) => /[\\/]scripts[\\/]factory-runner[\\/](sea|enrolled|lib)[\\/][^\\/]+\.mjs$/.test(f) && !/[\\/]db\.mjs$/.test(f) && existsSync(f);
+    const tla = []; const imports = []; const bad = []; const seen = new Set(); const queue = [MAIN];
+    while (queue.length) {
+    const file = queue.shift(); if (seen.has(file)) continue; seen.add(file);
+    const ast = acorn.parse(readFileSync(file, 'utf8'), { ecmaVersion: 'latest', sourceType: 'module' });
+    const mine = [];
     const visit = (node, inFn) => {
       if (!node || typeof node.type !== 'string') return;
-      if (!inFn && (node.type === 'AwaitExpression' || (node.type === 'ForOfStatement' && node.await))) tla.push(node.start);
-      if (node.type === 'ImportDeclaration' || node.type === 'ImportExpression' || node.type === 'ExportAllDeclaration' || (node.type === 'ExportNamedDeclaration' && node.source)) imports.push(node.source && node.source.value);
+      if (!inFn && (node.type === 'AwaitExpression' || (node.type === 'ForOfStatement' && node.await))) tla.push(file + '@' + node.start);
+      if (node.type === 'ImportDeclaration' || node.type === 'ImportExpression' || node.type === 'ExportAllDeclaration' || (node.type === 'ExportNamedDeclaration' && node.source)) { imports.push(node.source && node.source.value); mine.push(node.source && node.source.value); }
       const inner = inFn || /^(FunctionDeclaration|FunctionExpression|ArrowFunctionExpression)$/.test(node.type);
       for (const k of Object.keys(node)) {
         const v = node[k];
@@ -136,23 +149,31 @@ try {
       }
     };
     visit(ast, false);
-    check('S2 main.mjs: no top-level await (' + tla.length + ' found) and only node: imports (' + imports.join(', ') + ')',
-      tla.length === 0 && imports.length > 0 && imports.every((s) => typeof s === 'string' && s.startsWith('node:')), JSON.stringify({ tla, imports }));
+    for (const s of mine) {
+      if (typeof s === 'string' && s.startsWith('node:')) continue;
+      const f = typeof s === 'string' && s.startsWith('.') ? resolve(dirname(file), s) : null;
+      if (f && allowed(f)) queue.push(f); else bad.push(file.slice(RUNNER.length + 1) + ' -> ' + s);
+    }
+    }
+    check('S2 main.mjs and the ' + (seen.size - 1) + ' modules it reaches: no top-level await (' + tla.length + ' found); every import a node: builtin or a bundled scripts/factory-runner/{sea,enrolled,lib} module (' + bad.length + ' others)',
+      tla.length === 0 && seen.size > 1 && imports.length > 0 && bad.length === 0, JSON.stringify({ tla, bad }));
   }
   {
     const imp = run(process.execPath, ['--input-type=module', '-e', "const m = await import(" + JSON.stringify(pathToFileURL(MAIN).href) + "); process.stdout.write('IMPORTED ' + typeof m.main + ' ' + typeof m.selftest + ' ' + m.isSea())"], { env: buildEnv() });
     const ver = run(process.execPath, [MAIN, 'version'], { env: buildEnv() });
     const st = run(process.execPath, [MAIN, 'selftest'], { env: buildEnv() });
-    const none = run(process.execPath, [MAIN], { env: buildEnv() });
-    const bogus = run(process.execPath, [MAIN, 'enroll'], { env: buildEnv() });
+    const s3home = join(work, 's3-home');
+    const none = run(process.execPath, [MAIN], { env: buildEnv({ BRAIN_FACTORY_HOME: s3home }) });
+    const bogus = run(process.execPath, [MAIN, 'enroll'], { env: buildEnv({ BRAIN_FACTORY_HOME: s3home }) });
+    const s3config = existsSync(join(s3home, 'config.json'));
     let verJson = null; try { verJson = JSON.parse(ver.stdout.trim()); } catch { /* checked below */ }
     const stLines = st.stdout.trim().split(/\r?\n/);
-    check('S3 plain node: import runs nothing ("' + imp.out.trim() + '"), version prints null build info, selftest exit ' + st.rc + ' (plain node), no command exit ' + none.rc + ', unknown command exit ' + bogus.rc,
+    check('S3 plain node: import runs nothing ("' + imp.out.trim() + '"), version prints null build info, selftest exit ' + st.rc + ' (plain node), no command (setup) exit ' + none.rc + ', unknown command exit ' + bogus.rc + ', nothing enrolled ' + !s3config,
       imp.rc === 0 && imp.out.trim() === 'IMPORTED function function false'
-        && ver.rc === 0 && verJson && JSON.stringify(verJson) === JSON.stringify({ runtime_version: null, source_commit: null, dirty: null, built_at: null })
+        && ver.rc === 0 && verJson && JSON.stringify(verJson) === JSON.stringify({ runtime_version: null, source_commit: null, dirty: null, built_at: null, channel: null })
         && st.rc === 0 && stLines.every((l) => /^PASS |^selftest: PASS /.test(l)) && /plain node/.test(st.stdout) && !/FAIL/.test(st.stdout)
-        && none.rc === 64 && none.out.trim() === '(none): not available in this preparation build'
-        && bogus.rc === 64 && bogus.out.trim() === 'enroll: not available in this preparation build',
+        && none.rc === 3 && /^REFUSED - no release manifest beside the installer/m.test(none.out) && !s3config
+        && bogus.rc === 64 && /^enroll: not a Brain Factory command/.test(bogus.out.trim()),
       [imp.out, ver.out, st.out, none.out, bogus.out].join('\n---\n'));
   }
   {
@@ -163,14 +184,14 @@ try {
   }
 
   // ---------- BUILD ----------
-  const b1 = run(process.execPath, [BUILD], { env: buildEnv() });
+  const b1 = run(process.execPath, [BUILD, ...CH], { env: buildEnv() });
   const files = outputsIn(DIST);
   let info = null; let exeBuf = null;
   try { info = readJson(join(DIST, 'build-info.json')); exeBuf = readFileSync(join(DIST, EXE_NAME)); } catch { /* B1 fails */ }
   {
     const sums = existsSync(join(DIST, 'SHA256SUMS')) ? readFileSync(join(DIST, 'SHA256SUMS'), 'utf8').trim().split('\n') : [];
     const sumsOk = sums.length === 3 && sums.every((l) => { const m = /^([0-9a-f]{64}) {2}(.+)$/.exec(l); return m && existsSync(join(DIST, m[2])) && sha256(readFileSync(join(DIST, m[2]))) === m[1]; });
-    check('B1 build-sea.mjs built (exit ' + b1.rc + ') into dist/brain-factory/' + runtimeVersion + '/: ' + files.join(', ') + '; SHA256SUMS matches all three (' + sumsOk + ')',
+    check('B1 build-sea.mjs built (exit ' + b1.rc + ') into dist/brain-factory/' + runtimeVersion + '/dev/: ' + files.join(', ') + '; SHA256SUMS matches all three (' + sumsOk + ')',
       b1.rc === 0 && files.length === 4 && sumsOk && info && exeBuf && sha256(exeBuf) === info.sha256, b1.out);
   }
   if (!info || !exeBuf) throw new Error('B1 produced no build; the remaining rows need one');
@@ -238,7 +259,7 @@ try {
     const rebuild = join(work, 'rebuild');
     // a stray lower-case source_date_epoch in the verifier's environment must not reach the rebuild (Windows names are
     // case-insensitive): if it did, built_at and so the bytes would change and this row would say DIFFERENT
-    const v = run(process.execPath, [VERIFY, '--rebuild-dir', rebuild], { env: buildEnv({ source_date_epoch: '1700000000' }) });
+    const v = run(process.execPath, [VERIFY, '--against', DIST, '--rebuild-dir', rebuild], { env: buildEnv({ source_date_epoch: '1700000000' }) });
     const a = sha256(readFileSync(join(DIST, EXE_NAME)));
     const b = existsSync(join(rebuild, EXE_NAME)) ? sha256(readFileSync(join(rebuild, EXE_NAME))) : 'missing';
     const infoSame = existsSync(join(rebuild, 'build-info.json')) && readFileSync(join(rebuild, 'build-info.json')).equals(readFileSync(join(DIST, 'build-info.json')));
@@ -267,7 +288,7 @@ try {
     const v = run(join(DIST, EXE_NAME), ['version'], { env: minimalEnv(), cwd: work });
     let j = null; try { j = JSON.parse(v.stdout.trim()); } catch { /* below */ }
     check('B7 exe `version` prints the commit: ' + v.stdout.trim(),
-      v.rc === 0 && j && Object.keys(j).join(',') === 'runtime_version,source_commit,dirty,built_at' && j.source_commit === HEAD && j.runtime_version === runtimeVersion
+      v.rc === 0 && j && Object.keys(j).join(',') === 'runtime_version,source_commit,dirty,built_at,channel' && j.channel === 'dev' && j.source_commit === HEAD && j.runtime_version === runtimeVersion
         && j.built_at === HEAD_TIME && j.dirty === info.dirty && typeof j.dirty === 'boolean', v.out);
   }
   {
@@ -276,12 +297,12 @@ try {
     const env = minimalEnv();
     const where = ['node', 'git', 'npm'].map((t) => ({ t, r: run(join(SYSTEM32, 'where.exe'), [t], { env, cwd: bare }) }));
     const st = run(join(bare, EXE_NAME), ['selftest'], { env, cwd: bare });
-    const none = run(join(bare, EXE_NAME), [], { env, cwd: bare });
+    const none = run(join(bare, EXE_NAME), [], { env: { ...env, BRAIN_FACTORY_HOME: join(bare, 'home') }, cwd: bare });
     const lines = st.stdout.trim().split(/\r?\n/);
     check('B8 PATH=' + env.PATH + ' only (where.exe: ' + where.map((w) => w.t + ' exit ' + w.r.rc).join(', ') + '): a copy of the exe in a fresh dir passes selftest (exit ' + st.rc + ', ' + lines.length + ' lines, SEA ' + /running as a single executable application/.test(st.stdout) + '); no command exits ' + none.rc,
       where.every((w) => w.r.rc === 1) && st.rc === 0 && lines.length >= 4 && lines.every((l) => /^PASS |^selftest: PASS /.test(l)) && !/FAIL/.test(st.out)
         && /running as a single executable application \(node:sea isSea\(\) = true\)/.test(st.stdout) && /selftest: PASS .*; SEA\)/.test(st.stdout)
-        && none.rc === 64 && none.out.trim() === '(none): not available in this preparation build',
+        && none.rc === 3 && /^REFUSED - no release manifest beside the installer/m.test(none.out) && !existsSync(join(bare, 'home', 'config.json')),
       st.out + '\n---\n' + none.out + '\n---\n' + where.map((w) => w.t + ': ' + w.r.out).join('\n'));
     rmSync(bare, { recursive: true, force: true });
   }
@@ -296,8 +317,8 @@ try {
     const bad = join(work, 'node-not-pinned.exe');
     copyFileSync(process.execPath, bad); appendFileSync(bad, Buffer.from([0x00]));
     const out1 = join(work, 'out-refused-1'); const out2 = join(work, 'out-refused-2');
-    const a = run(process.execPath, [BUILD, '--node-exe', bad, '--out', out1], { env: buildEnv() });
-    const b = run(bad, [BUILD, '--out', out2], { env: buildEnv() }); // the unpinned node RUNS the build: the process.execPath path
+    const a = run(process.execPath, [BUILD, ...CH, '--node-exe', bad, '--out', out1], { env: buildEnv() });
+    const b = run(bad, [BUILD, ...CH, '--out', out2], { env: buildEnv() }); // the unpinned node RUNS the build: the process.execPath path
     check('B10 an unpinned node.exe (official + 1 byte, sha ' + sha256(readFileSync(bad)).slice(0, 12) + ') is refused: as --node-exe exit ' + a.rc + ', as the building node exit ' + b.rc + '; outputs left: ' + (outputsIn(out1).length + outputsIn(out2).length),
       a.rc === 3 && /REFUSED --node-exe .*is not pinned/.test(a.out) && b.rc === 3 && /REFUSED process\.execPath .*is not pinned/.test(b.out)
         && outputsIn(out1).length === 0 && outputsIn(out2).length === 0, a.out + '\n---\n' + b.out);
@@ -329,10 +350,10 @@ if (mode === 'append' || mode === 'tamper') {
 process.exit(0);
 `);
     const signCmd = '"' + process.execPath + '" "' + signer + '"';
-    const e = run(process.execPath, [BUILD, '--out', out], { env: buildEnv({ SOURCE_DATE_EPOCH: '1700000000', BRAIN_FACTORY_SIGN_CMD: signCmd, FAKE_SIGN_MARKER: marker }) });
+    const e = run(process.execPath, [BUILD, ...CH, '--out', out], { env: buildEnv({ SOURCE_DATE_EPOCH: '1700000000', BRAIN_FACTORY_SIGN_CMD: signCmd, FAKE_SIGN_MARKER: marker }) });
     let ei = null; try { ei = readJson(join(out, 'build-info.json')); } catch { /* below */ }
     const v = existsSync(join(out, EXE_NAME)) ? run(join(out, EXE_NAME), ['version'], { env: minimalEnv(), cwd: work }) : { stdout: '', rc: -1 };
-    const malformed = run(process.execPath, [BUILD, '--out', join(work, 'out-bad-epoch')], { env: buildEnv({ SOURCE_DATE_EPOCH: 'yesterday' }) });
+    const malformed = run(process.execPath, [BUILD, ...CH, '--out', join(work, 'out-bad-epoch')], { env: buildEnv({ SOURCE_DATE_EPOCH: 'yesterday' }) });
     check('B11 SOURCE_DATE_EPOCH=1700000000: exit ' + e.rc + ', exe says built_at ' + (/"built_at":"([^"]+)"/.exec(v.stdout) || [])[1] + ', bytes differ from B1 (' + (ei && ei.sha256 !== info.sha256) + '); "yesterday" refused exit ' + malformed.rc + '; the sign command in the env without --sign ran: ' + existsSync(marker),
       e.rc === 0 && ei && ei.built_at === '2023-11-14T22:13:20.000Z' && ei.built_at_source === 'SOURCE_DATE_EPOCH' && /"built_at":"2023-11-14T22:13:20.000Z"/.test(v.stdout)
         && ei.sha256 !== info.sha256 && malformed.rc === 2 && !existsSync(marker) && ei.authenticode.signed === false && /not requested/.test(ei.authenticode.reason),
@@ -342,12 +363,12 @@ process.exit(0);
     const outA = join(work, 'out-sign-unset'); const outB = join(work, 'out-sign-fails'); const outC = join(work, 'out-sign-noop');
     const outD = join(work, 'out-sign-invalid'); const outE = join(work, 'out-sign-tamper');
     const markerB = join(work, 'sign-b.txt'); const markerC = join(work, 'sign-c.txt');
-    const sa = run(process.execPath, [BUILD, '--sign', '--out', outA], { env: buildEnv() });
+    const sa = run(process.execPath, [BUILD, ...CH, '--sign', '--out', outA], { env: buildEnv() });
     let ai = null; try { ai = readJson(join(outA, 'build-info.json')); } catch { /* below */ }
-    const sb = run(process.execPath, [BUILD, '--sign', '--out', outB], { env: buildEnv({ BRAIN_FACTORY_SIGN_CMD: signCmd, FAKE_SIGN_MARKER: markerB, FAKE_SIGN_MODE: 'fail' }) });
-    const sc = run(process.execPath, [BUILD, '--sign', '--out', outC], { env: buildEnv({ BRAIN_FACTORY_SIGN_CMD: signCmd, FAKE_SIGN_MARKER: markerC, FAKE_SIGN_MODE: 'noop' }) });
-    const sd = run(process.execPath, [BUILD, '--sign', '--out', outD], { env: buildEnv({ BRAIN_FACTORY_SIGN_CMD: signCmd, FAKE_SIGN_MODE: 'append' }) });
-    const se = run(process.execPath, [BUILD, '--sign', '--out', outE], { env: buildEnv({ BRAIN_FACTORY_SIGN_CMD: signCmd, FAKE_SIGN_MODE: 'tamper' }) });
+    const sb = run(process.execPath, [BUILD, ...CH, '--sign', '--out', outB], { env: buildEnv({ BRAIN_FACTORY_SIGN_CMD: signCmd, FAKE_SIGN_MARKER: markerB, FAKE_SIGN_MODE: 'fail' }) });
+    const sc = run(process.execPath, [BUILD, ...CH, '--sign', '--out', outC], { env: buildEnv({ BRAIN_FACTORY_SIGN_CMD: signCmd, FAKE_SIGN_MARKER: markerC, FAKE_SIGN_MODE: 'noop' }) });
+    const sd = run(process.execPath, [BUILD, ...CH, '--sign', '--out', outD], { env: buildEnv({ BRAIN_FACTORY_SIGN_CMD: signCmd, FAKE_SIGN_MODE: 'append' }) });
+    const se = run(process.execPath, [BUILD, ...CH, '--sign', '--out', outE], { env: buildEnv({ BRAIN_FACTORY_SIGN_CMD: signCmd, FAKE_SIGN_MODE: 'tamper' }) });
     let argC = null; try { argC = JSON.parse(readFileSync(markerC, 'utf8')); } catch { /* below */ }
     check('B12 --sign: unset command -> exit ' + sa.rc + ' unsigned (' + (ai && ai.authenticode.reason) + '); failing command -> exit ' + sb.rc + '; signs nothing -> exit ' + sc.rc + '; a signature Windows does not call Valid -> exit ' + sd.rc + '; signature plus a changed code byte -> exit ' + se.rc + ' (changed more than the signature: ' + /changed more than the signature/.test(se.out) + '); outputs left ' + [outB, outC, outD, outE].map((d) => outputsIn(d).length).join('/') + '; the command got the exe path (' + (argC && /BrainFactorySetup\.exe$/.test(argC[0])) + ')',
       sa.rc === 0 && ai && ai.authenticode.signed === false && /BRAIN_FACTORY_SIGN_CMD is not set/.test(ai.authenticode.reason)
@@ -416,24 +437,27 @@ process.exit(0);
       commit.rc === 0 && cleanAtCommit.length === 0 && !/src\/[cd]\.mjs/.test(statusSays) && JSON.stringify(got) === JSON.stringify(want) && JSON.stringify(gotDir) === JSON.stringify(wantDir),
       JSON.stringify({ commit: commit.out, statusSays, got, gotDir }));
   }
-  // B15: the bundle and its metafile do not depend on the checkout's line endings
+  // B15: the bundle and its metafile do not depend on the checkout's line endings - every bundle input copied LF and CRLF
   {
     const esbuild = createRequire(join(ROOT, 'package.json'))('esbuild');
+    const ENTRY = 'scripts/factory-runner/sea/main.mjs';
     const lfText = readFileSync(MAIN, 'latin1').replace(/\r\n?/g, '\n');
     const dirs = { lf: join(work, 'eol-lf'), crlf: join(work, 'eol-crlf') };
-    mkdirSync(dirs.lf); mkdirSync(dirs.crlf);
-    writeFileSync(join(dirs.lf, 'main.mjs'), lfText, 'latin1'); writeFileSync(join(dirs.crlf, 'main.mjs'), lfText.replace(/\n/g, '\r\n'), 'latin1');
+    for (const rel of info.bundle.inputs) {
+      const text = readFileSync(join(ROOT, rel), 'latin1').replace(/\r\n?/g, '\n');
+      for (const [d, t] of [[dirs.lf, text], [dirs.crlf, text.replace(/\n/g, '\r\n')]]) { mkdirSync(dirname(join(d, rel)), { recursive: true }); writeFileSync(join(d, rel), t, 'latin1'); }
+    }
     const define = { __BUILD_INFO__: JSON.stringify({ runtime_version: 'x', source_commit: '0'.repeat(40), dirty: false, built_at: '1970-01-01T00:00:00.000Z' }), 'import.meta.url': 'undefined' };
     const opts = { outfile: 'main.cjs', write: false, metafile: true, bundle: true, platform: 'node', format: 'cjs', target: 'node24', charset: 'utf8', sourcemap: false, minify: false, legalComments: 'eof', define, logLevel: 'silent' };
     let a = null; let b = null; let rawLf = null; let rawCrlf = null; let err = '';
     try {
-      a = await policy.bundleEntry(esbuild, { target: 'node24', define, absWorkingDir: dirs.lf, entry: 'main.mjs' });
-      b = await policy.bundleEntry(esbuild, { target: 'node24', define, absWorkingDir: dirs.crlf, entry: 'main.mjs' });
-      rawLf = await esbuild.build({ ...opts, absWorkingDir: dirs.lf, entryPoints: ['main.mjs'] });
-      rawCrlf = await esbuild.build({ ...opts, absWorkingDir: dirs.crlf, entryPoints: ['main.mjs'] });
+      a = await policy.bundleEntry(esbuild, { target: 'node24', define, absWorkingDir: dirs.lf, entry: ENTRY });
+      b = await policy.bundleEntry(esbuild, { target: 'node24', define, absWorkingDir: dirs.crlf, entry: ENTRY });
+      rawLf = await esbuild.build({ ...opts, absWorkingDir: dirs.lf, entryPoints: [ENTRY] });
+      rawCrlf = await esbuild.build({ ...opts, absWorkingDir: dirs.crlf, entryPoints: [ENTRY] });
     } catch (e) { err = e && e.stack || String(e); }
-    const bytes = (m) => m && m.inputs['main.mjs'] && m.inputs['main.mjs'].bytes;
-    check('B15 LF and CRLF copies of main.mjs: one bundle (' + (a && b && a.code.equals(b.code)) + ') and one metafile (' + (a && b && JSON.stringify(a.metafile) === JSON.stringify(b.metafile)) + ', ' + bytes(a && a.metafile) + ' bytes); unnormalized esbuild would record ' + bytes(rawLf && rawLf.metafile) + ' vs ' + bytes(rawCrlf && rawCrlf.metafile) + '; the normalization leaves the code as esbuild emits it',
+    const bytes = (m) => m && m.inputs[ENTRY] && m.inputs[ENTRY].bytes;
+    check('B15 LF and CRLF copies of the ' + info.bundle.inputs.length + ' bundle inputs: one bundle (' + (a && b && a.code.equals(b.code)) + ') and one metafile (' + (a && b && JSON.stringify(a.metafile) === JSON.stringify(b.metafile)) + ', ' + bytes(a && a.metafile) + ' bytes); unnormalized esbuild would record ' + bytes(rawLf && rawLf.metafile) + ' vs ' + bytes(rawCrlf && rawCrlf.metafile) + '; the normalization leaves the code as esbuild emits it',
       !err && a.code.equals(b.code) && JSON.stringify(a.metafile) === JSON.stringify(b.metafile) && bytes(a.metafile) === Buffer.byteLength(lfText, 'latin1')
         && bytes(rawLf.metafile) !== bytes(rawCrlf.metafile) && Buffer.from(rawLf.outputFiles[0].contents).equals(a.code),
       err);
@@ -492,12 +516,21 @@ process.exit(0);
     rmSync(unpinned, { force: true });
   }
 
-  // a measured fact the contract has to decide on; reported, not scored
+  // B20: nothing in the environment adds code to the runtime (the SEA config's execArgvExtension is "none")
   {
     const inj = join(work, 'node-options-probe.cjs');
     writeFileSync(inj, "process.stderr.write('NODE_OPTIONS-REQUIRE-RAN\\n');\n");
     const r = run(join(DIST, EXE_NAME), ['version'], { env: { ...minimalEnv(), NODE_OPTIONS: '--require=' + inj }, cwd: work });
-    console.log('NOTE NODE_OPTIONS=--require=<file> ' + (/NODE_OPTIONS-REQUIRE-RAN/.test(r.out) ? 'RUNS that file inside the exe' : 'does NOT run inside the exe') + ' (SEA config execArgvExtension: ' + (info.sea.config.execArgvExtension || 'unset = node default') + ') - a runtime security decision for the Director contract');
+    const ctl = run(process.execPath, ['-e', '0'], { env: { ...minimalEnv(), NODE_OPTIONS: '--require=' + inj }, cwd: work });
+    check('B20 NODE_OPTIONS=--require=<file> does ' + (/NODE_OPTIONS-REQUIRE-RAN/.test(r.out) ? '' : 'NOT ') + 'run inside the exe (exit ' + r.rc + '; build-info execArgvExtension ' + JSON.stringify(info.sea && info.sea.config && info.sea.config.execArgvExtension) + '); plain node, the control, runs it (' + /NODE_OPTIONS-REQUIRE-RAN/.test(ctl.out) + ')',
+      r.rc === 0 && !/NODE_OPTIONS-REQUIRE-RAN/.test(r.out) && info.sea && info.sea.config && info.sea.config.execArgvExtension === 'none' && /NODE_OPTIONS-REQUIRE-RAN/.test(ctl.out), r.out + '\n---\n' + ctl.out);
+  }
+  // B21: a build names its channel or is refused
+  {
+    const out = join(work, 'out-no-channel');
+    const r = run(process.execPath, [BUILD, '--out', out], { env: buildEnv() });
+    check('B21 build-sea.mjs without --channel: exit ' + r.rc + ', outputs left ' + outputsIn(out).length,
+      r.rc === 2 && /--channel production\|dev is required/.test(r.out) && outputsIn(out).length === 0, r.out);
   }
 } catch (e) {
   check('X0 suite setup', false, e && e.stack || e);

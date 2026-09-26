@@ -109,6 +109,21 @@ try {
   const sess = await probe('POST', '/v1/session', {});
   const adminTokOnNode = await fetch(node.baseUrl + '/v1/node/heartbeat', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + founder.token }, body: '{}' });
   const nodeTokOnAdmin = await admin.call('list-computers', {}, setup.n.token);
+  // R1p the PLATFORM path shape (route.ts): the function's own name prefixes every route; a bare path is the same route (which one
+  // the platform delivers is measured at deploy); a doubled, foreign or partial prefix is 404 - on both APIs
+  const at = async (base, m, p, h = {}) => (await fetch(base + p, { method: m, headers: { 'content-type': 'application/json', ...h }, body: m === 'GET' ? undefined : '{}' })).status;
+  const shapes = {
+    nodePrefixed: await at(node.origin, 'GET', '/factory-node-api/v1/time'), nodeBare: await at(node.origin, 'GET', '/v1/time'),
+    nodeDoubled: await at(node.origin, 'GET', '/factory-node-api/factory-node-api/v1/time'), nodeForeign: await at(node.origin, 'GET', '/factory-admin-api/v1/time'),
+    nodePartial: await at(node.origin, 'GET', '/factory-node-apiv1/time'),
+    adminPrefixed: await at(admin.origin, 'POST', '/factory-admin-api/v1/admin/list-computers', { authorization: 'Bearer ' + founder.token }),
+    adminBare: await at(admin.origin, 'POST', '/v1/admin/list-computers', { authorization: 'Bearer ' + founder.token }),
+    adminForeign: await at(admin.origin, 'POST', '/factory-node-api/v1/admin/list-computers', { authorization: 'Bearer ' + founder.token }),
+    adminDoubled: await at(admin.origin, 'POST', '/factory-admin-api/factory-admin-api/v1/admin/list-computers', { authorization: 'Bearer ' + founder.token }),
+  };
+  row('R1p the platform path shape: /factory-node-api/v1/... and /factory-admin-api/v1/admin/... serve (as the Edge runtime delivers them), the bare path is the same route, and a doubled, foreign or partial prefix is 404',
+    shapes.nodePrefixed === 200 && shapes.nodeBare === 200 && shapes.nodeDoubled === 404 && shapes.nodeForeign === 404 && shapes.nodePartial === 404
+      && shapes.adminPrefixed === 200 && shapes.adminBare === 200 && shapes.adminForeign === 404 && shapes.adminDoubled === 404, JSON.stringify(shapes));
   row('R1 the Node API answers exactly S-7: every node operation refuses without a session (401); every other route or method is 404; only the four session-less routes answer without a credential; a Brain OS token is no node session and a node token is no admin session',
     unauth.length === 0 && extra.length === 0 && t === 200 && sess === 400 && adminTokOnNode.status === 401 && nodeTokOnAdmin.http === 401,
     [...unauth, ...extra].slice(0, 6).join(' ') || s7.length + ' session-less routes, ' + nodeOps.length + ' node operations');

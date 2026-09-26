@@ -28,6 +28,7 @@ const handler = createNodeApi({
   randomBytes: (n) => crypto.getRandomValues(new Uint8Array(n)),
   pepper: async () => { const key = await pepperKey; return key ? { key, version: pepperVersion } : null; },
   log: (e) => console.log(JSON.stringify(e)),
+  basePath: '/factory-node-api',   // the platform delivers /factory-node-api/v1/... (route.ts)
 });
 
 Deno.serve((req: Request, info: Deno.ServeHandlerInfo) => {

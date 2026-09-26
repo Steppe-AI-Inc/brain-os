@@ -32,6 +32,7 @@ const handler = createAdminApi({
   brainOs: { url: brainOsUrl, anonKey },
   fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(8000) }),
   log: (e) => console.log(JSON.stringify(e)),
+  basePath: '/factory-admin-api',  // the platform delivers /factory-admin-api/v1/admin/... (route.ts)
 });
 
 Deno.serve((req: Request) => {
