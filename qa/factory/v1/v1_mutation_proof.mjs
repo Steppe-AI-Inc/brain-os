@@ -123,7 +123,7 @@ const MUTANTS = [
 // ---------------------------------------------------------------------------------------------------------------------------------
 const args = process.argv.slice(2);
 const planOnly = args.includes('--plan');
-const ids = args.filter((a) => !a.startsWith('--'));
+const ids = args.filter((a, i) => !a.startsWith('--') && args[i - 1] !== '--controls');
 const chosen = ids.length ? MUTANTS.filter((m) => ids.includes(m.id)) : MUTANTS;
 const unknown = ids.filter((i) => !MUTANTS.some((m) => m.id === i));
 const say = (s) => console.log(s);
@@ -189,17 +189,28 @@ function runSuite(c, suite) {
   return { code: r.status, failed, summary, secs: Math.round((Date.now() - t0) / 1000), tail: out.slice(-1200) };
 }
 
+// BOUNDED CHUNKS (one heavy job at a time, each short): --controls <file> keeps each suite's control result keyed by suite AND commit, so a
+// later chunk on the SAME commit reuses it (a control from another commit is never reused); --control-only runs the controls and stops.
+const ctlFileArg = args.indexOf('--controls');
+const ctlFile = ctlFileArg >= 0 ? path.resolve(args[ctlFileArg + 1]) : null;
+const cached = ctlFile && fs.existsSync(ctlFile) ? JSON.parse(fs.readFileSync(ctlFile, 'utf8')) : {};
 const controls = {};
+for (const [k, v] of Object.entries(cached)) if (k.endsWith('@' + head)) controls[k.slice(0, -head.length - 1)] = { ...v, cachedAt: v.at };
 let killed = 0;
 const survivors = [];
 for (const m of chosen) {
   if (!(m.suite in controls)) {
     const c = makeCopy('control ' + m.suite);
-    try { controls[m.suite] = runSuite(c, m.suite); } finally { dropCopy(c); }
+    try { controls[m.suite] = { ...runSuite(c, m.suite), at: new Date().toISOString() }; } finally { dropCopy(c); }
     const k = controls[m.suite];
     say('CONTROL  ' + m.suite.padEnd(12) + (k.code === 0 && !k.failed.length ? 'passed' : 'FAILED') + ' - ' + k.summary + ' (' + k.secs + ' s)');
     if (!(k.code === 0 && !k.failed.length)) say(k.tail);
+    if (ctlFile) { const all = fs.existsSync(ctlFile) ? JSON.parse(fs.readFileSync(ctlFile, 'utf8')) : {}; all[m.suite + '@' + head] = { code: k.code, failed: k.failed, summary: k.summary, secs: k.secs, at: k.at }; fs.writeFileSync(ctlFile, JSON.stringify(all, null, 2)); }
+  } else if (controls[m.suite].cachedAt && !controls[m.suite].said) {
+    controls[m.suite].said = true;
+    say('CONTROL  ' + m.suite.padEnd(12) + ((controls[m.suite].code === 0 && !controls[m.suite].failed.length) ? 'passed' : 'FAILED') + ' - ' + controls[m.suite].summary + ' (this commit, run ' + controls[m.suite].cachedAt + ')');
   }
+  if (args.includes('--control-only')) continue;
   const k = controls[m.suite];
   if (!(k.code === 0 && !k.failed.length)) { survivors.push(m.id); say('NOT JUDGED ' + m.id + ': the ' + m.suite + ' control did not pass'); continue; }
   const c = makeCopy(m.id);
@@ -215,6 +226,11 @@ for (const m of chosen) {
   if (ok) killed++; else survivors.push(m.id);
   say((ok ? 'CAUGHT   ' : 'SURVIVED ') + m.id.padEnd(5) + ' ' + m.suite.padEnd(12) + ' expected FAIL ' + m.expect.join('|') + '; seen FAIL [' + r.failed.join(' ') + ']; ' + r.summary + ' (' + r.secs + ' s) - ' + m.what);
   if (!ok) say(r.tail);
+}
+if (args.includes('--control-only')) {
+  const bad = Object.entries(controls).filter(([, k]) => !(k.code === 0 && !k.failed.length)).map(([s]) => s);
+  say('\nv1_mutation_proof: controls only - ' + (bad.length ? 'FAILED: ' + bad.join(', ') : 'every control passed'));
+  process.exit(bad.length ? 1 : 0);
 }
 say('\nv1_mutation_proof: ' + killed + ' of ' + chosen.length + ' mutants killed' + (survivors.length ? '; NOT killed: ' + survivors.join(', ') : ''));
 process.exit(survivors.length ? 1 : 0);
