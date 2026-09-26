@@ -10,9 +10,10 @@ export const nodeIdOf = (principalId) => 'node-' + principalId.replace(/-/g, '')
 export function ed25519() {
   const { publicKey, privateKey } = generateKeyPairSync('ed25519');
   const raw = publicKey.export({ format: 'der', type: 'spki' }).subarray(-32);
-  return { publicKey: Buffer.from(raw), privateKey };
+  const pk = Buffer.from(raw);
+  return { publicKey: pk, privateKey, thumbprint: thumbprint(pk) };
 }
-export const thumbprint = (pk) => createHash('sha256').update(pk).digest('hex');
+export function thumbprint(pk) { return createHash('sha256').update(pk).digest('hex'); }
 
 /** Run statements as the engine in one transaction (the superuser connection `c`). */
 export async function asEngine(c, fn) {

@@ -42,3 +42,35 @@ export async function startApi(plane, { pepperB64 = randomBytes(32).toString('ba
     async stop() { await new Promise((r) => server.close(r)); await db.end({ timeout: 2 }); },
   };
 }
+
+/** The Admin API handler (supabase/control-plane/edge/functions/_shared/admin_api.ts) on node:http, against a Brain OS endpoint. */
+export async function startAdminApi(plane, brainOs, { pepperB64, pepperVersion = 1 } = {}) {
+  const { createAdminApi } = await import(pathToFileURL(join(EDGE, 'admin_api.ts')).href);
+  const { importPepper } = await import(pathToFileURL(join(EDGE, 'pairing.ts')).href);
+  const { default: postgres } = await import('postgres');
+  const db = postgres(plane.adminApiUrl, { prepare: false, max: 4, idle_timeout: 5, onnotice: () => {} });
+  const key = await importPepper(pepperB64);
+  const events = [];
+  const handler = createAdminApi({
+    sql: async (text, params) => db.unsafe(text, params),
+    randomBytes: (n) => new Uint8Array(randomBytes(n)),
+    pepper: async () => (key ? { key, version: pepperVersion } : null),
+    brainOs: { url: brainOs.url, anonKey: brainOs.anonKey },
+    fetch: (u, i) => fetch(u, i),
+    log: (e) => events.push(e),
+  });
+  const server = createServer(async (req, res) => {
+    const chunks = []; for await (const c of req) chunks.push(c);
+    const request = new Request('http://127.0.0.1' + req.url, { method: req.method, headers: req.headers, body: ['GET', 'HEAD'].includes(req.method) ? undefined : Buffer.concat(chunks) });
+    const response = await handler(request);
+    res.writeHead(response.status, Object.fromEntries(response.headers));
+    res.end(Buffer.from(await response.arrayBuffer()));
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const baseUrl = 'http://127.0.0.1:' + server.address().port;
+  const call = async (op, body, token) => {
+    const r = await fetch(baseUrl + '/v1/admin/' + op, { method: 'POST', headers: { 'content-type': 'application/json', ...(token ? { authorization: 'Bearer ' + token } : {}) }, body: JSON.stringify(body || {}) });
+    return { ...(await r.json()), http: r.status };
+  };
+  return { baseUrl, events, db, call, async stop() { await new Promise((r) => server.close(r)); await db.end({ timeout: 2 }); } };
+}

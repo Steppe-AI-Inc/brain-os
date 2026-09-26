@@ -86,6 +86,22 @@ begin
     raise exception 'factory v1 self-check: a new role carries an attribute it must not (superuser / createrole / createdb / replication / bypassrls / login)';
   end if;
 
+  -- the API roles execute exactly their own front doors: factory_node_api only factory.node_*, factory_admin_api only
+  -- factory.admin_*, and every front door is SECURITY DEFINER
+  select string_agg(p.oid::regprocedure::text, ', ') into bad
+    from pg_catalog.pg_proc p
+   where p.pronamespace = 'factory'::regnamespace
+     and ((pg_catalog.has_function_privilege('factory_node_api', p.oid, 'EXECUTE') and p.proname !~ '^node_')
+       or (pg_catalog.has_function_privilege('factory_admin_api', p.oid, 'EXECUTE') and p.proname !~ '^admin_')
+       or (p.proname ~ '^(node|admin)_' and not p.prosecdef));
+  if bad is not null then raise exception 'factory v1 self-check: an API role executes a function outside its front doors, or a front door is not SECURITY DEFINER: %', bad; end if;
+  select string_agg(p.oid::regprocedure::text, ', ') into bad
+    from pg_catalog.pg_proc p
+   where p.pronamespace = 'factory'::regnamespace
+     and ((p.proname ~ '^node_' and not pg_catalog.has_function_privilege('factory_node_api', p.oid, 'EXECUTE'))
+       or (p.proname ~ '^admin_' and not pg_catalog.has_function_privilege('factory_admin_api', p.oid, 'EXECUTE')));
+  if bad is not null then raise exception 'factory v1 self-check: a front door its API role cannot execute: %', bad; end if;
+
   -- every SECURITY DEFINER function pins an empty search_path
   select string_agg(p.oid::regprocedure::text, ', ') into bad
     from pg_catalog.pg_proc p

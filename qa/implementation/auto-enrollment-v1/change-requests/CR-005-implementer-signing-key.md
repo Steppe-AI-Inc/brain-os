@@ -43,3 +43,23 @@ Until then, receipts use this published key (VERIFICATION_SPEC §3.1), and no ca
 ## Compatibility / security impact
 
 None on the product. This is a governance-layer authorship key; it never becomes a release trust root (S-5).
+
+## Verification and configuration scope (recorded 2026-09-27)
+
+- **Private-key ACL, read back** (`icacls`): `DESKTOP-8P5HVAO\DELL:(F)`, the only entry; inheritance removed.
+- **Tooling:** Git for Windows 2.55.0, with its bundled OpenSSH `ssh-keygen` (`/usr/bin/ssh-keygen`), `gpg.format=ssh`.
+- **Throwaway proof, re-run** before this record:
+  - a fresh repository under the session scratch directory;
+  - a commit signed with this key, read back as `%G? = G` with key `SHA256:9zUYxsZkV6MLq9dcGtiz+e3D/h0XPevf3w/cJH5QTek`;
+  - `git verify-commit` reported a good signature for `implementer@brain-factory`;
+  - the repository was then deleted.
+- **Why the signing settings are not stored as repo-local config.** This implementation worktree's repository config is the common
+  `.git/config` of `C:\Users\DELL\dev\brain-os-factory-cp`, the frozen legacy checkout.
+  - A `git config --local` write would configure the legacy checkout too.
+  - So would enabling `extensions.worktreeConfig`, which is itself a write to that shared file.
+  - Instead, every implementation commit passes `gpg.format`, `user.signingkey`, `commit.gpgsign` and `gpg.ssh.allowedSignersFile` per
+    invocation (`git -c …`) to this worktree's git commands.
+  - No global, system or shared git configuration was changed; `commit.gpgsign` and `gpg.format` are set nowhere.
+- **Coverage:** every commit in `8f9833ce..<candidate>` is checked with `git verify-commit` before the candidate notice.
+- **What this key is not.** It signs implementer commits only. It is NOT production release-signing authority; C-3 (production
+  release-signing key custody) remains UNRESOLVED / FOUNDER-GATED, and no release trust root is derived from this key (S-5).

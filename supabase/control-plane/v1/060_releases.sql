@@ -23,13 +23,15 @@ create table factory.releases (
   published_at              timestamptz not null default now(),
   published_by              uuid not null,
   superseded_at             timestamptz,
-  superseded_by_release_id  uuid references factory.releases (release_id),
+  superseded_by_release_id  uuid references factory.releases (release_id) deferrable initially deferred,
   revoked_at                timestamptz,
   revoked_by                uuid,
   revoke_reason             text check (revoke_reason is null or length(revoke_reason) <= 300),
   unique (tenant_id, channel, version),
   unique (tenant_id, channel, digest),
-  check ((state = 'superseded') = (superseded_at is not null)),
+  -- published: never superseded yet; superseded: says when; revoked: may have been superseded first
+  check (state <> 'published' or (superseded_at is null and superseded_by_release_id is null)),
+  check (state <> 'superseded' or superseded_at is not null),
   check ((state = 'revoked') = (revoked_at is not null and revoked_by is not null))
 );
 -- one published (current) release per channel: publishing a newer one supersedes it

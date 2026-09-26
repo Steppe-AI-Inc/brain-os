@@ -182,6 +182,7 @@ create function factory.node_heartbeat(p_token_hash bytea, p_body jsonb) returns
      where node_id = ctx.node_id;
     perform factory._record_fingerprint(ctx, factory._hex64(p_body ->> 'fingerprint'));
     return jsonb_build_object('ok', true, 'server_time', now(), 'phase', phase, 'draining', ctx.draining, 'given_up', given_up,
+      'rotate_required', (select c.rotation_requested_at is not null from factory.node_credentials c where c.credential_id = ctx.credential_id),
       'adopted_release_id', (select m.adopted_release_id from factory.computers m where m.computer_id = ctx.computer_id),
       'release_current', factory._release_current(ctx, cur.release_id), 'revocations', factory._revocations(ctx.tenant_id));
   end $$;

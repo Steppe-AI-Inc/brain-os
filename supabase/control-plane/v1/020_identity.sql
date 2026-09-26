@@ -150,6 +150,8 @@ create table factory.node_credentials (
   revoked_by              uuid,
   revoke_reason           text check (revoke_reason is null or revoke_reason in
                             ('admin_revoke', 'repair', 'archive', 'rotate_race')),
+  -- an admin-requested rotation (contract §4 rotate): the node's next call is told, and it rotates its own key
+  rotation_requested_at   timestamptz,
   unique (tenant_id, credential_id),
   foreign key (tenant_id, principal_id) references factory.agent_principals (tenant_id, principal_id),
   foreign key (computer_id, principal_id) references factory.agent_principals (computer_id, principal_id),

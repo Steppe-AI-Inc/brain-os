@@ -85,3 +85,30 @@ export function apiNode(baseUrl, identity, { fetchImpl = fetch } = {}) {
     async close() {},
   };
 }
+
+// ---- the installer's two session-less calls (POST /v1/enroll/start, /v1/enroll/complete) --------------------------------------------
+// localAddress lets a suite speak from another loopback address (the per-IP limit keys on the connecting peer); extraHeaders lets it
+// forge a forwarding header (which must change nothing).
+import { request as httpRequest } from 'node:http';
+export function postFrom(baseUrl, path, body, { localAddress, extraHeaders = {} } = {}) {
+  const u = new URL(baseUrl + path);
+  const data = Buffer.from(JSON.stringify(body));
+  return new Promise((resolve, reject) => {
+    const req = httpRequest({ host: u.hostname, port: u.port, path: u.pathname, method: 'POST', localAddress,
+      headers: { 'content-type': 'application/json', 'content-length': data.length, ...extraHeaders } }, (res) => {
+      const chunks = []; res.on('data', (c) => chunks.push(c)); res.on('end', () => {
+        let j; try { j = JSON.parse(Buffer.concat(chunks).toString()); } catch { j = { ok: false }; }
+        resolve({ ...j, http: res.statusCode });
+      });
+    });
+    req.on('error', reject); req.end(data);
+  });
+}
+export async function enrollStart(baseUrl, code, identity, meta = {}, opts = {}) {
+  return postFrom(baseUrl, '/v1/enroll/start', { code, public_key: b64u(identity.publicKey), ...meta }, opts);
+}
+export async function enrollComplete(baseUrl, started, identity, opts = {}) {
+  const msg = Buffer.from('brain-factory-enroll-v1|' + started.enrollment_id + '|' + started.challenge + '|' + identity.thumbprint, 'utf8');
+  return postFrom(baseUrl, '/v1/enroll/complete', { enrollment_id: started.enrollment_id, public_key: b64u(identity.publicKey),
+    challenge: started.challenge, proof: b64u(sign(null, msg, identity.privateKey)) }, opts);
+}

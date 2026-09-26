@@ -182,7 +182,7 @@ create function factory._credentials_guard() returns trigger
       return new;
     end if;
     if not factory._only_changed(to_jsonb(new), to_jsonb(old), array['status', 'superseded_at', 'revoked_at', 'revoked_by_kind',
-         'revoked_by', 'revoke_reason']) then
+         'revoked_by', 'revoke_reason', 'rotation_requested_at']) then
       perform factory._refuse('factory_immutable', 'a credential''s key, principal and issue record never change');
     end if;
     if old.status <> 'active' and to_jsonb(new) <> to_jsonb(old) then
