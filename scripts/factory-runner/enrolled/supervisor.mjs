@@ -5,6 +5,7 @@
 //   worker exit 2     REFUSED (credential revoked / superseded, computer archived) -> NOT restarted: recorded, and a later supervisor
 //                     start does not retry it until the credential changes (re-pair) - no restart loop
 //   worker exit 3     registration refused             -> retried with the same credential, backing off
+//   worker exit 5     its own release (digest or signing key) was revoked: verified again at once - and refused
 //   worker exit 4     it switched to another installed release (an admin adopt): started again at once, verified again
 //   anything else     crash                            -> restarted with a backoff 5 s .. 5 min on the MONOTONIC clock, reset once a
 //                                                          worker completed a claim cycle
@@ -81,6 +82,7 @@ export async function runSupervisor({ home, workerCommand }) {
       writeJson(p.status, { ...st, credential_id: (readJson(p.config) || {}).credential_id });
       break;
     }
+    if (code === 5) { log('the worker found its own release revoked: verifying again (it will be refused)'); continue; }
     if (code === 4) { log('worker switched releases (' + (st.message || 'adopt / upgrade') + '): starting the new current release now'); backoffMs = 5000; continue; }
     if (st.cycle_completed && performance.now() - started > 10000) backoffMs = 5000;
     log('worker exited ' + code + (code === 3 ? ' (registration refused: ' + (st.refused || '') + ')' : '') + '; restart in ' + Math.round(backoffMs / 1000) + ' s');

@@ -10,6 +10,24 @@ import { join } from 'node:path';
 import { paths, readJson, writeJson } from './home.mjs';
 import { authenticodeImageHash } from './pe-image.mjs';
 import { verifyRelease } from './release.mjs';
+import { NodeApi } from './api.mjs';
+import { loadKey } from './keys.mjs';
+
+/** FRESH revocations from the plane, through this node's own credential (a heartbeat answers them): an upgrade never trusts a key
+ * or a release on a stale list. When the plane cannot answer, the upgrade is refused - revocation state unknown. */
+async function freshRevocations(p) {
+  const cfg = readJson(p.config);
+  if (!cfg || !cfg.credential_id) return { ok: false, refused: 'not_enrolled', message: 'this computer is not enrolled' };
+  const k = await loadKey(p.key, cfg.public_key);
+  if (!k.ok) return { ok: false, refused: 'no_key', message: k.fix };
+  const api = new NodeApi({ api: cfg.api, key: k.key });
+  const st = readJson(p.status, {});
+  const phase = ['AVAILABLE', 'BUSY', 'DRAINING', 'RECOVERING'].includes(st.state) ? st.state : 'AVAILABLE';
+  const hb = await api.op('heartbeat', { phase }, { retries: 1 });
+  if (!hb.ok || !hb.revocations) return { ok: false, refused: 'revocations_unavailable', message: 'the plane did not answer the current revocations (' + (hb.refused || hb.http) + '): nothing is installed on a stale list' };
+  writeJson(p.revocations, hb.revocations);
+  return { ok: true, revocations: hb.revocations };
+}
 
 export function semverCmp(a, b) {
   const pa = String(a).split(/[-+]/)[0].split('.').map(Number), pb = String(b).split(/[-+]/)[0].split('.').map(Number);
@@ -23,7 +41,9 @@ export async function upgrade({ home, artifact, manifest }) {
   const m = readJson(manifest);
   let bytes;
   try { bytes = readFileSync(artifact); } catch (e) { return { ok: false, refused: 'bad_request', message: 'the artifact cannot be read: ' + e.code }; }
-  const v = verifyRelease({ manifest: m, artifact: bytes, revocations: readJson(p.revocations, { key_ids: [], releases: [] }) });
+  const fresh = await freshRevocations(p);
+  if (!fresh.ok) return fresh;
+  const v = verifyRelease({ manifest: m, artifact: bytes, revocations: fresh.revocations });
   if (!v.ok) return v;
   const cur = readJson(p.current);
   const adopted = (readJson(p.status, {}).adopted_release || {}).digest;

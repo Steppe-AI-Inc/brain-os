@@ -156,18 +156,18 @@ try {
   row('R-d the revoked release, offered again, is refused by name (release_revoked)', rd.json && rd.json.refused === 'release_revoked', rd.json && rd.json.refused);
   // R-c: revoke the dev key: offered releases AND the node's own release are refused
   await admin.call('revoke-key', { key_id: devKey().keyId, reason: 'rehearsal' }, founder.token);
-  await sleep(8000);
   const rc = await upgrade(SENT, put('ms2.json', MS));
-  await run(IEXE(), ['stop', '--home', H, '--no-tasks']);
+  // the running node finds its own release revoked on its next heartbeat and stops; a new start is refused before execution
+  for (let i = 0; i < 30 && readJ(join(H, 'state', 'supervisor.lock.json')); i++) await sleep(2000);
   const again = await run(IEXE(), ['supervise', '--home', H]);
   const stN = readJ(join(H, 'state', 'status.json'));
   row('R-c a revoked key: a release it signed is refused (key_revoked), and the node\'s OWN release is refused at its next start (RELEASE_REFUSED) - before execution',
-    rc.json && rc.json.refused === 'key_revoked' && again.status === 3 && stN.state === 'RELEASE_REFUSED' && stN.refused === 'key_revoked', JSON.stringify({ rc: rc.json && rc.json.refused, again: again.status, st: stN.refused }));
+    rc.json && rc.json.refused === 'key_revoked' && again.status === 3 && stN.state === 'RELEASE_REFUSED' && stN.refused === 'key_revoked', JSON.stringify({ rc: rc.out.slice(-300), again: again.status, againOut: again.out.slice(-200), st: stN, rev: readJ(join(H, 'state', 'revocations.json')) }).slice(0, 1200));
   // the sentinel was never executed; the positive control shows it would have left its marker
   const neverRan = !existsSync(MARKER);
   const ctl = spawnSync(SENT, ['control'], { windowsHide: true, timeout: 60000 });
   row('R-s the sentinel was never executed through any refusal above; run directly (the positive control) it leaves its marker',
-    neverRan && ctl.status === 0 && existsSync(MARKER) && readFileSync(MARKER, 'utf8').includes('control'));
+    neverRan && ctl.status === 0 && existsSync(MARKER) && readFileSync(MARKER, 'utf8').includes('control'), JSON.stringify({ neverRan, ctl: ctl.status, err: String(ctl.error || ''), marker: existsSync(MARKER) && readFileSync(MARKER, 'utf8').slice(0, 200) }));
   void current0; void randomUUID; void createHash;
 } catch (e) {
   row('X0 release rehearsal', false, e && e.stack || e);

@@ -17,7 +17,14 @@ import { loadKey, newKey, storeKey } from './keys.mjs';
 import { logger, paths, readJson, writeJson } from './home.mjs';
 import { adoptIfInstalled } from './upgrade.mjs';
 
-export const EXIT_WORKER = { STOPPED: 0, ERROR: 1, REFUSED: 2, REGISTRATION: 3, SWITCH_RELEASE: 4 };
+export const EXIT_WORKER = { STOPPED: 0, ERROR: 1, REFUSED: 2, REGISTRATION: 3, SWITCH_RELEASE: 4, RELEASE_REVOKED: 5 };
+
+/** does a revocation the API just delivered hit the release this worker runs (its digest, or the key that signed it)? */
+function ownReleaseRevoked(p, runtime, rev) {
+  const cur = readJson(p.current);
+  const m = cur && cur.dir ? readJson(cur.dir + '\\manifest.json') : null;
+  return ((rev && rev.releases) || []).some((r) => r && r.digest === runtime.digest) || (m && ((rev && rev.key_ids) || []).includes(m.key_id));
+}
 const sleep = (ms) => new Promise((ok) => setTimeout(ok, ms));
 
 class Terminal extends Error { constructor(r) { super('REFUSED: ' + r.refused + ' - ' + (r.message || '')); this.refusal = r; } }
@@ -49,6 +56,7 @@ export async function runWorker({ home, runtime = {}, pollMs = 5000, once = fals
     const roles = (reg.envelope && reg.envelope.roles) || [];
     log('registered ' + reg.node_id + ' (' + reg.enrollment_state + ', release ' + (reg.release && reg.release.current ? 'current' : 'NOT current') + ', envelope v' + (reg.envelope && reg.envelope.version) + ')');
     if (reg.revocations) writeJson(p.revocations, reg.revocations);
+    if (reg.revocations && ownReleaseRevoked(p, runtime, reg.revocations)) { log('the release this node runs is revoked (its digest or its signing key): stopping; the supervisor refuses to start it again'); status({ state: 'RELEASE_REVOKED' }); return EXIT_WORKER.RELEASE_REVOKED; }
     status({ state: 'RECOVERING', node_id: reg.node_id, enrollment_state: reg.enrollment_state, release_current: !!(reg.release && reg.release.current) });
     check(await api.op('heartbeat', { phase: 'RECOVERING', resources: res() }), 'heartbeat');
     const rec = check(await api.op('release', { keep_run_ids: [] }), 'reconcile');
@@ -61,6 +69,7 @@ export async function runWorker({ home, runtime = {}, pollMs = 5000, once = fals
       hb = check(await api.op('heartbeat', { phase: 'AVAILABLE', resources: res() }), 'heartbeat');
       if (!hb.ok) { log('heartbeat refused: ' + hb.refused); await sleep(pollMs); continue; }
       if (hb.revocations) writeJson(p.revocations, hb.revocations);
+      if (hb.revocations && ownReleaseRevoked(p, runtime, hb.revocations)) { log('the release this node runs is revoked (its digest or its signing key): stopping; the supervisor refuses to start it again'); status({ state: 'RELEASE_REVOKED' }); return EXIT_WORKER.RELEASE_REVOKED; }
       status({ adopted_release: hb.adopted_release || null });
       const sw = hb.adopted_release ? adoptIfInstalled(home, hb.adopted_release, runtime.digest) : null;
       if (sw && !sw.missing) { log('a Factory admin adopted release ' + hb.adopted_release.version + ': switching to it (never a silent downgrade)'); status({ state: 'SWITCHING', message: 'adopting ' + hb.adopted_release.version }); return EXIT_WORKER.SWITCH_RELEASE; }
