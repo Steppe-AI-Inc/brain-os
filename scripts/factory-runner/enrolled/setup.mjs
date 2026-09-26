@@ -21,7 +21,30 @@ import { verifyRelease, embeddedTrust } from './release.mjs';
 import { DEFAULT_TASK, registerTasks, startTask } from './tasks.mjs';
 
 export const EXIT_SETUP = { OK: 0, FAILED: 1, USAGE: 2, RELEASE_REFUSED: 3, PAIRING_REFUSED: 5, INSTALL_FAILED: 6, NOT_ALIVE: 7, DECLINED: 8 };
-const CHANNEL = typeof __CHANNEL__ !== 'undefined' ? __CHANNEL__ : { channel: null, default_api: null };
+const CHANNEL = typeof __CHANNEL__ !== 'undefined' ? __CHANNEL__ : { channel: null, default_api: null, release_base: null };
+const BUILD = typeof __BUILD_INFO__ !== 'undefined' ? __BUILD_INFO__ : null;
+export const MANIFEST_FILE = 'BrainFactorySetup.manifest.json';
+const MAX_MANIFEST = 65536;
+
+/** THE MANIFEST THIS ARTIFACT IS CHECKED AGAINST (P-4: the one human download is BrainFactorySetup.exe). An explicit --manifest is
+ * used as given and never replaced. Otherwise the file beside the exe; otherwise, on a channel with public release storage
+ * (CR-004), <release base>/<this build's version>/BrainFactorySetup.manifest.json. However it arrives, the manifest is verified
+ * against the trust set pinned in this artifact and against this exe's own image hash - where it came from adds no trust. */
+export async function locateManifest({ exe, manifestArg, releaseBase = CHANNEL.release_base, version = BUILD && BUILD.runtime_version, fetchImpl = globalThis.fetch }) {
+  const local = manifestArg || join(dirname(exe), MANIFEST_FILE);
+  const found = readJson(local);
+  if (found || manifestArg || !releaseBase || !version) return { manifest: found, from: local, tried: [local] };
+  const url = releaseBase.replace(/\/+$/, '') + '/' + encodeURIComponent(version) + '/' + MANIFEST_FILE;
+  try {
+    const r = await fetchImpl(url, { signal: AbortSignal.timeout(20000) });
+    if (r.status !== 200) return { manifest: null, from: url, tried: [local, url], detail: 'HTTP ' + r.status };
+    const text = await r.text();
+    if (text.length > MAX_MANIFEST) return { manifest: null, from: url, tried: [local, url], detail: 'larger than a manifest can be' };
+    return { manifest: JSON.parse(text), from: url, tried: [local, url] };
+  } catch (e) {
+    return { manifest: null, from: url, tried: [local, url], detail: (e && e.message) || String(e) };
+  }
+}
 const sleep = (ms) => new Promise((ok) => setTimeout(ok, ms));
 
 export async function runSetup(o) {
@@ -31,9 +54,10 @@ export async function runSetup(o) {
   const say = (s) => { out(s); log(s); };
 
   // 1. verify this artifact before anything else
-  const manifestPath = o.manifest || join(dirname(exe), 'BrainFactorySetup.manifest.json');
-  const manifest = readJson(manifestPath);
-  if (!manifest) { say('REFUSED - no release manifest beside the installer (' + manifestPath + '): download it with BrainFactorySetup.exe'); return EXIT_SETUP.RELEASE_REFUSED; }
+  const loc = await locateManifest({ exe, manifestArg: o.manifest });
+  const manifest = loc.manifest;
+  if (!manifest) { say('REFUSED - no release manifest beside the installer (' + loc.tried.join(', then ') + (loc.detail ? ': ' + loc.detail : '') + '). Nothing was installed and no pairing code was used.'); return EXIT_SETUP.RELEASE_REFUSED; }
+  if (loc.from !== loc.tried[0]) say('release manifest: ' + loc.from);
   const artifact = readFileSync(exe);
   const v = verifyRelease({ manifest, artifact });
   if (!v.ok) { say('REFUSED - this release does not verify (' + v.refused + '): ' + v.message + '. Nothing was installed and no pairing code was used.'); return EXIT_SETUP.RELEASE_REFUSED; }

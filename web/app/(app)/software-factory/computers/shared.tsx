@@ -73,9 +73,13 @@ export function PairingCodePanel({ code, expiresAt, downloads }: { code: string;
           {t("fc.code.step1", "On the computer, download")}{" "}
           {downloads ? (
             <>
-              <a className="text-primary underline" href={downloads.installer}>BrainFactorySetup.exe</a> {t("fc.code.and", "and")}{" "}
-              <a className="text-primary underline" href={downloads.manifest}>BrainFactorySetup.manifest.json</a> ({downloads.channel} {downloads.version}){" "}
-              {t("fc.code.sameFolder", "into the same folder.")}
+              <a className="text-primary underline" href={downloads.installer}>BrainFactorySetup.exe</a> ({downloads.channel} {downloads.version}).{" "}
+              <span className="text-xs text-muted-foreground">
+                {downloads.channel === "production"
+                  ? t("fc.code.manifestFetched", "Setup fetches its signed manifest from the same release; if the computer cannot reach it, save")
+                  : t("fc.code.manifestBeside", "On this channel, also save")}{" "}
+                <a className="underline" href={downloads.manifest}>BrainFactorySetup.manifest.json</a> {t("fc.code.sameFolder", "into the same folder.")}
+              </span>
             </>
           ) : (
             <span className="text-muted-foreground">{t("fc.code.noRelease", "BrainFactorySetup.exe - no published release is available on this plane yet.")}</span>

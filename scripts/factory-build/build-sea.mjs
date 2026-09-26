@@ -85,6 +85,9 @@ export const CHANNELS = ['production', 'dev'];
 // the production channel's default endpoint: the Factory Node API on the dedicated Factory project (founder decision A.2). A setup
 // may name another endpoint (a disposable plane); it can never change the channel's trust set or mode.
 export const DEFAULT_API = { production: 'https://npvhuoozkbexddnvkqsj.supabase.co/functions/v1/factory-node-api', dev: null };
+// the public release storage (CR-004 Option A) where setup finds its own signed manifest when it is not beside the exe; the manifest is
+// verified against the pinned trust set exactly as a local one, so where it came from adds no trust. The dev channel has none.
+export const RELEASE_BASE = { production: 'https://npvhuoozkbexddnvkqsj.supabase.co/storage/v1/object/public/factory-releases/production', dev: null };
 
 
 export class BuildError extends Error { constructor(code, message) { super(message); this.code = code; } }
@@ -365,7 +368,7 @@ export async function build({ out, nodeExe, channel, sign = false, keepWork = fa
     const esbuild = requireFromRoot('esbuild');
     const target = 'node' + pin.version.replace(/^v/, '').split('.')[0];
     const provisional = { runtime_version, source_commit, dirty: true, built_at, channel };
-    const channelDefines = { __TRUST__: JSON.stringify(trust), __CHANNEL__: JSON.stringify({ channel, default_api: DEFAULT_API[channel] }) };
+    const channelDefines = { __TRUST__: JSON.stringify(trust), __CHANNEL__: JSON.stringify({ channel, default_api: DEFAULT_API[channel], release_base: RELEASE_BASE[channel] }) };
     const pass1 = await bundle(esbuild, { target, define: { __BUILD_INFO__: JSON.stringify(provisional), ...channelDefines, 'import.meta.url': 'undefined' } });
     const inputsOf = (m) => Object.keys(m.inputs).filter((k) => !k.startsWith('<')).sort();
     const inputs = inputsOf(pass1.metafile);
@@ -449,6 +452,7 @@ export async function build({ out, nodeExe, channel, sign = false, keepWork = fa
       runtime_version, source_commit, dirty, built_at, built_at_source, built_at_epoch: epoch, dirty_paths,
       channel, trust: { channel: trust.channel, mode: trust.mode, keys: trust.keys.map((k) => ({ key_id: k.key_id, public_key_sha256: sha256(Buffer.from(k.public_key, 'base64url')) })) },
       default_api: DEFAULT_API[channel],
+      release_base: RELEASE_BASE[channel],
       digest: { algorithm: 'SHA-256 PE Authenticode image hash', value: authenticodeImageHash(finalExe) },
       target: { exe_name: EXE_NAME, platform: 'win32', arch: 'x64' },
       base_node: {
