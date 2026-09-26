@@ -175,6 +175,17 @@ try {
   const jva = await vclaim(A, jd.verification_work_order_id); const jvb = await vclaim(B, jd.verification_work_order_id);
   const jvf = await vclaim(F, jd.verification_work_order_id);
   row('(j) after a takeover NO member of the authoring set (A or B) can certify; a third identity can', jb.claimed && jb.claimed.resume_from && gate7(jva) && gate7(jvb) && jvf.claimed);
+  // (j2) S-13 "every run that held a lease": a run whose lease lapsed BEFORE any checkpoint is in the authoring set too - it wrote nothing
+  // the completing run consumed, so only the lease-holder branch keeps it there (found by the v1 mutation proof, mutant IN2)
+  const wj2 = await W.submit({ title: 'j2', requires_verification: true, owned_surface: ['product/j2'] });
+  const A2 = await W.enroll('I-A2', env(), { fingerprint: '6'.repeat(64) });
+  const j2a = await A2.n.op('claim', { only_work_order_id: wj2, lease_seconds: 5, resources: best() });
+  await sleep(6500);
+  const j2b = await B.n.op('claim', { only_work_order_id: wj2, resources: best() });
+  const j2d = j2b.claimed && await B.n.op('complete', { run_id: j2b.claimed.run_id, status: 'done', termination_reason: 'completed', head_commit: tree('j2').slice(0, 40), candidate_tree: tree('j2') });
+  const j2v = j2d && j2d.verification_work_order_id ? await vclaim(A2, j2d.verification_work_order_id) : null;
+  row('(j2) a run that held a lease and wrote NO checkpoint (its lease lapsed first) stays in the authoring set: after B completes from scratch, that identity cannot take the verification (gate 7)',
+    j2a.claimed && j2b.claimed && !j2b.claimed.resume_from && j2d && j2d.ok && gate7(j2v), JSON.stringify({ a: !!(j2a && j2a.claimed), b: !!(j2b && j2b.claimed), resumed: j2b.claimed && j2b.claimed.resume_from, done: j2d && (j2d.ok || j2d.refused), v: j2v && (j2v.claimed ? 'CLAIMED' : j2v.message) }).slice(0, 400));
 } catch (e) {
   // a crash is a named row, never a silent exit: the suite did not complete
   row('X0 independence_acceptance did not complete', false, (e && e.stack) || String(e));
