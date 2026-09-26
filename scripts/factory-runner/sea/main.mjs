@@ -106,7 +106,7 @@ function opts(argv) {
     if (a === '--code') o.code = val(); else if (a === '--api') o.api = val(); else if (a === '--manifest') o.manifest = val();
     else if (a === '--home') o.home = val(); else if (a === '--task-name') o.taskName = val(); else if (a === '--artifact') o.artifact = val();
     else if (a === '--yes') o.yes = true; else if (a === '--no-tasks') o.noTasks = true; else if (a === '--no-start') o.noStart = true;
-    else if (a === '--once') o.once = true;
+    else if (a === '--once') o.once = true; else if (a === '--standby') o.standby = true;
     else throw new Error('unknown option ' + printable(a));
   }
   return o;
@@ -138,11 +138,11 @@ export async function mainAsync(argv) {
   }
   if (cmd === 'supervise') {
     const { runSupervisor } = await import('../enrolled/supervisor.mjs');
-    return runSupervisor({ home, workerCommand: (v) => (isSea() ? { exe: v.exe, args: ['worker', '--home', home] } : selfCommand(['worker', '--home', home])) });
+    return runSupervisor({ home, workerCommand: (v, { standby } = {}) => { const a = ['worker', '--home', home, ...(standby ? ['--standby'] : [])]; return isSea() ? { exe: v.exe, args: a } : selfCommand(a); } });
   }
   if (cmd === 'worker') {
     const { runWorker } = await import('../enrolled/worker.mjs');
-    return runWorker({ home, runtime: await runtimeFacts(), once: !!o.once });
+    return runWorker({ home, runtime: await runtimeFacts(), once: !!o.once, standbyOnly: !!o.standby });
   }
   if (cmd === 'status') {
     const cfg = readJson(p.config);

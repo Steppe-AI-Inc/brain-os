@@ -29,7 +29,7 @@ const sleep = (ms) => new Promise((ok) => setTimeout(ok, ms));
 
 class Terminal extends Error { constructor(r) { super('REFUSED: ' + r.refused + ' - ' + (r.message || '')); this.refusal = r; } }
 
-export async function runWorker({ home, runtime = {}, pollMs = 5000, once = false, fetchImpl } = {}) {
+export async function runWorker({ home, runtime = {}, pollMs = 5000, once = false, fetchImpl, standbyOnly = false } = {}) {
   const p = paths(home);
   const log = logger('worker', home, { echo: !!process.env.BRAIN_FACTORY_ECHO });
   const cfg = readJson(p.config);
@@ -56,7 +56,7 @@ export async function runWorker({ home, runtime = {}, pollMs = 5000, once = fals
     const roles = (reg.envelope && reg.envelope.roles) || [];
     log('registered ' + reg.node_id + ' (' + reg.enrollment_state + ', release ' + (reg.release && reg.release.current ? 'current' : 'NOT current') + ', envelope v' + (reg.envelope && reg.envelope.version) + ')');
     if (reg.revocations) writeJson(p.revocations, reg.revocations);
-    if (reg.revocations && ownReleaseRevoked(p, runtime, reg.revocations)) { log('the release this node runs is revoked (its digest or its signing key): stopping; the supervisor refuses to start it again'); status({ state: 'RELEASE_REVOKED' }); return EXIT_WORKER.RELEASE_REVOKED; }
+    let standby = !!standbyOnly || (reg.revocations && ownReleaseRevoked(p, runtime, reg.revocations));
     status({ state: 'RECOVERING', node_id: reg.node_id, enrollment_state: reg.enrollment_state, release_current: !!(reg.release && reg.release.current) });
     check(await api.op('heartbeat', { phase: 'RECOVERING', resources: res() }), 'heartbeat');
     const rec = check(await api.op('release', { keep_run_ids: [] }), 'reconcile');
@@ -69,11 +69,14 @@ export async function runWorker({ home, runtime = {}, pollMs = 5000, once = fals
       hb = check(await api.op('heartbeat', { phase: 'AVAILABLE', resources: res() }), 'heartbeat');
       if (!hb.ok) { log('heartbeat refused: ' + hb.refused); await sleep(pollMs); continue; }
       if (hb.revocations) writeJson(p.revocations, hb.revocations);
-      if (hb.revocations && ownReleaseRevoked(p, runtime, hb.revocations)) { log('the release this node runs is revoked (its digest or its signing key): stopping; the supervisor refuses to start it again'); status({ state: 'RELEASE_REVOKED' }); return EXIT_WORKER.RELEASE_REVOKED; }
+      if (hb.revocations && ownReleaseRevoked(p, runtime, hb.revocations)) standby = true;
       status({ adopted_release: hb.adopted_release || null });
       const sw = hb.adopted_release ? adoptIfInstalled(home, hb.adopted_release, runtime.digest) : null;
       if (sw && !sw.missing) { log('a Factory admin adopted release ' + hb.adopted_release.version + ': switching to it (never a silent downgrade)'); status({ state: 'SWITCHING', message: 'adopting ' + hb.adopted_release.version }); return EXIT_WORKER.SWITCH_RELEASE; }
       if (sw && sw.missing) log('a Factory admin adopted release ' + hb.adopted_release.version + ', which is not installed here: install it with `upgrade`');
+      // STANDBY: the release this node runs is revoked (its digest or its signing key). It claims and runs nothing, says so, and never
+      // downgrades on its own - it waits for a Factory admin to adopt a certified release (contract §6), then switches to it.
+      if (standby) { status({ state: 'RELEASE_REVOKED', message: 'the release this node runs is revoked: no work is claimed until a Factory admin adopts a certified release' }); await sleep(pollMs); if (once) break; continue; }
       if (hb.rotate_required) await rotateKey({ api, p, cfg, log });
       if (!hb.release_current) { status({ state: 'RELEASE_NOT_CURRENT', message: 'this node runs a release that is not current (revoked or superseded without an adopt): it claims nothing and waits for an adopted certified release' }); await sleep(pollMs); if (once) break; continue; }
       if (hb.draining) { status({ state: 'DRAINING' }); await sleep(pollMs); if (once) break; continue; }

@@ -385,6 +385,9 @@ create function factory.admin_adopt_release(p_actor uuid, p_live_role text, p_bo
     select x.* into r from factory.releases x where x.release_id = factory._uuid(p_body, 'release_id') and x.tenant_id = m.tenant_id;
     if r.release_id is null then return factory._refusal('not_found', 404, 'no such release'); end if;
     if r.state = 'revoked' then return factory._refusal('release_revoked', 409, 'a revoked release is never adopted'); end if;
+    if exists (select 1 from factory.release_revocations v where v.tenant_id = r.tenant_id and v.kind = 'key' and v.key_id = r.key_id) then
+      return factory._refusal('key_revoked', 409, 'a release signed by a revoked key is never adopted');
+    end if;
     if m.adopted_release_id = r.release_id then return jsonb_build_object('ok', true, 'already', true); end if;
     update factory.computers set adopted_release_id = r.release_id where computer_id = m.computer_id;
     perform factory._audit(m.tenant_id, 'admin', (a.ctx).actor::text, 'release.adopted', 'computer', m.computer_id::text, 'ok', null,

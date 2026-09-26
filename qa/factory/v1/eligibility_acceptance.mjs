@@ -8,6 +8,7 @@
 //            "better" node never delays it
 //   Y        numeric priority: 100 before 10 before 2 (never lexical)
 //   H        the S-16(a)-bound computer takes an authoring run only of work whose declared surfaces lie within the Director paths
+//   G4r      gate 4 on the server: superseded / adopted / key-revoked / revoked releases, whatever the node itself does
 // Developer verification, never independent. usage: node qa/factory/v1/eligibility_acceptance.mjs [--evidence <file>]
 import { writeFileSync } from 'node:fs';
 import { compose, sha256 } from '../../../scripts/factory-control-plane/migration.mjs';
@@ -160,6 +161,36 @@ try {
   const order = [];
   for (let i = 0; i < 3; i++) { const r = await Y.n.op('claim', { work_types: ['prio-test'], resources: RES(64000) }); if (r.claimed && ids[r.claimed.work_order.work_order_id]) order.push(ids[r.claimed.work_order.work_order_id]); }
   row('Y1 numeric priority: 100 before 10 before 2 (lexical text order would give 2, 100, 10)', order.join(',') === '100,10,2', order.join(','));
+  // ---- G4r: gate 4 is enforced BY THE SERVER for a superseded, an adopted, a key-revoked and a revoked release - whatever the node
+  // itself does (an honest runtime stands by on its own; this client does not, so only the server stands between it and the work)
+  // R4 outranks Z (more resources), so Z never defers to an ineligible R4 and R4 never defers to Z: only the gate is observed
+  const R4 = await W.enroll('G4-release', env(), { res: RES(2e7) });
+  const Z = await W.enroll('G4-z', env(), { res: RES(1e7) });
+  const claimDone = async (x) => {
+    const res = RES(x === R4 ? 2e7 : 1e7);
+    await beat(x, res);
+    const r = await claim(x, await W.submit({ title: 'g4r' }), res);
+    if (r.claimed) await x.n.op('complete', { run_id: r.claimed.run_id, status: 'done', termination_reason: 'completed' });
+    return r;
+  };
+  const g4r = {};
+  g4r.before = gateOf(await claimDone(R4));
+  const P2 = await admin.call('publish-release', { channel: 'dev', version: '0.2.0', source_sha: 'a'.repeat(40), digest: 'b'.repeat(64), key_id: 'dev-key-0002', signature: 'A'.repeat(86), receipt_sha256: 'c'.repeat(64), manifest: {} }, founder.token);
+  const zreg = await Z.n.op('register', { runtime_version: '0.2.0', runtime_digest: 'b'.repeat(64), fingerprint: Z.fingerprint, hostname: 'G4-z', os: 'Windows' });
+  g4r.zPublished = gateOf(await claimDone(Z));
+  g4r.superseded = gateOf(await claimDone(R4));
+  const ad1 = await admin.call('adopt-release', { computer_id: R4.computer_id, release_id: W.rel.releaseId }, founder.token);
+  g4r.adopted = gateOf(await claimDone(R4));
+  await admin.call('revoke-key', { key_id: 'dev-key-0001', reason: 'G4r' }, founder.token);
+  g4r.keyRevoked = gateOf(await claimDone(R4));
+  const ad2 = await admin.call('adopt-release', { computer_id: R4.computer_id, release_id: W.rel.releaseId }, founder.token);
+  g4r.otherKey = gateOf(await claimDone(Z));
+  await admin.call('revoke-release', { release_id: P2.release_id, reason: 'G4r' }, founder.token);
+  g4r.releaseRevoked = gateOf(await claimDone(Z));
+  row('G4r gate 4 on the server: a superseded release without an adopt is refused; an admin adopt restores it; a release signed by a revoked key is refused even adopted, and never adopted again (key_revoked); another key\'s release is unaffected; a revoked release is refused',
+    P2.ok && zreg.ok && g4r.before === 0 && g4r.zPublished === 0 && g4r.superseded === 4 && ad1.ok && g4r.adopted === 0 && g4r.keyRevoked === 4
+      && ad2.refused === 'key_revoked' && g4r.otherKey === 0 && g4r.releaseRevoked === 4,
+    JSON.stringify({ ...g4r, P2: P2.ok || P2.refused, zreg: zreg.ok || zreg.refused, ad1: ad1.ok || ad1.refused, ad2: ad2.refused || ad2.ok }));
 } finally {
   await W.stop();
 }

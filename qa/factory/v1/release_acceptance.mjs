@@ -146,23 +146,25 @@ try {
   const set2 = await run(join(dl2, 'BrainFactorySetup.exe'), ['setup', '--code', add2.pairing_code, '--api', W.node.baseUrl, '--yes', '--home', H2, '--no-tasks']);
   const cur2 = readFileSync(join(H2, 'current.json'), 'utf8');
   await admin.call('revoke-release', { release_id: R2.release_id, reason: 'rehearsal' }, founder.token);
-  let st = null; for (let i = 0; i < 30 && !(st && st.state === 'RELEASE_NOT_CURRENT'); i++) { await sleep(2000); st = readJ(join(H2, 'state', 'status.json')); }
+  let st = null; for (let i = 0; i < 30 && !(st && st.state === 'RELEASE_REVOKED'); i++) { await sleep(2000); st = readJ(join(H2, 'state', 'status.json')); }
   const wj = await W.submit({ title: 'work while revoked', work_type: 'probe', priority: 90 });
   await sleep(8000);
   const took = (await sup.query(`select count(*)::int n from factory.agent_runs where work_order_id = $1 and computer_id = $2`, [wj, add2.computer_id])).rows[0].n;
-  row('R-j a published release revoked while a node runs it: the node stops claiming and says so (RELEASE_NOT_CURRENT), and never downgrades silently',
-    set2.status === 0 && st && st.state === 'RELEASE_NOT_CURRENT' && took === 0 && readFileSync(join(H2, 'current.json'), 'utf8') === cur2, st && st.state);
+  row('R-j a published release revoked while a node runs it: the node stops claiming and says so (RELEASE_REVOKED, standby), and never downgrades silently',
+    set2.status === 0 && st && st.state === 'RELEASE_REVOKED' && took === 0 && readFileSync(join(H2, 'current.json'), 'utf8') === cur2, st && st.state);
   const rd = await upgrade(DEV2, put('m2b.json', M2));
   row('R-d the revoked release, offered again, is refused by name (release_revoked)', rd.json && rd.json.refused === 'release_revoked', rd.json && rd.json.refused);
   // R-c: revoke the dev key: offered releases AND the node's own release are refused
   await admin.call('revoke-key', { key_id: devKey().keyId, reason: 'rehearsal' }, founder.token);
   const rc = await upgrade(SENT, put('ms2.json', MS));
-  // the running node finds its own release revoked on its next heartbeat and stops; a new start is refused before execution
-  for (let i = 0; i < 30 && readJ(join(H, 'state', 'supervisor.lock.json')); i++) await sleep(2000);
-  const again = await run(IEXE(), ['supervise', '--home', H]);
-  const stN = readJ(join(H, 'state', 'status.json'));
-  row('R-c a revoked key: a release it signed is refused (key_revoked), and the node\'s OWN release is refused at its next start (RELEASE_REFUSED) - before execution',
-    rc.json && rc.json.refused === 'key_revoked' && again.status === 3 && stN.state === 'RELEASE_REFUSED' && stN.refused === 'key_revoked', JSON.stringify({ rc: rc.out.slice(-300), again: again.status, againOut: again.out.slice(-200), st: stN, rev: readJ(join(H, 'state', 'revocations.json')) }).slice(0, 1200));
+  // the running node finds its own release's key revoked: standby - it claims nothing and says so; a probe it would have taken waits
+  let stN = null; for (let i = 0; i < 30 && !(stN && stN.state === 'RELEASE_REVOKED'); i++) { await sleep(2000); stN = readJ(join(H, 'state', 'status.json')); }
+  const wc = await W.submit({ title: 'work while the key is revoked', work_type: 'probe', priority: 95 });
+  await sleep(8000);
+  const tookC = (await sup.query(`select count(*)::int n from factory.agent_runs where work_order_id = $1`, [wc])).rows[0].n;
+  const again = { status: tookC };
+  row('R-c a revoked key: a release it signed is refused before execution (key_revoked); the node whose own release it signed stops claiming and says so (RELEASE_REVOKED)',
+    rc.json && rc.json.refused === 'key_revoked' && again.status === 0 && stN && stN.state === 'RELEASE_REVOKED', JSON.stringify({ rc: rc.out.slice(-300), again: again.status, st: stN, rev: readJ(join(H, 'state', 'revocations.json')) }).slice(0, 1200));
   // the sentinel was never executed; the positive control shows it would have left its marker
   const neverRan = !existsSync(MARKER);
   const ctl = spawnSync(SENT, ['control'], { windowsHide: true, timeout: 60000 });

@@ -5,7 +5,8 @@
 //   worker exit 2     REFUSED (credential revoked / superseded, computer archived) -> NOT restarted: recorded, and a later supervisor
 //                     start does not retry it until the credential changes (re-pair) - no restart loop
 //   worker exit 3     registration refused             -> retried with the same credential, backing off
-//   worker exit 5     its own release (digest or signing key) was revoked: verified again at once - and refused
+//   a REVOKED installed release (its digest or its signing key): the worker runs in STANDBY - heartbeats only, no work - until an admin
+//   adopts a certified release; a release that fails verification for any other reason (tampered, unsigned, untrusted) never runs
 //   worker exit 4     it switched to another installed release (an admin adopt): started again at once, verified again
 //   anything else     crash                            -> restarted with a backoff 5 s .. 5 min on the MONOTONIC clock, reset once a
 //                                                          worker completed a claim cycle
@@ -34,14 +35,14 @@ export function takeLock(home) {
 }
 
 /** the start-path check: the installed release, verified against THIS artifact's pinned trust set */
-export function verifyInstalled(home) {
+export function verifyInstalled(home, { ignoreRevocations = false } = {}) {
   const p = paths(home);
   const cur = readJson(p.current);
   if (!cur || !cur.dir) return { ok: false, refused: 'not_installed', message: 'no runtime is installed in ' + home };
   const exe = cur.dir + '\\BrainFactory.exe';
   const manifest = readJson(cur.dir + '\\manifest.json');
   if (!existsSync(exe) || !manifest) return { ok: false, refused: 'not_installed', message: 'the installed runtime is incomplete' };
-  const revocations = readJson(p.revocations, { key_ids: [], releases: [] });
+  const revocations = ignoreRevocations ? { key_ids: [], releases: [] } : readJson(p.revocations, { key_ids: [], releases: [] });
   const v = verifyRelease({ manifest, artifact: readFileSync(exe), revocations });
   return v.ok ? { ...v, exe, manifest } : v;
 }
@@ -62,7 +63,14 @@ export async function runSupervisor({ home, workerCommand }) {
   rmSync(p.stop, { force: true });
   for (;;) {
     // VERIFIED AT EVERY WORKER START - an upgrade or an adopted release is checked again before it runs
-    const v = verifyInstalled(home);
+    let v = verifyInstalled(home);
+    let standby = false;
+    if (!v.ok && (v.refused === 'release_revoked' || v.refused === 'key_revoked')) {
+      // a REVOKED installed release (not a forged or tampered one): the worker runs in STANDBY only - heartbeats, no claims, no work -
+      // so it hears a Factory admin's adopt of a certified release (contract §6); it never downgrades on its own
+      const vs = verifyInstalled(home, { ignoreRevocations: true });
+      if (vs.ok) { log('the installed release is revoked (' + v.refused + '): standby only - no work until a Factory admin adopts a certified release'); v = vs; standby = true; }
+    }
     if (!v.ok) {
       log('RELEASE REFUSED before execution: ' + v.refused + ' - ' + v.message);
       writeJson(p.status, { ...readJson(p.status, {}), state: 'RELEASE_REFUSED', refused: v.refused, message: v.message, at: new Date().toISOString() });
@@ -71,7 +79,7 @@ export async function runSupervisor({ home, workerCommand }) {
     }
     log('release verified: ' + v.version + ' (' + v.channel + ', image hash ' + v.digest.slice(0, 16) + '..., key ' + v.key_id.slice(0, 20) + '...)');
     const started = performance.now();
-    const cmd = workerCommand(v);
+    const cmd = workerCommand(v, { standby });
     const child = spawn(cmd.exe, cmd.args, { stdio: 'ignore', windowsHide: true, env: { ...process.env, BRAIN_FACTORY_HOME: home } });
     writeJson(p.lock, { ...readJson(p.lock), worker_pid: child.pid });
     const code = await new Promise((ok) => child.on('exit', (c) => ok(c === null ? 1 : c)));
@@ -82,7 +90,6 @@ export async function runSupervisor({ home, workerCommand }) {
       writeJson(p.status, { ...st, credential_id: (readJson(p.config) || {}).credential_id });
       break;
     }
-    if (code === 5) { log('the worker found its own release revoked: verifying again (it will be refused)'); continue; }
     if (code === 4) { log('worker switched releases (' + (st.message || 'adopt / upgrade') + '): starting the new current release now'); backoffMs = 5000; continue; }
     if (st.cycle_completed && performance.now() - started > 10000) backoffMs = 5000;
     log('worker exited ' + code + (code === 3 ? ' (registration refused: ' + (st.refused || '') + ')' : '') + '; restart in ' + Math.round(backoffMs / 1000) + ' s');

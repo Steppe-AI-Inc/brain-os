@@ -136,13 +136,14 @@ create function factory._surfaces_within(p_surfaces text[], p_paths text[]) retu
   $$;
 
 -- the node's current release is certified for claiming: the published release of its channel, or the release a Factory admin
--- adopted for its computer; never a revoked one (contract §2 Release; AC-5 (j), (m))
+-- adopted for its computer; never a revoked one, and never one signed by a revoked key (contract §2 Release; AC-5 (c), (j), (m))
 create function factory._release_current(p_ctx factory.node_ctx, p_release uuid) returns boolean
   language sql stable set search_path = ''
   as $$
     select p_release is not null and exists (
       select 1 from factory.releases r
        where r.release_id = p_release and r.tenant_id = p_ctx.tenant_id and r.state <> 'revoked'
+         and not exists (select 1 from factory.release_revocations v where v.tenant_id = r.tenant_id and v.kind = 'key' and v.key_id = r.key_id)
          and (r.state = 'published'
               or r.release_id = (select m.adopted_release_id from factory.computers m where m.computer_id = p_ctx.computer_id)))
   $$;
