@@ -46,7 +46,9 @@ export async function directNode(nodeApiUrl, identity) {
     async op(name, body = {}) {
       const fn = OPS[name];
       if (!fn) throw new Error('no such node operation: ' + name);
-      return (await c.query(`select factory.${fn}($1::bytea, $2::jsonb) r`, [token ? tokenHash(token) : null, JSON.stringify(body)])).rows[0].r;
+      // a database error is what the handler turns into 500 server_refused (the call rolled back): the direct transport says the same
+      try { return (await c.query(`select factory.${fn}($1::bytea, $2::jsonb) r`, [token ? tokenHash(token) : null, JSON.stringify(body)])).rows[0].r; }
+      catch (e) { if (e && typeof e.code === 'string') return { ok: false, refused: 'server_refused', http: 500, code: e.code, message: String(e.message) }; throw e; }
     },
     async rotate(newIdentity) {
       const r = (await c.query('select factory.node_credential_rotate($1, $2, $3) r', [token ? tokenHash(token) : null, newIdentity.thumbprint, newIdentity.publicKey])).rows[0].r;

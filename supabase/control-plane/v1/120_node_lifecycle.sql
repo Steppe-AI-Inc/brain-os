@@ -103,6 +103,7 @@ create function factory.node_register(p_token_hash bytea, p_body jsonb) returns 
   as $$
   declare a record; ctx factory.node_ctx; rel record; enr record; certified boolean; fp text := factory._hex64(p_body ->> 'fingerprint');
   begin
+    if factory._identity_refusal(p_body) is not null then return factory._identity_refusal(p_body); end if;
     select * into a from factory._node_session(p_token_hash, false, 'register');
     if a.refusal is not null then return a.refusal; end if;
     ctx := a.ctx;
@@ -159,6 +160,7 @@ create function factory.node_heartbeat(p_token_hash bytea, p_body jsonb) returns
   as $$
   declare a record; ctx factory.node_ctx; cur factory.nodes; phase text := p_body ->> 'phase'; given_up integer := 0;
   begin
+    if factory._identity_refusal(p_body) is not null then return factory._identity_refusal(p_body); end if;
     select * into a from factory._node_session(p_token_hash, false, 'heartbeat');
     if a.refusal is not null then return a.refusal; end if;
     ctx := a.ctx;
@@ -213,8 +215,14 @@ create function factory._claim(p_ctx factory.node_ctx, p_body jsonb, p_kind text
     lease_until timestamptz;
     fp text := factory._hex64(p_body ->> 'fingerprint');
   begin
-    -- claims are serialized plane-wide, with the SAME key as the frozen legacy claim (claim.mjs:157)
-    perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext('factory.claim'));
+    -- claims are serialized plane-wide, with the SAME key as the frozen legacy claim (claim.mjs:157). A claim that cannot get the lock
+    -- within the lock timeout (a claimer that died holding it) gives up - "nothing claimed this time" - and never blocks the plane
+    -- (acceptance.mjs N; claim.mjs:349).
+    begin
+      perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext('factory.claim'));
+    exception when lock_not_available then
+      return factory._refusal('claim_lock_busy', 503, 'the plane-wide claim lock is busy (another claimer holds it); nothing claimed this time - retry');
+    end;
     perform factory._reap();
     -- the report the gates read: this call's resources and fingerprint
     update factory.nodes set reported_resources = coalesce(factory._obj(p_body, 'resources'), reported_resources),
@@ -305,6 +313,7 @@ create function factory.node_claim(p_token_hash bytea, p_body jsonb) returns jso
   as $$
   declare a record;
   begin
+    if factory._identity_refusal(p_body) is not null then return factory._identity_refusal(p_body); end if;
     select * into a from factory._node_session(p_token_hash, false, 'claim');
     if a.refusal is not null then return a.refusal; end if;
     return factory._claim(a.ctx, p_body, 'authoring');
@@ -319,6 +328,7 @@ create function factory.node_renew(p_token_hash bytea, p_body jsonb) returns jso
   as $$
   declare a record; ctx factory.node_ctx; run uuid; until timestamptz; lease integer := factory._lease_seconds(p_body);
   begin
+    if factory._identity_refusal(p_body) is not null then return factory._identity_refusal(p_body); end if;
     select * into a from factory._node_session(p_token_hash, false, 'renew');
     if a.refusal is not null then return a.refusal; end if;
     ctx := a.ctx;
@@ -345,6 +355,7 @@ create function factory.node_checkpoint(p_token_hash bytea, p_body jsonb) return
   as $$
   declare a record; ctx factory.node_ctx; r factory.agent_runs; cp uuid; written integer; me factory.nodes;
   begin
+    if factory._identity_refusal(p_body) is not null then return factory._identity_refusal(p_body); end if;
     select * into a from factory._node_session(p_token_hash, false, 'checkpoint');
     if a.refusal is not null then return a.refusal; end if;
     ctx := a.ctx;
@@ -394,6 +405,7 @@ create function factory.node_complete(p_token_hash bytea, p_body jsonb) returns 
     u jsonb := coalesce(factory._obj(p_body, 'usage'), '{}'::jsonb);
     v uuid;
   begin
+    if factory._identity_refusal(p_body) is not null then return factory._identity_refusal(p_body); end if;
     select * into a from factory._node_session(p_token_hash, false, 'complete');
     if a.refusal is not null then return a.refusal; end if;
     ctx := a.ctx;
@@ -486,6 +498,7 @@ create function factory.node_release(p_token_hash bytea, p_body jsonb) returns j
   as $$
   declare a record; ctx factory.node_ctx; one uuid; keep uuid[]; n integer;
   begin
+    if factory._identity_refusal(p_body) is not null then return factory._identity_refusal(p_body); end if;
     select * into a from factory._node_session(p_token_hash, false, 'release');
     if a.refusal is not null then return a.refusal; end if;
     ctx := a.ctx;
@@ -522,6 +535,7 @@ create function factory.node_report_state(p_token_hash bytea, p_body jsonb) retu
   as $$
   declare a record; ctx factory.node_ctx; enr record; step text := p_body ->> 'enrollment_step'; phase text := p_body ->> 'phase';
   begin
+    if factory._identity_refusal(p_body) is not null then return factory._identity_refusal(p_body); end if;
     select * into a from factory._node_session(p_token_hash, false, 'report_state');
     if a.refusal is not null then return a.refusal; end if;
     ctx := a.ctx;

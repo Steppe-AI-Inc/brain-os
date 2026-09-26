@@ -18,6 +18,7 @@ create function factory.node_verification_claim(p_token_hash bytea, p_body jsonb
   as $$
   declare a record; r jsonb; w factory.work_orders; cand factory.agent_runs;
   begin
+    if factory._identity_refusal(p_body) is not null then return factory._identity_refusal(p_body); end if;
     select * into a from factory._node_session(p_token_hash, false, 'verification_claim');
     if a.refusal is not null then return a.refusal; end if;
     r := factory._claim(a.ctx, p_body, 'verification');
@@ -44,6 +45,7 @@ create function factory.node_certify(p_token_hash bytea, p_body jsonb) returns j
     mine text[];
     cert uuid := gen_random_uuid();
   begin
+    if factory._identity_refusal(p_body) is not null then return factory._identity_refusal(p_body); end if;
     select * into a from factory._node_session(p_token_hash, false, 'certify');
     if a.refusal is not null then return a.refusal; end if;
     ctx := a.ctx;

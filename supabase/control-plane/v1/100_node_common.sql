@@ -135,4 +135,21 @@ create function factory._hex64(p text) returns text
   language sql immutable parallel safe set search_path = ''
   as $$ select case when p ~ '^[0-9a-f]{64}$' then p end $$;
 
+-- S-4 on every path: a body never names identity, tenant or authority. The Edge refuses such a body before calling; the front
+-- doors refuse it too, so a direct call (the API role's) behaves exactly like one through the Node API.
+create function factory._names_identity(p jsonb) returns text
+  language sql immutable parallel safe set search_path = ''
+  as $$
+    select k from jsonb_object_keys(case when jsonb_typeof(p) = 'object' then p else '{}'::jsonb end) k
+     where k in ('node_id', 'tenant_id', 'principal_id', 'computer_id', 'credential_id', 'security_role', 'role', 'roles', 'capabilities',
+                 'envelope', 'envelope_version', 'authorized_roles', 'authorized_capabilities', 'company_ids', 'max_concurrent_runs',
+                 'max_heavy', 'agent', 'agent_id', 'identity', 'tenant', 'may_verify')
+     order by k limit 1
+  $$;
+
+create function factory._identity_refusal(p jsonb) returns jsonb
+  language sql immutable parallel safe set search_path = ''
+  as $$ select case when factory._names_identity(p) is not null then factory._refusal('identity_from_body_refused', 400,
+          'the body may not name ' || factory._names_identity(p) || ': identity, tenant and authority come from the credential (S-4)') end $$;
+
 reset role;
