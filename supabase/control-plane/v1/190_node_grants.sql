@@ -20,7 +20,9 @@ grant execute on function
   factory.node_verification_claim(bytea, jsonb),
   factory.node_certify(bytea, jsonb),
   factory.node_credential_rotate(bytea, text, bytea),
-  factory.node_report_state(bytea, jsonb)
+  factory.node_report_state(bytea, jsonb),
+  factory.node_enroll_start(text, bytea, integer, bytea, inet, jsonb),
+  factory.node_enroll_complete(uuid, text, bytea, inet)
   to factory_node_api;
 
 reset role;

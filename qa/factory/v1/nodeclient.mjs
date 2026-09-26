@@ -77,7 +77,8 @@ export function apiNode(baseUrl, identity, { fetchImpl = fetch } = {}) {
     },
     async op(name, body = {}) { return post('/v1/node/' + name, body); },
     async rotate(newIdentity) {
-      const msg = Buffer.from('brain-factory-rotate-v1|' + identity.thumbprint + '|' + newIdentity.thumbprint, 'utf8');
+      // the new key signs a message bound to THIS session (sha256 of the bearer token) and to itself
+      const msg = Buffer.from('brain-factory-rotate-v1|' + createHash('sha256').update(token, 'utf8').digest('hex') + '|' + newIdentity.thumbprint, 'utf8');
       return post('/v1/node/credential-rotate', { new_public_key: b64u(newIdentity.publicKey), proof: b64u(sign(null, msg, newIdentity.privateKey)) });
     },
     async time() { const res = await fetchImpl(baseUrl + '/v1/time'); return { ...(await res.json()), http: res.status }; },
