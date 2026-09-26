@@ -113,7 +113,7 @@ export async function legacyWorkOrder(c, { surface = [], title = 'legacy fixture
 }
 
 /** A published release on the plane, as the founder's publish action records it (test-only: written as the engine). */
-export async function publishedRelease(c, { channel = 'dev', version = '0.1.0', digest = null } = {}) {
+export async function publishedRelease(c, { channel = 'dev', version = '0.0.1-fixture', digest = null } = {}) {
   const id = randomUUID();
   const d = digest || createHash('sha256').update(id).digest('hex');
   await asEngine(c, () => c.query(`insert into factory.releases (release_id, tenant_id, channel, version, source_sha, digest, key_id, signature,

@@ -1,0 +1,14 @@
+{
+  "channel": "dev",
+  "mode": "dev",
+  "_about": [
+    "THE DEV TRUST SET: disposable planes only (S-5). Fixed into the dev-channel artifact at build time; a production-channel artifact",
+    "never contains it and refuses a signature by this key by name.",
+    "Its private key is derived from a PUBLISHED seed (scripts/factory-build/release-manifest.mjs, DEV_SEED_TEXT), on purpose: anyone -",
+    "the implementer, the verifier rehearsing R-1 - can sign a dev release on a disposable plane, and that is safe exactly because no",
+    "production-channel artifact trusts it. It is never a trust root on the live plane."
+  ],
+  "keys": [
+    { "key_id": "ed25519:98601d6850ee07dee28b13e1dfd6de3f737b4e730c20fe3b8a620c9cc99536e6", "public_key": "rnJaYIpLCBSg2XbPS5UD1fst-jaLaQBPNU3AqfEfmEg" }
+  ]
+}

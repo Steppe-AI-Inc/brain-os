@@ -1,16 +1,13 @@
-// ENTRY SKELETON of the future Windows Factory runtime, packaged as BrainFactorySetup.exe by scripts/factory-build/build-sea.mjs.
+// BrainFactorySetup.exe / BrainFactory.exe - the ONE executable that is both setup and runtime (WO-4), built by
+// scripts/factory-build/build-sea.mjs per release channel (the trust set and mode fixed in it at build time; WO-6, S-5).
 //
-// NON-SEMANTIC PREPARATION BUILD. This file carries no product behaviour: no enrollment, no pairing, no plane connection, no state
-// names, no routes, no authorization or scheduling rules. Those wait for the Director's canonical contract. It exists so the
-// packaging pipeline has a real entry point to build, sign-hook, reproduce and test.
-//
-//   BrainFactorySetup.exe version     the embedded build info as one JSON line: {runtime_version, source_commit, dirty, built_at}
-//   BrainFactorySetup.exe selftest    PASS/FAIL lines (Ed25519 through node:crypto; which runtime this is); exit 0 all pass, 1 otherwise
-//   BrainFactorySetup.exe <anything else, or nothing - a double-click>
-//                                     "<cmd>: not available in this preparation build", exit 64
-//
-// The same file runs unbundled under plain node (`node scripts/factory-runner/sea/main.mjs selftest`) and can be imported without
-// running anything (the CLI runs only when this module is the entry point).
+//   BrainFactorySetup.exe                     (double-click) setup: verify this release, enter the pairing code, enroll, install, start
+//   BrainFactorySetup.exe setup [--code C] [--api URL] [--yes] [--manifest F] [--home DIR] [--task-name N] [--no-tasks] [--no-start]
+//   BrainFactory.exe supervise [--home DIR]     the logon task's command: verify the installed release, keep one worker running
+//   BrainFactory.exe worker [--home DIR]        (internal) the runtime loop, started by the supervisor
+//   BrainFactory.exe status | verify | start | stop | uninstall | logs  [--home DIR] [--task-name N]
+//   BrainFactory.exe upgrade --artifact EXE --manifest F [--home DIR]   verify a release BEFORE anything of it runs; install; switch
+//   BrainFactory.exe version | selftest
 //
 // RULES for this file and everything it imports - build-sea.mjs enforces the first three and fails the build otherwise:
 //   1. no top-level await: a SEA main script is CommonJS, and the bundle is emitted as CommonJS
@@ -35,10 +32,10 @@ export function isSea() {
 
 export function buildInfo() {
   if (EMBEDDED_BUILD_INFO) {
-    const { runtime_version, source_commit, dirty, built_at } = EMBEDDED_BUILD_INFO;
-    return { runtime_version, source_commit, dirty, built_at };
+    const { runtime_version, source_commit, dirty, built_at, channel } = EMBEDDED_BUILD_INFO;
+    return { runtime_version, source_commit, dirty, built_at, channel };
   }
-  return { runtime_version: null, source_commit: null, dirty: null, built_at: null }; // unbundled source: not a build
+  return { runtime_version: null, source_commit: null, dirty: null, built_at: null, channel: null }; // unbundled source: not a build
 }
 
 // RFC 8032 section 7.1, TEST 1 (empty message): a known answer, so the check is against the standard and not only against itself.
@@ -99,12 +96,112 @@ function printable(cmd) {
   return (s.length > 120 ? s.slice(0, 120) + '...' : s).replace(/[\u0000-\u001f\u007f]/g, '?');
 }
 
-export function main(argv = process.argv.slice(2), out = (line) => process.stdout.write(line + '\n'), err = (line) => process.stderr.write(line + '\n')) {
+// ---- the commands -------------------------------------------------------------------------------------------------------------------
+function opts(argv) {
+  const o = {};
+  for (let i = 1; i < argv.length; i++) {
+    const a = argv[i];
+    const val = () => { const v = argv[++i]; if (v === undefined || v.startsWith('--')) throw new Error(a + ' needs a value'); return v; };
+    if (a === '--code') o.code = val(); else if (a === '--api') o.api = val(); else if (a === '--manifest') o.manifest = val();
+    else if (a === '--home') o.home = val(); else if (a === '--task-name') o.taskName = val(); else if (a === '--artifact') o.artifact = val();
+    else if (a === '--yes') o.yes = true; else if (a === '--no-tasks') o.noTasks = true; else if (a === '--no-start') o.noStart = true;
+    else if (a === '--once') o.once = true;
+    else throw new Error('unknown option ' + printable(a));
+  }
+  return o;
+}
+
+/** what this process runs: the installed exe in a SEA, or node + this file unbundled (a developer's run, never an install) */
+function selfCommand(args) {
+  if (isSea()) return { exe: process.execPath, args };
+  return { exe: process.execPath, args: [fileURLToPath(import.meta.url), ...args] };
+}
+
+async function runtimeFacts() {
+  const info = buildInfo();
+  let digest;
+  if (isSea()) { const { authenticodeImageHash } = await import('../enrolled/pe-image.mjs'); const { readFileSync } = await import('node:fs'); digest = authenticodeImageHash(readFileSync(process.execPath)); }
+  return { version: info.runtime_version || '0.0.0-unbundled', digest, source_commit: info.source_commit };
+}
+
+export async function mainAsync(argv) {
+  const cmd = argv[0] || 'setup';
+  const o = opts(argv);
+  const { homeDir, paths, readJson, writeJson } = await import('../enrolled/home.mjs');
+  const home = o.home || homeDir();
+  const p = paths(home);
+  if (cmd === 'setup') {
+    const { runSetup } = await import('../enrolled/setup.mjs');
+    return runSetup({ ...o, home, homeArg: !!o.home, exe: process.execPath,
+      startSupervisor: () => { const { spawn } = require_child(); const c = selfCommand(['supervise', '--home', home]); spawn(c.exe, c.args, { detached: true, stdio: 'ignore', windowsHide: true }).unref(); } });
+  }
+  if (cmd === 'supervise') {
+    const { runSupervisor } = await import('../enrolled/supervisor.mjs');
+    return runSupervisor({ home, workerCommand: (v) => (isSea() ? { exe: v.exe, args: ['worker', '--home', home] } : selfCommand(['worker', '--home', home])) });
+  }
+  if (cmd === 'worker') {
+    const { runWorker } = await import('../enrolled/worker.mjs');
+    return runWorker({ home, runtime: await runtimeFacts(), once: !!o.once });
+  }
+  if (cmd === 'status') {
+    const cfg = readJson(p.config);
+    const out = { home, enrolled: !!(cfg && cfg.credential_id), node_id: cfg && cfg.node_id, computer: cfg && cfg.computer, tenant: cfg && cfg.tenant,
+      api: cfg && cfg.api, key_protection: cfg && cfg.key_protection, status: readJson(p.status), current: readJson(p.current), build: buildInfo() };
+    process.stdout.write(JSON.stringify(out, null, 2) + '\n');
+    return EXIT_OK;
+  }
+  if (cmd === 'verify') {
+    const { verifyInstalled } = await import('../enrolled/supervisor.mjs');
+    const v = verifyInstalled(home);
+    process.stdout.write(JSON.stringify(v.ok ? { ok: true, version: v.version, channel: v.channel, digest: v.digest, key_id: v.key_id } : v) + '\n');
+    return v.ok ? EXIT_OK : 3;
+  }
+  if (cmd === 'stop') {
+    writeJson(p.stop, { at: new Date().toISOString() });
+    const lock = readJson(p.lock);
+    for (let i = 0; i < 60 && readJson(p.lock); i++) await new Promise((ok) => setTimeout(ok, 500));
+    process.stdout.write((readJson(p.lock) ? 'stop requested; the supervisor has not exited yet' : 'stopped') + (lock ? '' : ' (no supervisor was running)') + '\n');
+    return EXIT_OK;
+  }
+  if (cmd === 'start') {
+    const { rmSync } = await import('node:fs');
+    rmSync(p.stop, { force: true });
+    if (!o.noTasks) { const { startTask, DEFAULT_TASK } = await import('../enrolled/tasks.mjs'); const r = startTask(o.taskName || DEFAULT_TASK); process.stdout.write((r.code === 0 ? 'started' : 'could not start the task: ' + r.err) + '\n'); return r.code === 0 ? EXIT_OK : 1; }
+    const { spawn } = require_child(); const c = selfCommand(['supervise', '--home', home]); spawn(c.exe, c.args, { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+    process.stdout.write('supervisor started\n'); return EXIT_OK;
+  }
+  if (cmd === 'uninstall') {
+    writeJson(p.stop, { at: new Date().toISOString() });
+    for (let i = 0; i < 60 && readJson(p.lock); i++) await new Promise((ok) => setTimeout(ok, 500));
+    if (!o.noTasks) { const { unregisterTasks, DEFAULT_TASK } = await import('../enrolled/tasks.mjs'); unregisterTasks(o.taskName || DEFAULT_TASK); }
+    const { rmSync } = await import('node:fs');
+    rmSync(home, { recursive: true, force: true });
+    process.stdout.write('uninstalled: the task, the runtime, the key and the state are removed. A Factory admin revokes or archives the computer in Brain OS.\n');
+    return EXIT_OK;
+  }
+  if (cmd === 'logs') {
+    const { readFileSync } = await import('node:fs');
+    for (const f of ['setup', 'supervisor', 'worker']) { try { process.stdout.write('== ' + f + '.log\n' + readFileSync(p.logs + '\\' + f + '.log', 'utf8').split('\n').slice(-40).join('\n') + '\n'); } catch { /* none */ } }
+    return EXIT_OK;
+  }
+  if (cmd === 'upgrade') {
+    const { upgrade } = await import('../enrolled/upgrade.mjs');
+    const r = await upgrade({ home, artifact: o.artifact, manifest: o.manifest });
+    process.stdout.write(JSON.stringify(r) + '\n');
+    return r.ok ? EXIT_OK : 3;
+  }
+  process.stderr.write(printable(cmd) + ': not a Brain Factory command (setup, supervise, status, verify, start, stop, uninstall, logs, upgrade, version, selftest)\n');
+  return EXIT_NOT_AVAILABLE;
+}
+
+// child_process through a function so the unbundled import of this file stays side-effect free
+function require_child() { return process.getBuiltinModule('node:child_process'); }
+
+export function main(argv = process.argv.slice(2), out = (line) => process.stdout.write(line + '\n')) {
   const cmd = argv[0];
   if (cmd === 'version') { out(JSON.stringify(buildInfo())); return EXIT_OK; }
   if (cmd === 'selftest') return selftest(out);
-  err((cmd === undefined ? '(none)' : printable(cmd)) + ': not available in this preparation build');
-  return EXIT_NOT_AVAILABLE;
+  return mainAsync(argv).catch((e) => { process.stderr.write('error: ' + (e && e.message || e) + '\n'); return 1; });
 }
 
 // The CLI runs when this is the program: the packaged exe, the bundle run with `node main.cjs`, or this file run with `node`.
@@ -118,4 +215,4 @@ function invokedAsEntry() {
 }
 
 // process.exitCode, not process.exit(): stdout on a pipe is flushed before the process ends
-if (invokedAsEntry()) process.exitCode = main();
+if (invokedAsEntry()) Promise.resolve(main()).then((c) => { process.exitCode = c; }, (e) => { process.stderr.write('error: ' + (e && e.message || e) + '\n'); process.exitCode = 1; });

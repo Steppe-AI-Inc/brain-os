@@ -1,9 +1,15 @@
 #!/usr/bin/env node
 // BUILD SEA - the reproducible Node Single Executable Application pipeline for the Windows Factory runtime, BrainFactorySetup.exe.
 //
-//   node scripts/factory-build/build-sea.mjs [--out <dir>] [--node-exe <official node.exe>] [--sign] [--keep-work]
+//   node scripts/factory-build/build-sea.mjs --channel production|dev [--out <dir>] [--node-exe <official node.exe>] [--sign] [--keep-work]
 //
-// Output (default --out: dist/brain-factory/<runtime_version>/, runtime_version from scripts/factory-runner/sea/runtime-version.json):
+// CHANNEL (S-5, WO-6). The release channel's TRUST SET and TRUST MODE (scripts/factory-runner/enrolled/trust/<channel>.json) and its
+// default Node API endpoint are FIXED INTO THE BUNDLE at build time (esbuild defines __TRUST__ and __CHANNEL__); nothing at runtime
+// changes them. The production channel's trust set is empty until C-3, so a production-channel build trusts no key at all.
+// build-info records the channel, every trust entry read back as (key_id, sha256 of the public key), and the artifact's digest - its
+// SHA-256 PE Authenticode image hash (scripts/factory-runner/enrolled/pe-image.mjs), the value a release manifest signs.
+//
+// Output (default --out: dist/brain-factory/<runtime_version>/<channel>/, runtime_version from scripts/factory-runner/sea/runtime-version.json):
 //   BrainFactorySetup.exe   the SEA
 //   build-info.json         every input and intermediate by sha256, no absolute paths, no wall clock (two builds of one tree are
 //                           byte-identical - scripts/factory-build/verify-build.mjs proves it by rebuilding)
@@ -56,6 +62,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { certificateDirectory, readCertificateTable, stripSignature, updatePeChecksum } from './pe-strip-signature.mjs';
+import { authenticodeImageHash } from '../factory-runner/enrolled/pe-image.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const ROOT = resolve(HERE, '..', '..');
@@ -73,7 +80,12 @@ export const FORBIDDEN_PACKAGES = [/^pg$/, /^pg-/, /^pgpass$/, /^postgres$/, /^p
 export const FORBIDDEN_FILES = ['scripts/factory-runner/db.mjs'];
 export const FORBIDDEN_STRINGS = ['postgresql://', 'postgres://', 'FACTORY_RUNNER_PG_URL'];
 // the build pipeline itself feeds the output: a change here is a change to the exe
-const PIPELINE_PATHS = ['scripts/factory-build', 'package.json', 'package-lock.json', RUNTIME_VERSION_FILE];
+const PIPELINE_PATHS = ['scripts/factory-build', 'package.json', 'package-lock.json', RUNTIME_VERSION_FILE, 'scripts/factory-runner/enrolled/trust'];
+export const CHANNELS = ['production', 'dev'];
+// the production channel's default endpoint: the Factory Node API on the dedicated Factory project (founder decision A.2). A setup
+// may name another endpoint (a disposable plane); it can never change the channel's trust set or mode.
+export const DEFAULT_API = { production: 'https://npvhuoozkbexddnvkqsj.supabase.co/functions/v1/factory-node-api', dev: null };
+
 
 export class BuildError extends Error { constructor(code, message) { super(message); this.code = code; } }
 
@@ -219,7 +231,23 @@ function runtimeVersion() {
   return v;
 }
 
-export function defaultOutDir() { return join(ROOT, 'dist', 'brain-factory', runtimeVersion()); }
+export function defaultOutDir(channel = 'dev') { return join(ROOT, 'dist', 'brain-factory', runtimeVersion(), channel); }
+
+/** The channel's trust set, validated: each key id is "ed25519:" + sha256 of its 32-byte public key, and no key id repeats. */
+export function channelTrust(channel) {
+  if (!CHANNELS.includes(channel)) throw new BuildError(EXIT.USAGE, '--channel must be production or dev');
+  const t = readJson(join(ROOT, 'scripts/factory-runner/enrolled/trust', channel + '.json'));
+  if (t.channel !== channel || t.mode !== channel || !Array.isArray(t.keys)) throw new BuildError(EXIT.USAGE, 'trust/' + channel + '.json: channel and mode must be ' + channel + ', keys an array');
+  const ids = new Set();
+  const keys = t.keys.map((k) => {
+    const raw = Buffer.from(String(k.public_key), 'base64url');
+    if (raw.length !== 32 || k.key_id !== 'ed25519:' + sha256(raw)) throw new BuildError(EXIT.USAGE, 'trust/' + channel + '.json: key ' + k.key_id + ' is not bound to its public key');
+    if (ids.has(k.key_id)) throw new BuildError(EXIT.USAGE, 'trust/' + channel + '.json: key id ' + k.key_id + ' repeats');
+    ids.add(k.key_id);
+    return { key_id: k.key_id, public_key: k.public_key };
+  });
+  return { channel, mode: t.mode, keys };
+}
 
 function seaConfig() {
   const t = readJson(SEA_CONFIG_TEMPLATE);
@@ -292,10 +320,11 @@ export function authenticodeStatus(file) {
   return r.status === 0 ? r.stdout.trim() : 'unknown (Get-AuthenticodeSignature exit ' + r.status + ': ' + String(r.stderr || (r.error && r.error.message) || '').trim().split(/\r?\n/)[0] + ')';
 }
 
-export async function build({ out, nodeExe, sign = false, keepWork = false, log = (s) => console.log('[build-sea] ' + s) } = {}) {
+export async function build({ out, nodeExe, channel, sign = false, keepWork = false, log = (s) => console.log('[build-sea] ' + s) } = {}) {
   if (!isWin || process.arch !== 'x64') throw new BuildError(EXIT.USAGE, 'the base binary is executed to generate the SEA blob, so the build host must be Windows x64 (this is ' + process.platform + '-' + process.arch + ')');
   const runtime_version = runtimeVersion();
-  const outDir = resolve(out || defaultOutDir());
+  const trust = channelTrust(channel);
+  const outDir = resolve(out || defaultOutDir(channel));
   const pins = readJson(PINS_FILE).pins || {};
   const config = seaConfig();
 
@@ -335,16 +364,17 @@ export async function build({ out, nodeExe, sign = false, keepWork = false, log 
     // 3. BUNDLE - pass 1 finds the inputs (dirty is judged over them), pass 2 is the bundle with the final build info
     const esbuild = requireFromRoot('esbuild');
     const target = 'node' + pin.version.replace(/^v/, '').split('.')[0];
-    const provisional = { runtime_version, source_commit, dirty: true, built_at };
-    const pass1 = await bundle(esbuild, { target, define: { __BUILD_INFO__: JSON.stringify(provisional), 'import.meta.url': 'undefined' } });
+    const provisional = { runtime_version, source_commit, dirty: true, built_at, channel };
+    const channelDefines = { __TRUST__: JSON.stringify(trust), __CHANNEL__: JSON.stringify({ channel, default_api: DEFAULT_API[channel] }) };
+    const pass1 = await bundle(esbuild, { target, define: { __BUILD_INFO__: JSON.stringify(provisional), ...channelDefines, 'import.meta.url': 'undefined' } });
     const inputsOf = (m) => Object.keys(m.inputs).filter((k) => !k.startsWith('<')).sort();
     const inputs = inputsOf(pass1.metafile);
     const outside = inputs.filter((p) => p.startsWith('..') || /^[A-Za-z]:/.test(p) || p.startsWith('/'));
     const repoInputs = inputs.filter((p) => !outside.includes(p) && packageOf(p) === null);
     const dirty_paths = [...dirtyPaths([...repoInputs, ...PIPELINE_PATHS]), ...outside.map((p) => p + ' (outside the repository)')].sort();
     const dirty = dirty_paths.length > 0;
-    const BUILD_INFO = { runtime_version, source_commit, dirty, built_at };
-    const pass2 = await bundle(esbuild, { target, define: { __BUILD_INFO__: JSON.stringify(BUILD_INFO), 'import.meta.url': 'undefined' } });
+    const BUILD_INFO = { runtime_version, source_commit, dirty, built_at, channel };
+    const pass2 = await bundle(esbuild, { target, define: { __BUILD_INFO__: JSON.stringify(BUILD_INFO), ...channelDefines, 'import.meta.url': 'undefined' } });
     if (JSON.stringify(inputsOf(pass2.metafile)) !== JSON.stringify(inputs)) throw new BuildError(EXIT.FAILED, 'the bundle inputs changed between the two esbuild passes (a file changed during the build?)');
     const bundleHits = forbiddenStringHits(pass2.code);
     if (bundleHits.length) throw new BuildError(EXIT.POLICY, 'the runtime bundle contains a database URL marker: ' + bundleHits.join('; '));
@@ -417,6 +447,9 @@ export async function build({ out, nodeExe, sign = false, keepWork = false, log 
     const info = {
       build_info_format: 1,
       runtime_version, source_commit, dirty, built_at, built_at_source, built_at_epoch: epoch, dirty_paths,
+      channel, trust: { channel: trust.channel, mode: trust.mode, keys: trust.keys.map((k) => ({ key_id: k.key_id, public_key_sha256: sha256(Buffer.from(k.public_key, 'base64url')) })) },
+      default_api: DEFAULT_API[channel],
+      digest: { algorithm: 'SHA-256 PE Authenticode image hash', value: authenticodeImageHash(finalExe) },
       target: { exe_name: EXE_NAME, platform: 'win32', arch: 'x64' },
       base_node: {
         version: pin.version, official_name: pin.official_name, pin_source: pin.source, sha256: baseSha,
@@ -458,17 +491,19 @@ export async function build({ out, nodeExe, sign = false, keepWork = false, log 
 }
 
 function parseArgs(argv) {
-  const o = { sign: false, keepWork: false };
+  const o = { sign: false, keepWork: false, channel: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--out' || a === '--node-exe') {
+    if (a === '--channel') { o.channel = argv[++i]; if (!CHANNELS.includes(o.channel)) throw new BuildError(EXIT.USAGE, '--channel must be production or dev'); }
+    else if (a === '--out' || a === '--node-exe') {
       const v = argv[++i];
       if (!v || v.startsWith('--')) throw new BuildError(EXIT.USAGE, a + ' needs a path');
       o[a === '--out' ? 'out' : 'nodeExe'] = v;
     } else if (a === '--sign') o.sign = true;
     else if (a === '--keep-work') o.keepWork = true;
-    else throw new BuildError(EXIT.USAGE, 'unknown argument ' + a + '\nusage: build-sea.mjs [--out <dir>] [--node-exe <official node.exe>] [--sign] [--keep-work]');
+    else throw new BuildError(EXIT.USAGE, 'unknown argument ' + a + '\nusage: build-sea.mjs --channel production|dev [--out <dir>] [--node-exe <official node.exe>] [--sign] [--keep-work]');
   }
+  if (!o.channel) throw new BuildError(EXIT.USAGE, '--channel production|dev is required: the trust set and mode are fixed into the artifact per channel');
   return o;
 }
 

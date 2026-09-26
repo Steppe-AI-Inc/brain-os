@@ -186,6 +186,8 @@ create function factory.node_heartbeat(p_token_hash bytea, p_body jsonb) returns
     return jsonb_build_object('ok', true, 'server_time', now(), 'phase', phase, 'draining', ctx.draining, 'given_up', given_up,
       'rotate_required', (select c.rotation_requested_at is not null from factory.node_credentials c where c.credential_id = ctx.credential_id),
       'adopted_release_id', (select m.adopted_release_id from factory.computers m where m.computer_id = ctx.computer_id),
+      'adopted_release', (select jsonb_build_object('release_id', r.release_id, 'version', r.version, 'digest', r.digest, 'state', r.state)
+                            from factory.computers m join factory.releases r on r.release_id = m.adopted_release_id where m.computer_id = ctx.computer_id),
       'release_current', factory._release_current(ctx, cur.release_id), 'revocations', factory._revocations(ctx.tenant_id));
   end $$;
 

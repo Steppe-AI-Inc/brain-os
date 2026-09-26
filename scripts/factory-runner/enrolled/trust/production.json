@@ -1,0 +1,12 @@
+{
+  "channel": "production",
+  "mode": "production",
+  "_about": [
+    "THE LIVE TRUST SET (S-5, WO-6). A source input, fixed into the production-channel artifact at build time.",
+    "It is EMPTY until C-3 (production release-signing key custody) is decided: before C-3 no live-mode release exists, and a",
+    "production-channel build trusts no key at all. After C-3 the Director issues a WO-6 revision recording the founder's public keys and",
+    "key ids, and the implementer's next candidate adds exactly those bytes here - nothing else, never a key the implementer holds.",
+    "Each entry: { \"key_id\": \"ed25519:<sha256 of the 32-byte public key, hex>\", \"public_key\": \"<32-byte Ed25519 public key, base64url>\" }."
+  ],
+  "keys": []
+}
