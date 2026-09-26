@@ -21,7 +21,10 @@
   "devDependencies": {
     "@vercel/node": "latest",
     "acorn": "8.18.0",
-    "embedded-postgres": "18.4.0-beta.17"
+    "embedded-postgres": "18.4.0-beta.17",
+    "esbuild": "0.27.0",
+    "postgres": "3.4.9",
+    "postject": "1.0.0-alpha.6"
   },
   "allowScripts": {
     "@embedded-postgres/darwin-arm64@18.4.0-beta.17": true,
