@@ -8,6 +8,7 @@
 //   R-h each channel's rebuild is byte-identical    R-i upgrade, then an admin adopt returns the node to the previous certified release
 //   R-m a superseded release is refused without an adopt (no silent downgrade)    R-j a revoked release: its nodes stop claiming and say
 //   so, never downgrading    R-d a revoked release is refused    R-c a revoked key is refused (and the node's own release with it)
+//   R-i2 the supervisor hands off to the adopted release and the logon task follows    R-t a tampered supervisor starts nothing
 // usage: node qa/factory/v1/release_acceptance.mjs [--evidence <file>]   (builds what it needs; ~6 min)
 import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -21,6 +22,7 @@ import { makeManifest, signDev, devKey } from '../../../scripts/factory-build/re
 import { canonicalManifestBytes, keyIdOf } from '../../../scripts/factory-runner/enrolled/release.mjs';
 import { authenticodeImageHash, peLayout } from '../../../scripts/factory-runner/enrolled/pe-image.mjs';
 import { buildSentinel } from './sentinel.mjs';
+import { readTask, registerTasks, unregisterTasks } from '../../../scripts/factory-runner/enrolled/tasks.mjs';
 
 const { results, row } = recorder();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -39,6 +41,7 @@ const rcpt = (s) => sha256('receipt ' + s);
 const readJ = (f) => { try { return JSON.parse(readFileSync(f, 'utf8')); } catch { return null; } };
 const W = await world();
 const homes = [];
+const testTasks = [];
 try {
   const { founder, admin, sup } = W;
   // ---- the artifacts
@@ -134,11 +137,23 @@ try {
   const onR2 = await onR(R2.release_id);
   const rm = await upgrade(DEV, put('m1.json', M1));
   row('R-m a superseded certified release (0.1.0) offered without an admin adopt is refused by name - no silent downgrade', up.json && up.json.ok && onR2 && rm.json && rm.json.refused === 'downgrade_refused', rm.json && rm.json.refused);
+  // the node's logon task (a test task), recorded as setup records it: an adopt must move the task to the adopted release too
+  const TASK = 'BrainFactory Test-' + randomUUID().slice(0, 8); testTasks.push(TASK);
+  const reg = registerTasks({ name: TASK, exe: IEXE(), home: H, watchdogMinutes: 60 });
+  writeFileSync(join(H, 'config.json'), JSON.stringify({ ...readJ(join(H, 'config.json')), task: { name: TASK, home_arg: true } }, null, 2));
   const ad = await admin.call('adopt-release', { computer_id: add.computer_id, release_id: R1.release_id }, founder.token);
   const backOnR1 = await onR(R1.release_id, 120000);
   const aud = (await sup.query(`select count(*)::int n from factory.audit_events where action = 'release.adopted' and target_id = $1`, [add.computer_id])).rows[0].n;
   row('R-i an admin adopt returns the node to the previous certified release: the runtime switches to it (verified again) and the plane records the node on it',
     ad.ok && backOnR1 && aud === 1 && readJ(join(H, 'current.json')).digest === M1.digest);
+  // R-i2: the supervisor does not outlive the switch - it hands off to the adopted release's exe, and the logon task follows
+  const procPath = (pid) => (spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', '(Get-Process -Id ' + Number(pid) + ' -ErrorAction SilentlyContinue).Path'], { encoding: 'utf8', windowsHide: true }).stdout || '').trim();
+  let supExe = ''; for (let i = 0; i < 30; i++) { const l = readJ(join(H, 'state', 'supervisor.lock.json')); supExe = l && l.pid ? procPath(l.pid) : ''; if (supExe.toLowerCase() === IEXE().toLowerCase()) break; await sleep(2000); }
+  const taskAfter = readTask(TASK);
+  const supLog = (() => { try { return readFileSync(join(H, 'logs', 'supervisor.log'), 'utf8'); } catch { return ''; } })();
+  row('R-i2 after the adopt the running supervisor IS the adopted release (it handed off; nothing keeps executing the superseded binary) and the logon task now starts the adopted exe',
+    reg.ok && supExe.toLowerCase() === IEXE().toLowerCase() && String(taskAfter.arguments || '').toLowerCase().includes(IEXE().toLowerCase()) && /handed off to the supervisor of 0.1.0/.test(supLog),
+    JSON.stringify({ reg: reg.ok, supExe, want: IEXE(), task: taskAfter.arguments }));
   // R-j / R-d: a second node on 0.1.1; revoke 0.1.1 while it runs
   const add2 = await admin.call('add-computer', { display_name: 'REL-N2', envelope: { roles: ['generic'], max_concurrent_runs: 1, max_heavy: 1 } }, founder.token);
   const dl2 = join(work, 'dl2'); mkdirSync(dl2); copyFileSync(DEV2, join(dl2, 'BrainFactorySetup.exe')); writeFileSync(join(dl2, 'BrainFactorySetup.manifest.json'), JSON.stringify(M2));
@@ -165,6 +180,15 @@ try {
   const again = { status: tookC };
   row('R-c a revoked key: a release it signed is refused before execution (key_revoked); the node whose own release it signed stops claiming and says so (RELEASE_REVOKED)',
     rc.json && rc.json.refused === 'key_revoked' && again.status === 0 && stN && stN.state === 'RELEASE_REVOKED', JSON.stringify({ rc: rc.out.slice(-300), again: again.status, st: stN, rev: readJ(join(H, 'state', 'revocations.json')) }).slice(0, 1200));
+  // R-t: a supervisor whose image is no release installed in its home (a one-byte-tampered copy) starts nothing
+  const H4 = join(work, 'home-T'); mkdirSync(join(H4, 'state'), { recursive: true }); homes.push(H4);
+  writeFileSync(join(H4, 'current.json'), readFileSync(join(H, 'current.json')));
+  const tdir = join(work, 'tampered'); mkdirSync(tdir); const tex = join(tdir, 'BrainFactory.exe');
+  const tb = readFileSync(IEXE()); tb[tb.indexOf(Buffer.from('This program cannot be run in DOS mode', 'latin1'))] ^= 0x20; writeFileSync(tex, tb);
+  const rt = await run(tex, ['supervise', '--home', H4]);
+  const stT = readJ(join(H4, 'state', 'status.json')) || {};
+  row('R-t a supervisor whose own image is no release installed here (one byte changed) verifies itself first and starts nothing: exit 3, RELEASE_REFUSED (not_an_installed_release)',
+    rt.status === 3 && stT.state === 'RELEASE_REFUSED' && stT.refused === 'not_an_installed_release' && !readJ(join(H4, 'state', 'supervisor.lock.json')), JSON.stringify({ exit: rt.status, st: stT.state, refused: stT.refused }));
   // the sentinel was never executed; the positive control shows it would have left its marker
   const neverRan = !existsSync(MARKER);
   const ctl = spawnSync(SENT, ['control'], { windowsHide: true, timeout: 60000 });
@@ -174,6 +198,7 @@ try {
 } catch (e) {
   row('X0 release rehearsal', false, e && e.stack || e);
 } finally {
+  for (const t of testTasks) { try { unregisterTasks(t); } catch { /* gone */ } }
   for (const h of homes) { try { writeFileSync(join(h, 'state', 'stop.request'), '{}'); } catch { /* gone */ } }
   await sleep(4000);
   for (const h of homes) { const l = readJ(join(h, 'state', 'supervisor.lock.json')) || {}; for (const pid of [l.worker_pid, l.pid]) if (pid) try { process.kill(pid); } catch { /* gone */ } }

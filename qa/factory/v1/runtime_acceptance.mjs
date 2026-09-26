@@ -33,9 +33,15 @@ const W = await world();
 const work = mkdtempSync(join(tmpdir(), 'bf-runtime-'));
 const tasks = [];
 const homes = [];
+// THE CLEAN-MACHINE CONDITION, as far as this PC allows (R-1 itself needs a clean VM: BLOCKED - EXTERNAL here): every command this
+// rehearsal runs sees a PATH holding only System32, Windows and Windows PowerShell - no node, git or npm (U0 proves it). The runtime
+// starts every child by absolute path from SystemRoot. (The logon task's own environment is the user's; U2 proves the footprint.)
+const SYS = process.env.SystemRoot || 'C:\\Windows';
+const CLEAN_PATH = [SYS + '\\System32', SYS, SYS + '\\System32\\WindowsPowerShell\\v1.0'].join(';');
+const cleanEnv = (extra = {}) => { const e = {}; for (const [k, v] of Object.entries(process.env)) if (k.toUpperCase() !== 'PATH') e[k] = v; return { ...e, Path: CLEAN_PATH, ...extra }; };
 // ASYNC on purpose: the Node / Admin API harness runs in THIS process, and a synchronous spawn would block the event loop that serves it
 const run = (exe, args, opts = {}) => new Promise((resolve) => {
-  const c = spawn(exe, args, { windowsHide: true, env: { ...process.env, ...(opts.env || {}) } });
+  const c = spawn(exe, args, { windowsHide: true, env: cleanEnv(opts.env || {}) });
   let stdout = '', stderr = '';
   c.stdout.on('data', (d) => { stdout += d; }); c.stderr.on('data', (d) => { stderr += d; });
   const t = setTimeout(() => { try { c.kill(); } catch { /* gone */ } }, opts.timeout || 300000);
@@ -65,6 +71,11 @@ try {
     const r = await run(exe, ['setup', '--code', add.pairing_code, '--api', W.node.baseUrl, '--yes', '--home', home, '--task-name', task]);
     return { add, home, task, r, code: add.pairing_code };
   };
+
+  // ---- U0: the PATH every command below sees holds no node, git or npm
+  const where = await Promise.all(['node', 'git', 'npm'].map(async (t) => ({ t, r: await run(join(SYS, 'System32', 'where.exe'), [t]) })));
+  row('U0 every command of this rehearsal runs with PATH = System32, Windows and PowerShell only: where.exe finds no node, git or npm (R-1 on a clean VM is BLOCKED - EXTERNAL on this PC)',
+    where.every((w) => w.r.status === 1), where.map((w) => w.t + ' exit ' + w.r.status).join(', '));
 
   // ---- U1
   const A = await install('RT-A');

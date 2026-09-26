@@ -134,11 +134,12 @@ export async function mainAsync(argv) {
   if (cmd === 'setup') {
     const { runSetup } = await import('../enrolled/setup.mjs');
     return runSetup({ ...o, home, homeArg: !!o.home, exe: process.execPath,
-      startSupervisor: () => { const { spawn } = require_child(); const c = selfCommand(['supervise', '--home', home]); spawn(c.exe, c.args, { detached: true, stdio: 'ignore', windowsHide: true }).unref(); } });
+      startSupervisor: (installedExe) => spawnSupervisor(installedExe, home) });
   }
   if (cmd === 'supervise') {
     const { runSupervisor } = await import('../enrolled/supervisor.mjs');
-    return runSupervisor({ home, workerCommand: (v, { standby } = {}) => { const a = ['worker', '--home', home, ...(standby ? ['--standby'] : [])]; return isSea() ? { exe: v.exe, args: a } : selfCommand(a); } });
+    return runSupervisor({ home, selfExe: isSea() ? process.execPath : null, startSupervisor: (exe) => spawnSupervisor(exe, home),
+      workerCommand: (v, { standby } = {}) => { const a = ['worker', '--home', home, ...(standby ? ['--standby'] : [])]; return isSea() ? { exe: v.exe, args: a } : selfCommand(a); } });
   }
   if (cmd === 'worker') {
     const { runWorker } = await import('../enrolled/worker.mjs');
@@ -167,14 +168,14 @@ export async function mainAsync(argv) {
   if (cmd === 'start') {
     const { rmSync } = await import('node:fs');
     rmSync(p.stop, { force: true });
-    if (!o.noTasks) { const { startTask, DEFAULT_TASK } = await import('../enrolled/tasks.mjs'); const r = startTask(o.taskName || DEFAULT_TASK); process.stdout.write((r.code === 0 ? 'started' : 'could not start the task: ' + r.err) + '\n'); return r.code === 0 ? EXIT_OK : 1; }
+    if (!o.noTasks) { const { startTask, DEFAULT_TASK } = await import('../enrolled/tasks.mjs'); const r = startTask(o.taskName || ((readJson(p.config) || {}).task || {}).name || DEFAULT_TASK); process.stdout.write((r.code === 0 ? 'started' : 'could not start the task: ' + r.err) + '\n'); return r.code === 0 ? EXIT_OK : 1; }
     const { spawn } = require_child(); const c = selfCommand(['supervise', '--home', home]); spawn(c.exe, c.args, { detached: true, stdio: 'ignore', windowsHide: true }).unref();
     process.stdout.write('supervisor started\n'); return EXIT_OK;
   }
   if (cmd === 'uninstall') {
     writeJson(p.stop, { at: new Date().toISOString() });
     for (let i = 0; i < 60 && readJson(p.lock); i++) await new Promise((ok) => setTimeout(ok, 500));
-    if (!o.noTasks) { const { unregisterTasks, DEFAULT_TASK } = await import('../enrolled/tasks.mjs'); unregisterTasks(o.taskName || DEFAULT_TASK); }
+    if (!o.noTasks) { const { unregisterTasks, DEFAULT_TASK } = await import('../enrolled/tasks.mjs'); unregisterTasks(o.taskName || ((readJson(p.config) || {}).task || {}).name || DEFAULT_TASK); }
     const { rmSync } = await import('node:fs');
     rmSync(home, { recursive: true, force: true });
     process.stdout.write('uninstalled: the task, the runtime, the key and the state are removed. A Factory admin revokes or archives the computer in Brain OS.\n');
@@ -203,6 +204,13 @@ export async function mainAsync(argv) {
 
 // child_process through a function so the unbundled import of this file stays side-effect free
 function require_child() { return process.getBuiltinModule('node:child_process'); }
+
+/** start a supervisor, detached: the INSTALLED exe when one is named (in a SEA), else this program */
+function spawnSupervisor(installedExe, home) {
+  const { spawn } = require_child();
+  const c = isSea() && installedExe ? { exe: installedExe, args: ['supervise', '--home', home] } : selfCommand(['supervise', '--home', home]);
+  spawn(c.exe, c.args, { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+}
 
 export function main(argv = process.argv.slice(2), out = (line) => process.stdout.write(line + '\n')) {
   const cmd = argv[0];

@@ -11,12 +11,22 @@
 //   anything else     crash                            -> restarted with a backoff 5 s .. 5 min on the MONOTONIC clock, reset once a
 //                                                          worker completed a claim cycle
 // A killed runtime is therefore restarted (by this supervisor, or by the watchdog when the supervisor itself was killed).
+//
+// THE SUPERVISOR ITSELF (S-5), when it runs as a built artifact (selfExe): it VERIFIES ITSELF FIRST, as setup does - it runs only as a
+// release installed in this home (current or previous) whose signed manifest verifies against the trust set pinned in it (a revoked
+// one may still stand by or hand off; a tampered, unsigned or untrusted one starts nothing). And it never outlives a switch: when
+// the current certified release is not its own (an adopt, an upgrade), it RE-POINTS the logon task to that release's exe, starts that
+// exe's supervisor and exits - so the task never keeps executing a superseded or revoked binary. A revoked current release is never
+// handed to (it stands by), and nothing is ever downgraded.
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { existsSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { logger, paths, readJson, writeJson } from './home.mjs';
 import { verifyRelease } from './release.mjs';
+import { authenticodeImageHash } from './pe-image.mjs';
+import { registerTasks } from './tasks.mjs';
 
 export const EXIT_SUPERVISOR = { STOPPED: 0, ALREADY: 0, RELEASE_REFUSED: 3, REFUSED: 2 };
 const sleep = (ms) => new Promise((ok) => setTimeout(ok, ms));
@@ -47,7 +57,21 @@ export function verifyInstalled(home, { ignoreRevocations = false } = {}) {
   return v.ok ? { ...v, exe, manifest } : v;
 }
 
-export async function runSupervisor({ home, workerCommand }) {
+/** which installed release is THIS process (by image hash), verified like any start (revocations aside: a revoked one may hand off) */
+export function verifySelf(home, selfExe) {
+  const p = paths(home);
+  let digest;
+  try { digest = authenticodeImageHash(readFileSync(selfExe)); } catch (e) { return { ok: false, refused: 'self_unreadable', message: 'this supervisor cannot read its own image: ' + (e.code || e.message) }; }
+  // installed here = a release directory under runtime/ (current, previous or older) whose signed manifest names this image hash
+  let dirs = [];
+  try { dirs = readdirSync(p.runtime, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => join(p.runtime, d.name)); } catch { /* none */ }
+  const dir = [readJson(p.current), readJson(p.previous)].filter((r) => r && r.dir).map((r) => r.dir).concat(dirs)
+    .find((d) => { const m = readJson(join(d, 'manifest.json')); return m && m.digest === digest; });
+  if (!dir) return { ok: false, refused: 'not_an_installed_release', message: 'this supervisor (image hash ' + digest.slice(0, 16) + '...) is no release installed in ' + home + ': it starts nothing', digest };
+  return { ...verifyRelease({ manifest: readJson(join(dir, 'manifest.json')), artifact: readFileSync(selfExe) }), digest };
+}
+
+export async function runSupervisor({ home, workerCommand, selfExe = null, startSupervisor = null }) {
   const p = paths(home);
   const log = logger('supervisor', home, { echo: !!process.env.BRAIN_FACTORY_ECHO });
   const lock = takeLock(home);
@@ -58,6 +82,18 @@ export async function runSupervisor({ home, workerCommand }) {
     log('this credential was REFUSED (' + status.refused + '): the worker is not started again; a Factory admin re-pairs the computer');
     rmSync(p.lock, { force: true });
     return EXIT_SUPERVISOR.REFUSED;
+  }
+  // ITSELF FIRST (S-5)
+  let selfDigest = null;
+  if (selfExe) {
+    const sv = verifySelf(home, selfExe);
+    if (!sv.ok) {
+      log('SUPERVISOR REFUSED before it starts anything: ' + sv.refused + ' - ' + sv.message);
+      writeJson(p.status, { ...readJson(p.status, {}), state: 'RELEASE_REFUSED', refused: sv.refused, message: sv.message, at: new Date().toISOString() });
+      rmSync(p.lock, { force: true });
+      return EXIT_SUPERVISOR.RELEASE_REFUSED;
+    }
+    selfDigest = sv.digest;
   }
   let backoffMs = 5000;
   rmSync(p.stop, { force: true });
@@ -78,6 +114,16 @@ export async function runSupervisor({ home, workerCommand }) {
       return EXIT_SUPERVISOR.RELEASE_REFUSED;
     }
     log('release verified: ' + v.version + ' (' + v.channel + ', image hash ' + v.digest.slice(0, 16) + '..., key ' + v.key_id.slice(0, 20) + '...)');
+    // HAND OFF when the current certified release is not this supervisor's own (never to a revoked one: standby stays here)
+    if (selfDigest && !standby && v.digest !== selfDigest && startSupervisor) {
+      const task = (readJson(p.config) || {}).task;
+      if (task && task.name) {
+        const t = registerTasks({ name: task.name, exe: v.exe, home: task.home_arg ? home : null });
+        log(t.ok ? 'logon task "' + task.name + '" now starts ' + v.version + ' (' + v.exe + ')' : 'the logon task could not be re-pointed (' + t.error + '): this supervisor keeps running ' + v.version + ' workers');
+        if (!t.ok) { /* no handoff without the task following: fall through and keep supervising */ }
+        else { rmSync(p.lock, { force: true }); startSupervisor(v.exe); log('handed off to the supervisor of ' + v.version); return EXIT_SUPERVISOR.STOPPED; }
+      } else { rmSync(p.lock, { force: true }); startSupervisor(v.exe); log('handed off to the supervisor of ' + v.version + ' (no logon task registered for this home)'); return EXIT_SUPERVISOR.STOPPED; }
+    }
     const started = performance.now();
     const cmd = workerCommand(v, { standby });
     const child = spawn(cmd.exe, cmd.args, { stdio: 'ignore', windowsHide: true, env: { ...process.env, BRAIN_FACTORY_HOME: home } });

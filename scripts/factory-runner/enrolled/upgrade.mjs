@@ -12,6 +12,7 @@ import { authenticodeImageHash } from './pe-image.mjs';
 import { verifyRelease } from './release.mjs';
 import { NodeApi } from './api.mjs';
 import { loadKey } from './keys.mjs';
+import { registerTasks } from './tasks.mjs';
 
 /** FRESH revocations from the plane, through this node's own credential (a heartbeat answers them): an upgrade never trusts a key
  * or a release on a stale list. When the plane cannot answer, the upgrade is refused - revocation state unknown. */
@@ -57,7 +58,11 @@ export async function upgrade({ home, artifact, manifest }) {
   writeJson(join(dir, 'manifest.json'), m);
   if (cur && cur.dir !== dir) writeJson(p.previous, cur);
   writeJson(p.current, { dir, version: v.version, digest: v.digest, installed_at: new Date().toISOString(), via: 'upgrade' });
-  return { ok: true, version: v.version, digest: v.digest, installed: dir, note: 'the supervisor runs it from its next worker start (verified again then)' };
+  // the logon task follows the current release at once (a reboot before the next worker start runs the new release, never the old one)
+  const task = (readJson(p.config) || {}).task;
+  const t = task && task.name ? registerTasks({ name: task.name, exe: join(dir, 'BrainFactory.exe'), home: task.home_arg ? home : null }) : null;
+  return { ok: true, version: v.version, digest: v.digest, installed: dir, task: t ? (t.ok ? 'the logon task now starts ' + v.version : 'the logon task could not be re-pointed: ' + t.error) : 'no logon task registered for this home',
+    note: 'the supervisor hands off to it at its next worker start (verified again then)' };
 }
 
 /** the adopted release, if a Factory admin adopted one that is installed here and it is not the running one: switch to it */

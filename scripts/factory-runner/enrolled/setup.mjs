@@ -119,6 +119,7 @@ export async function runSetup(o) {
     if (!o.noTasks) {
       const t = registerTasks({ name: o.taskName || DEFAULT_TASK, exe: join(dir, 'BrainFactory.exe'), home: o.homeArg ? home : null });
       if (!t.ok) throw new Error('the logon task could not be registered: ' + t.error);
+      writeJson(p.config, { ...readJson(p.config), task: { name: t.name, home_arg: !!o.homeArg } });
       say('logon task "' + t.name + '" registered (at logon + a watchdog every 5 min; standard user, no elevation)');
     }
   } catch (e) {
@@ -130,7 +131,7 @@ export async function runSetup(o) {
   // 5. start, and wait for ALIVE (or a named refusal)
   if (o.noStart) { say('installed; not started (--no-start)'); return EXIT_SETUP.OK; }
   if (!o.noTasks) startTask(o.taskName || DEFAULT_TASK);
-  else if (o.startSupervisor) o.startSupervisor();
+  else if (o.startSupervisor) o.startSupervisor(join((readJson(p.current) || {}).dir || '', 'BrainFactory.exe'));
   const deadline = Date.now() + (o.aliveTimeoutMs || 180000);
   while (Date.now() < deadline) {
     const st = readJson(p.status, {});
