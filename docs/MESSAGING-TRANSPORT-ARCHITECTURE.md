@@ -83,4 +83,5 @@ Revisit only with a concrete quarantine-review feature.
    individually.
 3. Adapter interface + ONE transport (Telegram first — founder's stated order) behind
    a feature flag, webhook deployed only with explicit deploy authorization.
-4. Work-PC live acceptance with a real Telegram test bot before any real channel binds.
+4. Independent live acceptance (a distinct authorized verifier, never the implementer) with a real Telegram test bot before any real
+   channel binds.

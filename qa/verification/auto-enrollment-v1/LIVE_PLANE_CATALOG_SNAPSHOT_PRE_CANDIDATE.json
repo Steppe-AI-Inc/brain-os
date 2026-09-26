@@ -1,0 +1,3114 @@
+{
+  "snapshot": "Factory plane catalog, read from pg_catalog",
+  "materialized_by": "DIRECTOR (read-only SELECT)",
+  "observed": {
+    "mode": "interim",
+    "target": "live",
+    "current_user": "factory_runner",
+    "session_user": "factory_runner",
+    "database": "postgres",
+    "server_version": "17.6",
+    "server_address_sha256": "f64362401e61db28859cf1f3fea4b39a9f0205585d5f2254332ae7115523f47f",
+    "plane_identity": [
+      {
+        "project_ref": "npvhuoozkbexddnvkqsj",
+        "note": "dedicated Supabase control-plane project; provisioned by provision-control-plane.mjs"
+      }
+    ],
+    "session": {
+      "transaction_read_only": "on",
+      "search_path": "pg_catalog",
+      "timezone": "UTC"
+    },
+    "root_head": "69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6",
+    "pinned": [
+      {
+        "file": "scripts/factory-runner/db.mjs",
+        "sha256": "c2c3696427e54d50e573f3da15d8da695e49360c8f474cb38a32d91d3be9ef3f"
+      },
+      {
+        "file": "scripts/factory-runner/runner-env.mjs",
+        "sha256": "a852194ade0c65896b6d2a99d9a9831c744a2a5cdf81c0abe4e7dccce569b152"
+      },
+      {
+        "file": "scripts/factory-runner/url-judge.mjs",
+        "sha256": "4eaed32d5730b8f3bd0460690ce06743be1f15362b03d9e3b0f8cf824a818d8b"
+      },
+      {
+        "file": "package-lock.json",
+        "sha256": "e216195236979194bbad2ae23813a80a824e2b3dced77a435d11d731eee942d1"
+      },
+      {
+        "file": "node_modules/pg",
+        "version": "8.23.0"
+      },
+      {
+        "file": "node_modules/pg-connection-string",
+        "version": "2.14.0"
+      },
+      {
+        "file": "node_modules/pg-pool",
+        "version": "3.14.0"
+      },
+      {
+        "file": "node_modules/pg-protocol",
+        "version": "1.16.0"
+      },
+      {
+        "file": "node_modules/pg-types",
+        "version": "2.2.0"
+      },
+      {
+        "file": "node_modules/pg-int8",
+        "version": "1.0.1"
+      },
+      {
+        "file": "node_modules/postgres-array",
+        "version": "2.0.0"
+      },
+      {
+        "file": "node_modules/postgres-bytea",
+        "version": "1.0.1"
+      },
+      {
+        "file": "node_modules/postgres-date",
+        "version": "1.0.7"
+      },
+      {
+        "file": "node_modules/postgres-interval",
+        "version": "1.2.0"
+      },
+      {
+        "file": "node_modules/xtend",
+        "version": "4.0.2"
+      },
+      {
+        "file": "node_modules/pgpass",
+        "version": "1.0.5"
+      },
+      {
+        "file": "node_modules/split2",
+        "version": "4.2.0"
+      }
+    ]
+  },
+  "instrument": "qa/verification/auto-enrollment-v1/tools/live_catalog_snapshot.mjs",
+  "platform_schemas_listed_by_acl_only": [
+    "pg_catalog",
+    "information_schema",
+    "auth",
+    "storage",
+    "realtime",
+    "_realtime",
+    "extensions",
+    "graphql",
+    "graphql_public",
+    "pgbouncer",
+    "vault",
+    "pgsodium",
+    "pgsodium_masks",
+    "net",
+    "supabase_functions",
+    "supabase_migrations",
+    "cron",
+    "_analytics",
+    "pgtle"
+  ],
+  "relations": [
+    "factory.agent_runs:r owner=postgres",
+    "factory.checkpoints:r owner=postgres",
+    "factory.director_lease:r owner=postgres",
+    "factory.founder_notifications:r owner=postgres",
+    "factory.nodes:r owner=postgres",
+    "factory.plane_identity:r owner=postgres",
+    "factory.surface_locks:r owner=postgres",
+    "factory.work_order_dependencies:r owner=postgres",
+    "factory.work_orders:r owner=postgres"
+  ],
+  "columns": [
+    "factory.agent_runs.run_id:uuid default=eea9a3e7c2abe43835e2a6fdf92a7d1e6f145ad6dfbfd243fc5d395e5b390a33",
+    "factory.agent_runs.work_order_id:uuid",
+    "factory.agent_runs.node_id:text",
+    "factory.agent_runs.status:text default=920ca217af670763272ef2a643e7baedb0cb3d49984e3c8d1a1bd4c24732bfa0",
+    "factory.agent_runs.execution_provider:text default=53f31f23de9e8e7d13a9a6b819894a4e2a1d8a08fd9428393cf06158ee822ec5",
+    "factory.agent_runs.provider_run_id:text",
+    "factory.agent_runs.requested_provider:text",
+    "factory.agent_runs.requested_model:text",
+    "factory.agent_runs.actual_provider:text",
+    "factory.agent_runs.branch:text",
+    "factory.agent_runs.base_commit:text",
+    "factory.agent_runs.head_commit:text",
+    "factory.agent_runs.source_sha:text",
+    "factory.agent_runs.worktree:text",
+    "factory.agent_runs.checkpoint_location:text",
+    "factory.agent_runs.last_completed_scenario:text",
+    "factory.agent_runs.remaining_scenarios:jsonb",
+    "factory.agent_runs.verification_campaign_id:text",
+    "factory.agent_runs.attempt_count:integer default=6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+    "factory.agent_runs.retry_after:timestamp with time zone",
+    "factory.agent_runs.blocked_at:timestamp with time zone",
+    "factory.agent_runs.blocked_reason:text",
+    "factory.agent_runs.summary:text",
+    "factory.agent_runs.error:text",
+    "factory.agent_runs.verification_status:text",
+    "factory.agent_runs.lease_expires_at:timestamp with time zone",
+    "factory.agent_runs.last_heartbeat_at:timestamp with time zone",
+    "factory.agent_runs.authoring_run_id:uuid",
+    "factory.agent_runs.authoring_node_id:text",
+    "factory.agent_runs.verification_run_id:uuid",
+    "factory.agent_runs.verification_node_id:text",
+    "factory.agent_runs.started_at:timestamp with time zone",
+    "factory.agent_runs.finished_at:timestamp with time zone",
+    "factory.agent_runs.created_at:timestamp with time zone default=28a4dae0461e17af56e979c2095abfbe0bfc45fe9ca8abf3144338a518a1bb8f",
+    "factory.agent_runs.updated_at:timestamp with time zone default=28a4dae0461e17af56e979c2095abfbe0bfc45fe9ca8abf3144338a518a1bb8f",
+    "factory.agent_runs.actual_model:text",
+    "factory.agent_runs.fallback_reason:text",
+    "factory.agent_runs.reasoning_effort:text",
+    "factory.agent_runs.input_tokens:bigint",
+    "factory.agent_runs.cached_tokens:bigint",
+    "factory.agent_runs.output_tokens:bigint",
+    "factory.agent_runs.estimated_cost_usd:numeric(12,6)",
+    "factory.agent_runs.termination_reason:text",
+    "factory.checkpoints.checkpoint_id:uuid default=eea9a3e7c2abe43835e2a6fdf92a7d1e6f145ad6dfbfd243fc5d395e5b390a33",
+    "factory.checkpoints.run_id:uuid",
+    "factory.checkpoints.work_order_id:uuid",
+    "factory.checkpoints.location:text",
+    "factory.checkpoints.scenario:text",
+    "factory.checkpoints.payload:jsonb default=8001f2ba79d7ee0ed7c18f82705408c75c1e6f9ac6859477febdad7f5599c099",
+    "factory.checkpoints.created_at:timestamp with time zone default=28a4dae0461e17af56e979c2095abfbe0bfc45fe9ca8abf3144338a518a1bb8f",
+    "factory.director_lease.only_one:boolean default=b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+    "factory.director_lease.node_id:text",
+    "factory.director_lease.acquired_at:timestamp with time zone default=28a4dae0461e17af56e979c2095abfbe0bfc45fe9ca8abf3144338a518a1bb8f",
+    "factory.director_lease.heartbeat_at:timestamp with time zone default=28a4dae0461e17af56e979c2095abfbe0bfc45fe9ca8abf3144338a518a1bb8f",
+    "factory.director_lease.lease_seconds:integer default=39fa9ec190eee7b6f4dff1100d6343e10918d044c75eac8f9e9a2596173f80c9",
+    "factory.founder_notifications.notification_id:uuid default=eea9a3e7c2abe43835e2a6fdf92a7d1e6f145ad6dfbfd243fc5d395e5b390a33",
+    "factory.founder_notifications.work_order_id:uuid",
+    "factory.founder_notifications.why_blocked:text",
+    "factory.founder_notifications.exact_action:text",
+    "factory.founder_notifications.what_continues:text",
+    "factory.founder_notifications.raised_at:timestamp with time zone default=28a4dae0461e17af56e979c2095abfbe0bfc45fe9ca8abf3144338a518a1bb8f",
+    "factory.founder_notifications.resolved_at:timestamp with time zone",
+    "factory.nodes.node_id:text",
+    "factory.nodes.capabilities:jsonb default=3fad7390b7bffb3cf2f50703d5e74be1cd9c8738608b6702cfea68f9d98e02bb",
+    "factory.nodes.security_role:text default=f376f8d4b1a9255ed158976c42642a4175f252299f8c617ad83aa247bce1e6be",
+    "factory.nodes.platform:text",
+    "factory.nodes.registered_at:timestamp with time zone default=28a4dae0461e17af56e979c2095abfbe0bfc45fe9ca8abf3144338a518a1bb8f",
+    "factory.nodes.last_heartbeat_at:timestamp with time zone default=28a4dae0461e17af56e979c2095abfbe0bfc45fe9ca8abf3144338a518a1bb8f",
+    "factory.nodes.agent_version:text",
+    "factory.nodes.max_heavy:integer default=6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+    "factory.plane_identity.project_ref:text",
+    "factory.plane_identity.provisioned_at:timestamp with time zone default=28a4dae0461e17af56e979c2095abfbe0bfc45fe9ca8abf3144338a518a1bb8f",
+    "factory.plane_identity.note:text",
+    "factory.surface_locks.surface:text",
+    "factory.surface_locks.run_id:uuid",
+    "factory.surface_locks.node_id:text",
+    "factory.surface_locks.acquired_at:timestamp with time zone default=28a4dae0461e17af56e979c2095abfbe0bfc45fe9ca8abf3144338a518a1bb8f",
+    "factory.surface_locks.lease_expires_at:timestamp with time zone",
+    "factory.work_order_dependencies.work_order_id:uuid",
+    "factory.work_order_dependencies.depends_on:uuid",
+    "factory.work_orders.work_order_id:uuid",
+    "factory.work_orders.title:text",
+    "factory.work_orders.work_type:text default=b571748639958a4da605030008a880686c053b1377aadcb0ee8e643dc85386b7",
+    "factory.work_orders.status:text default=920ca217af670763272ef2a643e7baedb0cb3d49984e3c8d1a1bd4c24732bfa0",
+    "factory.work_orders.priority:text default=ee56796af4a842047a922564a1595d81c359f10af2c731b0f49a8bc9f0ab3f63",
+    "factory.work_orders.risk_level:text default=e43f2706a1897fcb17e50663b53c9aa92f549b2811c78ce6fbb15efdc701c94f",
+    "factory.work_orders.owned_surface:text[] default=de9b902a0abb75d50771c319ee6d6a50d3963e3d28ce30e76b96e3c382b0c4ab",
+    "factory.work_orders.branch:text",
+    "factory.work_orders.base_commit:text",
+    "factory.work_orders.latest_commit:text",
+    "factory.work_orders.candidate_sha:text",
+    "factory.work_orders.release_manifest:text",
+    "factory.work_orders.handoff:text",
+    "factory.work_orders.requires_security_role:text default=f376f8d4b1a9255ed158976c42642a4175f252299f8c617ad83aa247bce1e6be",
+    "factory.work_orders.requires_capabilities:text[] default=de9b902a0abb75d50771c319ee6d6a50d3963e3d28ce30e76b96e3c382b0c4ab",
+    "factory.work_orders.created_at:timestamp with time zone default=28a4dae0461e17af56e979c2095abfbe0bfc45fe9ca8abf3144338a518a1bb8f",
+    "factory.work_orders.updated_at:timestamp with time zone default=28a4dae0461e17af56e979c2095abfbe0bfc45fe9ca8abf3144338a518a1bb8f",
+    "factory.work_orders.completed_at:timestamp with time zone",
+    "factory.work_orders.director_state:text default=920ca217af670763272ef2a643e7baedb0cb3d49984e3c8d1a1bd4c24732bfa0",
+    "factory.work_orders.next_action:text",
+    "factory.work_orders.blocked_reason:text",
+    "factory.work_orders.last_evidence:text",
+    "factory.work_orders.last_evidence_at:timestamp with time zone",
+    "factory.work_orders.director_node_id:text",
+    "factory.work_orders.director_state_at:timestamp with time zone default=28a4dae0461e17af56e979c2095abfbe0bfc45fe9ca8abf3144338a518a1bb8f",
+    "factory.work_orders.retry_count:integer default=5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
+    "factory.work_orders.handler:text default=389ce56a0daa1ad8d7c11dc170390ac80156c631a29a363cef450641dc3adf74",
+    "factory.work_orders.weight:text default=2b100278358f060ef716be0df8c31b362a945e392cc84a5b5b7e830a29b03ba4"
+  ],
+  "column_acl": [],
+  "functions": [],
+  "roles": [
+    {
+      "rolname": "anon",
+      "rolsuper": false,
+      "rolcreatedb": false,
+      "rolcreaterole": false,
+      "rolreplication": false,
+      "rolbypassrls": false,
+      "rolinherit": true,
+      "rolcanlogin": false,
+      "rolconfig": {
+        "names": [
+          "statement_timeout"
+        ],
+        "values_sha256": "03b05d5c91cbb891e19776bfed93bd6c6286724f5fb16a11b4946d4a8da7f63e"
+      }
+    },
+    {
+      "rolname": "authenticated",
+      "rolsuper": false,
+      "rolcreatedb": false,
+      "rolcreaterole": false,
+      "rolreplication": false,
+      "rolbypassrls": false,
+      "rolinherit": true,
+      "rolcanlogin": false,
+      "rolconfig": {
+        "names": [
+          "statement_timeout"
+        ],
+        "values_sha256": "2733934ac3d875ceb5be963c28e332590de46c41a13fd3faaa1fe42391c6b39f"
+      }
+    },
+    {
+      "rolname": "authenticator",
+      "rolsuper": false,
+      "rolcreatedb": false,
+      "rolcreaterole": false,
+      "rolreplication": false,
+      "rolbypassrls": false,
+      "rolinherit": false,
+      "rolcanlogin": true,
+      "rolconfig": {
+        "names": [
+          "lock_timeout",
+          "session_preload_libraries",
+          "statement_timeout"
+        ],
+        "values_sha256": "5acbe884e743d6a90192290db2368586c3a183f5dd5ae4315186801771522f06"
+      }
+    },
+    {
+      "rolname": "dashboard_user",
+      "rolsuper": false,
+      "rolcreatedb": true,
+      "rolcreaterole": true,
+      "rolreplication": true,
+      "rolbypassrls": false,
+      "rolinherit": true,
+      "rolcanlogin": false,
+      "rolconfig": {
+        "names": [],
+        "values_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    {
+      "rolname": "factory_runner",
+      "rolsuper": false,
+      "rolcreatedb": false,
+      "rolcreaterole": false,
+      "rolreplication": false,
+      "rolbypassrls": false,
+      "rolinherit": false,
+      "rolcanlogin": true,
+      "rolconfig": {
+        "names": [],
+        "values_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    {
+      "rolname": "pgbouncer",
+      "rolsuper": false,
+      "rolcreatedb": false,
+      "rolcreaterole": false,
+      "rolreplication": false,
+      "rolbypassrls": false,
+      "rolinherit": true,
+      "rolcanlogin": true,
+      "rolconfig": {
+        "names": [],
+        "values_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    {
+      "rolname": "postgres",
+      "rolsuper": false,
+      "rolcreatedb": true,
+      "rolcreaterole": true,
+      "rolreplication": true,
+      "rolbypassrls": true,
+      "rolinherit": true,
+      "rolcanlogin": true,
+      "rolconfig": {
+        "names": [
+          "search_path"
+        ],
+        "values_sha256": "600d5011e564417c685ee8432ffa3ef5fd6d6abeab93c8bda6d174db3df46948"
+      }
+    },
+    {
+      "rolname": "service_role",
+      "rolsuper": false,
+      "rolcreatedb": false,
+      "rolcreaterole": false,
+      "rolreplication": false,
+      "rolbypassrls": true,
+      "rolinherit": true,
+      "rolcanlogin": false,
+      "rolconfig": {
+        "names": [],
+        "values_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    {
+      "rolname": "supabase_admin",
+      "rolsuper": true,
+      "rolcreatedb": true,
+      "rolcreaterole": true,
+      "rolreplication": true,
+      "rolbypassrls": true,
+      "rolinherit": true,
+      "rolcanlogin": true,
+      "rolconfig": {
+        "names": [
+          "log_statement",
+          "search_path"
+        ],
+        "values_sha256": "3e8456d9bdafb7a01e6ed4d1be21e8a9c07774a0e5b1f275bf5fd6ec934b091b"
+      }
+    },
+    {
+      "rolname": "supabase_auth_admin",
+      "rolsuper": false,
+      "rolcreatedb": false,
+      "rolcreaterole": true,
+      "rolreplication": false,
+      "rolbypassrls": false,
+      "rolinherit": false,
+      "rolcanlogin": true,
+      "rolconfig": {
+        "names": [
+          "idle_in_transaction_session_timeout",
+          "log_statement",
+          "search_path"
+        ],
+        "values_sha256": "7ca455d0d2b0557d18001008ec308964f3b31f893840be65fdbfe807f72896f5"
+      }
+    },
+    {
+      "rolname": "supabase_etl_admin",
+      "rolsuper": false,
+      "rolcreatedb": false,
+      "rolcreaterole": false,
+      "rolreplication": true,
+      "rolbypassrls": true,
+      "rolinherit": true,
+      "rolcanlogin": true,
+      "rolconfig": {
+        "names": [],
+        "values_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    {
+      "rolname": "supabase_privileged_role",
+      "rolsuper": false,
+      "rolcreatedb": false,
+      "rolcreaterole": false,
+      "rolreplication": false,
+      "rolbypassrls": false,
+      "rolinherit": true,
+      "rolcanlogin": false,
+      "rolconfig": {
+        "names": [],
+        "values_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    {
+      "rolname": "supabase_read_only_user",
+      "rolsuper": false,
+      "rolcreatedb": false,
+      "rolcreaterole": false,
+      "rolreplication": false,
+      "rolbypassrls": true,
+      "rolinherit": true,
+      "rolcanlogin": true,
+      "rolconfig": {
+        "names": [
+          "default_transaction_read_only"
+        ],
+        "values_sha256": "c3893583d92a6edb7c2e85a3d6e471505c99966a116af5ef94354749231f11a5"
+      }
+    },
+    {
+      "rolname": "supabase_realtime_admin",
+      "rolsuper": false,
+      "rolcreatedb": false,
+      "rolcreaterole": false,
+      "rolreplication": false,
+      "rolbypassrls": false,
+      "rolinherit": false,
+      "rolcanlogin": false,
+      "rolconfig": {
+        "names": [
+          "search_path"
+        ],
+        "values_sha256": "82be56eff6a42ad54b09ed1f632d890722a8916cf02afae4ee21c208294a7439"
+      }
+    },
+    {
+      "rolname": "supabase_replication_admin",
+      "rolsuper": false,
+      "rolcreatedb": false,
+      "rolcreaterole": false,
+      "rolreplication": true,
+      "rolbypassrls": false,
+      "rolinherit": true,
+      "rolcanlogin": true,
+      "rolconfig": {
+        "names": [],
+        "values_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    {
+      "rolname": "supabase_storage_admin",
+      "rolsuper": false,
+      "rolcreatedb": false,
+      "rolcreaterole": true,
+      "rolreplication": false,
+      "rolbypassrls": false,
+      "rolinherit": false,
+      "rolcanlogin": true,
+      "rolconfig": {
+        "names": [
+          "log_statement",
+          "search_path"
+        ],
+        "values_sha256": "0828085c231220f698eb754961ab6e751c75068db3ddbd8d28ed9a547b1eca1a"
+      }
+    }
+  ],
+  "role_memberships": [
+    {
+      "granted_role": "anon",
+      "member": "authenticator",
+      "admin_option": false
+    },
+    {
+      "granted_role": "anon",
+      "member": "postgres",
+      "admin_option": true
+    },
+    {
+      "granted_role": "anon",
+      "member": "supabase_realtime_admin",
+      "admin_option": false
+    },
+    {
+      "granted_role": "authenticated",
+      "member": "authenticator",
+      "admin_option": false
+    },
+    {
+      "granted_role": "authenticated",
+      "member": "postgres",
+      "admin_option": true
+    },
+    {
+      "granted_role": "authenticated",
+      "member": "supabase_realtime_admin",
+      "admin_option": false
+    },
+    {
+      "granted_role": "authenticator",
+      "member": "postgres",
+      "admin_option": true
+    },
+    {
+      "granted_role": "authenticator",
+      "member": "supabase_storage_admin",
+      "admin_option": false
+    },
+    {
+      "granted_role": "factory_runner",
+      "member": "postgres",
+      "admin_option": true
+    },
+    {
+      "granted_role": "pg_create_subscription",
+      "member": "postgres",
+      "admin_option": true
+    },
+    {
+      "granted_role": "pg_monitor",
+      "member": "postgres",
+      "admin_option": true
+    },
+    {
+      "granted_role": "pg_monitor",
+      "member": "supabase_etl_admin",
+      "admin_option": false
+    },
+    {
+      "granted_role": "pg_monitor",
+      "member": "supabase_read_only_user",
+      "admin_option": false
+    },
+    {
+      "granted_role": "pg_read_all_data",
+      "member": "postgres",
+      "admin_option": true
+    },
+    {
+      "granted_role": "pg_read_all_data",
+      "member": "supabase_etl_admin",
+      "admin_option": false
+    },
+    {
+      "granted_role": "pg_read_all_data",
+      "member": "supabase_read_only_user",
+      "admin_option": false
+    },
+    {
+      "granted_role": "pg_signal_backend",
+      "member": "postgres",
+      "admin_option": true
+    },
+    {
+      "granted_role": "service_role",
+      "member": "authenticator",
+      "admin_option": false
+    },
+    {
+      "granted_role": "service_role",
+      "member": "postgres",
+      "admin_option": true
+    },
+    {
+      "granted_role": "service_role",
+      "member": "supabase_realtime_admin",
+      "admin_option": false
+    },
+    {
+      "granted_role": "supabase_privileged_role",
+      "member": "postgres",
+      "admin_option": false
+    },
+    {
+      "granted_role": "supabase_privileged_role",
+      "member": "supabase_etl_admin",
+      "admin_option": false
+    }
+  ],
+  "role_database_settings": [
+    {
+      "db": "(all databases)",
+      "role": "anon",
+      "names": [
+        "statement_timeout"
+      ],
+      "values_sha256": "03b05d5c91cbb891e19776bfed93bd6c6286724f5fb16a11b4946d4a8da7f63e"
+    },
+    {
+      "db": "(all databases)",
+      "role": "authenticated",
+      "names": [
+        "statement_timeout"
+      ],
+      "values_sha256": "2733934ac3d875ceb5be963c28e332590de46c41a13fd3faaa1fe42391c6b39f"
+    },
+    {
+      "db": "(all databases)",
+      "role": "authenticator",
+      "names": [
+        "lock_timeout",
+        "session_preload_libraries",
+        "statement_timeout"
+      ],
+      "values_sha256": "5acbe884e743d6a90192290db2368586c3a183f5dd5ae4315186801771522f06"
+    },
+    {
+      "db": "(all databases)",
+      "role": "postgres",
+      "names": [
+        "search_path"
+      ],
+      "values_sha256": "600d5011e564417c685ee8432ffa3ef5fd6d6abeab93c8bda6d174db3df46948"
+    },
+    {
+      "db": "(all databases)",
+      "role": "supabase_admin",
+      "names": [
+        "log_statement",
+        "search_path"
+      ],
+      "values_sha256": "3e8456d9bdafb7a01e6ed4d1be21e8a9c07774a0e5b1f275bf5fd6ec934b091b"
+    },
+    {
+      "db": "(all databases)",
+      "role": "supabase_auth_admin",
+      "names": [
+        "idle_in_transaction_session_timeout",
+        "log_statement",
+        "search_path"
+      ],
+      "values_sha256": "7ca455d0d2b0557d18001008ec308964f3b31f893840be65fdbfe807f72896f5"
+    },
+    {
+      "db": "(all databases)",
+      "role": "supabase_read_only_user",
+      "names": [
+        "default_transaction_read_only"
+      ],
+      "values_sha256": "c3893583d92a6edb7c2e85a3d6e471505c99966a116af5ef94354749231f11a5"
+    },
+    {
+      "db": "(all databases)",
+      "role": "supabase_realtime_admin",
+      "names": [
+        "search_path"
+      ],
+      "values_sha256": "82be56eff6a42ad54b09ed1f632d890722a8916cf02afae4ee21c208294a7439"
+    },
+    {
+      "db": "(all databases)",
+      "role": "supabase_storage_admin",
+      "names": [
+        "log_statement",
+        "search_path"
+      ],
+      "values_sha256": "0828085c231220f698eb754961ab6e751c75068db3ddbd8d28ed9a547b1eca1a"
+    },
+    {
+      "db": "postgres",
+      "role": "(all roles)",
+      "names": [
+        "app.settings.jwt_exp"
+      ],
+      "values_sha256": "d1485c6de0620087fd916786b8a64cc9600466d00126f3c05fb888eca3e52a7f"
+    }
+  ],
+  "database_acl": [
+    {
+      "db": "postgres",
+      "grantee": "PUBLIC",
+      "priv": "CONNECT"
+    },
+    {
+      "db": "postgres",
+      "grantee": "PUBLIC",
+      "priv": "TEMPORARY"
+    },
+    {
+      "db": "postgres",
+      "grantee": "dashboard_user",
+      "priv": "CONNECT"
+    },
+    {
+      "db": "postgres",
+      "grantee": "dashboard_user",
+      "priv": "CREATE"
+    },
+    {
+      "db": "postgres",
+      "grantee": "dashboard_user",
+      "priv": "TEMPORARY"
+    },
+    {
+      "db": "postgres",
+      "grantee": "factory_runner",
+      "priv": "CONNECT"
+    },
+    {
+      "db": "postgres",
+      "grantee": "postgres",
+      "priv": "CONNECT"
+    },
+    {
+      "db": "postgres",
+      "grantee": "postgres",
+      "priv": "CREATE"
+    },
+    {
+      "db": "postgres",
+      "grantee": "postgres",
+      "priv": "TEMPORARY"
+    },
+    {
+      "db": "postgres",
+      "grantee": "supabase_etl_admin",
+      "priv": "CREATE"
+    },
+    {
+      "db": "postgres",
+      "grantee": "supabase_storage_admin",
+      "priv": "CREATE"
+    }
+  ],
+  "table_acl": [
+    {
+      "sch": "factory",
+      "tbl": "agent_runs",
+      "grantee": "factory_runner",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "agent_runs",
+      "grantee": "factory_runner",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "agent_runs",
+      "grantee": "factory_runner",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "agent_runs",
+      "grantee": "factory_runner",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "agent_runs",
+      "grantee": "postgres",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "agent_runs",
+      "grantee": "postgres",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "agent_runs",
+      "grantee": "postgres",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "factory",
+      "tbl": "agent_runs",
+      "grantee": "postgres",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "factory",
+      "tbl": "agent_runs",
+      "grantee": "postgres",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "agent_runs",
+      "grantee": "postgres",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "factory",
+      "tbl": "agent_runs",
+      "grantee": "postgres",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "agent_runs",
+      "grantee": "postgres",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "checkpoints",
+      "grantee": "factory_runner",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "checkpoints",
+      "grantee": "factory_runner",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "checkpoints",
+      "grantee": "factory_runner",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "checkpoints",
+      "grantee": "factory_runner",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "checkpoints",
+      "grantee": "postgres",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "checkpoints",
+      "grantee": "postgres",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "checkpoints",
+      "grantee": "postgres",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "factory",
+      "tbl": "checkpoints",
+      "grantee": "postgres",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "factory",
+      "tbl": "checkpoints",
+      "grantee": "postgres",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "checkpoints",
+      "grantee": "postgres",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "factory",
+      "tbl": "checkpoints",
+      "grantee": "postgres",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "checkpoints",
+      "grantee": "postgres",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "director_lease",
+      "grantee": "factory_runner",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "director_lease",
+      "grantee": "factory_runner",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "director_lease",
+      "grantee": "factory_runner",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "director_lease",
+      "grantee": "factory_runner",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "director_lease",
+      "grantee": "postgres",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "director_lease",
+      "grantee": "postgres",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "director_lease",
+      "grantee": "postgres",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "factory",
+      "tbl": "director_lease",
+      "grantee": "postgres",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "factory",
+      "tbl": "director_lease",
+      "grantee": "postgres",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "director_lease",
+      "grantee": "postgres",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "factory",
+      "tbl": "director_lease",
+      "grantee": "postgres",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "director_lease",
+      "grantee": "postgres",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "founder_notifications",
+      "grantee": "factory_runner",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "founder_notifications",
+      "grantee": "factory_runner",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "founder_notifications",
+      "grantee": "factory_runner",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "founder_notifications",
+      "grantee": "factory_runner",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "founder_notifications",
+      "grantee": "postgres",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "founder_notifications",
+      "grantee": "postgres",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "founder_notifications",
+      "grantee": "postgres",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "factory",
+      "tbl": "founder_notifications",
+      "grantee": "postgres",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "factory",
+      "tbl": "founder_notifications",
+      "grantee": "postgres",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "founder_notifications",
+      "grantee": "postgres",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "factory",
+      "tbl": "founder_notifications",
+      "grantee": "postgres",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "founder_notifications",
+      "grantee": "postgres",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "nodes",
+      "grantee": "factory_runner",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "nodes",
+      "grantee": "factory_runner",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "nodes",
+      "grantee": "factory_runner",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "nodes",
+      "grantee": "factory_runner",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "nodes",
+      "grantee": "postgres",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "nodes",
+      "grantee": "postgres",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "nodes",
+      "grantee": "postgres",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "factory",
+      "tbl": "nodes",
+      "grantee": "postgres",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "factory",
+      "tbl": "nodes",
+      "grantee": "postgres",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "nodes",
+      "grantee": "postgres",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "factory",
+      "tbl": "nodes",
+      "grantee": "postgres",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "nodes",
+      "grantee": "postgres",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "plane_identity",
+      "grantee": "factory_runner",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "plane_identity",
+      "grantee": "postgres",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "plane_identity",
+      "grantee": "postgres",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "plane_identity",
+      "grantee": "postgres",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "factory",
+      "tbl": "plane_identity",
+      "grantee": "postgres",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "factory",
+      "tbl": "plane_identity",
+      "grantee": "postgres",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "plane_identity",
+      "grantee": "postgres",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "factory",
+      "tbl": "plane_identity",
+      "grantee": "postgres",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "plane_identity",
+      "grantee": "postgres",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "surface_locks",
+      "grantee": "factory_runner",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "surface_locks",
+      "grantee": "factory_runner",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "surface_locks",
+      "grantee": "factory_runner",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "surface_locks",
+      "grantee": "factory_runner",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "surface_locks",
+      "grantee": "postgres",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "surface_locks",
+      "grantee": "postgres",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "surface_locks",
+      "grantee": "postgres",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "factory",
+      "tbl": "surface_locks",
+      "grantee": "postgres",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "factory",
+      "tbl": "surface_locks",
+      "grantee": "postgres",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "surface_locks",
+      "grantee": "postgres",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "factory",
+      "tbl": "surface_locks",
+      "grantee": "postgres",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "surface_locks",
+      "grantee": "postgres",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_order_dependencies",
+      "grantee": "factory_runner",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_order_dependencies",
+      "grantee": "factory_runner",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_order_dependencies",
+      "grantee": "factory_runner",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_order_dependencies",
+      "grantee": "factory_runner",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_order_dependencies",
+      "grantee": "postgres",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_order_dependencies",
+      "grantee": "postgres",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_order_dependencies",
+      "grantee": "postgres",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_order_dependencies",
+      "grantee": "postgres",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_order_dependencies",
+      "grantee": "postgres",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_order_dependencies",
+      "grantee": "postgres",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_order_dependencies",
+      "grantee": "postgres",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_order_dependencies",
+      "grantee": "postgres",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_orders",
+      "grantee": "factory_runner",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_orders",
+      "grantee": "factory_runner",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_orders",
+      "grantee": "factory_runner",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_orders",
+      "grantee": "factory_runner",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_orders",
+      "grantee": "postgres",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_orders",
+      "grantee": "postgres",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_orders",
+      "grantee": "postgres",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_orders",
+      "grantee": "postgres",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_orders",
+      "grantee": "postgres",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_orders",
+      "grantee": "postgres",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_orders",
+      "grantee": "postgres",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "factory",
+      "tbl": "work_orders",
+      "grantee": "postgres",
+      "priv": "UPDATE"
+    }
+  ],
+  "function_acl": [],
+  "schema_acl": [
+    {
+      "schema": "auth",
+      "owner": "supabase_admin",
+      "grantee": "anon",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "auth",
+      "owner": "supabase_admin",
+      "grantee": "authenticated",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "auth",
+      "owner": "supabase_admin",
+      "grantee": "dashboard_user",
+      "priv": "CREATE"
+    },
+    {
+      "schema": "auth",
+      "owner": "supabase_admin",
+      "grantee": "dashboard_user",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "auth",
+      "owner": "supabase_admin",
+      "grantee": "postgres",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "auth",
+      "owner": "supabase_admin",
+      "grantee": "service_role",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "auth",
+      "owner": "supabase_admin",
+      "grantee": "supabase_admin",
+      "priv": "CREATE"
+    },
+    {
+      "schema": "auth",
+      "owner": "supabase_admin",
+      "grantee": "supabase_admin",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "auth",
+      "owner": "supabase_admin",
+      "grantee": "supabase_auth_admin",
+      "priv": "CREATE"
+    },
+    {
+      "schema": "auth",
+      "owner": "supabase_admin",
+      "grantee": "supabase_auth_admin",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "extensions",
+      "owner": "postgres",
+      "grantee": "anon",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "extensions",
+      "owner": "postgres",
+      "grantee": "authenticated",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "extensions",
+      "owner": "postgres",
+      "grantee": "dashboard_user",
+      "priv": "CREATE"
+    },
+    {
+      "schema": "extensions",
+      "owner": "postgres",
+      "grantee": "dashboard_user",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "extensions",
+      "owner": "postgres",
+      "grantee": "postgres",
+      "priv": "CREATE"
+    },
+    {
+      "schema": "extensions",
+      "owner": "postgres",
+      "grantee": "postgres",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "extensions",
+      "owner": "postgres",
+      "grantee": "service_role",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "factory",
+      "owner": "postgres",
+      "grantee": "factory_runner",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "factory",
+      "owner": "postgres",
+      "grantee": "postgres",
+      "priv": "CREATE"
+    },
+    {
+      "schema": "factory",
+      "owner": "postgres",
+      "grantee": "postgres",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "graphql",
+      "owner": "supabase_admin",
+      "grantee": "anon",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "graphql",
+      "owner": "supabase_admin",
+      "grantee": "authenticated",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "graphql",
+      "owner": "supabase_admin",
+      "grantee": "postgres",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "graphql",
+      "owner": "supabase_admin",
+      "grantee": "service_role",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "graphql",
+      "owner": "supabase_admin",
+      "grantee": "supabase_admin",
+      "priv": "CREATE"
+    },
+    {
+      "schema": "graphql",
+      "owner": "supabase_admin",
+      "grantee": "supabase_admin",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "graphql_public",
+      "owner": "supabase_admin",
+      "grantee": "anon",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "graphql_public",
+      "owner": "supabase_admin",
+      "grantee": "authenticated",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "graphql_public",
+      "owner": "supabase_admin",
+      "grantee": "postgres",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "graphql_public",
+      "owner": "supabase_admin",
+      "grantee": "service_role",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "graphql_public",
+      "owner": "supabase_admin",
+      "grantee": "supabase_admin",
+      "priv": "CREATE"
+    },
+    {
+      "schema": "graphql_public",
+      "owner": "supabase_admin",
+      "grantee": "supabase_admin",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "pgbouncer",
+      "owner": "pgbouncer",
+      "grantee": "pgbouncer",
+      "priv": "CREATE"
+    },
+    {
+      "schema": "pgbouncer",
+      "owner": "pgbouncer",
+      "grantee": "pgbouncer",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "public",
+      "owner": "pg_database_owner",
+      "grantee": "PUBLIC",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "public",
+      "owner": "pg_database_owner",
+      "grantee": "anon",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "public",
+      "owner": "pg_database_owner",
+      "grantee": "authenticated",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "public",
+      "owner": "pg_database_owner",
+      "grantee": "pg_database_owner",
+      "priv": "CREATE"
+    },
+    {
+      "schema": "public",
+      "owner": "pg_database_owner",
+      "grantee": "pg_database_owner",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "public",
+      "owner": "pg_database_owner",
+      "grantee": "postgres",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "public",
+      "owner": "pg_database_owner",
+      "grantee": "service_role",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "realtime",
+      "owner": "supabase_admin",
+      "grantee": "anon",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "realtime",
+      "owner": "supabase_admin",
+      "grantee": "authenticated",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "realtime",
+      "owner": "supabase_admin",
+      "grantee": "postgres",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "realtime",
+      "owner": "supabase_admin",
+      "grantee": "service_role",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "realtime",
+      "owner": "supabase_admin",
+      "grantee": "supabase_admin",
+      "priv": "CREATE"
+    },
+    {
+      "schema": "realtime",
+      "owner": "supabase_admin",
+      "grantee": "supabase_admin",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "realtime",
+      "owner": "supabase_admin",
+      "grantee": "supabase_realtime_admin",
+      "priv": "CREATE"
+    },
+    {
+      "schema": "realtime",
+      "owner": "supabase_admin",
+      "grantee": "supabase_realtime_admin",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "storage",
+      "owner": "supabase_admin",
+      "grantee": "anon",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "storage",
+      "owner": "supabase_admin",
+      "grantee": "authenticated",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "storage",
+      "owner": "supabase_admin",
+      "grantee": "dashboard_user",
+      "priv": "CREATE"
+    },
+    {
+      "schema": "storage",
+      "owner": "supabase_admin",
+      "grantee": "dashboard_user",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "storage",
+      "owner": "supabase_admin",
+      "grantee": "postgres",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "storage",
+      "owner": "supabase_admin",
+      "grantee": "service_role",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "storage",
+      "owner": "supabase_admin",
+      "grantee": "supabase_admin",
+      "priv": "CREATE"
+    },
+    {
+      "schema": "storage",
+      "owner": "supabase_admin",
+      "grantee": "supabase_admin",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "storage",
+      "owner": "supabase_admin",
+      "grantee": "supabase_storage_admin",
+      "priv": "CREATE"
+    },
+    {
+      "schema": "storage",
+      "owner": "supabase_admin",
+      "grantee": "supabase_storage_admin",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "vault",
+      "owner": "supabase_admin",
+      "grantee": "postgres",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "vault",
+      "owner": "supabase_admin",
+      "grantee": "service_role",
+      "priv": "USAGE"
+    },
+    {
+      "schema": "vault",
+      "owner": "supabase_admin",
+      "grantee": "supabase_admin",
+      "priv": "CREATE"
+    },
+    {
+      "schema": "vault",
+      "owner": "supabase_admin",
+      "grantee": "supabase_admin",
+      "priv": "USAGE"
+    }
+  ],
+  "default_acl": [
+    {
+      "sch": "factory",
+      "for_role": "postgres",
+      "grantee": "factory_runner",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "factory",
+      "for_role": "postgres",
+      "grantee": "factory_runner",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "factory",
+      "for_role": "postgres",
+      "grantee": "factory_runner",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "factory",
+      "for_role": "postgres",
+      "grantee": "factory_runner",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "UPDATE"
+    }
+  ],
+  "triggers": [],
+  "policies": [],
+  "rules": [],
+  "constraints": [
+    {
+      "table": "factory.agent_runs",
+      "name": "agent_runs_no_silent_model_fallback",
+      "type": "c",
+      "def_sha256": "05ef21e3bf93bffd06fbc49242bd318ea7bf5673de7329b802e580334906184c"
+    },
+    {
+      "table": "factory.agent_runs",
+      "name": "agent_runs_no_silent_provider_fallback",
+      "type": "c",
+      "def_sha256": "8e0eb4ccb8c0cc4d8e92a07b68ce2b976b19ae4bb4ccf813eb588f714359d3ef"
+    },
+    {
+      "table": "factory.agent_runs",
+      "name": "agent_runs_node_id_fkey",
+      "type": "f",
+      "def_sha256": "a9eab5b01b5140d1164a3428b0c914a2f37b1b650a90ebab0fb78d51b7118be6"
+    },
+    {
+      "table": "factory.agent_runs",
+      "name": "agent_runs_pkey",
+      "type": "p",
+      "def_sha256": "360aa242ca7cb29e3ed1f7cfdf9a909994fcd221747b071666ad75c853c14c7f"
+    },
+    {
+      "table": "factory.agent_runs",
+      "name": "agent_runs_status_check",
+      "type": "c",
+      "def_sha256": "a7fbf0447121edbd72c209a3453c3374cea7aa2a4f1f45ba712c9180e4ffb67e"
+    },
+    {
+      "table": "factory.agent_runs",
+      "name": "agent_runs_terminal_status_states_its_reason",
+      "type": "c",
+      "def_sha256": "ef4d74470c718222334dd88433ea3a399f8db9e15ad3f6a2f98fda424ed0e3ed"
+    },
+    {
+      "table": "factory.agent_runs",
+      "name": "agent_runs_verification_status_check",
+      "type": "c",
+      "def_sha256": "56a7743ec6584fd00576af698413161fbbb21d107fa2b0260f02a53d968009d9"
+    },
+    {
+      "table": "factory.agent_runs",
+      "name": "agent_runs_work_order_id_fkey",
+      "type": "f",
+      "def_sha256": "e3a51095f622e6d3d372da67e0c7f8cfb18b8ad9e3134f0aebfa018ee6634de2"
+    },
+    {
+      "table": "factory.agent_runs",
+      "name": "verification_is_independent",
+      "type": "c",
+      "def_sha256": "b662f21e1bde96d9ab9623195a2b7c711738dff63e2d5569da2eee9216fa3873"
+    },
+    {
+      "table": "factory.agent_runs",
+      "name": "verification_node_is_independent",
+      "type": "c",
+      "def_sha256": "4607244f734a299cf716d08f77aba6a8e0547bb38d305331e11c5239e6a5e72d"
+    },
+    {
+      "table": "factory.checkpoints",
+      "name": "checkpoints_pkey",
+      "type": "p",
+      "def_sha256": "dd33189c443b9106c32f54ed850e77459bbbb768dc821bdb81d1fb42053ec9cf"
+    },
+    {
+      "table": "factory.checkpoints",
+      "name": "checkpoints_run_id_fkey",
+      "type": "f",
+      "def_sha256": "056daa26889ded1a44f2ffbfc80461df81c4bfad01254db6c84b33ce2298a230"
+    },
+    {
+      "table": "factory.checkpoints",
+      "name": "checkpoints_work_order_id_fkey",
+      "type": "f",
+      "def_sha256": "e3a51095f622e6d3d372da67e0c7f8cfb18b8ad9e3134f0aebfa018ee6634de2"
+    },
+    {
+      "table": "factory.director_lease",
+      "name": "director_lease_only_one_check",
+      "type": "c",
+      "def_sha256": "22395cf5d7eee999934a2f2a48d1830719d568cc0ee4fce431541df3be4c1cd5"
+    },
+    {
+      "table": "factory.director_lease",
+      "name": "director_lease_pkey",
+      "type": "p",
+      "def_sha256": "1736e14a706118f1f6883aaac9d9108ce5860cc30b16f47c979982c2e9d781fe"
+    },
+    {
+      "table": "factory.founder_notifications",
+      "name": "founder_notifications_fields_nonempty",
+      "type": "c",
+      "def_sha256": "460d3f149d97d01319aa7298db433a7bc715caa6548678c1605b39d711f832cb"
+    },
+    {
+      "table": "factory.founder_notifications",
+      "name": "founder_notifications_pkey",
+      "type": "p",
+      "def_sha256": "9b8b12ec8286ce4f1679e9e7e486875a78e467faa2583851402c656d70606ef7"
+    },
+    {
+      "table": "factory.founder_notifications",
+      "name": "founder_notifications_work_order_id_fkey",
+      "type": "f",
+      "def_sha256": "e3a51095f622e6d3d372da67e0c7f8cfb18b8ad9e3134f0aebfa018ee6634de2"
+    },
+    {
+      "table": "factory.nodes",
+      "name": "nodes_max_heavy_check",
+      "type": "c",
+      "def_sha256": "3dc76518e76a9ee9504a8f357d3dd50606e9938987c71980d59e2e991094b098"
+    },
+    {
+      "table": "factory.nodes",
+      "name": "nodes_pkey",
+      "type": "p",
+      "def_sha256": "87a0e9da039c75cae70ab8c03eae35dadc60bf96a0e5901373dcf0057ef452f5"
+    },
+    {
+      "table": "factory.nodes",
+      "name": "nodes_security_role_check",
+      "type": "c",
+      "def_sha256": "c69a5655d17a80cbf3e5ae5d8d3915e5cdfd80062391e06deaf3ac5ee6838a98"
+    },
+    {
+      "table": "factory.plane_identity",
+      "name": "plane_identity_pkey",
+      "type": "p",
+      "def_sha256": "2ea64cc1d9275027df6ea49d162045fedbbb4038ef7b6d70707c593cde8c4221"
+    },
+    {
+      "table": "factory.surface_locks",
+      "name": "surface_locks_pkey",
+      "type": "p",
+      "def_sha256": "ddfc0ab7992bde1a98f7a165ca39633cc47a91e991fafe5175c419cc3fb2f171"
+    },
+    {
+      "table": "factory.surface_locks",
+      "name": "surface_locks_run_id_fkey",
+      "type": "f",
+      "def_sha256": "056daa26889ded1a44f2ffbfc80461df81c4bfad01254db6c84b33ce2298a230"
+    },
+    {
+      "table": "factory.work_order_dependencies",
+      "name": "work_order_dependencies_check",
+      "type": "c",
+      "def_sha256": "bf9013356b7153f41d10c2afdbaecdec7d4dfaad24e2e3f7fc2b096c89d559f7"
+    },
+    {
+      "table": "factory.work_order_dependencies",
+      "name": "work_order_dependencies_depends_on_fkey",
+      "type": "f",
+      "def_sha256": "50d604a028eb34fd6aae40d47af305354b90ce503d878bdb9a0c4d46c0612f40"
+    },
+    {
+      "table": "factory.work_order_dependencies",
+      "name": "work_order_dependencies_pkey",
+      "type": "p",
+      "def_sha256": "d5d482b9dfd44704449919dae455fa0f4d8eafe72f8fef10a30bb972f4cb0ce5"
+    },
+    {
+      "table": "factory.work_order_dependencies",
+      "name": "work_order_dependencies_work_order_id_fkey",
+      "type": "f",
+      "def_sha256": "e3a51095f622e6d3d372da67e0c7f8cfb18b8ad9e3134f0aebfa018ee6634de2"
+    },
+    {
+      "table": "factory.work_orders",
+      "name": "work_orders_director_state_check",
+      "type": "c",
+      "def_sha256": "aa230c65a8f71018a6fc6c3322c02ba56b6d2b2c86777644fc9f7b32d62e237d"
+    },
+    {
+      "table": "factory.work_orders",
+      "name": "work_orders_pkey",
+      "type": "p",
+      "def_sha256": "7ba3ecc2c7b97b2c28625f9ce344abd47aac1642b6fcc0197a603980d8762cc1"
+    },
+    {
+      "table": "factory.work_orders",
+      "name": "work_orders_requires_security_role_check",
+      "type": "c",
+      "def_sha256": "d7b402248ee4aa5b219daa34433664f9b8c46a65c99a90a34a610285f4b57b54"
+    },
+    {
+      "table": "factory.work_orders",
+      "name": "work_orders_status_check",
+      "type": "c",
+      "def_sha256": "fc2f51eb369be16dbb144d864816679433cfb35fb919609cfb61ad6de66513eb"
+    },
+    {
+      "table": "factory.work_orders",
+      "name": "work_orders_weight_check",
+      "type": "c",
+      "def_sha256": "e9c4f3f5ec1aaa7d6e2ecba92e2cca3a9f7e3f6f28db5fbcc62f22fabf8c9b3e"
+    }
+  ],
+  "indexes": [
+    {
+      "index": "factory.agent_runs_by_work_order",
+      "def_sha256": "4c6a11083057686a97a2e9b63d679636f7cc99e6badbe6ce7253a08c76d1009d"
+    },
+    {
+      "index": "factory.agent_runs_claimable",
+      "def_sha256": "d76eeaa5227a06b9e3da069a70fa3859c813f7393281f89d43155c604c5d8b89"
+    },
+    {
+      "index": "factory.agent_runs_in_progress_by_node_idx",
+      "def_sha256": "50530790ccfe7eb05a5db23b0b6434dcadc110fbb56797dd8af2e94052083989"
+    },
+    {
+      "index": "factory.agent_runs_pkey",
+      "def_sha256": "ba2afda6154926d014712b9e2af3b621e480c6c2f0d9a7c4e9c0690e853d0eb4"
+    },
+    {
+      "index": "factory.checkpoints_by_run",
+      "def_sha256": "c66cbcdcd922018b0f4832d7d19122449c58ab4019c1e558b5a3c23c244cbc53"
+    },
+    {
+      "index": "factory.checkpoints_pkey",
+      "def_sha256": "08714cc8d91e124f9e13e71feb8bc61d8a6ec989bfccb91f2d7656827e2d55dc"
+    },
+    {
+      "index": "factory.director_lease_pkey",
+      "def_sha256": "6bc34bb6cfe68fdcf1acc24f3d5740eb20661122144a628fd9a598e1f30678a8"
+    },
+    {
+      "index": "factory.founder_notifications_one_live_per_order",
+      "def_sha256": "0233db86308f94d991622cbd400c1ae8951ff1ca8b4df98fc930618112f760fe"
+    },
+    {
+      "index": "factory.founder_notifications_pkey",
+      "def_sha256": "eb68ee6a8df0af85aaf71754d3329b07e071059e73abd11e3dc3d1d2ae0e12f8"
+    },
+    {
+      "index": "factory.nodes_pkey",
+      "def_sha256": "ca13a5b0fbad85a5bcbc20f7166f0bb3281742a7ca709c599c8afdc5cfa4c48f"
+    },
+    {
+      "index": "factory.plane_identity_pkey",
+      "def_sha256": "c826fe418e0bd243e7f4011844b8d1c76b0581f40378c1565c0b8927c8c47a92"
+    },
+    {
+      "index": "factory.surface_locks_pkey",
+      "def_sha256": "3e257e4595db8c8cd436127b563a2f0cbd293bf6f5c786abfe109b18893a742c"
+    },
+    {
+      "index": "factory.work_order_dependencies_pkey",
+      "def_sha256": "103e84616136cccfe0cb278e69f28311a90c1ce147f744d637db02016b2f490a"
+    },
+    {
+      "index": "factory.work_orders_director_state_idx",
+      "def_sha256": "1be1a44f6222414392b658118549cb774fa73c1d0b873056c24e9626d243eb1a"
+    },
+    {
+      "index": "factory.work_orders_pkey",
+      "def_sha256": "8859b2717912075aad5ae2681b1a8fd688083ad8c995ddb68aca1a1274510d13"
+    }
+  ],
+  "extensions": [
+    {
+      "extname": "pg_stat_statements",
+      "extversion": "1.11",
+      "sch": "extensions"
+    },
+    {
+      "extname": "pgcrypto",
+      "extversion": "1.3",
+      "sch": "extensions"
+    },
+    {
+      "extname": "plpgsql",
+      "extversion": "1.0",
+      "sch": "pg_catalog"
+    },
+    {
+      "extname": "supabase_vault",
+      "extversion": "0.3.1",
+      "sch": "vault"
+    },
+    {
+      "extname": "uuid-ossp",
+      "extversion": "1.1",
+      "sch": "extensions"
+    }
+  ],
+  "event_triggers": [
+    {
+      "evtname": "issue_graphql_placeholder",
+      "evtevent": "sql_drop",
+      "evtenabled": "O",
+      "fn": "set_graphql_placeholder"
+    },
+    {
+      "evtname": "issue_pg_cron_access",
+      "evtevent": "ddl_command_end",
+      "evtenabled": "O",
+      "fn": "grant_pg_cron_access"
+    },
+    {
+      "evtname": "issue_pg_graphql_access",
+      "evtevent": "ddl_command_end",
+      "evtenabled": "O",
+      "fn": "grant_pg_graphql_access"
+    },
+    {
+      "evtname": "issue_pg_net_access",
+      "evtevent": "ddl_command_end",
+      "evtenabled": "O",
+      "fn": "grant_pg_net_access"
+    },
+    {
+      "evtname": "pgrst_ddl_watch",
+      "evtevent": "ddl_command_end",
+      "evtenabled": "O",
+      "fn": "pgrst_ddl_watch"
+    },
+    {
+      "evtname": "pgrst_drop_watch",
+      "evtevent": "sql_drop",
+      "evtenabled": "O",
+      "fn": "pgrst_drop_watch"
+    }
+  ],
+  "storage_buckets": {
+    "readable": false,
+    "note": "storage.buckets is not readable by this login; the observer role covers it"
+  },
+  "hashed_sections": [
+    "relations",
+    "columns",
+    "column_acl",
+    "functions",
+    "roles",
+    "role_memberships",
+    "role_database_settings",
+    "database_acl",
+    "table_acl",
+    "function_acl",
+    "schema_acl",
+    "default_acl",
+    "triggers",
+    "policies",
+    "rules",
+    "constraints",
+    "indexes",
+    "extensions",
+    "event_triggers",
+    "storage_buckets"
+  ],
+  "snapshot_sha256": "2292e0ae3c421eae2a3b6b1a4ea0743ff8d5c5aabbf9ccf87b762092d4324ccc",
+  "not_hashed": {
+    "observed_at_utc": "2026-09-26T10:39:07.147188Z",
+    "factory_table_counters": [
+      {
+        "tbl": "agent_runs",
+        "ins": "161",
+        "upd": "702",
+        "del": "148"
+      },
+      {
+        "tbl": "checkpoints",
+        "ins": "160",
+        "upd": "0",
+        "del": "148"
+      },
+      {
+        "tbl": "director_lease",
+        "ins": "0",
+        "upd": "0",
+        "del": "0"
+      },
+      {
+        "tbl": "founder_notifications",
+        "ins": "0",
+        "upd": "0",
+        "del": "0"
+      },
+      {
+        "tbl": "nodes",
+        "ins": "236",
+        "upd": "5695",
+        "del": "232"
+      },
+      {
+        "tbl": "plane_identity",
+        "ins": "1",
+        "upd": "0",
+        "del": "0"
+      },
+      {
+        "tbl": "surface_locks",
+        "ins": "161",
+        "upd": "155",
+        "del": "222"
+      },
+      {
+        "tbl": "work_order_dependencies",
+        "ins": "0",
+        "upd": "0",
+        "del": "0"
+      },
+      {
+        "tbl": "work_orders",
+        "ins": "176",
+        "upd": "387",
+        "del": "166"
+      }
+    ],
+    "factory_table_rows": [
+      {
+        "table": "agent_runs",
+        "primary_key": [
+          "run_id"
+        ],
+        "n": 12,
+        "rows": [
+          {
+            "key": "1522f765-d3c5-4a13-8ae3-be5a8b2fe473",
+            "sha256": "0dc61defe15f6b0bea1bc5c34bfc3d0af92e91cb9fc06320dc49bf0eba7f4f5c"
+          },
+          {
+            "key": "285d4439-af11-4a50-ab98-88db45e15e28",
+            "sha256": "967d0268a46ed303aec89b09af1ca5a8081124b5d09f7675c0d3067df9ca046a"
+          },
+          {
+            "key": "2f4c6d88-8c86-4a34-8f3c-b9064ab49feb",
+            "sha256": "77e3deef57ac25456680010fa36c446ca456b365e1f8c7a39aaa01f1d703cba5"
+          },
+          {
+            "key": "33ce7276-c4e5-4cf6-a1e0-cb97b7d61abd",
+            "sha256": "5c5d1da694f92a655e0fbc56a17f0d43adeeafa55dacc4d1acc6033f935413e0"
+          },
+          {
+            "key": "56ab2fc7-5432-4050-940e-6a24c6922dd2",
+            "sha256": "b62dbf4dc0b183bb6dd193d53ef2a996b29a6ac84736d224adde1fa9c434e9b6"
+          },
+          {
+            "key": "6b9447ec-4b59-4452-b8b1-55938a9fa6e5",
+            "sha256": "110a01d197b141b0fe20d13a35f2c2a0eecb43e7967a1c7afd7e0f23b84bcebb"
+          },
+          {
+            "key": "8dacd112-87ab-4903-8a90-b8e5be69844f",
+            "sha256": "ff22c8731aaf4c441b960ae7efe37b06457071e49b7caf9e79dc140f309f4d02"
+          },
+          {
+            "key": "9bce37ed-bf42-44d4-bacb-049f9721dd21",
+            "sha256": "ce236b9132813621f3e160d7345437f583ae0a18a7bb0df9403d619f2f5e7b22"
+          },
+          {
+            "key": "cc3572c4-bbf8-4cc0-a333-58d036bd1649",
+            "sha256": "0e63c388d9de9815b2f095a0ad29cd210773010e3855fb40deb98035376841f1"
+          },
+          {
+            "key": "d8562881-efe7-4831-aa04-c9b066bf7778",
+            "sha256": "fd62ffa18c1413261843768f449e1346e77ff78568c2cdca42691b1dfc526d6c"
+          },
+          {
+            "key": "dbc44e76-9db3-4bea-98c2-717b6a9ff059",
+            "sha256": "5349f60a1c7f49d3e3e3a3e09feb01aea7fbc5485105c946baa8533fc70a200d"
+          },
+          {
+            "key": "fe90383d-3db1-4ef6-a0ba-fab02f565b8d",
+            "sha256": "cbcd53a4801fcbe72d8edd428c21f1c0b52f8dc5ba6b76e048cf8679d6107192"
+          }
+        ]
+      },
+      {
+        "table": "checkpoints",
+        "primary_key": [
+          "checkpoint_id"
+        ],
+        "n": 12,
+        "rows": [
+          {
+            "key": "15524e07-539d-42f6-9821-cc17ba50374f",
+            "sha256": "1f0ad1c51c92dda696bfa32a99b8012398998b17528426e43a9ae4f9895915a3"
+          },
+          {
+            "key": "3dbd358e-f895-4393-9a9d-189136bd699b",
+            "sha256": "0ba6a7799578110477da773a48412e1b3bff5a3118c4e757fb8485ae0aafa016"
+          },
+          {
+            "key": "520b2ad1-25eb-4f8f-bc28-33e561775519",
+            "sha256": "4848df7bf629eafeda1a98f365402a1e7a52f68af42ace479f062ff7e40b5971"
+          },
+          {
+            "key": "5578fbf3-7c87-4f24-a0cc-4c185d4d387c",
+            "sha256": "4b17be9bfc95f7bb70e32f646f6247fc60ea94f6810293e8dc72e830a465f332"
+          },
+          {
+            "key": "55cdb59e-a80b-49e6-8e3f-718d67156b2c",
+            "sha256": "4454e500e163d52f7fa2398397f25ea7b5c5f3247afe5e777b4cb6d93be713c0"
+          },
+          {
+            "key": "828444b2-c779-4aaa-ae30-4c0674fb67fb",
+            "sha256": "b29f6718d93deeb1d726212501fff2fecd7e62dd04ad46a9179ca559c0ead407"
+          },
+          {
+            "key": "90ec020a-0dad-4ab6-a69e-6699f3e246d6",
+            "sha256": "957e20d996caaca1e82f3a2bbd9e6f98813d71f5307e97118af921a654109c1e"
+          },
+          {
+            "key": "ae84569a-6d44-4b3e-9f99-7322cfe567fd",
+            "sha256": "1a107450e922c16bb4b6b38028d728157e26e9b639ea18942c7c82641d93b778"
+          },
+          {
+            "key": "c038b9aa-fc15-42c5-84a6-36cee8e23a63",
+            "sha256": "bbb6e42a7437e659afb66cb91b78870f602f3a71b04848599825ea209cc4f9fa"
+          },
+          {
+            "key": "c7dbda0d-a414-4ede-8a44-b52c9d03b36c",
+            "sha256": "675c836f28417342a2199a879eeb3465cbb9334dbaeebbff59f975b84514bdf0"
+          },
+          {
+            "key": "e5b4fecd-daae-407f-9c54-a3395beefb2b",
+            "sha256": "fd0d6798531aadc9b9deb2b5bba75a6eee846e6b04e09fe2e9a587967e56fce1"
+          },
+          {
+            "key": "ef55ddbe-eb59-401d-a99a-9f84bac2d6bf",
+            "sha256": "fa3b1c7e6b159455acc02bd1c4e502e2eaee070e1f37099b49813b78e75ff1c0"
+          }
+        ]
+      },
+      {
+        "table": "director_lease",
+        "primary_key": [
+          "only_one"
+        ],
+        "n": 0,
+        "rows": []
+      },
+      {
+        "table": "founder_notifications",
+        "primary_key": [
+          "notification_id"
+        ],
+        "n": 0,
+        "rows": []
+      },
+      {
+        "table": "nodes",
+        "primary_key": [
+          "node_id"
+        ],
+        "n": 4,
+        "rows": [
+          {
+            "key": "node-4d4a74dd-4035-4d34-9cac-d2d1a8050d37",
+            "sha256": "263ea5aaa3cf18b65fff2fea5f9b818819293f26de21322ceb789fa93623202b"
+          },
+          {
+            "key": "node-9985e092-bacb-4e8e-8437-e91243af5ff9",
+            "sha256": "4b5c86c1519fa795aa190ef6b0b4e16d1277adb647be14ed98de7227b053e747"
+          },
+          {
+            "key": "node-tms-4d4a74dd-403",
+            "sha256": "761e00173b0a17e08f365ff857c75ad4b60d224f2b9510f6091ae59fe43f043f"
+          },
+          {
+            "key": "node-tms-9985e092-bac",
+            "sha256": "d9d872037bc95eb47c92cfe0e3da8797281cbc64d1ae6b1e12f188c86d1ad488"
+          }
+        ]
+      },
+      {
+        "table": "plane_identity",
+        "primary_key": [
+          "project_ref"
+        ],
+        "n": 1,
+        "rows": [
+          {
+            "key": "npvhuoozkbexddnvkqsj",
+            "sha256": "cfc980b58c01cb09275bf44e530f7abaf283991b7d0ea537c2a4d300e7b27a87"
+          }
+        ]
+      },
+      {
+        "table": "surface_locks",
+        "primary_key": [
+          "surface"
+        ],
+        "n": 0,
+        "rows": []
+      },
+      {
+        "table": "work_order_dependencies",
+        "primary_key": [
+          "work_order_id",
+          "depends_on"
+        ],
+        "n": 0,
+        "rows": []
+      },
+      {
+        "table": "work_orders",
+        "primary_key": [
+          "work_order_id"
+        ],
+        "n": 10,
+        "rows": [
+          {
+            "key": "001a358a-3e76-49e6-b70c-5b1da08d330e",
+            "sha256": "e6c7c49da2e26b1e19955b8864560320b443cec4de5aded21f17ff4bdb00570c"
+          },
+          {
+            "key": "14e30db9-ebdf-4039-8a89-90a05793eb71",
+            "sha256": "01ddbb179657aa165a73c005d7df94f61d3df2aa421ef8b3847c38dab5ade263"
+          },
+          {
+            "key": "28027e09-2975-4b8d-be08-c2a3b1f63abc",
+            "sha256": "165580eb004c05b531dd64f43a11b895f900ea63ac221217573d0a6d614def5d"
+          },
+          {
+            "key": "54fb6200-ac7f-4c57-85ea-741b8eea88c9",
+            "sha256": "67f8d31fb4c6539ed916d108e0bb88c3d8c8dd090bb21e5541a2a34aae8e9803"
+          },
+          {
+            "key": "57fb5f84-738e-419b-a36c-be7a7c756209",
+            "sha256": "dbeb860e9ff319dcee9fdf4fba635375abbafc159b0f020798f58495eb5c0c20"
+          },
+          {
+            "key": "852322de-b67d-4e28-adfb-7683bdc18a22",
+            "sha256": "b743aa8bf3a885de295616110bdc997f34bc6244823ed8da351a1df0bd9177ea"
+          },
+          {
+            "key": "d1cb5674-2037-46f5-b08c-f089e9953ac0",
+            "sha256": "8b97ba66b93ec3f83c83894e734b767993fb7cd52262b4a6227d711d6e8db3bc"
+          },
+          {
+            "key": "e992749f-4264-41b3-a057-23938e346dfe",
+            "sha256": "5eedcb2ac260419114bd4a0b62369ae170c150c128f4666918600bb02c7ac21e"
+          },
+          {
+            "key": "f59b680c-39db-4a5c-be69-ec5ded763216",
+            "sha256": "00968e3ac2979bbd7f207f362068034b6a6395205b9d8881c6e44c74c4a18760"
+          },
+          {
+            "key": "faf6bd9f-16b5-4a91-ab95-beced33aef0e",
+            "sha256": "c0dae6c4d999fa31762cd58f02173dd495ea23102a977ec5e936856682ec0e52"
+          }
+        ]
+      }
+    ]
+  }
+}

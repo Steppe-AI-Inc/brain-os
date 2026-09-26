@@ -1,0 +1,291 @@
+{
+  "manifest": "closed two-machine baseline evidence at 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6",
+  "purpose": "Referent for AC-11 (baseline intact) and AC-13 part (1). Evidence fields only; columns added later (e.g. tenant_id) are outside the hash.",
+  "materialized_by": "DIRECTOR (read-only SELECT on the live plane npvhuoozkbexddnvkqsj)",
+  "plane": "npvhuoozkbexddnvkqsj",
+  "hash_rule": "row sha256 = sha256 of canonical JSON of exactly the listed fields: object keys sorted recursively (jsonb included), timestamps rendered by SQL as UTC text with microseconds (YYYY-MM-DDTHH24:MI:SS.USZ), null as null, numbers as JSON numbers; set_sha256 = sha256 of the canonical JSON array of the row objects in the query order (runs: started_at, run_id; work orders: created_at, work_order_id; checkpoints: created_at, checkpoint_id)",
+  "instrument": "qa/verification/auto-enrollment-v1/tools/baseline_manifest.mjs",
+  "fields": {
+    "agent_runs": [
+      "run_id",
+      "work_order_id",
+      "node_id",
+      "status",
+      "base_commit",
+      "head_commit",
+      "started_at",
+      "finished_at",
+      "authoring_run_id",
+      "authoring_node_id",
+      "verification_run_id",
+      "verification_node_id",
+      "verification_status",
+      "summary",
+      "error"
+    ],
+    "work_orders": [
+      "work_order_id",
+      "title",
+      "work_type",
+      "status",
+      "owned_surface",
+      "requires_security_role",
+      "requires_capabilities",
+      "completed_at",
+      "handoff"
+    ],
+    "checkpoints": [
+      "checkpoint_id",
+      "run_id",
+      "work_order_id",
+      "location",
+      "scenario",
+      "payload",
+      "created_at"
+    ]
+  },
+  "counts": {
+    "agent_runs": 12,
+    "work_orders": 10,
+    "checkpoints": 12
+  },
+  "agent_runs": [
+    {
+      "run_id": "285d4439-af11-4a50-ab98-88db45e15e28",
+      "sha256": "636b608bfc897e0eba8bcf7f280c9780acc3bc92a77e736f85bc6bc4435ef515"
+    },
+    {
+      "run_id": "d8562881-efe7-4831-aa04-c9b066bf7778",
+      "sha256": "363d3312866735537ee645dcdf2c18928a404c4b470e383aa5e1b41c059165a9"
+    },
+    {
+      "run_id": "cc3572c4-bbf8-4cc0-a333-58d036bd1649",
+      "sha256": "d8605bac2ab9d8ae571e6131a2e05b4e266700e6bc30f908c418861d25f81153"
+    },
+    {
+      "run_id": "dbc44e76-9db3-4bea-98c2-717b6a9ff059",
+      "sha256": "d6393a46ff4be4d5d58aee4de4ac517d635cd6deafa60cf2a7c12dda16d6e520"
+    },
+    {
+      "run_id": "9bce37ed-bf42-44d4-bacb-049f9721dd21",
+      "sha256": "08652155e9a3bedfdc5cc4498e11487cbd58bd1d9592741062424920d2701130"
+    },
+    {
+      "run_id": "8dacd112-87ab-4903-8a90-b8e5be69844f",
+      "sha256": "de03ddb6110dee07b1c0400d954d3fbb04842fbab2663eb7424f61ff8d38c416"
+    },
+    {
+      "run_id": "2f4c6d88-8c86-4a34-8f3c-b9064ab49feb",
+      "sha256": "d4e7baee6e9b03d757839cef5b3eca8a28f155e91856548550166ac0da539ee5"
+    },
+    {
+      "run_id": "1522f765-d3c5-4a13-8ae3-be5a8b2fe473",
+      "sha256": "1fec7f5dfcd997f15cebc65b55796662a6780518dc0dd65c94d8237473062d13"
+    },
+    {
+      "run_id": "33ce7276-c4e5-4cf6-a1e0-cb97b7d61abd",
+      "sha256": "d5748ff9ba83af88209bdcee7db714c0c971200519692cacbf000a72444a9c5b"
+    },
+    {
+      "run_id": "fe90383d-3db1-4ef6-a0ba-fab02f565b8d",
+      "sha256": "6fac7585cee7803221e3f867a3b5695b274a4bc2e51e514df2440bc04626acda"
+    },
+    {
+      "run_id": "56ab2fc7-5432-4050-940e-6a24c6922dd2",
+      "sha256": "3bf08250ddf113d2a3c1e15b4ad2b484c33ab698e56da5fe34695210d9357dbf"
+    },
+    {
+      "run_id": "6b9447ec-4b59-4452-b8b1-55938a9fa6e5",
+      "sha256": "c98a07a3d91c57154c91253c0c20b08e9c4d3707cbbb7b96710605ff18562ff2"
+    }
+  ],
+  "work_orders": [
+    {
+      "work_order_id": "14e30db9-ebdf-4039-8a89-90a05793eb71",
+      "title": "TMR-20260926T031636-ed22 failover DESKTOP-MDPE6FS>DESKTOP-8P5HVAO",
+      "sha256": "963402976d7232b32d8e9a89d8a2bad9573a65b5ba057df46821c9f3627ee838"
+    },
+    {
+      "work_order_id": "852322de-b67d-4e28-adfb-7683bdc18a22",
+      "title": "TMR-20260926T031636-ed22 failover DESKTOP-8P5HVAO>DESKTOP-MDPE6FS",
+      "sha256": "be93d5cdf448f631693bfe425d38455a06194c4de0bca898cb8e7eece9c9287a"
+    },
+    {
+      "work_order_id": "001a358a-3e76-49e6-b70c-5b1da08d330e",
+      "title": "TMR-20260926T031636-ed22 conflict-a",
+      "sha256": "19392d5f75abf60b94d690c946b3822af6086dbda2d9296e19bb4178a4542f31"
+    },
+    {
+      "work_order_id": "57fb5f84-738e-419b-a36c-be7a7c756209",
+      "title": "TMR-20260926T031636-ed22 conflict-b",
+      "sha256": "d378a878166876ca67fa899761eb2cf9ae7293536790a306492095724b58214e"
+    },
+    {
+      "work_order_id": "e992749f-4264-41b3-a057-23938e346dfe",
+      "title": "TMR-20260926T031636-ed22 free",
+      "sha256": "17aee835b192496f8640a2476524a482e3bb2af6530135b75510d687153b8938"
+    },
+    {
+      "work_order_id": "d1cb5674-2037-46f5-b08c-f089e9953ac0",
+      "title": "TMR-20260926T031636-ed22 verify",
+      "sha256": "9b911adbe557ccd66781d07b28d7ad55932ca7c3b9475d0b66202da1a9cd452b"
+    },
+    {
+      "work_order_id": "54fb6200-ac7f-4c57-85ea-741b8eea88c9",
+      "title": "TM-sched 20260926T032017-68d6 conflict-a",
+      "sha256": "614ad346597908383cefea5c038b396c57480072ab1bfd7cc50f899f93eb7436"
+    },
+    {
+      "work_order_id": "faf6bd9f-16b5-4a91-ab95-beced33aef0e",
+      "title": "TM-sched 20260926T032017-68d6 conflict-b",
+      "sha256": "56fc358bae9831a22d90bba97417d32c2f54021e4592487cd68b8a8b3776945d"
+    },
+    {
+      "work_order_id": "f59b680c-39db-4a5c-be69-ec5ded763216",
+      "title": "TM-sched 20260926T032017-68d6 free",
+      "sha256": "34c4a8cf7b174b79c15ebc4bcbe9e86e7c692be3886bafaaa6ac1d9f51b673c3"
+    },
+    {
+      "work_order_id": "28027e09-2975-4b8d-be08-c2a3b1f63abc",
+      "title": "TM-sched 20260926T032017-68d6 verifier",
+      "sha256": "82f523e56c26aba228982cbc6e1b05fbc569028cfa758afcd6f27e213c4d4d0a"
+    }
+  ],
+  "checkpoints": [
+    {
+      "checkpoint_id": "90ec020a-0dad-4ab6-a69e-6699f3e246d6",
+      "sha256": "ded8cb05f8e6821f57907cb4fda946813307c97a4b9b7de554e6c049d530001b"
+    },
+    {
+      "checkpoint_id": "ef55ddbe-eb59-401d-a99a-9f84bac2d6bf",
+      "sha256": "ae281d45f8b30b4c6e9d4ec9651e46dab7bd99ed25f60390d2e40807b16e1652"
+    },
+    {
+      "checkpoint_id": "e5b4fecd-daae-407f-9c54-a3395beefb2b",
+      "sha256": "e7d45947f542d961b744d997106ecff850cafd9fa9e3ff67263cb6e0484154b4"
+    },
+    {
+      "checkpoint_id": "5578fbf3-7c87-4f24-a0cc-4c185d4d387c",
+      "sha256": "2838dd0c880b9e596fd16deab243fd1f603b6489205fdddf4b8e6d9dfec11edb"
+    },
+    {
+      "checkpoint_id": "c7dbda0d-a414-4ede-8a44-b52c9d03b36c",
+      "sha256": "1604efb0e7e4cc3aaea82fc896f742f6879aac3032caca19d440476e4ebe768c"
+    },
+    {
+      "checkpoint_id": "55cdb59e-a80b-49e6-8e3f-718d67156b2c",
+      "sha256": "8fe4409f6dfe9f59e91f743b70b82426106c1b77f169d5dfa8c1afc816eed60b"
+    },
+    {
+      "checkpoint_id": "828444b2-c779-4aaa-ae30-4c0674fb67fb",
+      "sha256": "00d77c08b752c36a8ef8eff44d8dd2d679920d1e9ae254fbd91fc30efe3250c8"
+    },
+    {
+      "checkpoint_id": "15524e07-539d-42f6-9821-cc17ba50374f",
+      "sha256": "a2b8ebc91e1fc0231b6c34500f86f2ac56abc532979d5345cbf4384825c446ba"
+    },
+    {
+      "checkpoint_id": "520b2ad1-25eb-4f8f-bc28-33e561775519",
+      "sha256": "9f5e2af6564bb2c5720e7c068606c0b0e7c666c297a2bccef6bbe60943d28817"
+    },
+    {
+      "checkpoint_id": "ae84569a-6d44-4b3e-9f99-7322cfe567fd",
+      "sha256": "0b14edab4faf79b9fe8515e7ae2f7df22e31dcf5d4814088b086c3e453163534"
+    },
+    {
+      "checkpoint_id": "3dbd358e-f895-4393-9a9d-189136bd699b",
+      "sha256": "ddb4178fd6102ce727b3daf82a2709e51314847a1d19c3c9ec035c3e561ebbe6"
+    },
+    {
+      "checkpoint_id": "c038b9aa-fc15-42c5-84a6-36cee8e23a63",
+      "sha256": "1490b2edd273a92379b8ca2db4e9b8837268a193a3f1acd12f166c12b4e35596"
+    }
+  ],
+  "set_sha256": {
+    "agent_runs": "374ec7bfe0e7697820dca4a6b690d619a3f648d70c931e2888d1bcc507d08ea1",
+    "work_orders": "45adc662d80d244d4698c46ba5292f8187750fd67e87c37740115b1fd8c78813",
+    "checkpoints": "4ad4c1a573e29a55329d187ebdb2ea6f502e23a0bda9ffa9d943ebfe582c110c"
+  },
+  "certification_record": {
+    "repo": "C:/Users/Dell/dev/brain-os-wo-resolver",
+    "branch": "wo/clarification-resolver",
+    "ledger_218_commit": "bf59ea34bd7ea9c10950e52ac7166e22922269be",
+    "ledger_218_commit_present": true,
+    "pushed": null,
+    "evidence_dir": "qa/verification/factory-two-machine-2026-09-26",
+    "evidence_files": [
+      {
+        "file": "clock-skew.log",
+        "sha256": "1ebca9ec2c01421b54ddb1956939463e92c57e2953c48c7f441dd582279bca55"
+      },
+      {
+        "file": "clock_skew.mjs",
+        "sha256": "5b306864406b21485ec04a430369ad86628dce822e9e428fa749ab2c16ed1ca2"
+      },
+      {
+        "file": "composer-2m-69df.log",
+        "sha256": "ee84071927bc1fa948fc152838a92c9486581ddbe1b6848fd4dab69f0d19f96c"
+      },
+      {
+        "file": "composer-plane-69df.log",
+        "sha256": "5c16949e453f492635e051f7a14adce3f2710d4f5bd428603794498ad4a3412a"
+      },
+      {
+        "file": "composer_plane.mjs",
+        "sha256": "f80913c9e4d53d4a99caf3c1c33f7cf18000ceec9c7f2cd2b36fae639cf8c604"
+      },
+      {
+        "file": "stale-attempt-69df.log",
+        "sha256": "1e25199088c9b048006025cd151428a5e2abfd33426071f712d9a5f919bc2f28"
+      },
+      {
+        "file": "stale_attempt.mjs",
+        "sha256": "3fa702b96378d73e5d7e5b2538081e67d03476cdd55a4920e9321a3b1f3c6b41"
+      },
+      {
+        "file": "tm_evidence.mjs",
+        "sha256": "2c437d73237594e2ec1bdb0e463c3294c0a16a04289694090e03828e9415d6f9"
+      },
+      {
+        "file": "tmr-evidence-before.json",
+        "sha256": "1290cebfea760fa0e6fae97e5e49bed43494045478406ccb432b278cf5e8aea0"
+      },
+      {
+        "file": "tmr-evidence-before.log",
+        "sha256": "05e73013d9eb63676362bc3e38ba32611bb646dbb5210616018891651d240375"
+      },
+      {
+        "file": "tmr-nodes-69df.log",
+        "sha256": "bfc423230853ca73675f88ef35e6fc5aef0574ba27df6272b178349c67a04bc4"
+      },
+      {
+        "file": "tmr-run-69df.log",
+        "sha256": "2db501b1258019286275e074b09f9d673f45b675517b23aa031116e2ae0455f8"
+      },
+      {
+        "file": "tms-evidence.json",
+        "sha256": "e0b60d728990150511189102b01cbc8cbac5c3dbcdbe7ffe3cb90675ae21f9c0"
+      },
+      {
+        "file": "tms-evidence.log",
+        "sha256": "fe0568659619751098f2ca50399b9f56136f66bbd4190c6f127c0b9f34ce4865"
+      },
+      {
+        "file": "tms-home-wave-69df.log",
+        "sha256": "bd5ec10711a849d4fa0ab3fea80fc3930dade6453126cff660cd98caa2276c5e"
+      },
+      {
+        "file": "tms-seed-69df.log",
+        "sha256": "6b933f0a17752852cbe59da452b4901c77340f2b8e1cfa059bccf9a3cd74ebd6"
+      },
+      {
+        "file": "tms-verify-69df.log",
+        "sha256": "648ba1cbafe2a7eaf7be4b7073c1d7159a9e46c74cb2ca740ad8a2df0f521481"
+      },
+      {
+        "file": "wave_watch.mjs",
+        "sha256": "873cd15e1e8a8b33c72d27c1e8026801d57952584f2730418347a37cdb93a56c"
+      }
+    ]
+  }
+}

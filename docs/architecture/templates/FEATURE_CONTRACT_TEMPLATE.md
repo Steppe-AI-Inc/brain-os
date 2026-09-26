@@ -41,7 +41,7 @@ The reverse of every transition (in scope for this delivery).
 | conflicting update | | |
 | archived / inactive target or parent | | |
 
-## 10. Acceptance criteria (Work PC will run these)
+## 10. Acceptance criteria (written by the Director; run by independent acceptance, never by the implementer)
 Numbered, each with precondition → action → expected postcondition → surfaces to check
 → fresh-session check.
 

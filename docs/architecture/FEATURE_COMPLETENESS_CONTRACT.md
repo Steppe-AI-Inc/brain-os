@@ -16,7 +16,7 @@ parent/child policy: `governance/CANONICAL_WORK_CONTRACT.md`. Authorization cont
 
 ```
 PRODUCT CONTRACT → STATE MACHINE → INVARIANTS → SECURITY / TENANCY → SHARED PRIMITIVES
-→ UX STATES → IMPLEMENTATION → DEVELOPER VERIFICATION → DEPLOY → INDEPENDENT WORK-PC ACCEPTANCE
+→ UX STATES → IMPLEMENTATION → DEVELOPER VERIFICATION → DEPLOY → INDEPENDENT ACCEPTANCE
 ```
 
 Product semantics are defined first. Shared primitives enforce them. Code implements
@@ -48,7 +48,7 @@ Every meaningful product capability has a feature contract (template:
    missing entity · stale state · duplicate request · unauthorized · foreign org ·
    already in target state · partial backend failure · conflicting concurrent update ·
    archived / inactive target or parent.
-10. **Acceptance criteria** — the checks the Work PC will run, written before code.
+10. **Acceptance criteria** — the checks independent acceptance will run, written by the Director before code.
 
 Small changes (copy, styling, a pure refactor with no semantic change) do not need a
 feature contract; anything that touches state, authorization, a relationship, a
@@ -127,7 +127,7 @@ concept to the surfaces that depend on it; keep it current.
 A feature is DONE only when all of the following are true. A feature is **not** complete
 because a component renders, TypeScript compiles, a button works, a row changes, an RPC
 returns success, a unit test passes, a toast appears, Brain produces a plausible sentence,
-Claude says "implemented", or Home-PC tests are green.
+Claude says "implemented", or implementer-side tests are green.
 
 - [ ] Feature contract exists and the implementation matches it (states, invariants,
       failure modes, inverse actions).
@@ -152,13 +152,19 @@ Claude says "implemented", or Home-PC tests are green.
 
 ## 8. Ownership
 
-| Home / Main PC (implementation) | Work PC (independent acceptance) |
-|---|---|
-| architecture, implementation, migrations, developer testing, source invariants, deployment after the founder boundary, fix reports | deployed-browser acceptance, adversarial QA, production regressions, independent evidence |
-| may mark READY FOR DEPLOYMENT, DEPLOYED, READY FOR INDEPENDENT QA (`ready_for_retest`) | alone marks CLOSED / REOPENED |
-| may never mark PRODUCTION VERIFIED, CLOSED, or "production accepted" | owns `qa/BUG_QUEUE.json`, `qa/COVERAGE_LEDGER.json`, `qa/FIXTURE_REGISTRY.json`, `qa/HANDOFF_STATE.json` (single-writer) |
+Roles, not machines (`docs/architecture/adr/ADR-2026-09-26-node-roles-are-labels.md`
+supersedes the Home-PC / Work-PC mapping and records the current placement). The Director
+owns what must be true; a proposal that changes it is a CHANGE REQUEST
+(`qa/work-orders/change-requests/`) and is not implemented before ratification. The
+implementer never self-certifies, and can never define or alter the work or acceptance contract it is judged against.
 
-Fix reports go to branch `qa/home-pc-handoff` at `qa/home-pc-handoff/fixes/<BUG_ID>.json`.
+| Director (a logical capability) | Implementer | Independent verifier / acceptance |
+|---|---|---|
+| product contract, invariants, binding Work Orders, acceptance criteria, verification specification; ratifies change requests | implementation architecture and design within the canonical contract, implementation, migrations, developer testing, source invariants, deployment after the founder boundary, fix reports | deployed-browser acceptance, adversarial QA, production regressions, independent evidence, as a distinct authorized verifier |
+| single writer of the canonical coordination ledgers and acceptance state (`qa/BUG_QUEUE.json`, `qa/COVERAGE_LEDGER.json`, `qa/FIXTURE_REGISTRY.json`, `qa/HANDOFF_STATE.json`); records CLOSED / REOPENED only on an independent receipt | may mark READY FOR DEPLOYMENT, DEPLOYED, READY FOR INDEPENDENT QA (`ready_for_retest`) | contributes immutable, content-addressed verification receipts through the defined workflow |
+| | may never mark PRODUCTION VERIFIED, CLOSED, or "production accepted"; may not alter verification evidence or self-close | never verifies a candidate when it is a run in the authoring set or holds one of the authoring identities |
+
+Fix reports go to branch `qa/home-pc-handoff` at `qa/home-pc-handoff/fixes/<BUG_ID>.json` (a historical branch name that confers nothing).
 
 ## 9. Fix-report contract
 

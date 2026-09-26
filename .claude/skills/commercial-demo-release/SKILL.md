@@ -30,8 +30,9 @@ current release-operator run — never re-trust a prior report:
 11. Rollback readiness — a real, stated way to revert if something goes wrong.
 12. Truth contracts — `qa/scenarios-runner/architecture_*` pass; inverse actions and every
     registry-listed surface verified; receipts truthful (`OPERATING_TRUTH_MODEL.md` §5).
-13. Independent acceptance — a Work-PC rerun is required before any bug is CLOSED or the
-    release is called PRODUCTION ACCEPTED; the Home PC may report at most READY FOR
+13. Independent acceptance — a rerun by a distinct authorized verifier (never the
+    implementer), recorded by the Director, is required before any bug is CLOSED or the
+    release is called PRODUCTION ACCEPTED; the implementer may report at most READY FOR
     INDEPENDENT QA.
 
 Output exactly one of `PASS`/`CONCERNS`/`FAIL`/`BLOCKED` — never softened language.

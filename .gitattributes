@@ -28,3 +28,26 @@ qa/verification/scratch/v92/v92.lf.ts eol=lf
 # Windows default) is tolerated by Git for Windows but breaks every other bash (found 2026-09-24 checking a fresh clone of
 # the Factory branch for the Work PC). The index is already LF; this only stops the checkout rewriting it.
 *.sh text eol=lf
+
+# Director artifacts for Factory Node Management + Auto Enrollment are frozen by sha256 in
+# qa/work-orders/AUTO_ENROLLMENT_V1_LEDGER.json (canonical documents, binding work orders, verification receipts). The hash is over
+# the committed content. Forcing LF on the text files keeps a checkout on any machine (core.autocrlf=true included) byte-identical to
+# it, so a mismatch always means the content changed, never the line endings. Evidence under a receipt's evidence/ directory is
+# marked binary so a screenshot (a PNG signature contains CR LF) is never rewritten.
+docs/architecture/features/factory-node-management-auto-enrollment*.md text eol=lf
+CLAUDE.md text eol=lf
+docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md text eol=lf
+docs/architecture/templates/FEATURE_CONTRACT_TEMPLATE.md text eol=lf
+qa/verification/auto-enrollment-v1/tools/*.mjs text eol=lf
+docs/architecture/adr/ADR-2026-09-26-node-roles-are-labels.md text eol=lf
+qa/work-orders/AUTO_ENROLLMENT_V1_LEDGER.* text eol=lf
+qa/work-orders/auto-enrollment-v1/*.md text eol=lf
+qa/verification/auto-enrollment-v1/*.md text eol=lf
+qa/verification/auto-enrollment-v1/*.json text eol=lf
+qa/verification/auto-enrollment-v1/*/*.json text eol=lf
+.claude/skills/feature-delivery/SKILL.md text eol=lf
+.claude/skills/commercial-demo-release/SKILL.md text eol=lf
+qa/PRODUCTION_CHECKLIST.md text eol=lf
+docs/MESSAGING-TRANSPORT-ARCHITECTURE.md text eol=lf
+.gitattributes text eol=lf
+qa/verification/auto-enrollment-v1/*/evidence/** binary

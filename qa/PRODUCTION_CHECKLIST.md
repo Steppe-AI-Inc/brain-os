@@ -47,6 +47,6 @@ boundary, never a way through it.
 - [ ] Reproduced the original report on production first.
 - [ ] Defect class named; same-class search done (`FEATURE_COMPLETENESS_CONTRACT.md` §4).
 - [ ] Regression test for the class added; `qa/KNOWN_FAILURE_MODES.md` entry written.
-- [ ] Fix report on `qa/home-pc-handoff` with `ready_for_retest`; never CLOSED (Work PC
-      closes).
+- [ ] Fix report on `qa/home-pc-handoff` with `ready_for_retest`; never CLOSED by the
+      implementer (the Director records CLOSED on an independent verifier's receipt).
 - [ ] Real release state used; test data cleaned up or registered as a fixture.

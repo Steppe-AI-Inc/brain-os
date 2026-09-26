@@ -1,0 +1,676 @@
+{
+  "ledger": "factory-node-management-auto-enrollment-v1",
+  "single_writer": "DIRECTOR",
+  "issuing_authority": "DIRECTOR",
+  "governance_tests": {
+    "Can the implementer define or alter the contract it is judged against?": "NO",
+    "Can hostname or resource fitness create authority?": "NO"
+  },
+  "director_signing_key": {
+    "format": "ssh-ed25519",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMqq8Gs6th84KblGohVODwpzVgXOvcNTXWvCfpqbG2P/ brain-os DIRECTOR signing key (DESKTOP-MDPE6FS) 2026-09-26",
+    "fingerprint": "SHA256:JuFaA95213JN0+3f/RAlUOAOK7G42IukX/qQiWeIALE",
+    "private_key_location": "the Director machine only (never committed)"
+  },
+  "implementer_signing_key": null,
+  "implementer_signing_key_note": "recorded by a Director entry after the implementer publishes its public key in a change request AND the founder confirms its fingerprint out of band, as displayed on the implementing machine (a one-time founder action, not a gate under II.11); verification runs and receipts proceed before it; only a CERTIFIED entry waits for it",
+  "designated_director_commit_rule": "the latest Director commit when the candidate notice arrives, unless the Director designates another in the event log",
+  "baseline_sha": "69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6",
+  "master_reference": "55a159172a9bbc9b69cde4d2f832418573a4b0b9",
+  "hash_definition": "sha256 of the committed blob (git show <commit>:<path>), never of a working-tree copy; .gitattributes pins these paths, and itself, to LF (receipt evidence/ is binary)",
+  "states": [
+    "BINDING",
+    "IN PROGRESS",
+    "CANDIDATE",
+    "CERTIFIED",
+    "REJECTED"
+  ],
+  "implementation_branch": "factory/auto-enrollment-v1-implementation",
+  "placement": {
+    "implementation_preferred": "DESKTOP-8P5HVAO",
+    "independent_verification_preferred": "DESKTOP-MDPE6FS",
+    "acceptance": "third laptop (untouched until clean final acceptance)",
+    "note": "Placement preferences are policy data and grant nothing."
+  },
+  "restrictions_source": "S-16 in docs/architecture/features/factory-node-management-auto-enrollment.SECURITY_TENANCY.md (verbatim extracts below)",
+  "restrictions": {
+    "S-16a": "no Auto-Enrollment product code is authored on the Home machine by any session or run, whether Factory-scheduled or not, and the DIRECTOR capability authors no product code",
+    "S-16b": "every milestone candidate is certified on a different physical machine from every member of its authoring set; at the product layer, a different physical machine means a different enrolled computer record whose machine fingerprint (contract §1) also differs: any fingerprint the certifying computer has reported that equals any fingerprint an authoring-set member's computer reported during the candidate refuses (detection may only restrict), and a hostname or a different fingerprint alone never satisfies it"
+  },
+  "document_set": [
+    {
+      "path": "docs/architecture/features/factory-node-management-auto-enrollment.FOUNDER_TEXT.md",
+      "sha256": "2a809839cbe3685a5ac33aae51592316e4c0b81ab922435d7685a7aa7a694a29"
+    },
+    {
+      "path": "docs/architecture/features/factory-node-management-auto-enrollment.md",
+      "sha256": "68b0128f9270edaa123defb34c975fc9b00ea02b2917a47d1f0bd58ebe95cf48"
+    },
+    {
+      "path": "docs/architecture/features/factory-node-management-auto-enrollment.SECURITY_TENANCY.md",
+      "sha256": "df0a711db68d80508c989e78133622646515ff3752b7fcf2b43ec5f46334dc66"
+    },
+    {
+      "path": "qa/verification/auto-enrollment-v1/ACCEPTANCE_MATRIX.md",
+      "sha256": "2a75e21bcd32a22cfd1a863e40fb2b72a5fc4d929c1c1284e1633d2c1d46777a"
+    },
+    {
+      "path": "qa/verification/auto-enrollment-v1/VERIFICATION_SPEC.md",
+      "sha256": "149a141138a9f03095a803de133e1b85e8aacec8dcaab1b0bd26a19e11e8d9fd"
+    },
+    {
+      "path": "qa/verification/auto-enrollment-v1/BASELINE_69df2f52_EVIDENCE_MANIFEST.json",
+      "sha256": "d62f96bd4639c5d5ae9b66e207681c9aa2bafd351d8071b57d696f4e565b13c5"
+    },
+    {
+      "path": "qa/verification/auto-enrollment-v1/BASELINE_69df2f52_EVIDENCE_ROWS.json",
+      "sha256": "fc7f0e0ba0a5ae2f289977dd353031bee01b4255b5a5925e40c4f744920c8488"
+    },
+    {
+      "path": "docs/architecture/adr/ADR-2026-09-26-node-roles-are-labels.md",
+      "sha256": "cda44e283cf004626970f7726f7a8d7ffb0f8c42066b22b7ebc08702def9e217"
+    },
+    {
+      "path": "CLAUDE.md",
+      "sha256": "85af09a9092fdc5c688ddad68be94575b9cd3a9271c952e8dbc19818394ce6c2"
+    },
+    {
+      "path": "docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md",
+      "sha256": "0c1dbe5a00d79f21b1adc2f2da129dd2af5757c9f794f23efb6e5d8c856e37a9"
+    },
+    {
+      "path": "docs/architecture/templates/FEATURE_CONTRACT_TEMPLATE.md",
+      "sha256": "d315117c2c82b5b149bd3db44404096240da3b3c85a8e5577e7deb17cdd3a79b"
+    },
+    {
+      "path": "qa/verification/auto-enrollment-v1/LIVE_PLANE_CATALOG_SNAPSHOT_PRE_CANDIDATE.json",
+      "sha256": "c56a7dc212ac96659d1fa9fa907954e1558d782a7eb4ee62a6be62ebeb45be87"
+    },
+    {
+      "path": "qa/verification/auto-enrollment-v1/tools/baseline_manifest.mjs",
+      "sha256": "940e4bed83cb311d804a68247d770ca87169967aae1baafc47dec2ffdab344e0"
+    },
+    {
+      "path": "qa/verification/auto-enrollment-v1/tools/live_catalog_snapshot.mjs",
+      "sha256": "cce945d496112ee443a1897368964b59f712fd9549a3fcb40c0ece26ac2c35b1"
+    },
+    {
+      "path": "qa/verification/auto-enrollment-v1/tools/plane_access.mjs",
+      "sha256": "d526b6c9a4089d429b47d6caf8e5ebcbe045555010f09a71c3a3e7f2431cff1a"
+    },
+    {
+      "path": ".claude/skills/feature-delivery/SKILL.md",
+      "sha256": "fc3df3d1b1cf3ae3eb241cc0ec519a79e145bacac3309360ca3b505a36c22c83"
+    },
+    {
+      "path": ".claude/skills/commercial-demo-release/SKILL.md",
+      "sha256": "cfdd7c1d2275a9ee290f00adc144a5acb95be28fb16ec2fb899af1ff486ad3a0"
+    },
+    {
+      "path": "qa/PRODUCTION_CHECKLIST.md",
+      "sha256": "96ba51339f796f1b846442efa1db5665818d130bc0bd3e9948da49dae7b1722b"
+    },
+    {
+      "path": "docs/MESSAGING-TRANSPORT-ARCHITECTURE.md",
+      "sha256": "f75f8720465616dbc34fb03892434375271721017233d5abf6029997e6a96ffd"
+    },
+    {
+      "path": ".gitattributes",
+      "sha256": "0a68aaee3d6953597b06b36f40663db62b85b6b229c404d7c3b2a84af41ae105"
+    }
+  ],
+  "work_orders": [
+    {
+      "id": "WO-1",
+      "title": "Tenancy, identity, envelopes, credentials, admins, policies and legacy coexistence (schema)",
+      "issued_by": "DIRECTOR",
+      "revision": 1,
+      "text_path": "qa/work-orders/auto-enrollment-v1/WO-1.md",
+      "text_sha256": "b21f91f27ca92fce41329170e9e24085e53fe50251e6187affb21a7c2047b2cd",
+      "state": "BINDING",
+      "depends_on": [],
+      "covers": [
+        "AC-1",
+        "AC-4",
+        "AC-6",
+        "AC-12",
+        "S-2",
+        "S-4",
+        "S-8",
+        "S-9",
+        "S-10",
+        "S-13",
+        "S-14",
+        "P-1"
+      ],
+      "founder_gate": null,
+      "founder_boundary": "Applying the schema to the live plane, and seeding `tenant_admins`, are founder actions. The candidate prepares the exact steps and does not run them. The prepared live-migration step is byte-identical to the migration the verifier ran to completion on the disposable copy, plus a Director-specified wrapper whose manifest recompute runs after the migration's last statement and before commit, aborting on any difference. The receipt records its sha256, and the founder applies exactly that file.",
+      "branch": null,
+      "candidate_sha": null,
+      "receipts": []
+    },
+    {
+      "id": "WO-2",
+      "title": "Factory Node API: an authenticated boundary over the same lifecycle",
+      "issued_by": "DIRECTOR",
+      "revision": 1,
+      "text_path": "qa/work-orders/auto-enrollment-v1/WO-2.md",
+      "text_sha256": "94fbe486c55b6565146147d4cba5cb697a87d19a8903d31238129dda2de7a257",
+      "state": "BINDING",
+      "depends_on": [
+        "WO-1"
+      ],
+      "covers": [
+        "AC-9",
+        "S-3",
+        "S-4",
+        "S-7",
+        "S-10",
+        "P-2",
+        "P-3"
+      ],
+      "founder_gate": null,
+      "founder_boundary": "Deploying the Edge Functions live is a founder action (`ALLOW_FUNCTIONS_DEPLOY=1?`).",
+      "branch": null,
+      "candidate_sha": null,
+      "receipts": []
+    },
+    {
+      "id": "WO-3",
+      "title": "Add Computer: pairing and enrollment protocol (the capability envelope is granted here)",
+      "issued_by": "DIRECTOR",
+      "revision": 1,
+      "text_path": "qa/work-orders/auto-enrollment-v1/WO-3.md",
+      "text_sha256": "4fd171d31d4eaf6f1d51f0cb1258089bf9d090c9e62eaa13d3a5c4b20ca71713",
+      "state": "BINDING",
+      "depends_on": [
+        "WO-1",
+        "WO-2"
+      ],
+      "covers": [
+        "AC-8",
+        "S-4",
+        "S-6",
+        "S-8",
+        "S-12",
+        "P-9"
+      ],
+      "founder_gate": null,
+      "founder_boundary": "Creating the production pepper secret is a founder action.",
+      "branch": null,
+      "candidate_sha": null,
+      "receipts": []
+    },
+    {
+      "id": "WO-4",
+      "title": "BrainFactorySetup.exe and the persistent node runtime",
+      "issued_by": "DIRECTOR",
+      "revision": 1,
+      "text_path": "qa/work-orders/auto-enrollment-v1/WO-4.md",
+      "text_sha256": "07cb3d37c000f72b60b4cbd27301d69b3963b75e1e23b53cd7422932262f5284",
+      "state": "BINDING",
+      "depends_on": [
+        "WO-2",
+        "WO-3",
+        "WO-6"
+      ],
+      "covers": [
+        "AC-1",
+        "AC-5",
+        "S-2",
+        "S-5",
+        "S-12",
+        "P-4",
+        "P-9"
+      ],
+      "founder_gate": null,
+      "founder_boundary": "Installer Authenticode code signing is a founder / external action (I A.2). Until then the installer is published unsigned, with its sha256.",
+      "branch": null,
+      "candidate_sha": null,
+      "receipts": []
+    },
+    {
+      "id": "WO-5",
+      "title": "Scheduler eligibility and ranking; capability reporting, telemetry, priority, drain; milestone restrictions",
+      "issued_by": "DIRECTOR",
+      "revision": 1,
+      "text_path": "qa/work-orders/auto-enrollment-v1/WO-5.md",
+      "text_sha256": "a19db92e8caa8fd4b5a33aeeeb0df705669d656f916ed0fd8afe7b9e4898bf82",
+      "state": "BINDING",
+      "depends_on": [
+        "WO-1",
+        "WO-2"
+      ],
+      "covers": [
+        "AC-3",
+        "AC-6",
+        "AC-15",
+        "S-1",
+        "S-16",
+        "P-6",
+        "P-7"
+      ],
+      "founder_gate": null,
+      "founder_boundary": null,
+      "branch": null,
+      "candidate_sha": null,
+      "receipts": []
+    },
+    {
+      "id": "WO-6",
+      "title": "Release manifest, pinned trust set, signing abstraction and runtime upgrade",
+      "issued_by": "DIRECTOR",
+      "revision": 1,
+      "text_path": "qa/work-orders/auto-enrollment-v1/WO-6.md",
+      "text_sha256": "5e7a43551cbb1502e8c2c88cadbe6ce0d4b5d9002d81964709539a3c9f9f2853",
+      "state": "BINDING",
+      "depends_on": [],
+      "covers": [
+        "AC-3",
+        "AC-5",
+        "S-5",
+        "P-9"
+      ],
+      "founder_gate": "C-3, production release-signing key custody (the only founder gate) — - The implementer **must not choose, create or use the real production signing authority.** It states only the **interface** a production key must satisfy (algorithm, key-id format, rotation), without naming a custody option, provider or key. - Final acceptance waits for C-3. - Installer Authenticode signing is a separate founder / external boundary, under WO-4.",
+      "founder_boundary": null,
+      "branch": null,
+      "candidate_sha": null,
+      "receipts": []
+    },
+    {
+      "id": "WO-7",
+      "title": "Node lifecycle management: drain, resume, rotate, revoke, re-pair, archive, restore",
+      "issued_by": "DIRECTOR",
+      "revision": 1,
+      "text_path": "qa/work-orders/auto-enrollment-v1/WO-7.md",
+      "text_sha256": "1bd8c914b3089b10e6cfc8583754e403a66ee3ba0240bb808b82e8193c610a83",
+      "state": "BINDING",
+      "depends_on": [
+        "WO-1",
+        "WO-2"
+      ],
+      "covers": [
+        "AC-4",
+        "S-3",
+        "P-1"
+      ],
+      "founder_gate": null,
+      "founder_boundary": null,
+      "branch": null,
+      "candidate_sha": null,
+      "receipts": []
+    },
+    {
+      "id": "WO-8",
+      "title": "Brain OS → Factory → Computers, and the Factory Admin API",
+      "issued_by": "DIRECTOR",
+      "revision": 1,
+      "text_path": "qa/work-orders/auto-enrollment-v1/WO-8.md",
+      "text_sha256": "57be771a18cbe9a629bcf5915354f26a68da45994304799338668fff22d96a01",
+      "state": "BINDING",
+      "depends_on": [
+        "WO-1",
+        "WO-2",
+        "WO-3",
+        "WO-7"
+      ],
+      "covers": [
+        "AC-2",
+        "AC-7",
+        "AC-12",
+        "S-7",
+        "S-8",
+        "S-9",
+        "S-11",
+        "S-14",
+        "P-5",
+        "P-9"
+      ],
+      "founder_gate": null,
+      "founder_boundary": "The production Brain OS deploy (a PR into `master`), production secrets, and seeding `tenant_admins` are founder actions. `master` stays untouched in this phase.",
+      "branch": null,
+      "candidate_sha": null,
+      "receipts": []
+    },
+    {
+      "id": "WO-9",
+      "title": "Independent verification model, policies and the verification state machine",
+      "issued_by": "DIRECTOR",
+      "revision": 1,
+      "text_path": "qa/work-orders/auto-enrollment-v1/WO-9.md",
+      "text_sha256": "6b700e60f55898f3b4c95a681cedb33d159317f584fa486c0fcd3412e8dee6dd",
+      "state": "BINDING",
+      "depends_on": [
+        "WO-1",
+        "WO-2",
+        "WO-5"
+      ],
+      "covers": [
+        "AC-3",
+        "AC-14",
+        "AC-16",
+        "S-13",
+        "S-16",
+        "P-10"
+      ],
+      "founder_gate": null,
+      "founder_boundary": null,
+      "branch": null,
+      "candidate_sha": null,
+      "receipts": []
+    },
+    {
+      "id": "WO-10",
+      "title": "Non-regression, evidence inputs for V1 accounting, isolation and release readiness",
+      "issued_by": "DIRECTOR",
+      "revision": 1,
+      "text_path": "qa/work-orders/auto-enrollment-v1/WO-10.md",
+      "text_sha256": "1947e164a1d7415cdca50a94c7e68fbcb5a644aba87d2d1b83a6c966661cb318",
+      "state": "BINDING",
+      "depends_on": [],
+      "covers": [
+        "AC-3",
+        "AC-9",
+        "AC-10",
+        "AC-11",
+        "AC-12",
+        "AC-16",
+        "S-11",
+        "S-12",
+        "S-14",
+        "S-15",
+        "S-16",
+        "P-1",
+        "P-8",
+        "P-10"
+      ],
+      "founder_gate": null,
+      "founder_boundary": null,
+      "branch": null,
+      "candidate_sha": null,
+      "receipts": []
+    }
+  ],
+  "coverage": {
+    "AC-1": [
+      "WO-1",
+      "WO-4"
+    ],
+    "AC-2": [
+      "WO-8"
+    ],
+    "AC-3": [
+      "WO-5",
+      "WO-6",
+      "WO-9",
+      "WO-10"
+    ],
+    "AC-4": [
+      "WO-1",
+      "WO-7"
+    ],
+    "AC-5": [
+      "WO-4",
+      "WO-6"
+    ],
+    "AC-6": [
+      "WO-1",
+      "WO-5"
+    ],
+    "AC-7": [
+      "WO-8"
+    ],
+    "AC-8": [
+      "WO-3"
+    ],
+    "AC-9": [
+      "WO-2",
+      "WO-10"
+    ],
+    "AC-10": [
+      "WO-10"
+    ],
+    "AC-11": [
+      "WO-10"
+    ],
+    "AC-12": [
+      "WO-1",
+      "WO-8",
+      "WO-10"
+    ],
+    "AC-13": [],
+    "AC-14": [
+      "WO-9"
+    ],
+    "AC-15": [
+      "WO-5"
+    ],
+    "AC-16": [
+      "WO-9",
+      "WO-10"
+    ],
+    "S-1": [
+      "WO-5"
+    ],
+    "S-2": [
+      "WO-1",
+      "WO-4"
+    ],
+    "S-3": [
+      "WO-2",
+      "WO-7"
+    ],
+    "S-4": [
+      "WO-1",
+      "WO-2",
+      "WO-3"
+    ],
+    "S-5": [
+      "WO-4",
+      "WO-6"
+    ],
+    "S-6": [
+      "WO-3"
+    ],
+    "S-7": [
+      "WO-2",
+      "WO-8"
+    ],
+    "S-8": [
+      "WO-1",
+      "WO-3",
+      "WO-8"
+    ],
+    "S-9": [
+      "WO-1",
+      "WO-8"
+    ],
+    "S-10": [
+      "WO-1",
+      "WO-2"
+    ],
+    "S-11": [
+      "WO-8",
+      "WO-10"
+    ],
+    "S-12": [
+      "WO-3",
+      "WO-4",
+      "WO-10"
+    ],
+    "S-13": [
+      "WO-1",
+      "WO-9"
+    ],
+    "S-14": [
+      "WO-1",
+      "WO-8",
+      "WO-10"
+    ],
+    "S-15": [
+      "WO-10"
+    ],
+    "S-16": [
+      "WO-5",
+      "WO-9",
+      "WO-10"
+    ],
+    "P-1": [
+      "WO-1",
+      "WO-7",
+      "WO-10"
+    ],
+    "P-2": [
+      "WO-2"
+    ],
+    "P-3": [
+      "WO-2"
+    ],
+    "P-4": [
+      "WO-4"
+    ],
+    "P-5": [
+      "WO-8"
+    ],
+    "P-6": [
+      "WO-5"
+    ],
+    "P-7": [
+      "WO-5"
+    ],
+    "P-8": [
+      "WO-10"
+    ],
+    "P-9": [
+      "WO-3",
+      "WO-4",
+      "WO-6",
+      "WO-8"
+    ],
+    "P-10": [
+      "WO-9",
+      "WO-10"
+    ]
+  },
+  "director_owned_rows": {
+    "AC-13": "Director-owned: the cumulative Factory V1 record (P-8), recorded at final acceptance; not a WO row"
+  },
+  "founder_items": {
+    "resolved": {
+      "C-1": "V1 accounting is cumulative (P-8, AC-13, WO-10) - binding",
+      "C-2": "node identity != capability envelope != resource profile != current assignment (contract section 1, P-6; WO-1, WO-2, WO-3, WO-5; founder II.10 used a draft numbering where WO-5 was the installer, here WO-4) - binding"
+    },
+    "open_gate": {
+      "C-3": "production release-signing key custody (WO-6) - the only founder gate; final acceptance waits for it"
+    },
+    "one_time_founder_actions_not_gates": [
+      "confirming the implementer signing-key fingerprint out of band (only a CERTIFIED entry waits for it)",
+      "provisioning the SELECT-only observer role (needed before final acceptance; the runner.env interim serves candidate-stage reads only)",
+      "the pre-candidate Edge record for AC-10 (read by the founder or with a read-only founder token; verification proceeds without it and only CERTIFIED entries wait for it)"
+    ],
+    "surfaced": [
+      "S1: Brain OS production profiles_update_self_or_admin lacks WITH CHECK (production migration, founder)",
+      "Founder confirmation of founder text Part I (implementer-transcribed)",
+      "Branch protection for factory/auto-enrollment-v1-director",
+      "Ledger 218 commit bf59ea34 (candidate repo) is local and unpushed",
+      "A SELECT-only observer role on the live Factory plane for Director reads (until then candidate-stage reads use runner.env read-only; final acceptance waits for it)",
+      "A pre-candidate Edge record (function names, versions, sha256, updated_at; secret names, never values), read by the founder or with a read-only founder token (only CERTIFIED entries wait for it)",
+      "Out-of-band confirmation of the implementer signing-key fingerprint, as displayed on the implementing machine, before the Director records it",
+      "Confirmation of the implementation branch name factory/auto-enrollment-v1-implementation (a Director decision recorded in ADR amendment 10)"
+    ]
+  },
+  "ratification_register": [
+    {
+      "item": "docs/architecture/adr/ADR-2026-09-26-node-roles-are-labels.md",
+      "source_commit": "33f14d6e55a41ee1a2a5acf463a000e3fe2975b9",
+      "sha256": "964b79b1bbe7f5e8c44da9d5f6f061be7b3676990df7d0b195fbe9e50351beb8",
+      "decision": "adopted into the canonical ADR with amendments"
+    },
+    {
+      "item": "CLAUDE.md",
+      "source_commit": "33f14d6e55a41ee1a2a5acf463a000e3fe2975b9",
+      "sha256": "bbd0de23e89cc921408f39043aae3e6fa0b79e82b5550b42c570e7590af4015b",
+      "decision": "adopted with amendments; implementer restored baseline at 27d78ff6"
+    },
+    {
+      "item": "docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md",
+      "source_commit": "33f14d6e55a41ee1a2a5acf463a000e3fe2975b9",
+      "sha256": "a68ac4ef0af7bb4383c35e09fea93e83066bb5a0fb3fed0f90a8c24739192692",
+      "decision": "adopted with amendments; implementer restored baseline at 27d78ff6"
+    },
+    {
+      "item": "docs/architecture/features/factory-auto-enrollment.md Part A",
+      "source_commit": "33f14d6e55a41ee1a2a5acf463a000e3fe2975b9",
+      "sha256": "53e61c0bea97c50ca294a471cf015fd1b8983799c32c12ad6bdb825537f53a06",
+      "decision": "adopted verbatim as founder text Part I; Part II prevails; founder confirmation requested"
+    },
+    {
+      "item": "docs/architecture/features/factory-auto-enrollment.md Parts B-C, api.md, transport-matrix.md, states.json",
+      "source_commit": "33f14d6e55a41ee1a2a5acf463a000e3fe2975b9",
+      "decision": "input only; binds nothing; what-must-be-true points decided in the contract"
+    },
+    {
+      "item": "CR-001 factory admin allow-list",
+      "source_commit": "33f14d6e55a41ee1a2a5acf463a000e3fe2975b9",
+      "sha256": "bea0218d706f8cf0d623c8ebe022b586ecf104db8bc775acbea781eeadd36009",
+      "decision": "RATIFIED, extended with a tier column (S-8)"
+    },
+    {
+      "item": "CR-002 verification failure state",
+      "source_commit": "33f14d6e55a41ee1a2a5acf463a000e3fe2975b9",
+      "sha256": "502fdda6fd7e342ff1602fe364650d7ad3702e7fc2d01332412a4ac2eaa1948e",
+      "decision": "RATIFIED (VERIFICATION_FAILED)"
+    },
+    {
+      "item": "CR-003 founder-only release tier",
+      "source_commit": "33f14d6e55a41ee1a2a5acf463a000e3fe2975b9",
+      "sha256": "55ced1fb68851233c723f859c167bf77e1b2641be72733a8979a7de4fb0ca2f1",
+      "decision": "RATIFIED; founder test = tier founder in tenant_admins AND role founder (not profiles.role alone; S1)"
+    },
+    {
+      "item": "CR-004 installer distribution visibility",
+      "source_commit": "33f14d6e55a41ee1a2a5acf463a000e3fe2975b9",
+      "sha256": "b8fd5368ec01732257b499c39163915615285e26ee809a12d5d27daa1711d863",
+      "decision": "DECIDED: Option A (public download from storage, not a Factory route; sha256 and signing state shown)"
+    }
+  ],
+  "superseded_implementer_branch": {
+    "branch": "factory/auto-enrollment-v1-contract",
+    "superseded_at": "27d78ff6"
+  },
+  "change_requests": [],
+  "amendment_requests": [],
+  "receipts": [],
+  "events": [
+    {
+      "utc": "2026-09-26",
+      "event": "Ledger created; WO-1..WO-10 issued by the DIRECTOR as BINDING r1, re-based on the founder text; coverage complete; C-3 sole founder gate; CR-001..CR-004 decided; baseline manifest and live catalog snapshot materialized (read-only); Director signing key created.",
+      "by": "DIRECTOR"
+    },
+    {
+      "utc": "2026-09-26",
+      "event": "Pre-commit corrections: founder-flagged (1) implementer-issued WOs removed, (2) C-1/C-2 converted to binding rules; self-found (3) re-based on founder text, (4) duplicate ADR removed; bounded four-lens reviews wf_128b3d64-4d0 and wf_d222338e-c66 (5) confirmed findings closed.",
+      "by": "DIRECTOR"
+    },
+    {
+      "utc": "2026-09-26",
+      "event": "Bounded four-lens review wf_445b9dcc-0b2 (pass 3): confirmed findings closed (trust set as a source input after C-3; SELECT-only observer role; agent-principal identity; reserved capability factory-enrolled-v1 and separate certification records; lock semantics; peer IP and CSPRNG; AC-13 Director-owned; trust set and trust mode fixed at build time; legacy guard on new-model and enrolled rows; no front-door EXECUTE for PUBLIC or the legacy role; pairing state exits; idempotency and race cases; Director observation records; the exact reference-suite set; a schema-aware live catalog snapshot).",
+      "by": "DIRECTOR"
+    },
+    {
+      "utc": "2026-09-26",
+      "event": "Bounded four-lens review wf_c2d41cde-da8 (pass 4; all four lenses answer both governance tests NO): confirmed findings closed (one agent principal per computer kept across rotate / re-pair; certification bound to its work order and exact provenance; no role membership to or from factory_runner; mixed-fleet and same-tables rules; trust-set entries as (key id, public-key sha256) and the PE Authenticode image hash as the digest; S-16(a) binding as the one permitted campaign write; product code defined by owned surfaces; AC-10 referent before and after the migration; live-activity check for S-15; complete baseline rows export; reboot / per-user / failure-state rows in AC-1; the observer role required for final acceptance).",
+      "by": "DIRECTOR"
+    },
+    {
+      "utc": "2026-09-26",
+      "event": "Bounded four-lens confirmation wf_0702dba7-364 (pass 5; no HIGH; all four lenses answer both governance tests NO): the mediums the pass-4 wording introduced were closed (the digest check at final acceptance; per-user logon start reconciled with the watchdog; the product-layer S-16(a) scope as a scheduling restriction to Director-document work orders, with the governance-layer authorship check as its evidence; the live S-16(a) binding observed; pairing codes issued for a target principal; authorship verified against the published key until the founder confirms it; the AC-10 referent as a catalog difference and a pre-candidate Edge record; S-15 row hashes and counters; the legacy reaper skipping enrolled rows; the instruments pinned to the 69df2f52 modules with an explicit target and an observed identity).",
+      "by": "DIRECTOR"
+    },
+    {
+      "utc": "2026-09-26",
+      "event": "Bounded four-lens confirmation wf_11c658f4-89d (pass 6; all four lenses answer both governance tests NO). Two HIGH findings on pre-existing text were closed: no plane-conditioned behaviour (a static scan, and the prepared live migration byte-identical to the migration run on the copy, with the manifest recompute after its last statement); and the catalog instrument hardened (one read-only session with search_path pinned to pg_catalog, pinned module constants, a target checked both ways, and column ACLs, role and database settings, rules, views, constraints, indexes, extensions and storage policies read, with setting values hashed). Mediums closed: the Edge record handled like the fingerprint confirmation; the key-custody rule and the authoring-set check as S-16(a) evidence; the machine fingerprint defined (sha256 of MachineGuid) and compared across every reported value; per-credential enrollment states; a mistaken S-16(a) binding corrected by archive and re-enrollment; a lapsed enrolled lock never stalls the legacy queue; the runtime never reads the unhashed PE ranges.",
+      "by": "DIRECTOR"
+    }
+  ]
+}

@@ -20,7 +20,7 @@ is practical; this file points, it does not duplicate.
 
 ```
 PRODUCT CONTRACT → STATE MACHINE → INVARIANTS → SECURITY / TENANCY → SHARED PRIMITIVES
-→ UX STATES → IMPLEMENTATION → DEVELOPER VERIFICATION → DEPLOY → INDEPENDENT WORK-PC ACCEPTANCE
+→ UX STATES → IMPLEMENTATION → DEVELOPER VERIFICATION → DEPLOY → INDEPENDENT ACCEPTANCE
 ```
 
 Product semantics are defined first (feature contract, `FEATURE_COMPLETENESS_CONTRACT.md`
@@ -45,7 +45,7 @@ None of the following, alone, proves that a feature works: code in GitHub, a mig
 file, a successful query, a local test, a build, a deploy command's exit status, an API
 response, one browser click, one role working, one table having RLS, one Edge Function
 deploy, a component rendering, a row changing, an RPC returning success, a toast, a
-plausible sentence from Brain, Claude saying "implemented", green Home-PC tests, green
+plausible sentence from Brain, Claude saying "implemented", green implementer-side tests, green
 source-level contract suites, a byte-identical deployed-bytes comparison.
 
 Verify the chain: browser → deployed frontend → authenticated user → Edge Function /
@@ -117,7 +117,7 @@ from a snapshot document (`qa/LIVE_SYSTEM_MAP.md` is the query procedure).
 
 Use only: `BLOCKED`, `FAILED`, `PARTIALLY VERIFIED`, `VERIFIED IN PREVIEW`, `VERIFIED IN
 PRODUCTION`, `PRODUCTION ACCEPTED`. Never "done", "fully working", "all live", "Team-Ready"
-unless the criteria pass and the Work PC has accepted.
+unless the criteria pass and independent acceptance (never the implementer) has accepted.
 
 Report to the founder in this shape, and do not force the founder to be the QA tester:
 ```
@@ -130,16 +130,41 @@ items. Failures are never hidden in prose.
 
 ## 8. Ownership and boundaries
 
-**Home / Main PC** (implementation): architecture, implementation, migrations, developer
-testing, source invariants, fix reports, deployment *after* the founder boundary. May mark
-READY FOR DEPLOYMENT, DEPLOYED, READY FOR INDEPENDENT QA. May never mark PRODUCTION
-VERIFIED, CLOSED, or "production accepted".
+Roles are roles, not machines: hostname creates no authority and Home / Work / Laptop are
+labels. The machine-specific mapping is superseded by
+`docs/architecture/adr/ADR-2026-09-26-node-roles-are-labels.md`, which also records the
+current placement. The invariant it preserves: **the implementer never self-certifies.**
 
-**Work PC** (independent acceptance): deployed-browser acceptance, adversarial QA,
-production regressions, independent evidence; alone marks CLOSED / REOPENED. Owns
-`qa/BUG_QUEUE.json`, `qa/COVERAGE_LEDGER.json`, `qa/FIXTURE_REGISTRY.json`,
-`qa/HANDOFF_STATE.json` (single-writer; the Home PC reads, never edits). Fix reports go
-to branch `qa/home-pc-handoff` under `qa/home-pc-handoff/fixes/<BUG_ID>.json`.
+**Director** (a logical capability, not a hostname; canonical authority)
+- Owns the product contract, invariants, binding Work Orders, binding acceptance criteria and the verification specification.
+- Is the single writer of the canonical coordination ledgers and acceptance state, including `qa/BUG_QUEUE.json`,
+  `qa/COVERAGE_LEDGER.json`, `qa/FIXTURE_REGISTRY.json` and `qa/HANDOFF_STATE.json`.
+- Ratifies any proposal that changes what must be true. The implementer files a CHANGE REQUEST under
+  `qa/work-orders/change-requests/` and does not implement it before ratification.
+- Never implements work whose contract, Work Orders or acceptance criteria it wrote: for any feature, the Director and the implementer
+  are different sessions. It never certifies, closes or accepts work in whose authoring set it took part; such work goes to a distinct
+  authorized verifier, and the Director records the verdict only from that verifier's receipt. It never uses the implementer's signing
+  key or agent principal for that feature.
+
+**Implementer**
+- Does: implementation architecture and design within the canonical contract (canonical architecture / governance is
+  Director-ratified), implementation, migrations, developer testing, source invariants, fix reports, deployment *after* the founder
+  boundary.
+- May mark READY FOR DEPLOYMENT, DEPLOYED, READY FOR INDEPENDENT QA.
+- May never mark PRODUCTION VERIFIED, CLOSED, or "production accepted".
+- **Can never define or alter the work or acceptance contract it is judged against. It may only propose.**
+- Publishes fix reports on branch `qa/home-pc-handoff` under `qa/home-pc-handoff/fixes/<BUG_ID>.json` (a historical branch name that
+  confers nothing).
+- Publishes candidate notices where the feature's verification specification says: for Factory auto-enrollment, on
+  `factory/auto-enrollment-v1-implementation`.
+- May not alter verification evidence or self-close.
+
+**Independent verifier / independent acceptance**
+- Does: deployed-browser acceptance, adversarial QA, production regressions, independent evidence, against criteria the implementer
+  did not define.
+- Is a distinct authorized verifier: never a run in the candidate's authoring set, and never one of its authoring identities.
+- Contributes immutable, content-addressed verification receipts through the defined workflow. The Director records CLOSED / REOPENED /
+  CERTIFIED / REJECTED only on such a receipt.
 
 **Founder-only actions** (prepare the exact change, never execute): rotate or revoke the
 Supabase service-role key; change live Vercel production secrets or redeploy for

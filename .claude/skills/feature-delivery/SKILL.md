@@ -71,6 +71,6 @@ self-certifies execution.
 Commit messages explain the reasoning and the real evidence gathered, not just what
 changed. Production reaches `master` only through a pull request carrying the PR
 template's definition of done. Never report a Work Order "done" without the evidence from
-steps 3-4 actually in hand, and never mark a Work-PC bug CLOSED — publish a fix report
+steps 3-4 actually in hand, and never mark a bug CLOSED as the implementer — publish a fix report
 with `ready_for_retest` (`FEATURE_COMPLETENESS_CONTRACT.md` §8-§9). That gap between
 claimed and real completion is exactly what `brain-os-verifier` exists to catch.
