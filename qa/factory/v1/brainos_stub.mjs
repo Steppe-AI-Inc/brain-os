@@ -25,10 +25,14 @@ export async function startBrainOsStub() {
     if (u.pathname === '/rest/v1/profiles') {
       const want = (/^eq\.(.+)$/.exec(u.searchParams.get('auth_user_id') || '') || [])[1];
       if (req.method === 'GET') {
-        // RLS: a caller sees its own row (an admin would see more; the Admin API only ever asks for the caller's own)
-        if (!uid || want !== uid) return send(200, []);
-        const p = profiles.get(uid);
-        return send(200, p ? [{ role: p.role, active: p.active }] : []);
+        // RLS: a caller sees its own row (an admin would see more; the Admin API only ever asks for the caller's own). The columns
+        // asked for are returned; an object request (.single()) gets the row or PostgREST's 406 - the web shell's profile read.
+        const p = uid && want === uid ? profiles.get(uid) : null;
+        const full = p ? { id: p.id, auth_user_id: uid, full_name: p.full_name, email: p.email, role: p.role, active: p.active } : null;
+        const cols = (u.searchParams.get('select') || '*').split(',').map((c) => c.trim());
+        const pick = (r) => (cols.includes('*') ? r : Object.fromEntries(cols.map((c) => [c, r[c] ?? null])));
+        if (/vnd.pgrst.object/.test(req.headers.accept || '')) return full ? send(200, pick(full)) : send(406, { code: 'PGRST116', message: 'JSON object requested, multiple (or no) rows returned', details: 'The result contains 0 rows' });
+        return send(200, full ? [pick(full)] : []);
       }
       if (req.method === 'PATCH') {
         // S1 as in production: an update of one's own row is allowed, with no check on the new role
@@ -39,6 +43,9 @@ export async function startBrainOsStub() {
         return send(200, [{ role: p && p.role }]);
       }
     }
+    // the Brain OS web shell's other reads (companies, memberships, ...) for the web suite: nothing visible to this stub's users
+    if (u.pathname.startsWith('/rest/v1/rpc/')) return send(200, null);
+    if (u.pathname.startsWith('/rest/v1/') && req.method === 'GET') return /vnd.pgrst.object/.test(req.headers.accept || '') ? send(406, { code: 'PGRST116', message: 'no rows' }) : send(200, []);
     return send(404, { message: 'not found' });
   });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
@@ -51,7 +58,7 @@ export async function startBrainOsStub() {
   return {
     url, anonKey,
     /** a persona: a user with a profile role; returns { userId, token } */
-    persona(role, { active = true } = {}) { const id = randomUUID(); profiles.set(id, { role, active }); return { userId: id, token: issue(id), role }; },
+    persona(role, { active = true } = {}) { const id = randomUUID(); profiles.set(id, { id: randomUUID(), role, active, full_name: role + ' persona', email: role + '-' + id.slice(0, 8) + '@stub.invalid' }); return { userId: id, token: issue(id), role }; },
     /** a token of ANOTHER Brain OS project (a different issuer) for an existing user */
     foreignToken(userId) { return issue(userId, 'https://otherprojectxxxxxxxxxx.supabase.co/auth/v1'); },
     /** what S1 allows today: the user updates its own profiles.role */

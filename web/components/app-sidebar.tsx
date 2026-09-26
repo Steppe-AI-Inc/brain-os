@@ -38,6 +38,7 @@ import {
   Bot,
   CreditCard,
   Factory,
+  Cpu,
   type LucideIcon,
 } from "lucide-react";
 import { useT } from "@/lib/i18n/i18n-context";
@@ -98,6 +99,7 @@ const NAV_GROUPS: Array<{
         label: "Agent Control Center",
         icon: Factory,
       },
+      { href: "/software-factory/computers", navKey: "nav.factoryComputers", label: "Factory Computers", icon: Cpu },
       { href: "/engineering", navKey: "nav.engineering", label: "Engineering Factory", icon: Ruler },
     ],
   },
@@ -117,6 +119,13 @@ const NAV_GROUPS: Array<{
   },
 ];
 
+// The active item is the LONGEST nav href that is the path or a whole-segment prefix of it: /software-factory/computers
+// lights "Factory Computers" only (not also "Agent Control Center"), and /software-factory never lights "Software Specs" (/software).
+const ALL_HREFS = NAV_GROUPS.flatMap((g) => g.items.map((i) => i.href));
+function activeHref(pathname: string): string | null {
+  return ALL_HREFS.filter((h) => pathname === h || pathname.startsWith(h + "/")).sort((a, b) => b.length - a.length)[0] ?? null;
+}
+
 const COLLAPSE_STORAGE_KEY = "brainos:sidebar-collapsed";
 
 function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
@@ -133,7 +142,7 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
           )}
           <div className="flex flex-col gap-0.5">
             {group.items.map((item) => {
-              const active = pathname.startsWith(item.href);
+              const active = item.href === activeHref(pathname);
               const Icon = item.icon;
               return (
                 <Link
