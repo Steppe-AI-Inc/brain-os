@@ -123,6 +123,134 @@ concepts:
     ai_interactions: [option 2, yes, confirm, cancel]
     regression_families: [grounding_precedence_canonical_over_history, issue5_confirmation_action_type_binding, run8, run10, run11, run12, run13, run14, run15, run16, run19, run28]
 
+  # ---- Factory control plane V1 (Auto-Enrollment; docs/architecture/features/factory-node-management-auto-enrollment.md). These live
+  # on the dedicated Factory project, never in Brain OS production (S-9); the web page reaches them only through the Factory Admin API.
+  # developer_suites are the implementer's qa/factory/v1 suites (developer verification, never independent acceptance).
+  factory_node_identity:
+    description: computer -> agent principal -> one active Ed25519 credential -> short session; every node call re-derives identity, tenant and envelope from the credential inside its transaction (S-2, S-3, S-4)
+    homes:
+      - supabase/control-plane/v1/020_identity.sql
+      - supabase/control-plane/v1/100_node_common.sql
+      - supabase/control-plane/v1/140_sessions.sql
+      - supabase/control-plane/edge/supabase/functions/_shared/node_api.ts
+      - scripts/factory-runner/enrolled/keys.mjs
+    entity_types: [factory_computer, factory_agent_principal, factory_node_credential, factory_node_session]
+    surfaces:
+      - supabase/control-plane/edge/supabase/functions/factory-node-api/index.ts
+      - web/app/(app)/software-factory/computers
+    ai_interactions: [none - no AI path reaches the Factory plane]
+    developer_suites:
+      - qa/factory/v1/revocation_interleaving.mjs
+      - qa/factory/v1/admin_acceptance.mjs
+    regression_families: [factory_v1_static_contract]
+
+  factory_pairing:
+    description: one-time pairing code = public locator + CSPRNG secret, verified as HMAC-SHA256(pepper) with a constant-time compare, TTL <= 15 min, attempt / IP / tenant limits, atomic consume; never a credential (S-6)
+    homes:
+      - supabase/control-plane/v1/030_enrollment.sql
+      - supabase/control-plane/v1/150_enrollment.sql
+      - supabase/control-plane/edge/supabase/functions/_shared/pairing.ts
+      - supabase/control-plane/edge/supabase/functions/_shared/enroll.ts
+    entity_types: [factory_pairing_code, factory_enrollment]
+    surfaces:
+      - scripts/factory-runner/enrolled/setup.mjs
+      - web/app/(app)/software-factory/computers
+    ai_interactions: [none]
+    developer_suites:
+      - qa/factory/v1/enrollment_acceptance.mjs
+    regression_families: [factory_v1_static_contract]
+
+  factory_authorization_and_eligibility:
+    description: the admin-set envelope (what a computer MAY do) and the 12 hard gates in the founder's order; ranking only among eligible nodes, bounded deferral, numeric priority; hostname and resources never authorize (S-4, WO-5)
+    homes:
+      - supabase/control-plane/v1/110_eligibility.sql
+      - supabase/control-plane/v1/200_admin_common.sql
+    entity_types: [factory_authorization_envelope, factory_work_order]
+    surfaces:
+      - supabase/control-plane/v1/120_node_lifecycle.sql (claim, verification claim)
+      - web/app/(app)/software-factory/computers (waiting verifications: each node's first failing gate)
+    ai_interactions: [none]
+    developer_suites:
+      - qa/factory/v1/eligibility_acceptance.mjs
+    regression_families: [factory_v1_static_contract]
+
+  factory_admin_authority:
+    description: every admin action re-derives the caller's live Brain OS role from the caller's own token AND requires a factory.tenant_admins row (tier founder for founder-only actions); UI hiding is never the control (S-8)
+    homes:
+      - supabase/control-plane/v1/010_tenancy.sql
+      - supabase/control-plane/v1/200_admin_common.sql
+      - supabase/control-plane/edge/supabase/functions/_shared/admin_api.ts
+      - web/lib/factory/admin-client.ts
+    entity_types: [factory_tenant_admin]
+    surfaces:
+      - supabase/control-plane/edge/supabase/functions/factory-admin-api/index.ts
+      - web/lib/data/factory-computers.ts
+    ai_interactions: [none]
+    developer_suites:
+      - qa/factory/v1/admin_acceptance.mjs
+      - qa/factory/v1/web_computers_acceptance.mjs
+    regression_families: [factory_v1_static_contract]
+
+  factory_verification_independence:
+    description: the authoring set (every leased run + checkpoint writers); certification requires a run and identity outside it, current verifier authority and exact provenance - enforced in the front door whatever a policy says; policies change only stricter (S-13, S-14)
+    homes:
+      - supabase/control-plane/v1/050_verification.sql
+      - supabase/control-plane/v1/130_verification.sql
+    entity_types: [factory_certification, factory_verification_policy]
+    surfaces:
+      - web/app/(app)/software-factory/computers (policy view, waiting verifications)
+    ai_interactions: [none]
+    developer_suites:
+      - qa/factory/v1/independence_acceptance.mjs
+    regression_families: [factory_v1_static_contract]
+
+  factory_release_trust:
+    description: the trust set and mode fixed in the artifact per channel at build time; a release runs only after its manifest signature, key id and PE Authenticode image hash verify against it, before execution; the API delivers revocations only; a revoked release stands by until an admin adopts a certified one (S-5, WO-6)
+    homes:
+      - scripts/factory-runner/enrolled/release.mjs
+      - scripts/factory-runner/enrolled/pe-image.mjs
+      - scripts/factory-runner/enrolled/trust/production.json
+      - scripts/factory-build/build-sea.mjs
+      - supabase/control-plane/v1/060_releases.sql
+    entity_types: [factory_release, factory_release_revocation]
+    surfaces:
+      - scripts/factory-runner/enrolled/supervisor.mjs
+      - scripts/factory-runner/enrolled/upgrade.mjs
+      - web/lib/factory/pe-image.ts
+    ai_interactions: [none]
+    developer_suites:
+      - qa/factory/v1/release_acceptance.mjs
+      - qa/factory/sea_package_regression.mjs
+    regression_families: [factory_v1_static_contract]
+
+  factory_legacy_fence:
+    description: the frozen 69df2f52 fleet keeps its engine on the same tables while factory_runner can write no authority record and no new-model / enrolled row; the reserved capability factory-enrolled-v1 separates the fleets (S-10)
+    homes:
+      - supabase/control-plane/v1/080_guards.sql
+      - supabase/control-plane/v1/000_preconditions_roles.sql
+    entity_types: [factory_work_order, factory_agent_run, factory_surface_lock]
+    surfaces:
+      - scripts/factory-runner/claim.mjs (frozen legacy path, unchanged)
+    ai_interactions: [none]
+    developer_suites:
+      - qa/factory/v1/compat_regressions.mjs
+      - qa/factory/v1/schema_acceptance.mjs
+    regression_families: [factory_v1_static_contract]
+
+  factory_edge_route_surface:
+    description: exactly the S-7 routes under each function's platform path prefix; every route or op is one SQL front door; every whole-request refusal classified (CLAUDE.md §6)
+    homes:
+      - supabase/control-plane/edge/supabase/functions/_shared/route.ts
+      - supabase/control-plane/edge/supabase/config.toml
+    entity_types: [none]
+    surfaces:
+      - supabase/control-plane/edge/supabase/functions/factory-node-api/index.ts
+      - supabase/control-plane/edge/supabase/functions/factory-admin-api/index.ts
+    ai_interactions: [none]
+    developer_suites:
+      - qa/factory/v1/admin_acceptance.mjs
+    regression_families: [factory_v1_static_contract]
+
 # Known lifecycle-completeness gaps (not done; registered so they are not forgotten):
 gaps:
   - entity_types: [project, department, document, sales_lead, approval]

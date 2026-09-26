@@ -49,10 +49,14 @@ const REG = 'qa/factory/sea_package_regression.mjs';
 // everything the regression reads from its checkout: the pipeline, its unit test, the entry, the database accessor B3 bundles
 // (db.mjs and the two modules it imports), package.json / package-lock.json (resolution, and the build's dirty set), and
 // .gitignore (S1 asks git whether /dist/ is ignored)
+// ... and the runtime the entry bundles (WO-4 / WO-6): every file under scripts/factory-runner/enrolled (its modules and the per-channel
+// trust sets build-sea fixes into the artifact) and the three lib modules it imports
+const listTree = (rel) => fs.readdirSync(path.join(ROOT, rel), { withFileTypes: true }).flatMap((d) => (d.isDirectory() ? listTree(rel + '/' + d.name) : [rel + '/' + d.name])).sort();
+const RUNTIME = [...listTree('scripts/factory-runner/enrolled'), 'scripts/factory-runner/lib/dpapi.mjs', 'scripts/factory-runner/lib/ed25519.mjs', 'scripts/factory-runner/lib/secure-store.mjs'];
 const FILES = [
   '.gitignore', 'package.json', 'package-lock.json',
   BS, VB, PE, 'scripts/factory-build/pe-strip-signature.test.mjs', 'scripts/factory-build/node-exe-pins.json', TPL,
-  MAIN, 'scripts/factory-runner/sea/runtime-version.json',
+  MAIN, 'scripts/factory-runner/sea/runtime-version.json', ...RUNTIME,
   'scripts/factory-runner/db.mjs', 'scripts/factory-runner/runner-env.mjs', 'scripts/factory-runner/url-judge.mjs',
   REG,
 ];
@@ -149,6 +153,13 @@ const MUTANTS = [
   { id: 'R9', expect: ['S4'], what: 'review: the pe-strip CLI compares paths by spelling again (a junction or a hard link to the input is overwritten)', edits: [[PE,
     "      if (sameFile(src, dst)) throw new Error('refusing to overwrite the input; give a different output path');",
     "      if (src.toLowerCase() === dst.toLowerCase()) throw new Error('refusing to overwrite the input; give a different output path');"]] },
+  // 3. the WO-4 / WO-6 rows: nothing in the environment adds code (B20), and a build names its channel (B21)
+  { id: 'X1', expect: ['S1', 'B20'], what: 'the SEA config lets NODE_OPTIONS extend the runtime again (execArgvExtension env): code from the environment runs inside the exe', edits: [[TPL,
+    '  "execArgvExtension": "none"',
+    '  "execArgvExtension": "env"']] },
+  { id: 'X2', expect: ['B21'], what: 'a build without --channel silently becomes a dev-channel build (the trust set and mode chosen by default, not by the caller)', edits: [[BS,
+    "  if (!o.channel) throw new BuildError(EXIT.USAGE, '--channel production|dev is required: the trust set and mode are fixed into the artifact per channel');",
+    "  if (!o.channel) o.channel = 'dev';"]] },
 ];
 
 const say = (s) => console.log(s);
