@@ -8,3 +8,6 @@ node_modules/
 .factory/
 .factory-rehearsal/
 .claude/settings.local.json
+
+# Build outputs (scripts/factory-build/build-sea.mjs writes dist/brain-factory/<version>/). Anchored: only the root dist/.
+/dist/

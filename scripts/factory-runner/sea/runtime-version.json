@@ -1,0 +1,4 @@
+{
+  "runtime_version": "0.0.0-prep",
+  "_about": "PLACEHOLDER for the non-semantic packaging pipeline. The runtime's real version scheme and what a version means to the plane are not defined here - they wait for the Director contract."
+}
