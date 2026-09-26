@@ -2,7 +2,7 @@
 
 - **Owner:** the implementer's working record (measured facts, NOT a contract).
 - **Baseline:** `69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6`, the semantic reference for the certified execution engine per the
-  founder's directive. It is reproduced green on this machine in `qa/factory/evidence/baseline-69df2f52/` (acceptance 58/58,
+  founder's directive. It is reproduced green on this machine in `qa/implementation/auto-enrollment-v1/evidence/baseline-69df2f52/` (acceptance 58/58,
   node_truth 46/46, …).
 
 **Purpose.** The Director's compatibility contract requires that no operation is marked migrated until the OLD invariant has
