@@ -119,7 +119,7 @@ const MUTANTS = [
 
   // ---- AC-5: the release trust root (the runtime; these rows build Windows SEAs)
   { id: 'RU', suite: 'release', expect: ['R-b'], what: 'an unsigned release is accepted', edits: [condOff('scripts/factory-runner/enrolled/release.mjs', "if (!m.signature || !m.key_id) return refuse('unsigned', 'the release is not signed');", 'if (false) return refuse(\'unsigned\', \'planted\'); // (planted)')] },
-  { id: 'HS', suite: 'release', expect: ['R-t'], what: 'the supervisor no longer verifies itself first (a tampered supervisor goes on)', edits: [condOff('scripts/factory-runner/enrolled/supervisor.mjs', 'const sv = verifySelf(home, selfExe);', "const sv = { ok: true, digest: 'planted' }; // (planted) no self-verification")] },
+  { id: 'HS', suite: 'release', expect: ['R-t'], what: 'the supervisor no longer verifies itself first (a tampered supervisor goes on)', edits: [condOff('scripts/factory-runner/enrolled/supervisor.mjs', 'if (!sv.ok) {', 'if (false) { // (planted) the self-verification refusal skipped (its own digest kept)')] },
   { id: 'HO', suite: 'release', expect: ['R-i2'], what: 'the supervisor outlives a switch: no handoff, the logon task keeps the superseded exe', edits: [condOff('scripts/factory-runner/enrolled/supervisor.mjs', 'if (selfDigest && !standby && v.digest !== selfDigest && startSupervisor) {', 'if (false) { // (planted) no handoff')] },
   { id: 'RD', suite: 'release', expect: ['R-m'], what: 'a superseded release is installed without an admin adopt (a silent downgrade)', edits: [condOff('scripts/factory-runner/enrolled/upgrade.mjs', 'if (cur && semverCmp(v.version, cur.version) <= 0 && v.digest !== adopted) {', 'if (false) { // (planted) anti-downgrade removed')] },
 ];
