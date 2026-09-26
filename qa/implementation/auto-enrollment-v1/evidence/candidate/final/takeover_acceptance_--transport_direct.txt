@@ -1,0 +1,28 @@
+step takeover_acceptance --transport direct
+command C:\Program Files\nodejs\node.exe qa/factory/v1/takeover_acceptance.mjs --transport direct
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 412ac14e76f88fbd5e310d3e97dbf5acab2c1498
+started 2026-09-26T23:31:57.023Z
+seconds 13
+exit 0
+summary takeover_acceptance [direct]: 17/17 OK
+
+OK   E1 enrollment walk from server rows: NODE_CREDENTIAL_ISSUED -> RUNTIME_INSTALLING -> REGISTERING -> ALIVE on a certified release; the runtime starts RECOVERING -> AVAILABLE - RUNTIME_INSTALLING>REGISTERING>ALIVE
+OK   T1 A (best-ranked: most free RAM) claims W and holds a lease; D, which depends on W, is not what it gets - run a4126896 lease 2026-09-27T07:32:07.321659+08:00
+OK   T2 A checkpoints P1 (a retry with the same checkpoint id writes one row)
+OK   T3 A's real lease expired (no renewal for longer than the lease; nothing edited it)
+OK   T4 eligible B claims W after the real expiry and receives P1 - resume {"done":["step-1"],"remaining":["step-2"]}
+OK   T5 B resumes unfinished work only: B's run records the consumed P1; A's run is requeued (attempt counted), never restarted as B
+OK   T6 stale A: renew, checkpoint and completion are each REJECTED inside the front door, and wrote nothing - lease_lost,lease_lost,superseded
+OK   T7 B completes exactly once: one done run, the lock released once, exactly one verification work order, W review / WAITING; a retried completion is told it landed and changes nothing - {"done_runs":1,"locks":0,"verification_wos":1,"w_state":"review/WAITING_FOR_INDEPENDENT_VERIFICATION","cand":"b0db8aba-c6a1-40c1-9ea3-92b68cf10914"}
+OK   T8 surface-lock ownership stayed valid: A's lock (enrolled: lease infinity), then B's, never both, and none after completion
+OK   T10a D (depends on W) is not claimable while W awaits verification
+OK   T9a after the takeover NEITHER A NOR B (the authoring set) can take the verification: gate 7 independence, by name - not eligible: gate 7 independence - S-13: this identity is in the authoring set
+OK   T9b C (an identity outside the authoring set, with verifier authority) claims the verification: VERIFICATION_CLAIMED
+OK   T9c a certification naming another candidate is refused (provenance_mismatch); C certifies the exact candidate: one record, the authoring set of 2 recorded, W COMPLETE - {"status":"done","verification_state":"COMPLETE"}
+OK   T10b D is claimable once W is COMPLETE (dependent released by the server, no founder step)
+OK   X1 a legacy run on the unmodified 69df2f52 claim path holding surface s1 blocks an enrolled claim of a work order owning s1 (gate 8) - not eligible: gate 8 surface_locks - a surface this work order owns is held
+OK   X2 ... and the reverse: an enrolled run holding s2 blocks the legacy claim of a work order owning s2
+OK   X3 an enrolled node is refused a legacy work order (no factory-enrolled-v1): not_enrolled_work
+
+takeover_acceptance [direct]: 17/17 OK

@@ -1,0 +1,37 @@
+step admin_acceptance
+command C:\Program Files\nodejs\node.exe qa/factory/v1/admin_acceptance.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 412ac14e76f88fbd5e310d3e97dbf5acab2c1498
+started 2026-09-26T23:35:40.254Z
+seconds 25
+exit 0
+summary admin_acceptance: 20/20 OK
+
+OK   P1 every non-admin persona (the 9 roles; hr_finance even when listed; a self-promoted employee; founder / holding_admin not in tenant_admins; an inactive founder), no token, and a foreign-project token: every one of 23 admin actions refused, no data, nothing changed - 16 personas x 23 actions
+OK   P2 the self-promoted employee (profiles.role self-updated to founder, S1) is refused by S-8(b) (not in tenant_admins), and every refusal is audited - audited refusals: 23
+OK   P3 a foreign tenant's founder sees none of this tenant's computers: not_found (no existence leak), and its list is empty
+OK   P4 founder-only actions (publish / revoke release or key, granting release_broker) are refused for a holding_admin, a holding_admin self-promoted to founder, and a tier-founder row whose live role is no longer founder; the founder (tier founder + live founder) is allowed - founder_only,founder_only,founder_only,founder_only,founder_only,founder_only
+OK   P5 a holding_admin in tenant_admins (tier admin) is a Factory admin for everything but the founder-only actions
+OK   R1p the platform path shape: /factory-node-api/v1/... and /factory-admin-api/v1/admin/... serve (as the Edge runtime delivers them), the bare path is the same route, and a doubled, foreign or partial prefix is 404 - {"nodePrefixed":200,"nodeBare":200,"nodeDoubled":404,"nodeForeign":404,"nodePartial":404,"adminPrefixed":200,"adminBare":200,"adminForeign":404,"adminDoubled":404}
+OK   R1 the Node API answers exactly S-7: every node operation refuses without a session (401); every other route or method is 404; only the four session-less routes answer without a credential; a Brain OS token is no node session and a node token is no admin session - 4 session-less routes, 11 node operations
+OK   L1 revoke: after it commits EVERY S-7 operation from that computer is refused (credential_revoked) - heartbeat, claim, renew, checkpoint, complete of the in-flight run, release, verification claim, certify, register, report-state, rotate, session exchange - whatever session it holds; its runs are byte-identical; other computers keep working - {"refused":{"heartbeat":"credential_revoked","claim":"credential_revoked","renew":"credential_revoked","checkpoint":"credential_revoked","complete":"credential_revoked","release":"credential_revoked","verification-claim":"credential_revoked","certify":"credential_revoked","register":"credential_revoked","report-state":"credential_revoked"},"rot":"credential_revoked","reSession":"credential_revoked","ev":true,"b":true,"rv":true}
+OK   L2 revoking a revoked credential answers "already" and writes nothing
+OK   L3 rotate: the old credential is superseded and refused (its session and a new session both), the new key works, and the principal is unchanged
+OK   L4 an admin-requested rotation is told to the node on its next call (rotate_required)
+OK   L5 re-pair: a new code for the SAME principal; a new key; the old credential stays revoked; the node id is kept
+OK   L6 drain: no new claims (gate 9, named), DRAINING shown, a second drain answers "already"; resume restores claiming
+OK   L7 archive: every credential revoked, no work, history readable, a second archive "already"; restore returns it only through a fresh re-pair (new key, same principal) - {"ar":true,"ar2":true,"arHb":"credential_revoked","state":"ARCHIVED","hist":1,"rst":true}
+OK   L8 two admins race the same amendment: one wins atomically, the other gets stale_state; a single final state
+OK   L9 revoke during pairing: nothing is issued from that code - code_revoked
+OK   L10 an envelope amendment is effective with nobody touching the node (gate 5 flips), and amending it back makes the earlier envelope apply again; both audited from -> to
+OK   G1 holding_admin and founder: relaxing the tenant default, changing a campaign row (even "stricter"), binding S-16(a) a second time, unbinding it, and deleting a policy are all refused; a stricter change to the tenant default is accepted as a new version - policy_relaxation_refused,policy_frozen,policy_frozen,s16a_already_bound,policy_relaxation_refused,policy_frozen,policy_frozen,s16a_already_bound
+OK   E1 a body naming another node, tenant, role, capability, envelope, principal or agent is refused (identity_from_body_refused) and a server read-back shows nothing changed
+OK   E2 the best resources, the preferred verifier's hostname, and a self-reported capability never make a node eligible: gate 5 (role) and gate 6 (capability from the envelope) refuse by name - not eligible: gate 5 required_role - the envelope does not authorize role verifier | not eligible: gate 6 required_capabilities - the envelope lacks gpu
+
+admin_acceptance: 20/20 OK
+
+--- stderr ---
+(node:14160) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DELL/dev/brain-os-factory-enroll/supabase/control-plane/edge/supabase/functions/_shared/node_api.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DELL\dev\brain-os-factory-enroll\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

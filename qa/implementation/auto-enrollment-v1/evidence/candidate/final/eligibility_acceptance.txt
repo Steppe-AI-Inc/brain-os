@@ -1,0 +1,27 @@
+step eligibility_acceptance
+command C:\Program Files\nodejs\node.exe qa/factory/v1/eligibility_acceptance.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 412ac14e76f88fbd5e310d3e97dbf5acab2c1498
+started 2026-09-26T23:36:14.245Z
+seconds 42
+exit 0
+summary eligibility_acceptance: 10/10 OK
+
+OK   G1-G12 each gate refuses alone and names itself (1 credential, 2 tenant, 3 company scope, 4 authorization, 5 role, 6 capability, 7 independence, 8 locks, 9 drain, 10 health x2, 11 concurrency x2, 12 minimum resources) - {"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"10":10,"11":11,"12":12,"g10b":10,"g11h":11,"g2fn":"2"}
+OK   G2b a claim naming another tenant's work order is answered exactly like one naming no work order (no existence leak)
+OK   H1 S-16(a): the bound computer never takes authoring of product code - a surface outside the Director-document paths, no declared surface, a mixed set, or a ".." path; only docs/ qa/verification/ qa/work-orders/ governance/ work - 7,7,7,7
+OK   G1b the revoked computer shows CREDENTIAL_REVOKED on the Computers view - CREDENTIAL_REVOKED
+OK   O1 a node violating two gates is refused by the FIRST in the founder's order (3<5, 4<6, 5<8, 6<12, 8<12, 5<9, 8<9, 9<12) - 3+5:3 4+6:4 5+8:5 6+12:6 8+12:8 5+9:5 8+9:8 9+12:9
+OK   D1 detection only restricts: an envelope capability the node detects as absent makes it ineligible (gate 6); without that detection it is eligible - 6,claimed
+OK   K1 a strictly better-ranked, fresh, AVAILABLE, eligible node delays the weaker node's claim - and never past 30 s from queueing (then the weaker node claims) - claimed after 30 s
+OK   K2 a "better" node that is draining, stale, not authorized for the work, or in another tenant never delays an eligible node (it claims at once) - true,true,true,true
+OK   Y1 numeric priority: 100 before 10 before 2 (lexical text order would give 2, 100, 10) - 100,10,2
+OK   G4r gate 4 on the server: a superseded release without an adopt is refused; an admin adopt restores it; a release signed by a revoked key is refused even adopted, and never adopted again (key_revoked); another key's release is unaffected; a revoked release is refused - {"before":0,"zPublished":0,"superseded":4,"adopted":0,"keyRevoked":4,"otherKey":0,"releaseRevoked":4,"P2":true,"zreg":true,"ad1":true,"ad2":"key_revoked"}
+
+eligibility_acceptance: 10/10 OK
+
+--- stderr ---
+(node:22984) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DELL/dev/brain-os-factory-enroll/supabase/control-plane/edge/supabase/functions/_shared/node_api.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DELL\dev\brain-os-factory-enroll\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

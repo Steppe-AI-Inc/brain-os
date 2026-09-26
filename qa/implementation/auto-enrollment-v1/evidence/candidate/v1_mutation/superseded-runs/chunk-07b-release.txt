@@ -1,0 +1,13 @@
+command   node qa/factory/v1/v1_mutation_proof.mjs --controls qa/implementation/auto-enrollment-v1/evidence/candidate/v1_mutation/controls.json RU RD
+commit    e6fcfb75715ff430321e715ca4b31a537c138db1
+started   2026-09-26T21:01:44Z
+
+v1_mutation_proof: 2 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ e6fcfb75715ff430321e715ca4b31a537c138db1
+CONTROL  release     passed - release_acceptance: 15/15 OK (this commit, run 2026-09-26T21:01:34.842Z)
+CAUGHT   RU    release      expected FAIL R-b; seen FAIL [R-b]; release_acceptance: 14/15 OK; FAILED: R-b (178 s) - an unsigned release is accepted
+CAUGHT   RD    release      expected FAIL R-m; seen FAIL [R-m]; release_acceptance: 14/15 OK; FAILED: R-m (179 s) - a superseded release is installed without an admin adopt (a silent downgrade)
+
+v1_mutation_proof: 2 of 2 mutants killed
+
+exit      0
+ended     2026-09-26T21:07:43Z

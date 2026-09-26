@@ -1,0 +1,191 @@
+{
+  "admin@6fcfd8515e5762421e61fc518b4c2dfc4c5b2a25": {
+    "code": 0,
+    "failed": [],
+    "summary": "admin_acceptance: 20/20 OK",
+    "secs": 26,
+    "at": "2026-09-26T20:13:29.103Z"
+  },
+  "revocation@6fcfd8515e5762421e61fc518b4c2dfc4c5b2a25": {
+    "code": 0,
+    "failed": [],
+    "summary": "revocation_interleaving: 13/13 OK",
+    "secs": 9,
+    "at": "2026-09-26T20:13:38.322Z"
+  },
+  "schema@6fcfd8515e5762421e61fc518b4c2dfc4c5b2a25": {
+    "code": 0,
+    "failed": [],
+    "summary": "schema_acceptance: 47/47 OK",
+    "secs": 8,
+    "at": "2026-09-26T20:13:47.093Z"
+  },
+  "enrollment@6fcfd8515e5762421e61fc518b4c2dfc4c5b2a25": {
+    "code": 0,
+    "failed": [],
+    "summary": "enrollment_acceptance: 19/19 OK",
+    "secs": 69,
+    "at": "2026-09-26T20:14:56.460Z"
+  },
+  "tls@6fcfd8515e5762421e61fc518b4c2dfc4c5b2a25": {
+    "code": 0,
+    "failed": [],
+    "summary": "edge_db_tls_acceptance: 7/7 OK",
+    "secs": 16,
+    "at": "2026-09-26T20:15:12.403Z"
+  },
+  "admin@c49ae287f3283b18448ca7b052b8033673ffef89": {
+    "code": 0,
+    "failed": [],
+    "summary": "admin_acceptance: 20/20 OK",
+    "secs": 25,
+    "at": "2026-09-26T20:21:59.457Z"
+  },
+  "revocation@c49ae287f3283b18448ca7b052b8033673ffef89": {
+    "code": 0,
+    "failed": [],
+    "summary": "revocation_interleaving: 13/13 OK",
+    "secs": 9,
+    "at": "2026-09-26T20:22:35.356Z"
+  },
+  "tls@c49ae287f3283b18448ca7b052b8033673ffef89": {
+    "code": 0,
+    "failed": [],
+    "summary": "edge_db_tls_acceptance: 7/7 OK",
+    "secs": 8,
+    "at": "2026-09-26T20:26:22.515Z"
+  },
+  "schema@c49ae287f3283b18448ca7b052b8033673ffef89": {
+    "code": 0,
+    "failed": [],
+    "summary": "schema_acceptance: 47/47 OK",
+    "secs": 8,
+    "at": "2026-09-26T20:26:59.558Z"
+  },
+  "enrollment@c49ae287f3283b18448ca7b052b8033673ffef89": {
+    "code": 0,
+    "failed": [],
+    "summary": "enrollment_acceptance: 19/19 OK",
+    "secs": 69,
+    "at": "2026-09-26T20:29:11.978Z"
+  },
+  "schema@812899eed5aab42feb3d17d1886d4a31d8248e9e": {
+    "code": 0,
+    "failed": [],
+    "summary": "schema_acceptance: 47/47 OK",
+    "secs": 7,
+    "at": "2026-09-26T20:35:01.701Z"
+  },
+  "eligibility@812899eed5aab42feb3d17d1886d4a31d8248e9e": {
+    "code": 0,
+    "failed": [],
+    "summary": "eligibility_acceptance: 10/10 OK",
+    "secs": 42,
+    "at": "2026-09-26T20:36:09.167Z"
+  },
+  "takeover@812899eed5aab42feb3d17d1886d4a31d8248e9e": {
+    "code": 0,
+    "failed": [],
+    "summary": "takeover_acceptance [direct]: 17/17 OK",
+    "secs": 14,
+    "at": "2026-09-26T20:36:23.229Z"
+  },
+  "independence@812899eed5aab42feb3d17d1886d4a31d8248e9e": {
+    "code": 0,
+    "failed": [],
+    "summary": "independence_acceptance: 15/15 OK",
+    "secs": 16,
+    "at": "2026-09-26T20:36:39.478Z"
+  },
+  "enrollment@812899eed5aab42feb3d17d1886d4a31d8248e9e": {
+    "code": 0,
+    "failed": [],
+    "summary": "enrollment_acceptance: 19/19 OK",
+    "secs": 69,
+    "at": "2026-09-26T20:52:07.605Z"
+  },
+  "independence@e6fcfb75715ff430321e715ca4b31a537c138db1": {
+    "code": 0,
+    "failed": [],
+    "summary": "independence_acceptance: 16/16 OK",
+    "secs": 22,
+    "at": "2026-09-26T20:57:25.124Z"
+  },
+  "release@e6fcfb75715ff430321e715ca4b31a537c138db1": {
+    "code": 0,
+    "failed": [],
+    "summary": "release_acceptance: 15/15 OK",
+    "secs": 178,
+    "at": "2026-09-26T21:01:34.842Z"
+  },
+  "admin@578785d45ce24bacb6474e669f01a5b7cd4bd9c2": {
+    "code": 0,
+    "failed": [],
+    "summary": "admin_acceptance: 20/20 OK",
+    "secs": 26,
+    "at": "2026-09-26T21:08:44.844Z"
+  },
+  "revocation@578785d45ce24bacb6474e669f01a5b7cd4bd9c2": {
+    "code": 0,
+    "failed": [],
+    "summary": "revocation_interleaving: 13/13 OK",
+    "secs": 9,
+    "at": "2026-09-26T21:09:19.388Z"
+  },
+  "schema@578785d45ce24bacb6474e669f01a5b7cd4bd9c2": {
+    "code": 0,
+    "failed": [],
+    "summary": "schema_acceptance: 47/47 OK",
+    "secs": 7,
+    "at": "2026-09-26T21:13:02.154Z"
+  },
+  "tls@578785d45ce24bacb6474e669f01a5b7cd4bd9c2": {
+    "code": 0,
+    "failed": [],
+    "summary": "edge_db_tls_acceptance: 7/7 OK",
+    "secs": 9,
+    "at": "2026-09-26T21:14:07.725Z"
+  },
+  "eligibility@578785d45ce24bacb6474e669f01a5b7cd4bd9c2": {
+    "code": 0,
+    "failed": [],
+    "summary": "eligibility_acceptance: 10/10 OK",
+    "secs": 42,
+    "at": "2026-09-26T21:15:15.373Z"
+  },
+  "takeover@578785d45ce24bacb6474e669f01a5b7cd4bd9c2": {
+    "code": 0,
+    "failed": [],
+    "summary": "takeover_acceptance [direct]: 17/17 OK",
+    "secs": 13,
+    "at": "2026-09-26T21:28:35.262Z"
+  },
+  "independence@578785d45ce24bacb6474e669f01a5b7cd4bd9c2": {
+    "code": 0,
+    "failed": [],
+    "summary": "independence_acceptance: 16/16 OK",
+    "secs": 22,
+    "at": "2026-09-26T21:29:11.263Z"
+  },
+  "enrollment@578785d45ce24bacb6474e669f01a5b7cd4bd9c2": {
+    "code": 0,
+    "failed": [],
+    "summary": "enrollment_acceptance: 19/19 OK",
+    "secs": 69,
+    "at": "2026-09-26T21:31:12.989Z"
+  },
+  "release@578785d45ce24bacb6474e669f01a5b7cd4bd9c2": {
+    "code": 0,
+    "failed": [],
+    "summary": "release_acceptance: 15/15 OK",
+    "secs": 180,
+    "at": "2026-09-26T21:37:48.403Z"
+  },
+  "release@d7d63a697a6bd93494ff2f1bc51b151a71d384bb": {
+    "code": 0,
+    "failed": [],
+    "summary": "release_acceptance: 15/15 OK",
+    "secs": 178,
+    "at": "2026-09-26T21:48:51.916Z"
+  }
+}

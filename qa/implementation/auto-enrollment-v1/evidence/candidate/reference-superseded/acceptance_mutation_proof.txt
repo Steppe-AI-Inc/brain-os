@@ -1,0 +1,14 @@
+suite acceptance_mutation_proof
+command node qa/factory/acceptance_mutation_proof.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 7c4e9f3369c90c68b92322ef792dfe24bc3c80bb
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL and FACTORY_RUNNER_ENV_FILE emptied
+started 2026-09-26T22:20:45.400Z
+seconds 1
+exit 2
+summary (no summary line)
+
+MUTATION ANCHORS MISSING - the proof would test nothing:
+  N37x qa/factory/two_machine_real.mjs: '; run it again'); process.exit(4); };
+  N19 scripts/factory-runner/node.mjs: if (!b.found) { await register(); await nodeBeat(id, nodeRole(), reg);

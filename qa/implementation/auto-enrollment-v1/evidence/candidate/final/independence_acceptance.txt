@@ -1,0 +1,33 @@
+step independence_acceptance
+command C:\Program Files\nodejs\node.exe qa/factory/v1/independence_acceptance.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 412ac14e76f88fbd5e310d3e97dbf5acab2c1498
+started 2026-09-26T23:36:55.944Z
+seconds 22
+exit 0
+summary independence_acceptance: 16/16 OK
+
+OK   (a) the authoring run cannot certify itself (it holds no verification work: superseded, nothing certified)
+OK   (b)(c) the author re-reporting a different hostname (even the preferred verifier's) and a different fingerprint is still refused as verifier: gate 7 (identity in the authoring set) - not eligible: gate 7 independence - S-13: this identity is in the authoring set
+OK   (d) under the tenant default, a verifier reporting the SAME hostname as the author certifies when identity, run, authority and provenance all pass
+OK   (f) with no eligible verifier (the other node draining; the author refused) the work stays WAITING and is never self-certified; the waiting view names each node's first failing gate
+OK   (g) a second run (a new session) of an authoring identity cannot take the verification
+OK   (h) verifier authority is read from the certifier's CURRENT envelope: removed after the claim, the certification is refused (no_verifier_authority)
+OK   (k) with the policy data relaxed on the copy (every floor flag false), the front door still refuses the author as verifier (the S-13 floor)
+OK   (m) two principals on one computer: under the tenant default the second principal may certify the first's work; under the campaign it is refused (same enrolled computer record), even reporting a different fingerprint - not eligible: gate 7 independence - campaign: the same enrolled computer record as an authoring-set member
+OK   (i)(e) the campaign: another computer record that reported the author's fingerprint is refused; a different record AND fingerprint certifies; the record cites both policies (campaign adds, the default is unchanged) - not eligible: gate 7 independence - campaign: a machine fingerprint equal to an authoring-set member's
+OK   (p) one machine enrolled twice through Add Computer (two records, one fingerprint): the campaign refuses certification between them, also after the author's computer reports a new fingerprint - not eligible: gate 7 independence - campaign: a machine fingerprint equal to an authoring-set member's
+OK   (n) the author rotates its credential through the node operation, then is re-paired: each new credential carries the SAME principal and is refused as certifier; on a computer with P1 and P2, rotating P2 keeps P2
+OK   (l) no route mints a principal (404); a body naming another principal is refused; the Node API role cannot write principals directly (42501)
+OK   (o1)/AC-16 a FAIL moves the work order to VERIFICATION_FAILED and back to the queue for repair with no founder step; it is never COMPLETE, its candidate is never re-verified automatically, and a resubmission of the same tree is refused
+OK   (o2) a certification naming an EARLIER candidate, ANOTHER work order, or anything but the completing run is refused (provenance_mismatch) and never completes the work order; the current candidate then certifies - {"vo2":"claimed","old":"provenance_mismatch: the certification must name this work order and exactly its current candidate (run, content digest, commit)","other":"provenance_mismatch: the certification must name this work order and exactly its current candidate (run, content digest, commit)","cp":"provenance_mismatch: the certification must name this work order and exactly its current candidate (run, content digest, commit)","still":{"status":"review","verification_state":"VERIFICATION_CLAIMED"},"good":true}
+OK   (j) after a takeover NO member of the authoring set (A or B) can certify; a third identity can
+OK   (j2) a run that held a lease and wrote NO checkpoint (its lease lapsed first) stays in the authoring set: after B completes from scratch, that identity cannot take the verification (gate 7) - {"a":true,"b":true,"resumed":null,"done":true,"v":"not eligible: gate 7 independence - S-13: this identity is in the authoring set"}
+
+independence_acceptance: 16/16 OK
+
+--- stderr ---
+(node:17800) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DELL/dev/brain-os-factory-enroll/supabase/control-plane/edge/supabase/functions/_shared/node_api.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DELL\dev\brain-os-factory-enroll\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

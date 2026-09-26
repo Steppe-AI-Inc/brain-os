@@ -1,0 +1,29 @@
+command   node qa/factory/v1/v1_mutation_proof.mjs --controls qa/implementation/auto-enrollment-v1/evidence/candidate/v1_mutation/controls.json FN IN IN2 CP PH PC PD
+commit    812899eed5aab42feb3d17d1886d4a31d8248e9e
+started   2026-09-26T20:50:01Z
+
+v1_mutation_proof: 7 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ 812899eed5aab42feb3d17d1886d4a31d8248e9e
+CONTROL  takeover    passed - takeover_acceptance [direct]: 17/17 OK (this commit, run 2026-09-26T20:36:23.229Z)
+CAUGHT   FN    takeover     expected FAIL T6; seen FAIL [T6]; takeover_acceptance [direct]: 16/17 OK; FAILED: T6 (14 s) - a checkpoint no longer checks that the run is still this node's (stale-worker fence removed)
+CONTROL  independencepassed - independence_acceptance: 15/15 OK (this commit, run 2026-09-26T20:36:39.478Z)
+CAUGHT   IN    independence expected FAIL (b)(c)|(g)|(j)|(m)|(n); seen FAIL [(b)(c) (d) (f) (g) (h) X0]; independence_acceptance: 1/7 OK; FAILED: (b)(c), (d), (f), (g), (h), X0 (8 s) - independence reduced to run-only: an authoring identity may claim (gate 7) and certify (floor) its own candidate
+SURVIVED IN2   independence expected FAIL (j); seen FAIL []; independence_acceptance: 15/15 OK (17 s) - the authoring set reduced to the completing run (a taken-over author may verify)
+certifies - {"vo2":"claimed","old":"provenance_mismatch: the certification must name this work order and exactly its current candidate (run, content digest, commit)","other":"provenance_mismatch: the certification must name this work order and exactly its current candidate (run, content digest, commit)","cp":"provenance_mismatch: the certification must name this work order and exactly its current candidate (run, content digest, commit)","still":{"status":"review","verification_state":"VERIFICATION_CLAIMED"},"good":true}
+OK   (j) after a takeover NO member of the authoring set (A or B) can certify; a third identity can
+
+independence_acceptance: 15/15 OK
+(node:6820) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DELL/AppData/Local/Temp/bos-v1mut-WuZNwI/repo/supabase/control-plane/edge/supabase/functions/_shared/node_api.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DELL\AppData\Local\Temp\bos-v1mut-WuZNwI\repo\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+CAUGHT   CP    independence expected FAIL (o2); seen FAIL [(o2)]; independence_acceptance: 14/15 OK; FAILED: (o2) (16 s) - a certification is not bound to its work order and exact candidate provenance
+CONTROL  enrollment  passed - enrollment_acceptance: 19/19 OK (69 s)
+CAUGHT   PH    enrollment   expected FAIL EN9|EN19; seen FAIL [EN9]; enrollment_acceptance: 18/19 OK; FAILED: EN9 (69 s) - the code's HMAC is not compared: any secret with a live locator enrolls
+CAUGHT   PC    enrollment   expected FAIL EN9; seen FAIL [EN9]; enrollment_acceptance: 18/19 OK; FAILED: EN9 (69 s) - the per-locator failure cap is 500 instead of 5
+CAUGHT   PD    enrollment   expected FAIL EN15; seen FAIL [EN15]; enrollment_acceptance: 18/19 OK; FAILED: EN15 (69 s) - the pairing secret generated deterministically (a counter, not the CSPRNG)
+
+v1_mutation_proof: 6 of 7 mutants killed; NOT killed: IN2
+
+exit      1
+ended     2026-09-26T20:55:34Z

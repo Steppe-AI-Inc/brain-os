@@ -1,0 +1,29 @@
+suite acceptance_mutation_proof chunk N2-N23s-N23-N3-N4-N5-N6-N7-N8-N9-N9b-N10-N10D-N11-N12 (N2 N23s N23 N3 N4 N5 N6 N7 N8 N9 N9b N10 N10D N11 N12)
+command node qa/factory/acceptance_mutation_proof.mjs N2 N23s N23 N3 N4 N5 N6 N7 N8 N9 N9b N10 N10D N11 N12
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 412ac14e76f88fbd5e310d3e97dbf5acab2c1498
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL and FACTORY_RUNNER_ENV_FILE emptied
+started 2026-09-26T23:00:51.057Z
+seconds 394
+exit 0
+summary acceptance_mutation_proof: 15 of 15 mutants killed on 412ac14e76f88fbd5e310d3e97dbf5acab2c1498
+
+acceptance mutation proof on 412ac14e76f88fbd5e310d3e97dbf5acab2c1498 (15 mutants)
+KILLED   N2 (the worker never re-asserts its role) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N23s (two_machine_scheduling registers the checkout's own node id) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N23 (the worker re-asserts only its role, not its whole registration (an overwritten record stays overwritten)) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N3 (the handler completes an action it does not know) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N4 (a failed run leaves its work order claimed) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N5 (a busy node stamps nothing on its node record) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N6 (one transient plane error ends the worker) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N7 (the backoff resets only after ten minutes of uptime) - node_truth_acceptance: 2 passed, 1 failed
+KILLED   N8 (the backoff resets on registration, and registration stamps liveness (a claim-failing worker crash-loops ALIVE)) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N9 (a second worker runs under the same node identity) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N9b (a bare worker runs beside the supervisor of the same node) - node_truth_acceptance: 2 passed, 1 failed
+KILLED   N10 (the handler acts on malformed arguments) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N10D (a data exception inside a run is retried forever) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N11 (a busy claim lock is silent) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N12 (a failed run can be recorded as verified) - node_truth_acceptance: 0 passed, 1 failed
+
+acceptance_mutation_proof: 15 of 15 mutants killed on 412ac14e76f88fbd5e310d3e97dbf5acab2c1498

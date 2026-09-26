@@ -1,0 +1,20 @@
+command   node qa/factory/sea_package_mutation_proof.mjs R4 R5 R6 R7 R8 R9 X1 X2
+batch     D of A-D (serial, concurrency 1, own control)
+commit    6eb3b6a90417b94a3c2c987854f07fd040a135e2
+started   2026-09-26T19:31:19Z
+
+sea_package_mutation_proof: 8 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ 6eb3b6a90417b94a3c2c987854f07fd040a135e2 - the 32 copied files are identical to HEAD
+CONTROL  passed - 25 passed, 0 failed (185 s)
+CAUGHT   R4   expected FAIL B5; seen FAIL [B5]; 24 passed, 1 failed (183 s) - review: verify-build removes SOURCE_DATE_EPOCH by its exact spelling again (a lower-case source_date_epoch reaches the rebuild)
+CAUGHT   R5   expected FAIL B16; seen FAIL [B16]; 24 passed, 1 failed (197 s) - review: --rebuild-dir = --against is judged by spelling, not sameFile (a junction to the reference is rebuilt into, destroying it)
+CAUGHT   R6   expected FAIL B16; seen FAIL [B16]; 24 passed, 1 failed (197 s) - review: SHA256SUMS is checked only for the lines it has again (an empty one passes and the metafile goes unchecked by it)
+CAUGHT   R7   expected FAIL B18; seen FAIL [B18]; 24 passed, 1 failed (182 s) - review: a failed rebuild exits from inside the try again, so the rebuild directory is never removed
+CAUGHT   R8   expected FAIL S4; seen FAIL [S4]; 24 passed, 1 failed (185 s) - review: quadAlign is the int32 (n + 7) & ~7 again (wraps negative at 2^31)
+CAUGHT   R9   expected FAIL S4; seen FAIL [S4]; 24 passed, 1 failed (183 s) - review: the pe-strip CLI compares paths by spelling again (a junction or a hard link to the input is overwritten)
+CAUGHT   X1   expected FAIL S1|B20; seen FAIL [S1 B20]; 23 passed, 2 failed (183 s) - the SEA config lets NODE_OPTIONS extend the runtime again (execArgvExtension env): code from the environment runs inside the exe
+CAUGHT   X2   expected FAIL B21; seen FAIL [B21]; 24 passed, 1 failed (199 s) - a build without --channel silently becomes a dev-channel build (the trust set and mode chosen by default, not by the caller)
+
+sea_package_mutation_proof: 8 of 8 mutants killed
+
+exit      0
+ended     2026-09-26T19:59:33Z

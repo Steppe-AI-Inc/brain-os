@@ -1,0 +1,30 @@
+step revocation_interleaving
+command C:\Program Files\nodejs\node.exe qa/factory/v1/revocation_interleaving.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 412ac14e76f88fbd5e310d3e97dbf5acab2c1498
+started 2026-09-26T23:36:05.369Z
+seconds 9
+exit 0
+summary revocation_interleaving: 13/13 OK
+
+OK   I1 renew: the call held the credential (SHARE); a revoke issued inside its transaction WAITED; the call committed first, then the revoke; the next call is refused - blocked=true effect=true
+OK   I1 checkpoint: the call held the credential (SHARE); a revoke issued inside its transaction WAITED; the call committed first, then the revoke; the next call is refused - blocked=true effect=true
+OK   I1 complete: the call held the credential (SHARE); a revoke issued inside its transaction WAITED; the call committed first, then the revoke; the next call is refused - blocked=true effect=true
+OK   I2 renew: the revoke held the credential row; the call WAITED, then was refused (credential_revoked) with the run and its checkpoints unchanged - blocked=true credential_revoked
+OK   I2 checkpoint: the revoke held the credential row; the call WAITED, then was refused (credential_revoked) with the run and its checkpoints unchanged - blocked=true credential_revoked
+OK   I2 complete: the revoke held the credential row; the call WAITED, then was refused (credential_revoked) with the run and its checkpoints unchanged - blocked=true credential_revoked
+OK   I2 heartbeat: the revoke held the credential row; the call WAITED, then was refused (credential_revoked) with the run and its checkpoints unchanged - blocked=true credential_revoked
+OK   I2 claim: the revoke held the credential row; the call WAITED, then was refused (credential_revoked) with the run and its checkpoints unchanged - blocked=true credential_revoked
+OK   I2 release: the revoke held the credential row; the call WAITED, then was refused (credential_revoked) with the run and its checkpoints unchanged - blocked=true credential_revoked
+OK   I2 session exchange: a key-signed assertion of a revoked credential gets no session (credential_revoked)
+OK   I3a rotate commits first while the revoke waits: the revoke still ends on the NEW credential (old superseded, new revoked); the new key gets no session - superseded,revoked
+OK   I3b the revoke commits first while the rotate waits: the rotate is refused (credential_revoked) and no new credential exists - revoked
+OK   I4 through every interleaving above, another computer kept working (heartbeat, claim)
+
+revocation_interleaving: 13/13 OK
+
+--- stderr ---
+(node:24592) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DELL/dev/brain-os-factory-enroll/supabase/control-plane/edge/supabase/functions/_shared/node_api.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DELL\dev\brain-os-factory-enroll\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

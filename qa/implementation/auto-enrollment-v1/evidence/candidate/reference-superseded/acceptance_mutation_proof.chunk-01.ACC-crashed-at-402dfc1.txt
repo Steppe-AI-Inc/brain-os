@@ -1,0 +1,174 @@
+suite acceptance_mutation_proof chunk 1 (M N O Q P N1 N1L N14 N13 N13c)
+command node qa/factory/acceptance_mutation_proof.mjs M N O Q P N1 N1L N14 N13 N13c
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 402dfc1e1d4bd5953c61795e56028f414bace47d
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL and FACTORY_RUNNER_ENV_FILE emptied
+started 2026-09-26T22:43:59.019Z
+seconds 138
+exit 1
+summary acceptance_mutation_proof: 5 of 10 mutants killed on 402dfc1e1d4bd5953c61795e56028f414bace47d
+
+acceptance mutation proof on 402dfc1e1d4bd5953c61795e56028f414bace47d (10 mutants)
+SURVIVED M (a run whose lease was taken over completes the work order) - no summary (exit 1)
+         its output ended:
+         ...]'
+         
+             at genericNodeError (node:internal/errors:985:15)
+             at wrappedFn (node:internal/errors:539:14)
+             at checkExecSyncError (node:child_process:942:11)
+             at execFileSync (node:child_process:978:15)
+             at git (file:///C:/Users/DELL/AppData/Local/Temp/accmut-q9ju2h/scripts/factory-runner/reconstruct.mjs:26:28)
+             at reconstructBranch (file:///C:/Users/DELL/AppData/Local/Temp/accmut-q9ju2h/scripts/factory-runner/reconstruct.mjs:49:18)
+             at Module.reconstructControlPlane (file:///C:/Users/DELL/AppData/Local/Temp/accmut-q9ju2h/scripts/factory-runner/reconstruct.mjs:97:15)
+             at file:///C:/Users/DELL/AppData/Local/Temp/accmut-q9ju2h/qa/factory/acceptance.mjs:440:30
+             at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+           status: 128,
+           signal: null,
+           output: [
+             null,
+             'factory/computer-agnostic-control-plane\n',
+             "fatal: ambiguous argument 'factory/computer-agnostic-control-plane': unknown revision or path not in the working tree.\n" +
+               "Use '--' to separate paths from revisions, like this:\n" +
+               "'git <command> [<revision>...] -- [<file>...]'\n"
+           ],
+           pid: 17588,
+           stdout: 'factory/computer-agnostic-control-plane\n',
+           stderr: "fatal: ambiguous argument 'factory/computer-agnostic-control-plane': unknown revision or path not in the working tree.\n" +
+             "Use '--' to separate paths from revisions, like this:\n" +
+             "'git <command> [<revision>...] -- [<file>...]'\n"
+         }
+         
+         Node.js v24.19.0
+         
+SURVIVED N (the claim transaction opens with no lock or idle limit) - no summary (exit 1)
+         its output ended:
+         >...]'
+         
+             at genericNodeError (node:internal/errors:985:15)
+             at wrappedFn (node:internal/errors:539:14)
+             at checkExecSyncError (node:child_process:942:11)
+             at execFileSync (node:child_process:978:15)
+             at git (file:///C:/Users/DELL/AppData/Local/Temp/accmut-cKQl6u/scripts/factory-runner/reconstruct.mjs:26:28)
+             at reconstructBranch (file:///C:/Users/DELL/AppData/Local/Temp/accmut-cKQl6u/scripts/factory-runner/reconstruct.mjs:49:18)
+             at Module.reconstructControlPlane (file:///C:/Users/DELL/AppData/Local/Temp/accmut-cKQl6u/scripts/factory-runner/reconstruct.mjs:97:15)
+             at file:///C:/Users/DELL/AppData/Local/Temp/accmut-cKQl6u/qa/factory/acceptance.mjs:440:30
+             at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+           status: 128,
+           signal: null,
+           output: [
+             null,
+             'factory/computer-agnostic-control-plane\n',
+             "fatal: ambiguous argument 'factory/computer-agnostic-control-plane': unknown revision or path not in the working tree.\n" +
+               "Use '--' to separate paths from revisions, like this:\n" +
+               "'git <command> [<revision>...] -- [<file>...]'\n"
+           ],
+           pid: 9960,
+           stdout: 'factory/computer-agnostic-control-plane\n',
+           stderr: "fatal: ambiguous argument 'factory/computer-agnostic-control-plane': unknown revision or path not in the working tree.\n" +
+             "Use '--' to separate paths from revisions, like this:\n" +
+             "'git <command> [<revision>...] -- [<file>...]'\n"
+         }
+         
+         Node.js v24.19.0
+         
+SURVIVED O (no connect or statement timeout) - no summary (exit 1)
+         its output ended:
+         ...]'
+         
+             at genericNodeError (node:internal/errors:985:15)
+             at wrappedFn (node:internal/errors:539:14)
+             at checkExecSyncError (node:child_process:942:11)
+             at execFileSync (node:child_process:978:15)
+             at git (file:///C:/Users/DELL/AppData/Local/Temp/accmut-5sJaZY/scripts/factory-runner/reconstruct.mjs:26:28)
+             at reconstructBranch (file:///C:/Users/DELL/AppData/Local/Temp/accmut-5sJaZY/scripts/factory-runner/reconstruct.mjs:49:18)
+             at Module.reconstructControlPlane (file:///C:/Users/DELL/AppData/Local/Temp/accmut-5sJaZY/scripts/factory-runner/reconstruct.mjs:97:15)
+             at file:///C:/Users/DELL/AppData/Local/Temp/accmut-5sJaZY/qa/factory/acceptance.mjs:440:30
+             at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+           status: 128,
+           signal: null,
+           output: [
+             null,
+             'factory/computer-agnostic-control-plane\n',
+             "fatal: ambiguous argument 'factory/computer-agnostic-control-plane': unknown revision or path not in the working tree.\n" +
+               "Use '--' to separate paths from revisions, like this:\n" +
+               "'git <command> [<revision>...] -- [<file>...]'\n"
+           ],
+           pid: 23200,
+           stdout: 'factory/computer-agnostic-control-plane\n',
+           stderr: "fatal: ambiguous argument 'factory/computer-agnostic-control-plane': unknown revision or path not in the working tree.\n" +
+             "Use '--' to separate paths from revisions, like this:\n" +
+             "'git <command> [<revision>...] -- [<file>...]'\n"
+         }
+         
+         Node.js v24.19.0
+         
+SURVIVED Q (no transaction_timeout (a statement stalled before its Sync holds its lock)) - no summary (exit 1)
+         its output ended:
+         ...]'
+         
+             at genericNodeError (node:internal/errors:985:15)
+             at wrappedFn (node:internal/errors:539:14)
+             at checkExecSyncError (node:child_process:942:11)
+             at execFileSync (node:child_process:978:15)
+             at git (file:///C:/Users/DELL/AppData/Local/Temp/accmut-qCSfEZ/scripts/factory-runner/reconstruct.mjs:26:28)
+             at reconstructBranch (file:///C:/Users/DELL/AppData/Local/Temp/accmut-qCSfEZ/scripts/factory-runner/reconstruct.mjs:49:18)
+             at Module.reconstructControlPlane (file:///C:/Users/DELL/AppData/Local/Temp/accmut-qCSfEZ/scripts/factory-runner/reconstruct.mjs:97:15)
+             at file:///C:/Users/DELL/AppData/Local/Temp/accmut-qCSfEZ/qa/factory/acceptance.mjs:440:30
+             at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+           status: 128,
+           signal: null,
+           output: [
+             null,
+             'factory/computer-agnostic-control-plane\n',
+             "fatal: ambiguous argument 'factory/computer-agnostic-control-plane': unknown revision or path not in the working tree.\n" +
+               "Use '--' to separate paths from revisions, like this:\n" +
+               "'git <command> [<revision>...] -- [<file>...]'\n"
+           ],
+           pid: 22820,
+           stdout: 'factory/computer-agnostic-control-plane\n',
+           stderr: "fatal: ambiguous argument 'factory/computer-agnostic-control-plane': unknown revision or path not in the working tree.\n" +
+             "Use '--' to separate paths from revisions, like this:\n" +
+             "'git <command> [<revision>...] -- [<file>...]'\n"
+         }
+         
+         Node.js v24.19.0
+         
+SURVIVED P (the work order is completed by a second statement) - no summary (exit 1)
+         its output ended:
+         ...]'
+         
+             at genericNodeError (node:internal/errors:985:15)
+             at wrappedFn (node:internal/errors:539:14)
+             at checkExecSyncError (node:child_process:942:11)
+             at execFileSync (node:child_process:978:15)
+             at git (file:///C:/Users/DELL/AppData/Local/Temp/accmut-vmYVZf/scripts/factory-runner/reconstruct.mjs:26:28)
+             at reconstructBranch (file:///C:/Users/DELL/AppData/Local/Temp/accmut-vmYVZf/scripts/factory-runner/reconstruct.mjs:49:18)
+             at Module.reconstructControlPlane (file:///C:/Users/DELL/AppData/Local/Temp/accmut-vmYVZf/scripts/factory-runner/reconstruct.mjs:97:15)
+             at file:///C:/Users/DELL/AppData/Local/Temp/accmut-vmYVZf/qa/factory/acceptance.mjs:440:30
+             at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+           status: 128,
+           signal: null,
+           output: [
+             null,
+             'factory/computer-agnostic-control-plane\n',
+             "fatal: ambiguous argument 'factory/computer-agnostic-control-plane': unknown revision or path not in the working tree.\n" +
+               "Use '--' to separate paths from revisions, like this:\n" +
+               "'git <command> [<revision>...] -- [<file>...]'\n"
+           ],
+           pid: 22120,
+           stdout: 'factory/computer-agnostic-control-plane\n',
+           stderr: "fatal: ambiguous argument 'factory/computer-agnostic-control-plane': unknown revision or path not in the working tree.\n" +
+             "Use '--' to separate paths from revisions, like this:\n" +
+             "'git <command> [<revision>...] -- [<file>...]'\n"
+         }
+         
+         Node.js v24.19.0
+         
+KILLED   N1 (health and plane-health re-register with a defaulted role) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N1L (a health check stamps liveness (a dead node reads ALIVE)) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N14 (a health check overwrites the running worker's record (its commit)) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N13 (a run that cannot renew its lease keeps working) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N13c (the abort guard times the lease from the claim's return, not its start) - node_truth_acceptance: 0 passed, 1 failed
+
+acceptance_mutation_proof: 5 of 10 mutants killed on 402dfc1e1d4bd5953c61795e56028f414bace47d

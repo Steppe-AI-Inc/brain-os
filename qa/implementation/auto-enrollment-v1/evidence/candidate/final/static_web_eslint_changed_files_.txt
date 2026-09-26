@@ -1,0 +1,9 @@
+step static: web eslint (changed files)
+command npx.cmd eslint "app/(app)/software-factory/computers" "app/(app)/software-factory/workers" lib/factory lib/data/factory-computers.ts components/app-sidebar.tsx lib/i18n/dictionary.ts
+cwd C:\Users\DELL\dev\brain-os-factory-enroll\web
+commit 412ac14e76f88fbd5e310d3e97dbf5acab2c1498
+started 2026-09-26T23:30:46.371Z
+seconds 35
+exit 0
+summary 
+

@@ -1,0 +1,14 @@
+command   node qa/factory/v1/v1_mutation_proof.mjs --controls qa/implementation/auto-enrollment-v1/evidence/candidate/v1_mutation/controls.json IN IN2 CP
+commit    e6fcfb75715ff430321e715ca4b31a537c138db1
+started   2026-09-26T20:57:02Z
+
+v1_mutation_proof: 3 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ e6fcfb75715ff430321e715ca4b31a537c138db1
+CONTROL  independencepassed - independence_acceptance: 16/16 OK (22 s)
+CAUGHT   IN    independence expected FAIL (b)(c)|(g)|(j)|(m)|(n); seen FAIL [(b)(c) (d) (f) (g) (h) X0]; independence_acceptance: 1/7 OK; FAILED: (b)(c), (d), (f), (g), (h), X0 (7 s) - independence reduced to run-only: an authoring identity may claim (gate 7) and certify (floor) its own candidate
+CAUGHT   IN2   independence expected FAIL (j)|(j2); seen FAIL [(j2)]; independence_acceptance: 15/16 OK; FAILED: (j2) (22 s) - the authoring set reduced to the completing run (a taken-over author may verify)
+CAUGHT   CP    independence expected FAIL (o2); seen FAIL [(o2)]; independence_acceptance: 15/16 OK; FAILED: (o2) (22 s) - a certification is not bound to its work order and exact candidate provenance
+
+v1_mutation_proof: 3 of 3 mutants killed
+
+exit      0
+ended     2026-09-26T20:58:17Z

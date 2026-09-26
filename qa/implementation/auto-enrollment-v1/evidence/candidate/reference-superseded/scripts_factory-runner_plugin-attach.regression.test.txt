@@ -1,0 +1,29 @@
+suite scripts/factory-runner/plugin-attach.regression.test
+command node scripts/factory-runner/plugin-attach.regression.test.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c49ae287f3283b18448ca7b052b8033673ffef89
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL and FACTORY_RUNNER_ENV_FILE emptied
+started 2026-09-26T20:50:59.033Z
+seconds 0
+exit 0
+summary ℹ fail 0
+
+✔ buildSkillInjectionPrompt: returns empty string for an agent with no attachments (no regression on the common case) (1.1359ms)
+✔ buildSkillInjectionPrompt: names the skill and its pinned origin for one attachment (0.2925ms)
+✔ buildSkillInjectionPrompt: FACTORY_SKILL_INJECTION_INCLUDES_DEFINITION_PATH — real bug fixed live during the Phase 6 Task Observer proof. The Skill tool only resolves skills that are ALSO installed as a real Claude Code marketplace plugin (confirmed live: Skill(task-observer) returned "Unknown skill" for a vendored-only component); reading definition_path directly is the reliable path regardless of marketplace-installation status, so it must be present and instructed (0.65ms)
+✔ buildSkillInjectionPrompt: omits the "Read this file directly" clause when definition_path is absent (never prints "Read this file directly: undefined") (0.2147ms)
+✔ buildSkillInjectionPrompt: lists every attached skill, not just the first (0.1871ms)
+✔ buildSkillInjectionPrompt: omits the pinned-ref suffix when pinned_ref is null (never prints "@ null") (0.1376ms)
+✔ startRunByAgentId dispatch path: task text is only ever extended, never replaced, by the skill block (0.1346ms)
+✔ hashFile: throws synchronously (no partial side effect possible) for a nonexistent file within an allowed root (0.9873ms)
+✔ assertPathWithinAllowedRoots: throws synchronously for a path outside every allowed root (0.3405ms)
+✔ applyUpdate/rollbackComponent source order: hashFile( is called before the first snapshotVersion( call in each function body (prevents the phantom-history-row class regressing) (1.1245ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12.3674

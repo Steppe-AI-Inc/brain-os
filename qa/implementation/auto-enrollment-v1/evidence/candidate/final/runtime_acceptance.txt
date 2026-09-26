@@ -1,0 +1,26 @@
+step runtime_acceptance
+command C:\Program Files\nodejs\node.exe qa/factory/v1/runtime_acceptance.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 412ac14e76f88fbd5e310d3e97dbf5acab2c1498
+started 2026-09-26T23:37:27.535Z
+seconds 400
+exit 0
+summary runtime_acceptance: 9/9 OK
+
+OK   U0 every command of this rehearsal runs with PATH = System32, Windows and PowerShell only: where.exe finds no node, git or npm (R-1 on a clean VM is BLOCKED - EXTERNAL on this PC) - node exit 1, git exit 1, npm exit 1
+OK   U1 setup verified the release, enrolled with the pairing code, installed, registered the logon task and started: exit 0, ALIVE; server rows walk the founder's states; the node is stamped with the published release - exit 0 | logon task "BrainFactory Test-2639d9e4" registered (at logon + a watchdog every 5 min; standard user, no elevation) / ALIVE: node-05e65d80b9ce4eed8f7c4c2889d337a3 is schedulable | PAIRING_STARTED>PAIRING_VERIFIED>NODE_ID_ISSUED>NODE_CREDENTIAL_ISSUED>RUNTIME_INSTALLING>REGISTERING>ALIVE
+OK   U2 the installed footprint holds the runtime, its manifest, config (no secret), a DPAPI-protected key, state and logs - no git, npm, checkout, runner.env, CA file or PostgreSQL URL; the task: logon + a repeating watchdog, Interactive, Limited - 11 files; {"protection":"dpapi","task":{"logon":"Interactive","runLevel":"Limited","triggers":[{"kind":"MSFT_TaskLogonTrigger","repeat":null},{"kind":"MSFT_TaskTimeTrigger","repeat":"PT5M"}]}}
+OK   U3 probe work dispatched through the product path: one runtime claimed, checkpointed each step and completed it; the OTHER runtime reproduced the content and certified PASS; the work order is COMPLETE - {"runs":["authoring:done:3","verification:done:0"],"cert":"PASS"}
+OK   U4a a killed worker is restarted by its supervisor (backoff 5 s) - worker 13936 -> 2964
+OK   U4b a killed supervisor (and its worker) is started again by the task's watchdog trigger, with no human step - supervisor 23124 -> 18732
+OK   U5 an injected install failure shows INSTALL_FAILED in server rows (reason named); setup again retries with the SAME credential - one code, one credential - and reaches ALIVE - {"first":6,"st1":{"state":"INSTALL_FAILED","state_reason":"EEXIST: file already exists, mkdir 'C:\\Users\\DELL\\AppData\\Local\\Temp\\bf-runtime-nfjlWC\\home-RT-C\\runtime\\0.1.0-29904c758319'"},"second":0,"st2":"ALIVE"}
+OK   U6 after a revoke the runtime stops REFUSED (credential_revoked) and is not restarted (no loop); no pairing code, token or key appears in any log - supervisor starts after the revoke: 1
+OK   U7 uninstall stops the runtime and removes the task and the home - uninstalled: the task, the runtime, the key and the state are removed. A Factory admin revokes or archives the computer in Brain OS.
+
+runtime_acceptance: 9/9 OK
+
+--- stderr ---
+(node:7892) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DELL/dev/brain-os-factory-enroll/supabase/control-plane/edge/supabase/functions/_shared/node_api.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DELL\dev\brain-os-factory-enroll\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

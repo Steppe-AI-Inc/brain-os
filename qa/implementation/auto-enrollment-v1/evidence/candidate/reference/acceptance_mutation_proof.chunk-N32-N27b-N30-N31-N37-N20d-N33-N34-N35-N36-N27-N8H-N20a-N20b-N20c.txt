@@ -1,0 +1,29 @@
+suite acceptance_mutation_proof chunk N32-N27b-N30-N31-N37-N20d-N33-N34-N35-N36-N27-N8H-N20a-N20b-N20c (N32 N27b N30 N31 N37 N20d N33 N34 N35 N36 N27 N8H N20a N20b N20c)
+command node qa/factory/acceptance_mutation_proof.mjs N32 N27b N30 N31 N37 N20d N33 N34 N35 N36 N27 N8H N20a N20b N20c
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 412ac14e76f88fbd5e310d3e97dbf5acab2c1498
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL and FACTORY_RUNNER_ENV_FILE emptied
+started 2026-09-26T23:15:16.424Z
+seconds 822
+exit 0
+summary acceptance_mutation_proof: 15 of 15 mutants killed on 412ac14e76f88fbd5e310d3e97dbf5acab2c1498
+
+acceptance mutation proof on 412ac14e76f88fbd5e310d3e97dbf5acab2c1498 (15 mutants)
+KILLED   N32 (a run's own statements on the plane are not retried (the handler's verification write)) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N27b (a node that started its wave first takes both conflict work orders) - node_truth_acceptance: 0 passed, 2 failed
+KILLED   N30 (the work-order read right after a claim is not retried) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N31 (the first renewal is due a third of the lease after the claim returned) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N37 (two_machine_real ends on one transient plane error (no retry)) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N20d (the composer counts a failover whose takeover never completed) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N33 (a renewal that hangs holds every later one back) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N34 (the lease guard runs on the wall clock) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N35 (the runbook's scripts read FACTORY_RUNNER_PG_URL raw (no env file, no CA resolution)) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N36 (node.mjs status says UNREACHABLE on one failed probe) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N27 (the scheduling wave ends at the hold and a minute (a verifier that started first gives up)) - node_truth_acceptance: 1 passed, 1 failed
+KILLED   N8H (health says "can claim work" while the supervisor is in backoff) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N20a (composer row 3 counts done runs at any commit) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N20b (composer row 4 counts a verification whose verifying run never completed) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N20c (composer row 1 counts a machine whose node runs the commit with uncommitted changes) - node_truth_acceptance: 0 passed, 1 failed
+
+acceptance_mutation_proof: 15 of 15 mutants killed on 412ac14e76f88fbd5e310d3e97dbf5acab2c1498

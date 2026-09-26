@@ -1,0 +1,46 @@
+command   node qa/factory/v1/v1_mutation_proof.mjs --controls qa/implementation/auto-enrollment-v1/evidence/candidate/v1_mutation/controls.json LD LX LR PR LG LG2 LG3 RC PH PC PD
+commit    c49ae287f3283b18448ca7b052b8033673ffef89
+started   2026-09-26T20:26:51Z
+
+v1_mutation_proof: 11 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ c49ae287f3283b18448ca7b052b8033673ffef89
+CONTROL  schema      passed - schema_acceptance: 47/47 OK (8 s)
+CAUGHT   LD    schema       expected FAIL C3|C7|L1|L1r|P1|X0; seen FAIL [X0]; schema_acceptance: 1/2 OK; FAILED: X0 (7 s) - the baseline default-privilege grant to factory_runner is no longer revoked for the new tables
+SURVIVED LX    schema       expected FAIL C6|L2|P1|X0; seen FAIL []; schema_acceptance: 47/47 OK (8 s) - factory_runner may EXECUTE a node front door
+ointer; the pointer never rewinds (amending back is a new version with the old content) - true
+OK   E4 a revoked credential never becomes active again (every writer) - factory_credential_refused: a revoked credential never changes again (never acti
+OK   E5 a computer has exactly one Add-Computer principal, and a principal is never updated or deleted - duplicate key value violates unique constraint "agent_princi
+OK   E6 a rotated credential is bound to the principal of the credential it replaces - binding it to another principal is refused (S-13) - factory_principal_refused: a credential is bound to the principal its pairing co
+OK   E7 the audit log is append-only for every writer, the superuser included (no update, delete or truncate)
+OK   E8 the S-16(a) binding is add-only at Add Computer: unbinding, binding later, and a second active bound computer are all refused - refused,refused,duplicate key value violates unique constraint "computers_on
+OK   E9 policies: never deleted; every change is a new version, and every version is kept - versions 3
+OK   E10 tenant_admins: the migration wrote no row, and the table refuses every writer that is not the engine
+
+schema_acceptance: 47/47 OK
+
+CAUGHT   LR    schema       expected FAIL C8|L7|P1|X0; seen FAIL [X0]; schema_acceptance: 1/2 OK; FAILED: X0 (7 s) - an API role is granted to factory_runner
+CAUGHT   PR    schema       expected FAIL C9|P1|X0; seen FAIL [C9 E1]; schema_acceptance: 45/47 OK; FAILED: C9, E1 (7 s) - the Node API role may insert principals directly (a node could mint a principal)
+CAUGHT   LG    schema       expected FAIL L4; seen FAIL [L4 L5 L8 M1 M3 X0]; schema_acceptance: 31/37 OK; FAILED: L4, L5, L8, M1, M3, X0 (8 s) - the legacy guard lets factory_runner update or delete a new-model / enrolled row
+CAUGHT   LG2   schema       expected FAIL L5; seen FAIL [L3 L5 L6 L8]; schema_acceptance: 43/47 OK; FAILED: L3, L5, L6, L8 (8 s) - the legacy guard lets factory_runner create a new-model row
+CAUGHT   LG3   schema       expected FAIL M1|M2|M3; seen FAIL [L4 M1 M3 X0]; schema_acceptance: 33/37 OK; FAILED: L4, M1, M3, X0 (7 s) - the legacy guard FAILS the frozen claim on a lapsed enrolled row instead of leaving it unchanged
+SURVIVED RC    schema       expected FAIL L3; seen FAIL [X0]; schema_acceptance: 27/28 OK; FAILED: X0 (7 s) - the reserved capability may be written on a node by the legacy path
+69df2f52 column lists equal factory._baseline_columns() (asserted against the catalog in part 000)
+OK   F1 the engine (factory_owner) writes an enrolled computer, envelope, principal, credential, new-model work order, run, lock and checkpoint through every guard - node-9f88171dc1d64d32902bb7660a8ff630
+OK   L1 factory_runner: every write to an authority record is refused (tenants, admins, computers, envelopes, principals, credentials, pairing, enrollments, sessions, audit, policies, certifications, releases, revocations) - 16 writes refused
+OK   L1r factory_runner cannot even read an authority record (no SELECT either)
+OK   L2 factory_runner holds EXECUTE on no factory function, and a direct call is refused - permission denied for function _is_engine
+FAIL X0 schema_acceptance did not complete - error: duplicate key value violates unique constraint "nodes_pkey"
+    at C:\Users\DELL\dev\brain-os-factory-enroll\node_modules\pg\lib\client.js:694:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file:///C:/Users/DELL/AppData/Local/Temp/bos-v1mut-r2Oxqv/repo/qa/factory/v1/schema_acceptance.mjs:241:5
+
+schema_acceptance: 27/28 OK; FAILED: X0
+
+CONTROL  enrollment  passed - enrollment_acceptance: 19/19 OK (69 s)
+CAUGHT   PH    enrollment   expected FAIL EN9|EN19; seen FAIL [EN9]; enrollment_acceptance: 18/19 OK; FAILED: EN9 (69 s) - the code's HMAC is not compared: any secret with a live locator enrolls
+CAUGHT   PC    enrollment   expected FAIL EN9; seen FAIL [EN9]; enrollment_acceptance: 18/19 OK; FAILED: EN9 (69 s) - the per-locator failure cap is 500 instead of 5
+CAUGHT   PD    enrollment   expected FAIL EN15; seen FAIL [EN15]; enrollment_acceptance: 18/19 OK; FAILED: EN15 (69 s) - the pairing secret generated deterministically (a counter, not the CSPRNG)
+
+v1_mutation_proof: 9 of 11 mutants killed; NOT killed: LX, RC
+
+exit      1
+ended     2026-09-26T20:32:40Z

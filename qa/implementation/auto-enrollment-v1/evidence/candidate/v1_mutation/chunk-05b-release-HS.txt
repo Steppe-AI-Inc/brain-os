@@ -1,0 +1,12 @@
+command   node qa/factory/v1/v1_mutation_proof.mjs --controls qa/implementation/auto-enrollment-v1/evidence/candidate/v1_mutation/controls.json HS
+commit    d7d63a697a6bd93494ff2f1bc51b151a71d384bb
+started   2026-09-26T21:45:52Z
+
+v1_mutation_proof: 1 mutant on C:\Users\DELL\dev\brain-os-factory-enroll @ d7d63a697a6bd93494ff2f1bc51b151a71d384bb
+CONTROL  release     passed - release_acceptance: 15/15 OK (178 s)
+CAUGHT   HS    release      expected FAIL R-t; seen FAIL [R-t]; release_acceptance: 14/15 OK; FAILED: R-t (178 s) - the supervisor no longer verifies itself first (a tampered supervisor goes on)
+
+v1_mutation_proof: 1 of 1 mutants killed
+
+exit      0
+ended     2026-09-26T21:51:49Z

@@ -1,0 +1,20 @@
+command   node qa/factory/v1/v1_mutation_proof.mjs --controls qa/implementation/auto-enrollment-v1/evidence/candidate/v1_mutation/controls.json G2 G3 G4a G4b G5 G6a G6b G7h G8
+commit    812899eed5aab42feb3d17d1886d4a31d8248e9e
+started   2026-09-26T20:36:48Z
+
+v1_mutation_proof: 9 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ 812899eed5aab42feb3d17d1886d4a31d8248e9e
+CONTROL  eligibility passed - eligibility_acceptance: 10/10 OK (this commit, run 2026-09-26T20:36:09.167Z)
+CAUGHT   G2    eligibility  expected FAIL G1-G12; seen FAIL [G1-G12]; eligibility_acceptance: 9/10 OK; FAILED: G1-G12 (42 s) - gate 2 (tenant) removed
+CAUGHT   G3    eligibility  expected FAIL G1-G12|O1; seen FAIL [G1-G12 H1 O1 D1]; eligibility_acceptance: 6/10 OK; FAILED: G1-G12, H1, O1, D1 (42 s) - gate 3 (company scope) removed
+CAUGHT   G4a   eligibility  expected FAIL G1-G12|O1; seen FAIL [G1-G12 O1 K2]; eligibility_acceptance: 7/10 OK; FAILED: G1-G12, O1, K2 (42 s) - gate 4 (the envelope's work types) removed
+CAUGHT   G4b   eligibility  expected FAIL G4r; seen FAIL [G4r]; eligibility_acceptance: 9/10 OK; FAILED: G4r (42 s) - gate 4 (a current certified release) removed
+CAUGHT   G5    eligibility  expected FAIL G1-G12|O1; seen FAIL [G1-G12 O1]; eligibility_acceptance: 8/10 OK; FAILED: G1-G12, O1 (42 s) - gate 5 (required role) removed
+CAUGHT   G6a   eligibility  expected FAIL G1-G12|O1; seen FAIL [G1-G12 O1]; eligibility_acceptance: 8/10 OK; FAILED: G1-G12, O1 (41 s) - gate 6 (capabilities from the envelope) removed
+CAUGHT   G6b   eligibility  expected FAIL D1; seen FAIL [D1]; eligibility_acceptance: 9/10 OK; FAILED: D1 (42 s) - gate 6 (detection only restricts) removed: a capability the node detects as absent no longer makes it ineligible
+CAUGHT   G7h   eligibility  expected FAIL H1; seen FAIL [G1-G12 H1]; eligibility_acceptance: 8/10 OK; FAILED: G1-G12, H1 (42 s) - gate 7 (the S-16(a) authoring restriction) removed
+CAUGHT   G8    eligibility  expected FAIL G1-G12|O1; seen FAIL [G1-G12 O1]; eligibility_acceptance: 8/10 OK; FAILED: G1-G12, O1 (42 s) - gate 8 (surface locks) removed
+
+v1_mutation_proof: 9 of 9 mutants killed
+
+exit      0
+ended     2026-09-26T20:43:08Z

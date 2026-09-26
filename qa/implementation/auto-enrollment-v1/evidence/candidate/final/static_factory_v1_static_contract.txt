@@ -1,0 +1,49 @@
+step static: factory_v1_static_contract
+command C:\Program Files\nodejs\node.exe qa/scenarios-runner/factory_v1_static_contract.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 412ac14e76f88fbd5e310d3e97dbf5acab2c1498
+started 2026-09-26T23:30:32.660Z
+seconds 0
+exit 0
+summary factory_v1_static_contract: 17 passed, 0 failed
+
+OK   E1 both functions live in the control-plane Supabase project (supabase/control-plane/edge/supabase/functions)
+OK   E2 no factory function under supabase/functions (the Brain OS production deploy directory)
+OK   E3 config.toml: verify_jwt = false for factory-node-api and factory-admin-api (the gateway must pass node sessions and Brain OS tokens to the handlers, which authenticate them)
+OK   E4 config.toml configures no production project (its settings, comments aside)
+OK   E5 the Brain OS production functions workflow cannot fire on, or deploy, the Factory functions (its path filters ["supabase/functions/**"]; it deploys the root project only)
+OK   S1 the Node API route inventory equals S-7 exactly (15 routes)
+OK   O1 every Node API route is one SELECT of one node front door (factory.node_*)
+OK   O2 every Admin API op names exactly one admin front door (factory.admin_*), and the handler calls it through one statement
+OK   O3 the Edge sources hold no DML / DDL and name no factory table: lifecycle decisions live only in the SQL front doors (8 files)
+OK   P1 no plane-conditioned behaviour in the candidate SQL or Edge sources (29 files): no plane_identity, current_database(), inet_server_*(), setting read
+OK   P2 the production ref appears only as the refusal in _shared/db.ts, and both entry points connect only through it
+OK   G1 every whole-request refusal in the Edge sources is classified (16 found): none is an UNSAFE HARD STOP
+OK   G2 every classified gate is still in the source (the inventory tracks the code, not a memory of it)
+OK   G3 the platform limits are named UNMEASURED, never assumed safe (5)
+     gate no_such_route               both  DETERMINISTIC REFUSAL - a path outside S-7 (after the platform prefix, route.ts) is 404 by name
+     gate crypto_unavailable          node  DETERMINISTIC REFUSAL (fail closed) - the RFC 8032 Ed25519 self-test failed at cold start: the API serves nothing rather than verify badly
+     gate body_too_large              both  DETERMINISTIC REFUSAL - 64 KiB body cap: every S-7 body is far smaller
+     gate bad_request                 both  DETERMINISTIC REFUSAL - not JSON, not an object, an unknown field, a malformed value - named
+     gate identity_from_body_refused  node  DETERMINISTIC REFUSAL - a body naming node / tenant / role / envelope (S-4)
+     gate not_authenticated           both  DETERMINISTIC REFUSAL - no / invalid session or Brain OS token
+     gate session_invalid             node  DETERMINISTIC REFUSAL - no, an unknown or an expired node session: the runtime opens a new one with its key and retries
+     gate bad_assertion               node  DETERMINISTIC REFUSAL - a session assertion that is not {v, aud, iat, exp, jti, pk}
+     gate bad_signature               node  DETERMINISTIC REFUSAL - a session assertion whose Ed25519 signature does not verify
+     gate bad_proof                   node  DETERMINISTIC REFUSAL - enrollment or rotation without proof of possession of the key
+     gate plane_unavailable           node  DETERMINISTIC REFUSAL (outcome unknown) - the plane did not answer: every node operation is idempotent and safe to retry
+     gate pepper_unavailable          both  DETERMINISTIC REFUSAL - FACTORY_PAIRING_PEPPER unset: pairing is refused, nothing else is affected
+     gate server_refused              both  DETERMINISTIC REFUSAL - the plane raised a SQLSTATE: nothing changed (the transaction rolled back)
+     gate unavailable                 both  DETERMINISTIC REFUSAL (outcome unknown) - the plane or Brain OS did not answer: the caller reloads / retries idempotently
+     gate server_error                admin DETERMINISTIC REFUSAL - a front door returned nothing
+     gate misconfigured               both  DETERMINISTIC REFUSAL - the database URL or its CA is unset, or the URL names production (_shared/db.ts): 503 on every request until the founder sets them
+     UNMEASURED Edge platform wall-clock and CPU limits per request (measured only at the founder deploy)
+     UNMEASURED the peer address the Edge runtime reports (per-IP pairing limit; if it is the gateway, the limit degrades to plane-wide - stricter, never looser)
+     UNMEASURED whether the platform strips the /<function> path prefix (route.ts accepts both shapes)
+     UNMEASURED postgres.js over the Supabase pooler in transaction mode (prepare: false) under concurrent load
+     UNMEASURED TLS verify-full from the Edge runtime to the pooler host with the CA the founder downloads (proved locally under Deno by edge_db_tls_acceptance; the live host and certificate only at deploy - GET /v1/time is the first live check)
+OK   X1 the pairing pepper is read only from the secret store (Deno.env) in the entry points, never from a literal
+OK   X2 no service-role key, database URL or pepper in the Edge or web Factory sources
+OK   X3 the web forwards only the user's own token, after supabase.auth.getUser(), and only from lib/factory/admin-client.ts
+
+factory_v1_static_contract: 17 passed, 0 failed

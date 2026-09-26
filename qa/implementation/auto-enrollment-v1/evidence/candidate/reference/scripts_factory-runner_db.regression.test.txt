@@ -1,0 +1,30 @@
+suite scripts/factory-runner/db.regression.test
+command node scripts/factory-runner/db.regression.test.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 402dfc1e1d4bd5953c61795e56028f414bace47d
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL and FACTORY_RUNNER_ENV_FILE emptied
+started 2026-09-26T22:29:45.462Z
+seconds 0
+exit 0
+summary ℹ fail 0
+
+✔ DML is allowed (2.0716ms)
+✔ FACTORY_WORKER_CANNOT_EXECUTE_DDL_OR_TOUCH_MIGRATION_HISTORY (0.1642ms)
+✔ read() refuses a mutating statement before connecting (0.5456ms)
+✔ NO_FALLBACK_TO_AMBIENT_AUTHORITY — without FACTORY_RUNNER_PG_URL every call refuses (0.3823ms)
+✔ FAIL_CLOSED_ON_AN_UNSAFE_URL — pure assessment, no connection (1.4379ms)
+✔ an unsafe URL is refused by read() before any driver is loaded (1.7874ms)
+✔ a superuser connection string is refused as not least-privilege (1.5928ms)
+✔ the query string cannot override who or where: user/host/port/password settings and repeated keys are refused (0.4027ms)
+✔ the production guard cannot be bypassed by percent-encoding: escapes are decoded one by one, and a malformed user name is refused, not thrown (0.4787ms)
+✔ what pg would re-encode or cannot decode is refused: a space or a bare % anywhere, a malformed escape in the password or database (0.4716ms)
+✔ nothing may come from the environment: a URL without user, password, port or database is refused (0.2031ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15.4894

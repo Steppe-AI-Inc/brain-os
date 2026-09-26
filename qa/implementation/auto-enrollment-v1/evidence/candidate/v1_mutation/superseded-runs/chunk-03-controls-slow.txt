@@ -1,0 +1,13 @@
+command   node qa/factory/v1/v1_mutation_proof.mjs --controls qa/implementation/auto-enrollment-v1/evidence/candidate/v1_mutation/controls.json --control-only G2 IN FN
+commit    812899eed5aab42feb3d17d1886d4a31d8248e9e
+started   2026-09-26T20:35:27Z
+
+v1_mutation_proof: 3 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ 812899eed5aab42feb3d17d1886d4a31d8248e9e
+CONTROL  eligibility passed - eligibility_acceptance: 10/10 OK (42 s)
+CONTROL  takeover    passed - takeover_acceptance [direct]: 17/17 OK (14 s)
+CONTROL  independencepassed - independence_acceptance: 15/15 OK (16 s)
+
+v1_mutation_proof: controls only - every control passed
+
+exit      0
+ended     2026-09-26T20:36:39Z

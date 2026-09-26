@@ -1,0 +1,30 @@
+suite acceptance_mutation_proof chunk 1 (N1 N1L N14 N13 N13c N24 N21 N25 N26 N26s N26c N26i T8 N22 N15)
+command node qa/factory/acceptance_mutation_proof.mjs N1 N1L N14 N13 N13c N24 N21 N25 N26 N26s N26c N26i T8 N22 N15
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit e41753d559866eab69a287e83cfb091ab0021a97
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL and FACTORY_RUNNER_ENV_FILE emptied
+started 2026-09-26T22:47:43.175Z
+seconds 590
+exit 143
+summary (no summary line)
+
+acceptance mutation proof on e41753d559866eab69a287e83cfb091ab0021a97 (15 mutants)
+KILLED   N1 (health and plane-health re-register with a defaulted role) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N1L (a health check stamps liveness (a dead node reads ALIVE)) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N14 (a health check overwrites the running worker's record (its commit)) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N13 (a run that cannot renew its lease keeps working) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N13c (the abort guard times the lease from the claim's return, not its start) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N24 (health says "can claim work" over a refused admission or a busy claim lock) - node_truth_acceptance: 2 passed, 1 failed
+KILLED   N21 (one failed renewal over a slow link aborts a healthy run (no quick retry; the guard at two thirds of the lease)) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N25 (a renewal that lands after the completion is read as a takeover (the heartbeat is never settled)) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N26 (a completion that meets a transient plane loss is not retried (the run is thrown away)) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N26s (a retried completion whose earlier attempt landed is reported as a takeover) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N26c (a checkpoint that meets a transient plane loss is not retried) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N26i (a retried checkpoint is written twice (no checkpoint id)) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   T8 (NODE_TLS_REJECT_UNAUTHORIZED=0 in the environment turns certificate verification off) - tls_plane_acceptance: 8 passed, 1 failed  (plane served on 192.168.1.7:56156 with ssl=on, hostssl-only; disposable, removed)
+KILLED   N22 (an admission-only cycle counts as a claim cycle) - node_truth_acceptance: 0 passed, 1 failed
+SURVIVED N15 (the two-machine acceptance accepts a node on another commit) - no summary (exit 143)
+         its output ended:
+         node_truth_acceptance: only rows N15 (FACTORY_NT_ROWS)
+         

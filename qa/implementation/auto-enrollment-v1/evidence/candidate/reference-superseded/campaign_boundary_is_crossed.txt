@@ -1,0 +1,44 @@
+suite campaign_boundary_is_crossed
+command node qa/factory/campaign_boundary_is_crossed.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 7c4e9f3369c90c68b92322ef792dfe24bc3c80bb
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL and FACTORY_RUNNER_ENV_FILE emptied
+started 2026-09-26T22:19:48.552Z
+seconds 0
+exit 1
+summary - R1 every handler in handlers/ is REGISTERED with the director — a handler nothing can reach is dead code with passing tests
+
+OK   B1 the verdict is read from the report, with the hash the verifier measured ITSELF
+OK   B2 a report that names a verdict WITHOUT a hash is a finished round that broke its own reporting contract, not a running one
+OK   B2b the hash is read whether or not the report wraps it in BACKTICKS, because the reports are markdown and the bare form was what this pattern originally required
+OK   B3 a report with no verdict line at all reads as NO verdict — an unfinished round is not a pass
+OK   B4 a round with NO dispatch record is waiting, and dispatch is REFUSED without explicit permission
+OK   B5 ...and it records the exact command verbatim, so the refusal costs nobody the knowledge of what would have run
+OK   B6 with permission on the work order, the same round OFFERS a dispatch the director can call
+OK   B7 the offered dispatch is IDEMPOTENT on the dispatch RECORD, not on this process's memory — a record that appears between the offer and the call stops it
+OK   B8 a dispatched round with a ZERO-BYTE log is WAITING, not stalled and not failed
+OK   B9 ...and it says so in as many words, because "no output for hours" has been read as a stall before and the report is written at the END
+OK   B10 CAMPAIGN_BOUNDARY_IS_CROSSED: the report landing moves the round from WAITING to REPAIR_REQUIRED, observed from a file, with no founder and no chat input
+OK   B11 the repair request names the bytes the verdict was about, so the next round cannot be composed against a different candidate by accident
+OK   B12 it raises the closure as WORK rather than doing it — composing a successor is judgment, and a handler that composed one would be an unreviewed patch author
+OK   B13 a PASS completes the round and explicitly does NOT chain into a deploy
+OK   B14 a watchdog ABORT is repair_required and is reported as the watchdog's finding, never as a verdict the verifier gave
+OK   B15 the watchdog reader counts ATTEMPTS and finds the abort line
+OK   B17 a round whose WATCHDOG SAYS DONE with no verdict is blocked_external, not waiting — a wait with no end condition is how a dead round stays open for ever
+OK   B18 ...and it is explicitly NOT recorded as a FAIL, because the candidate was never judged
+OK   B19 ...and it names the remedy the provider itself states: a different model, because waiting cannot clear a model-scoped refusal
+FAIL R1 every handler in handlers/ is REGISTERED with the director — a handler nothing can reach is dead code with passing tests
+       unregistered: ["factory-acceptance.mjs"]; registered: ["acceptanceEcho","verifierRound"]
+OK   R2 ...and the check reads REGISTRATION CALLS rather than prose, since both files name the handlers in comments
+OK   B16 a work order that does not name a round and a repository STOPS — a handler that guesses which round it is about is worse than one that refuses
+
+campaign_boundary_is_crossed: 21 passed, 1 failed
+
+The round ending is the place this campaign has stalled every single time, and it stalled
+because it was nobody's job. It is a work order now: observed from the files the round itself
+writes, classified without a human, and raised as WORK rather than performed.
+NOT PROVED HERE: a whole real round end to end. That needs a verifier session, and
+FOUNDER_POKE_NOT_REQUIRED already holds the claim that a director dispatches with no input.
+FAILURES:
+ - R1 every handler in handlers/ is REGISTERED with the director — a handler nothing can reach is dead code with passing tests

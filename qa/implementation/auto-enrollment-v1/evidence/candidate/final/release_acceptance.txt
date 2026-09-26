@@ -1,0 +1,32 @@
+step release_acceptance
+command C:\Program Files\nodejs\node.exe qa/factory/v1/release_acceptance.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 412ac14e76f88fbd5e310d3e97dbf5acab2c1498
+started 2026-09-26T23:44:07.848Z
+seconds 157
+exit 0
+summary release_acceptance: 15/15 OK
+
+OK   R-a one byte changed inside the hashed ranges -> digest_mismatch, before execution - digest_mismatch
+OK   R-b unsigned -> unsigned, before execution - unsigned
+OK   R-e correctly signed by a key OUTSIDE the pinned trust set -> key_outside_trust_set, before execution - key_outside_trust_set
+OK   R-l a release the server records under a foreign key adds no key: the node's trust set is unchanged and the release is refused (key_outside_trust_set) - {"channel":"dev","mode":"dev","keys":[{"key_id":"ed25519:98601d6850ee07dee28b13e1dfd6de3f737b4e730c20fe3b8a620c9cc99536e6","public_key_sha256":"98601d6850ee07dee28b13e1dfd6de3f737b4e730c20fe3b8a620c9cc99536e6"}]}
+OK   R-n bytes appended in the certificate table (a "trust key", a "mode", an "API URL"): the digest is unchanged, and the trust set, mode and build are exactly the original's - {"channel":"dev","mode":"dev","keys":[{"key_id":"ed25519:98601d6850ee07dee28b13e1dfd6de3f737b4e730c20fe3b8a620c9cc99536e6","public_key_sha256":"98601d6850ee07dee28b13e1dfd6de3f737b4e730c20fe3b8a620c9cc99536e6"}]}
+OK   R-f/k a production-channel build (trust set empty before C-3, mode production), pointed at a disposable plane, refuses a dev-key-signed release by name - before any network call - {"channel":"production","mode":"production","keys":[]}
+OK   R-h the verifier's rebuild of each channel is byte-identical; each channel's digest is the manifest's; the trust set read back per channel - IDENTICAL: 9fd02cf574f65f85964ae52e0d4851aa371380fd46a1c7415483ed7337ea4dec (unsigned image), and every build-info field but the signing ones | IDENTICAL: 41f575cbe5687412f117ef213ff040a67af7fc46e12fb6b332356da2406f2946 (unsigned image), and every build-info field but the signing ones
+OK   R-m a superseded certified release (0.1.0) offered without an admin adopt is refused by name - no silent downgrade - downgrade_refused
+OK   R-i an admin adopt returns the node to the previous certified release: the runtime switches to it (verified again) and the plane records the node on it
+OK   R-i2 after the adopt the running supervisor IS the adopted release (it handed off; nothing keeps executing the superseded binary) and the logon task now starts the adopted exe - {"reg":true,"supExe":"C:\\Users\\DELL\\AppData\\Local\\Temp\\bf-release-WzWdZH\\home-N\\runtime\\0.1.0-29904c758319\\BrainFactory.exe","want":"C:\\Users\\DELL\\AppData\\Local\\Temp\\bf-release-WzWdZH\\home-N\\runtime\\0.1.0-29904c758319\\BrainFactory.exe","task":"--headless \"C:\\Users\\DELL\\AppData\\Local\\Temp\\bf-release-WzWdZH\\home-N\\runtime\\0.1.0-29904c758319\\BrainFactory.exe\" supervise --home \"C:\\Users\\DELL\\AppData\\Local\\Temp\\bf-release-WzWdZH\\home-N\""}
+OK   R-j a published release revoked while a node runs it: the node stops claiming and says so (RELEASE_REVOKED, standby), and never downgrades silently - RELEASE_REVOKED
+OK   R-d the revoked release, offered again, is refused by name (release_revoked) - release_revoked
+OK   R-c a revoked key: a release it signed is refused before execution (key_revoked); the node whose own release it signed stops claiming and says so (RELEASE_REVOKED) - {"rc":"{\"ok\":false,\"refused\":\"key_revoked\",\"message\":\"the signing key is revoked\"}","again":0,"st":{"state":"RELEASE_REVOKED","node_id":"node-4229ddb289044efea801be82e5729645","enrollment_state":"ALIVE","release_current":true,"at":"2026-09-26T23:46:28.408Z","pid":8236,"cycle_completed":true,"adopted_release":{"state":"superseded","digest":"29904c758319f092d76ac12a3ecf3156a2478ff1593b587f01e1ecd9c6882351","version":"0.1.0","release_id":"81cf8186-13b2-41e3-a4be-f012760fab90"},"last_cycle":"2026-09-26T23:46:28.393Z","message":"the release this node runs is revoked: no work is claimed until a Factory admin adopts a certified release","run_id":"e3c6bba5-a06d-40b0-bc7f-4d9efd7667df","work_order_id":"03935c55-6ea0-458f-8def-2a3b1ec29508","kind":"authoring"},"rev":{"key_ids":["ed25519:98601d6850ee07dee28b13e1dfd6de3f737b4e730c20fe3b8a620c9cc99536e6"],"releases":[{"digest":"b782755752d9ab5eeaa8745388b434d6fbc8bafe60a572b029ebf122ff2e8c5a","release_id":"6606fb6d-833d-48c8-be13-8a734716efe3"}]}}
+OK   R-t a supervisor whose own image is no release installed here (one byte changed) verifies itself first and starts nothing: exit 3, RELEASE_REFUSED (not_an_installed_release) - {"exit":3,"st":"RELEASE_REFUSED","refused":"not_an_installed_release"}
+OK   R-s the sentinel was never executed through any refusal above; run directly (the positive control) it leaves its marker - {"neverRan":true,"ctl":0,"err":"","marker":"EXECUTED [\"C:\\\\Users\\\\DELL\\\\AppData\\\\Local\\\\Temp\\\\bf-release-WzWdZH\\\\sentinel.exe\",\"control\"]"}
+
+release_acceptance: 15/15 OK
+
+--- stderr ---
+(node:11288) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DELL/dev/brain-os-factory-enroll/supabase/control-plane/edge/supabase/functions/_shared/node_api.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DELL\dev\brain-os-factory-enroll\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

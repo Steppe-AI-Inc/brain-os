@@ -1,0 +1,32 @@
+command   node qa/factory/v1/v1_mutation_proof.mjs --controls qa/implementation/auto-enrollment-v1/evidence/candidate/v1_mutation/controls.json RV ID S7 TA TF RT PS LK TL IP LD LX LR PR LG LG2 LG3 RC
+commit    578785d45ce24bacb6474e669f01a5b7cd4bd9c2
+started   2026-09-26T21:08:18Z
+
+v1_mutation_proof: 18 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ 578785d45ce24bacb6474e669f01a5b7cd4bd9c2
+CONTROL  admin       passed - admin_acceptance: 20/20 OK (26 s)
+CAUGHT   RV    admin        expected FAIL L1|L7; seen FAIL [L1 L3 L7]; admin_acceptance: 17/20 OK; FAILED: L1, L3, L7 (25 s) - the per-call credential status re-check removed (gate 1): a revoked credential keeps working
+CONTROL  revocation  passed - revocation_interleaving: 13/13 OK (9 s)
+CAUGHT   LK    revocation   expected FAIL I1|I2|I3a|I3b|I4; seen FAIL [I1 I1 I1 I2 I2 I2 I2 I2 I2]; revocation_interleaving: 4/13 OK; FAILED: I1, I1, I1, I2, I2, I2, I2, I2, I2 (82 s) - no share lock on the credential row: a call and a revoke no longer serialize
+CAUGHT   ID    admin        expected FAIL E1; seen FAIL [E1]; admin_acceptance: 19/20 OK; FAILED: E1 (26 s) - a body naming node / tenant / role / principal is accepted at the Edge AND in the front doors
+CAUGHT   S7    admin        expected FAIL R1; seen FAIL [R1]; admin_acceptance: 19/20 OK; FAILED: R1 (25 s) - a route outside S-7 (GET /v1/debug) answers
+CAUGHT   TA    admin        expected FAIL P1|P2; seen FAIL [P1 P2]; admin_acceptance: 18/20 OK; FAILED: P1, P2 (25 s) - factory.tenant_admins no longer required: the live role alone makes a Factory admin
+CAUGHT   TF    admin        expected FAIL P4; seen FAIL [P4 X0]; admin_acceptance: 6/8 OK; FAILED: P4, X0 (23 s) - founder-only actions no longer need tier founder AND live role founder
+CAUGHT   RT    admin        expected FAIL R1p|X0; seen FAIL [X0]; admin_acceptance: 0/1 OK; FAILED: X0 (6 s) - the platform path prefix is not stripped (every deployed call would be 404)
+CAUGHT   PS    admin        expected FAIL G1; seen FAIL [G1]; admin_acceptance: 19/20 OK; FAILED: G1 (26 s) - a policy may be relaxed through the Admin API (front door and guard)
+CONTROL  schema      passed - schema_acceptance: 47/47 OK (7 s)
+CAUGHT   LD    schema       expected FAIL C3|C7|L1|L1r|P1|X0; seen FAIL [X0]; schema_acceptance: 1/2 OK; FAILED: X0 (6 s) - the baseline default-privilege grant to factory_runner is no longer revoked for the new tables
+CAUGHT   LX    schema       expected FAIL C6|L2; seen FAIL [C6 L2]; schema_acceptance: 45/47 OK; FAILED: C6, L2 (7 s) - factory_runner may EXECUTE a node front door (granted after the migration's own sweep)
+CAUGHT   LR    schema       expected FAIL C8|L7|P1|X0; seen FAIL [X0]; schema_acceptance: 1/2 OK; FAILED: X0 (6 s) - an API role is granted to factory_runner
+CAUGHT   PR    schema       expected FAIL C9|P1|X0; seen FAIL [C9 E1]; schema_acceptance: 45/47 OK; FAILED: C9, E1 (7 s) - the Node API role may insert principals directly (a node could mint a principal)
+CAUGHT   LG    schema       expected FAIL L4; seen FAIL [L4 L5 L8 M1 M3 X0]; schema_acceptance: 31/37 OK; FAILED: L4, L5, L8, M1, M3, X0 (6 s) - the legacy guard lets factory_runner update or delete a new-model / enrolled row
+CAUGHT   LG2   schema       expected FAIL L5; seen FAIL [L3 L5 L6 L8]; schema_acceptance: 43/47 OK; FAILED: L3, L5, L6, L8 (7 s) - the legacy guard lets factory_runner create a new-model row
+CAUGHT   LG3   schema       expected FAIL M1|M2|M3; seen FAIL [L4 M1 M3 X0]; schema_acceptance: 33/37 OK; FAILED: L4, M1, M3, X0 (7 s) - the legacy guard FAILS the frozen claim on a lapsed enrolled row instead of leaving it unchanged
+CAUGHT   RC    schema       expected FAIL L3; seen FAIL [L3]; schema_acceptance: 46/47 OK; FAILED: L3 (7 s) - the reserved capability may be written on a node by the legacy path
+CONTROL  tls         passed - edge_db_tls_acceptance: 7/7 OK (9 s)
+CAUGHT   TL    tls          expected FAIL T2|T3b|T6; seen FAIL [T2 T3b]; edge_db_tls_acceptance: 5/7 OK; FAILED: T2, T3b (8 s) - the Edge connects with ssl: 'require' again (verifies nothing)
+CAUGHT   IP    tls          expected FAIL T3a; seen FAIL [T3a]; edge_db_tls_acceptance: 6/7 OK; FAILED: T3a (8 s) - an IP-literal database host is accepted (the certificate's name goes unchecked)
+
+v1_mutation_proof: 18 of 18 mutants killed
+
+exit      0
+ended     2026-09-26T21:14:23Z

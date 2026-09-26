@@ -1,0 +1,15 @@
+suite acceptance_mutation_proof chunk N15 (N15)
+command node qa/factory/acceptance_mutation_proof.mjs N15
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit e41753d559866eab69a287e83cfb091ab0021a97
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL and FACTORY_RUNNER_ENV_FILE emptied
+started 2026-09-26T22:58:43.237Z
+seconds 128
+exit 0
+summary acceptance_mutation_proof: 1 of 1 mutants killed on e41753d559866eab69a287e83cfb091ab0021a97
+
+acceptance mutation proof on e41753d559866eab69a287e83cfb091ab0021a97 (1 mutants)
+KILLED   N15 (the two-machine acceptance accepts a node on another commit) - node_truth_acceptance: 0 passed, 1 failed
+
+acceptance_mutation_proof: 1 of 1 mutants killed on e41753d559866eab69a287e83cfb091ab0021a97

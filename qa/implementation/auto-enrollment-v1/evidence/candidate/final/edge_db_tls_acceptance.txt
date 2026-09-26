@@ -1,0 +1,22 @@
+step edge_db_tls_acceptance
+command C:\Program Files\nodejs\node.exe qa/factory/v1/edge_db_tls_acceptance.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 412ac14e76f88fbd5e310d3e97dbf5acab2c1498
+started 2026-09-26T23:37:18.354Z
+seconds 8
+exit 0
+summary edge_db_tls_acceptance: 7/7 OK
+
+OK   T1 the pinned CA and the host the certificate names: connects over TLS (pg_stat_ssl TLSv1.3) - {"ok":true,"ssl":true,"version":"TLSv1.3"}
+OK   T2 another CA pinned: refused (the server certificate does not chain to it) - {"ok":false,"error":"invalid peer certificate: UnknownIssuer"}
+OK   T3a an IP-literal host (IPv4 and IPv6) is refused before any socket; bypassed, a "localhost" certificate WOULD be accepted at 127.0.0.1 (why the refusal exists) - {"refusal":"the database URL names an IP address: TLS verify-full checks the host name on the certificate - use the host name","refusal6":"the database URL names an IP address: TLS verify-full checks the host name on the certificate - use the host name","bypassed":{"ok":true,"ssl":true,"version":"TLSv1.3"}}
+OK   T3b a certificate from the right CA for ANOTHER name: the connection to "localhost" is refused (the name is checked); 'require' still connects (control) - {"t3b":{"ok":false,"error":"invalid peer certificate: certificate not valid for name \"localhost\"; certificate is only valid for DnsName(\"not-the-factory-db\")"},"control":{"ok":true,"ssl":true,"version":"TLSv1.3"}}
+OK   T4 the control: 'require' - what a plain URL gives - connects to the same server with no CA at all, so T2 / T3b are refused by the verification - {"ok":true,"ssl":true,"version":"TLSv1.3"}
+OK   T5 dbRefusal refuses before any socket: no CA, a non-PEM CA, the production ref, a non-postgresql URL; a good URL and CA pass - {"noCa":"FACTORY_DB_CA_PEM is unset or not a PEM certificate: TLS verify-full needs the database server CA","notPem":"FACTORY_DB_CA_PEM is unset or not a PEM certificate: TLS verify-full needs the database server CA","prod":"the database URL names the Brain OS production project","notPg":"the database URL is not a postgresql:// URL","good":null}
+OK   T6 both entry points connect only through dbRefusal / dbOptions with FACTORY_DB_CA_PEM (no ssl: 'require' anywhere) - [true,true]
+
+edge_db_tls_acceptance: 7/7 OK
+
+--- stderr ---
+(node:24968) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)

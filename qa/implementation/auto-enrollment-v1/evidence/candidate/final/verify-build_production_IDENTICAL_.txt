@@ -1,0 +1,14 @@
+step verify-build production (IDENTICAL)
+command C:\Program Files\nodejs\node.exe scripts/factory-build/verify-build.mjs --against dist/brain-factory/0.1.0/production
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 412ac14e76f88fbd5e310d3e97dbf5acab2c1498
+started 2026-09-26T23:30:17.590Z
+seconds 15
+exit 0
+summary IDENTICAL: 41f575cbe5687412f117ef213ff040a67af7fc46e12fb6b332356da2406f2946 (unsigned image), and every build-info field but the signing ones
+
+reference C:\Users\DELL\dev\brain-os-factory-enroll\dist\brain-factory\0.1.0\production
+  sha256 41f575cbe5687412f117ef213ff040a67af7fc46e12fb6b332356da2406f2946
+  commit 412ac14e76f88fbd5e310d3e97dbf5acab2c1498, built_at 2026-09-26T22:58:55.000Z (git HEAD commit time)
+rebuilding into C:\Users\DELL\AppData\Local\Temp\brain-factory-verify-8Tf23u ...
+IDENTICAL: 41f575cbe5687412f117ef213ff040a67af7fc46e12fb6b332356da2406f2946 (unsigned image), and every build-info field but the signing ones

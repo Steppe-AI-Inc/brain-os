@@ -1,0 +1,18 @@
+command   node qa/factory/sea_package_mutation_proof.mjs C1 C2 C3 R1 R2 R3
+batch     C of A-D (serial, concurrency 1, own control)
+commit    6eb3b6a90417b94a3c2c987854f07fd040a135e2
+started   2026-09-26T19:15:41Z
+
+sea_package_mutation_proof: 6 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ 6eb3b6a90417b94a3c2c987854f07fd040a135e2 - the 32 copied files are identical to HEAD
+CONTROL  passed - 25 passed, 0 failed (184 s)
+CAUGHT   C1   expected FAIL S1|B1; seen FAIL [S1 B1 X0]; 3 passed, 3 failed (8 s) - sea-config.template.json turns useCodeCache on
+CAUGHT   C2   expected FAIL B5; seen FAIL [B5 B13]; 23 passed, 2 failed (187 s) - the build hands node useCodeCache:true while the template (and build-info) still say false
+CAUGHT   C3   expected FAIL B1; seen FAIL [B1 X0]; 4 passed, 2 failed (9 s) - the build hands node useSnapshot:true while the template (and build-info) still say false
+CAUGHT   R1   expected FAIL B14; seen FAIL [B14]; 24 passed, 1 failed (182 s) - review: dirty is judged by git status alone again (an assume-unchanged / skip-worktree edit is "clean")
+CAUGHT   R2   expected FAIL B15; seen FAIL [B15]; 24 passed, 1 failed (187 s) - review: inputs reach esbuild with their checkout line endings again (a CRLF checkout gives another metafile)
+CAUGHT   R3   expected FAIL B17; seen FAIL [B17]; 24 passed, 1 failed (179 s) - review: authenticodeStatus puts the path in the -Command text again, quoted with '' (PowerShell also ends a '...' string at U+2018-U+201B)
+
+sea_package_mutation_proof: 6 of 6 mutants killed
+
+exit      0
+ended     2026-09-26T19:31:18Z

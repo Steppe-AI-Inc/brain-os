@@ -1,0 +1,36 @@
+step enrollment_acceptance
+command C:\Program Files\nodejs\node.exe qa/factory/v1/enrollment_acceptance.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 412ac14e76f88fbd5e310d3e97dbf5acab2c1498
+started 2026-09-26T23:34:31.672Z
+seconds 69
+exit 0
+summary enrollment_acceptance: 19/19 OK
+
+OK   EN1 Add Computer (founder): computer + envelope v1 + its first principal + a pairing code shown once; the plane stores the locator and HMAC-SHA256(pepper, code) only - never the code, never a plain SHA-256 - code PQGY--…, ttl {"minutes":15}
+OK   EN2 the installer presents the code ("Enroll as Laptop-1 in operator?"), proves possession of its new key, and receives exactly one credential bound to that key and to the computer's first principal - {"ok":true,"node_id":"node-a396d947653e40469d91564c760be120","computer_id":"36ce44d4-8184-4a53-9952-c2ca4f193cbc","server_time":"2026-09-27T07:34:36.651184+08:0
+OK   EN3 server rows walk the founder's enrollment states to ALIVE: PAIRING_STARTED > PAIRING_VERIFIED > NODE_ID_ISSUED > NODE_CREDENTIAL_ISSUED > RUNTIME_INSTALLING > REGISTERING > ALIVE - PAIRING_STARTED>PAIRING_VERIFIED>NODE_ID_ISSUED>NODE_CREDENTIAL_ISSUED>RUNTIME_INSTALLING>REGISTERING>ALIVE
+OK   EN4 replay: completing the same enrollment again -> already_enrolled; presenting the consumed code again -> code_consumed (named, fail closed) - already_enrolled,code_consumed
+OK   EN5 INSTALL_FAILED is named in server rows; the retry reuses the SAME credential (no new code) and reaches ALIVE
+OK   EN6 a refused registration (a release not certified on this plane) is REGISTRATION_FAILED with its reason named; the retry with the same credential reaches ALIVE
+OK   EN7 a code the admin revoked fails closed, by name (code_revoked) - code_revoked
+OK   EN8 envelope-bound: amending the envelope revokes the outstanding code; presenting it fails closed (code_revoked) - code_revoked
+OK   EN9 the 5th failed attempt on one locator revokes the code (attempts_exceeded); the 6th - even with the right code - is refused by name; every attempt audited - {"state":"PAIRING_REVOKED","failed_attempts":5,"revoke_reason":"attempts_exceeded"}
+OK   EN10 TTL: a code lives at most 15 min (901 s refused); a code past its TTL fails closed (code_expired) and is recorded PAIRING_EXPIRED - code_expired
+OK   EN11 the 21st attempt from one address within the hour is refused (rate_limited_ip); forged X-Forwarded-For / X-Real-IP / Forwarded headers do not reset it; another address is unaffected - rate_limited_ip,rate_limited_ip,invalid_code
+OK   EN13 two installers race to consume one code: exactly one credential is issued; the other gets code_consumed - ok,code_consumed
+OK   EN14 tenant-bound: another tenant's admin cannot issue a code for this tenant's computer (not_found, no leak); a code enrolls into ITS tenant only - not_found
+OK   EN18 enrollment always brings a new key: a key already registered is refused (key_reused) - key_reused
+OK   EN19 a mistyped code (check character) is refused as invalid_code and still counted as an attempt (malformed)
+OK   EN15 the code generator draws every character from the CSPRNG (60 secret bits >= 55; 4000 codes: all secrets distinct, every position uniform by chi-square), and reads no clock or counter - secret bits 60, max chi-square 45.0 (df 31)
+OK   EN16 no pepper anywhere (every plane row, the migration, the Edge source), and no plain SHA-256 of a code is stored
+OK   EN17 no code, token or key in the APIs' logs; a pairing code is returned once (Add Computer), never by a later read
+OK   EN12 the 61st attempt for the tenant within the hour is refused (rate_limited_tenant) - unknown locators count, from any address - tenant attempts 60, then rate_limited_tenant
+
+enrollment_acceptance: 19/19 OK
+
+--- stderr ---
+(node:1776) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DELL/dev/brain-os-factory-enroll/supabase/control-plane/edge/supabase/functions/_shared/pairing.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DELL\dev\brain-os-factory-enroll\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

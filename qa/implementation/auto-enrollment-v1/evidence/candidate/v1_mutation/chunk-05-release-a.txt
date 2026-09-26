@@ -1,0 +1,26 @@
+command   node qa/factory/v1/v1_mutation_proof.mjs --controls qa/implementation/auto-enrollment-v1/evidence/candidate/v1_mutation/controls.json RU HS
+commit    578785d45ce24bacb6474e669f01a5b7cd4bd9c2
+started   2026-09-26T21:34:48Z
+
+v1_mutation_proof: 2 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ 578785d45ce24bacb6474e669f01a5b7cd4bd9c2
+CONTROL  release     passed - release_acceptance: 15/15 OK (180 s)
+CAUGHT   RU    release      expected FAIL R-b; seen FAIL [R-b]; release_acceptance: 14/15 OK; FAILED: R-b (177 s) - an unsigned release is accepted
+SURVIVED HS    release      expected FAIL R-t; seen FAIL [X0]; release_acceptance: 0/1 OK; FAILED: X0 (249 s) - the supervisor no longer verifies itself first (a tampered supervisor goes on)
+FAIL X0 release rehearsal - Error: setup failed: release verified: Brain Factory 0.1.0 (dev channel; image hash ac90ab1358cfb358...)
+enrolling this computer as "REL-N" in "operator"
+enrolled: node node-95a1c2bbf9d04cfebc63a09ee89951fc (credential issued; key protection dpapi)
+not ALIVE within 180 s - see C:\Users\DELL\AppData\Local\Temp\bos-v1mut-HJSbaO\tmp\bf-release-tMOm96\home-N\logs
+    at file:///C:/Users/DELL/AppData/Local/Temp/bos-v1mut-HJSbaO/repo/qa/factory/v1/release_acceptance.mjs:70:31
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+release_acceptance: 0/1 OK; FAILED: X0
+(node:14816) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DELL/AppData/Local/Temp/bos-v1mut-HJSbaO/repo/supabase/control-plane/edge/supabase/functions/_shared/node_api.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DELL\AppData\Local\Temp\bos-v1mut-HJSbaO\repo\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+v1_mutation_proof: 1 of 2 mutants killed; NOT killed: HS
+
+exit      1
+ended     2026-09-26T21:44:55Z

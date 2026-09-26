@@ -1,0 +1,20 @@
+command   node qa/factory/v1/v1_mutation_proof.mjs --controls qa/implementation/auto-enrollment-v1/evidence/candidate/v1_mutation/controls.json FN IN IN2 CP PH PC PD
+commit    578785d45ce24bacb6474e669f01a5b7cd4bd9c2
+started   2026-09-26T21:28:22Z
+
+v1_mutation_proof: 7 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ 578785d45ce24bacb6474e669f01a5b7cd4bd9c2
+CONTROL  takeover    passed - takeover_acceptance [direct]: 17/17 OK (13 s)
+CAUGHT   FN    takeover     expected FAIL T6; seen FAIL [T6]; takeover_acceptance [direct]: 16/17 OK; FAILED: T6 (13 s) - a checkpoint no longer checks that the run is still this node's (stale-worker fence removed)
+CONTROL  independencepassed - independence_acceptance: 16/16 OK (22 s)
+CAUGHT   IN    independence expected FAIL (b)(c)|(g)|(j)|(m)|(n); seen FAIL [(b)(c) (d) (f) (g) (h) X0]; independence_acceptance: 1/7 OK; FAILED: (b)(c), (d), (f), (g), (h), X0 (7 s) - independence reduced to run-only: an authoring identity may claim (gate 7) and certify (floor) its own candidate
+CAUGHT   IN2   independence expected FAIL (j)|(j2); seen FAIL [(j2)]; independence_acceptance: 15/16 OK; FAILED: (j2) (22 s) - the authoring set reduced to the completing run (a taken-over author may verify)
+CAUGHT   CP    independence expected FAIL (o2); seen FAIL [(o2)]; independence_acceptance: 15/16 OK; FAILED: (o2) (22 s) - a certification is not bound to its work order and exact candidate provenance
+CONTROL  enrollment  passed - enrollment_acceptance: 19/19 OK (69 s)
+CAUGHT   PH    enrollment   expected FAIL EN9|EN19; seen FAIL [EN9]; enrollment_acceptance: 18/19 OK; FAILED: EN9 (69 s) - the code's HMAC is not compared: any secret with a live locator enrolls
+CAUGHT   PC    enrollment   expected FAIL EN9; seen FAIL [EN9]; enrollment_acceptance: 18/19 OK; FAILED: EN9 (69 s) - the per-locator failure cap is 500 instead of 5
+CAUGHT   PD    enrollment   expected FAIL EN15; seen FAIL [EN15]; enrollment_acceptance: 18/19 OK; FAILED: EN15 (69 s) - the pairing secret generated deterministically (a counter, not the CSPRNG)
+
+v1_mutation_proof: 7 of 7 mutants killed
+
+exit      0
+ended     2026-09-26T21:34:40Z

@@ -1,0 +1,13 @@
+step static: deno check (Edge functions)
+command npx.cmd --yes deno@2.5.6 check supabase/control-plane/edge/supabase/functions/factory-node-api/index.ts supabase/control-plane/edge/supabase/functions/factory-admin-api/index.ts
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 412ac14e76f88fbd5e310d3e97dbf5acab2c1498
+started 2026-09-26T23:30:33.144Z
+seconds 9
+exit 0
+summary 
+
+
+--- stderr ---
+[0m[32mCheck[0m file:///C:/Users/DELL/dev/brain-os-factory-enroll/supabase/control-plane/edge/supabase/functions/factory-node-api/index.ts
+[0m[32mCheck[0m file:///C:/Users/DELL/dev/brain-os-factory-enroll/supabase/control-plane/edge/supabase/functions/factory-admin-api/index.ts

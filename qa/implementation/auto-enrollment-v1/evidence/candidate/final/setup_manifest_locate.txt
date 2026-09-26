@@ -1,0 +1,17 @@
+step setup_manifest_locate
+command C:\Program Files\nodejs\node.exe qa/factory/v1/setup_manifest_locate.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 412ac14e76f88fbd5e310d3e97dbf5acab2c1498
+started 2026-09-26T23:37:26.383Z
+seconds 1
+exit 0
+summary setup_manifest_locate: 6/6 OK
+
+OK   M1 a manifest beside the exe is used; nothing is fetched - {"from":"3\\beside\\BrainFactorySetup.manifest.json","hits":[]}
+OK   M2 none beside: exactly <base>/<version>/BrainFactorySetup.manifest.json is fetched, once, and used - {"hits":["/factory-releases/production/0.1.0/BrainFactorySetup.manifest.json"],"from":"http://127.0.0.1:61502/factory-releases/production/0.1.0/BrainFactorySetup.manifest.json"}
+OK   M3 an explicit --manifest that does not exist is never replaced by a download - {"hits":[],"tried":["C:\\Users\\DELL\\AppData\\Local\\Temp\\bf-manifest-D4ae73\\nope.json"]}
+OK   M4 no release base (the dev channel): nothing is fetched and there is no manifest - {"hits":[]}
+OK   M5 the storage answers 404, or a body larger than a manifest: no manifest, and it says where it looked and why - {"a":"HTTP 404","b":"larger than a manifest can be"}
+OK   M6 a fetched manifest is verified exactly like a local one: for other bytes -> digest_mismatch; signed outside the pinned set -> key_outside_trust_set; the correct one verifies - {"ok":true,"other":"digest_mismatch","foreign":"key_outside_trust_set"}
+
+setup_manifest_locate: 6/6 OK

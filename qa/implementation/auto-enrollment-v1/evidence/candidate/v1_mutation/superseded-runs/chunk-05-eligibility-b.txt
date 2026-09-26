@@ -1,0 +1,20 @@
+command   node qa/factory/v1/v1_mutation_proof.mjs --controls qa/implementation/auto-enrollment-v1/evidence/candidate/v1_mutation/controls.json G9 G10a G10b G11a G11c G12 DB NP KR
+commit    812899eed5aab42feb3d17d1886d4a31d8248e9e
+started   2026-09-26T20:43:17Z
+
+v1_mutation_proof: 9 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ 812899eed5aab42feb3d17d1886d4a31d8248e9e
+CONTROL  eligibility passed - eligibility_acceptance: 10/10 OK (this commit, run 2026-09-26T20:36:09.167Z)
+CAUGHT   G9    eligibility  expected FAIL G1-G12|O1; seen FAIL [G1-G12 O1]; eligibility_acceptance: 8/10 OK; FAILED: G1-G12, O1 (42 s) - gate 9 (drain) removed
+CAUGHT   G10a  eligibility  expected FAIL G1-G12; seen FAIL [G1-G12]; eligibility_acceptance: 9/10 OK; FAILED: G1-G12 (42 s) - gate 10 (heartbeat freshness) removed
+CAUGHT   G10b  eligibility  expected FAIL G1-G12; seen FAIL [G1-G12]; eligibility_acceptance: 9/10 OK; FAILED: G1-G12 (42 s) - gate 10 (a RECOVERING node) removed
+CAUGHT   G11a  eligibility  expected FAIL G1-G12; seen FAIL [G1-G12]; eligibility_acceptance: 9/10 OK; FAILED: G1-G12 (42 s) - gate 11 (the computer's max concurrency) removed
+CAUGHT   G11c  eligibility  expected FAIL G1-G12; seen FAIL [G1-G12]; eligibility_acceptance: 9/10 OK; FAILED: G1-G12 (42 s) - gate 11 (the tenant's plane-wide heavy limit) removed
+CAUGHT   G12   eligibility  expected FAIL G1-G12|O1; seen FAIL [G1-G12]; eligibility_acceptance: 9/10 OK; FAILED: G1-G12 (42 s) - gate 12 (hard minimum resources) removed
+CAUGHT   DB    eligibility  expected FAIL K1; seen FAIL [K1]; eligibility_acceptance: 9/10 OK; FAILED: K1 (52 s) - the preference-deferral bound is 300 s instead of 30 s
+CAUGHT   NP    eligibility  expected FAIL Y1; seen FAIL [Y1]; eligibility_acceptance: 9/10 OK; FAILED: Y1 (42 s) - priority ordered as text (lexical) instead of numerically
+CAUGHT   KR    eligibility  expected FAIL G4r; seen FAIL [G4r]; eligibility_acceptance: 9/10 OK; FAILED: G4r (42 s) - a release signed by a revoked key counts as current again (the 4eec9f0 defect)
+
+v1_mutation_proof: 9 of 9 mutants killed
+
+exit      0
+ended     2026-09-26T20:49:49Z

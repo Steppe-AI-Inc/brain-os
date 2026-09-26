@@ -1,0 +1,58 @@
+step schema_acceptance
+command C:\Program Files\nodejs\node.exe qa/factory/v1/schema_acceptance.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 412ac14e76f88fbd5e310d3e97dbf5acab2c1498
+started 2026-09-26T23:31:42.850Z
+seconds 8
+exit 0
+summary schema_acceptance: 47/47 OK
+
+OK   P0 manifest evidence hashes on the loaded copy, BEFORE the migration, equal the manifest - counts 12/10/12 runs 374ec7bfe0e7
+OK   P1 the migration commits on a 69df2f52 plane holding the baseline rows (its in-transaction self-check passed) - fa3e03bb09190309c18256cab1e94d4787381875677460edf4a34f53d5ab5948
+OK   P2 manifest evidence-field set hashes are UNCHANGED after the migration (AC-11 on the copy) - {"agent_runs":"374ec7bfe0e7697820dca4a6b690d619a3f648d70c931e2888d1bcc507d08ea1","work_orders":"45adc662d80d244d4698c46ba5292f8187750fd67e87c37740115b1fd8c78813","checkpoints":"4ad4c1a573e29a55329d187ebdb2ea6f502e23a0bda9ffa9d943ebfe582c110c"}
+OK   P3 every manifest row hash is unchanged, row by row
+OK   P4 no node record deleted; no evidence row added (the migration writes no computer, run or work order)
+OK   P5 every existing row carries the operator tenant (tenant_id added; evidence fields untouched)
+OK   P6 no legacy work order gained factory-enrolled-v1
+OK   P7 a second application is refused and changes nothing - factory v1 migration: already applied (factory_owner / factory.tenants exist); it runs exa
+OK   C1 roles factory_owner / factory_node_api / factory_admin_api: no superuser, createrole, createdb, replication or bypassrls; noinherit - factory_admin_api,factory_node_api,factory_owner
+OK   C2 exactly the 19 new tables exist and are owned by factory_owner; the 69df2f52 tables keep their owner - 19 new
+OK   C3 factory_runner holds NO privilege (any kind) on any new table (has_table_privilege)
+OK   C4 no column-level privilege for factory_runner on any new table (has_column_privilege; pg_attribute.attacl empty) - columns 0, attacl 0
+OK   C5 factory_runner keeps exactly its 69df2f52 privileges on the 69df2f52 tables - 32 grants
+OK   C6 no factory function is executable by factory_runner or PUBLIC (112 functions)
+OK   C7 pg_default_acl in schema factory: no default grant to factory_runner (the 69df2f52 grant revoked)
+OK   C8 pg_auth_members: factory_runner is a member of the same roles as at 69df2f52 (none), and its members are unchanged; no API role is a member of it - member of []; members []
+OK   C9 the API roles hold no table privilege at all (only front-door EXECUTE)
+OK   C10 every SECURITY DEFINER function pins an empty search_path - 38 definer functions
+OK   C11 the seeded policy rows are exactly contract §1's two rows (tenant default; campaign Auto-Enrollment V1) - ["Tenant default","Auto-Enrollment V1"]
+OK   C12 the migration seeds one operator tenant and the two policy versions, and writes no tenant admin, computer or S-16(a) binding - {"t":1,"o":1,"a":0,"c":0,"v":2}
+OK   C13 static scan: no statement of the migration reads a plane-distinguishing value (plane_identity, current_database, server address, settings)
+OK   C14 the legacy guard is attached to each 69df2f52 table, and the authority guard + no-truncate to each new table
+OK   C15 the legacy guard's 69df2f52 column lists equal factory._baseline_columns() (asserted against the catalog in part 000)
+OK   F1 the engine (factory_owner) writes an enrolled computer, envelope, principal, credential, new-model work order, run, lock and checkpoint through every guard - node-f9b9995416a24d42a30a8edd8b90c5a9
+OK   L1 factory_runner: every write to an authority record is refused (tenants, admins, computers, envelopes, principals, credentials, pairing, enrollments, sessions, audit, policies, certifications, releases, revocations) - 16 writes refused
+OK   L1r factory_runner cannot even read an authority record (no SELECT either)
+OK   L2 factory_runner holds EXECUTE on no factory function, and a direct call is refused - permission denied for function _is_engine
+OK   L3 factory_runner: the reserved capability factory-enrolled-v1 is refused on a node and on a work order, insert and update, in any spelling - refused,refused,refused,refused,refused
+OK   L4 factory_runner: every UPDATE / DELETE of an enrolled run, checkpoint, lock, node, a new-model work order (incl. moving a verification-required one to done) or a dependency naming one is SKIPPED - no error, 0 rows, server rows byte-identical - 13 writes skipped
+OK   L5 factory_runner: an INSERT of a new-model row (checkpoint / run / lock / dependency / notification / node for an enrolled identity) is refused by name - factory_legacy_refused: INSERT on factor | factory_legacy_refused: INSERT on factor | factory_legacy_refused: INSERT on factor | factory_legacy_refused: INSERT on factor | factory_legacy_refused: INSERT on factor | factory_legacy_refused: INSERT on factor
+OK   L6 factory_runner: setting or changing any column the migration added (identity, run kind, numeric priority, verification, tenant) is refused - refused,refused,refused,refused,refused,refused,refused
+OK   L7 factory_runner can reach no role (pg_has_role), and SET ROLE to factory_owner / either API role / postgres is refused - reachable []
+OK   L8 even with DML on every factory table re-granted (a 69df2f52 provisioning re-run), every authority write is refused by the guard and every enrolled / new-model row is still skipped - guard held
+OK   M1 frozen claim.mjs on the migrated plane: with a lapsed enrolled lease and lock on surf/M and a legacy work order owning surf/M at the head, the legacy claim neither fails nor reports "another node won"; it claims the NEXT legacy work order in one poll - claimed the next legacy work order
+OK   M2 ... and no legacy run holds surf/M, and the enrolled run, its work order and its lock are byte-identical (the front doors own their expiry) - legacy holders of surf/M: 0
+OK   M3 the frozen register / claim / heartbeat / checkpoint / complete lifecycle is intact for a legacy run on the migrated plane - {"rs":"done","ws":"done","locks":0}
+OK   M4 a legacy node that self-wrote security_role = release_broker cannot claim a new-model work order (no factory-enrolled-v1), even named directly - claims [null,null]
+OK   E1 the Node API role cannot change an envelope, the envelope pointer, its own node record or mint a principal (no table privilege at all) - refused,refused,refused,refused,refused
+OK   E2 envelopes are immutable versions for every writer (no update / delete; only the next version; never a reserved capability) - envelopeUpdate:refused envelopeDelete:refused envelopeSkip:refused envelopeReserved:refused
+OK   E3 an amendment is the next version plus the pointer; the pointer never rewinds (amending back is a new version with the old content) - true
+OK   E4 a revoked credential never becomes active again (every writer) - factory_credential_refused: a revoked credential never changes again (never acti
+OK   E5 a computer has exactly one Add-Computer principal, and a principal is never updated or deleted - duplicate key value violates unique constraint "agent_princi
+OK   E6 a rotated credential is bound to the principal of the credential it replaces - binding it to another principal is refused (S-13) - factory_principal_refused: a credential is bound to the principal its pairing co
+OK   E7 the audit log is append-only for every writer, the superuser included (no update, delete or truncate)
+OK   E8 the S-16(a) binding is add-only at Add Computer: unbinding, binding later, and a second active bound computer are all refused - refused,refused,duplicate key value violates unique constraint "computers_on
+OK   E9 policies: never deleted; every change is a new version, and every version is kept - versions 3
+OK   E10 tenant_admins: the migration wrote no row, and the table refuses every writer that is not the engine
+
+schema_acceptance: 47/47 OK
