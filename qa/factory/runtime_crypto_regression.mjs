@@ -631,6 +631,19 @@ try {
     [underFile, unlistable].every((g) => g.threw instanceof ss.SecureStoreError && g.threw.code === 'dir' && /directory/.test(g.threw.fix)),
     JSON.stringify([underFile, unlistable].map((g) => g.threw ? g.threw.name + '/' + g.threw.code + ': ' + String(g.threw.message).slice(0, 120) : 'NOT THROWN')));
 
+  // S24 (mutation proof 2026-09-26): the catch-all in writeSecret() - any UNPLANNED raw error inside the write path becomes a
+  // SecureStoreError 'unexpected' with a fix and without the secret - had no row (S22's cases are converted by explicit catches
+  // before it). An unplanned fault is injected without touching the module: the dpapi options object is spread inside
+  // writeSecretChecked(), and a throwing getter on it raises a raw Error there, exactly as an unforeseen fault would.
+  const s24 = randomBytes(32);
+  const faulty = {};
+  Object.defineProperty(faulty, 'boom', { enumerable: true, get() { throw new Error('injected raw fault 24'); } });
+  const unplanned = await writeRes(path.join(dirA, 'unplanned.key'), s24, { dpapi: faulty });
+  check('S24 an unplanned raw error inside writeSecret() surfaces as SecureStoreError "unexpected" with a fix, never as a raw Error, and without the secret',
+    unplanned.threw instanceof ss.SecureStoreError && unplanned.threw.code === 'unexpected' && /NTFS/.test(unplanned.threw.fix)
+    && !leaks(String(unplanned.threw.message) + String(unplanned.threw.fix), s24) && !fs.existsSync(path.join(dirA, 'unplanned.key')),
+    unplanned.threw ? unplanned.threw.name + '/' + unplanned.threw.code + ': ' + String(unplanned.threw.message).slice(0, 160) : 'NOT THROWN');
+
   // S23 (review 2026-09-26): any non-"unavailable" DPAPI failure was reported as dpapi_refused ("written by a
   // different Windows user or machine, with different entropy, or it was modified") — including an oversize body
   // DPAPI never even saw. Only a CryptographicException is a refusal now.

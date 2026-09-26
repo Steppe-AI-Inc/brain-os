@@ -1,0 +1,26 @@
+command   node qa/factory/runtime_crypto_mutation_proof.mjs
+commit    9db1af826efe243b83957350365d8647024c39de + uncommitted: runtime_crypto_regression.mjs (row S24), runtime_crypto_mutation_proof.mjs (new; mutant R7)
+started   2026-09-26T08:22:11Z
+runtime_crypto_mutation_proof: 18 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ 9db1af826efe243b83957350365d8647024c39de - the four files DIFFER from HEAD (the working-tree text is what is mutated)
+CONTROL  passed - 58 passed, 0 failed; nothing skipped
+CAUGHT   M1   expected FAIL D14; seen FAIL [D14]; 57 passed, 1 failed - the payload is interpolated into the script text, so the secret reaches the PowerShell event log
+CAUGHT   M2   expected FAIL D10; seen FAIL [D1 D2 D3 D4 D5 D6 D8 D9 D10 D15 D16 S1 S2 S3 S7 S8 S18 S21 S23 S19]; 38 passed, 20 failed - no READY handshake: the data is queued with the script, so a script that never runs still receives the payload
+CAUGHT   M3   expected FAIL S11; seen FAIL [S11 S12]; 56 passed, 2 failed - lockDirectory does not remove foreign explicit ACEs (a broadened directory stays broadened)
+CAUGHT   M4   expected FAIL E12; seen FAIL [E12]; 57 passed, 1 failed - base64urlDecode drops the canonical-encoding check (two strings decode to the same bytes)
+CAUGHT   M5   expected FAIL S10; seen FAIL [S10 S10b S19]; 55 passed, 3 failed - readSecret skips the directory ACL check
+CAUGHT   M6   expected FAIL S3; seen FAIL [S3]; 57 passed, 1 failed - readSecret returns buf enumerable (console.log / JSON.stringify print the secret)
+CAUGHT   M7   expected FAIL E4; seen FAIL [E4]; 57 passed, 1 failed - verify throws on malformed attacker input (length guard and try/catch removed)
+CAUGHT   M8   expected FAIL D1|D3|D4; seen FAIL [D1 D3 D4 S7 S23 S19]; 52 passed, 6 failed - DPAPI ignores entropy (protect and unprotect both pass $null)
+CAUGHT   M9   expected FAIL S15; seen FAIL [S15 S16 S17]; 55 passed, 3 failed - writeSecret throws instead of falling back to acl_only when DPAPI is unavailable
+CAUGHT   R1   expected FAIL D13|D15; seen FAIL [D13 D15]; 56 passed, 2 failed - review: READY and OK are literals in the script text again (an interpreter that echoes its stdin fires the handshake)
+CAUGHT   R2   expected FAIL D16|S21|S23; seen FAIL [D16 S21]; 56 passed, 2 failed - review: unprotect is capped at MAX_PAYLOAD_BYTES again (a maximal secret protects into a blob unprotect refuses)
+CAUGHT   R3   expected FAIL S10|S10b|S12; seen FAIL [S10 S10b S12]; 55 passed, 3 failed - review: the re-lock fix is several icacls commands joined by " ; " with the grant unquoted (the form the fix note describes)
+CAUGHT   R3q  expected FAIL S10b|S12; seen FAIL [S10b S12]; 56 passed, 2 failed - the re-lock commands joined by " ; " but every argument quoted: S10's substring check passes, only pasting into cmd.exe sees it
+CAUGHT   R4   expected FAIL S14; seen FAIL [S14]; 57 passed, 1 failed - review: checkPath no longer refuses ":" (an ADS), a trailing "." or " ", or a DOS device name in a path component
+CAUGHT   R5m  expected FAIL S22; seen FAIL [S22]; 57 passed, 1 failed - review: a mkdir failure (a parent that is a file) escapes the explicit catch (arrives as code "unexpected", not "dir")
+CAUGHT   R5r  expected FAIL S22; seen FAIL [S22]; 57 passed, 1 failed - review: a readdir failure (a directory this user cannot list) escapes the explicit catch
+CAUGHT   R6   expected FAIL S23; seen FAIL [S23]; 57 passed, 1 failed - review: every DPAPI failure that is not "unavailable" is reported as dpapi_refused (another user / entropy / modified)
+CAUGHT   R7   expected FAIL S24; seen FAIL [S24]; 57 passed, 1 failed - the writeSecret() catch-all reduced to a bare rethrow: an unplanned raw error escapes as a raw Error
+
+runtime_crypto_mutation_proof: 18 of 18 mutants killed
+exit      0
