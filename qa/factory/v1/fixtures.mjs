@@ -1,10 +1,18 @@
 // Test fixtures for the v1 suites: rows written AS THE ENGINE (factory_owner), through the same guards the front doors meet.
 // Test-only: a disposable plane, the superuser's session, `set role factory_owner`. Never a deployed path.
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { createHash, generateKeyPairSync, randomBytes, randomUUID } from 'node:crypto';
 
 export const OPERATOR = 'a1e0f000-0000-4000-8000-000000000001';
 export const ADMIN = '0f0f0f0f-0000-4000-8000-00000000ad01';
 export const nodeIdOf = (principalId) => 'node-' + principalId.replace(/-/g, '');
+
+/** A real Ed25519 key pair: { publicKey: raw 32 bytes, privateKey: KeyObject } */
+export function ed25519() {
+  const { publicKey, privateKey } = generateKeyPairSync('ed25519');
+  const raw = publicKey.export({ format: 'der', type: 'spki' }).subarray(-32);
+  return { publicKey: Buffer.from(raw), privateKey };
+}
+export const thumbprint = (pk) => createHash('sha256').update(pk).digest('hex');
 
 /** Run statements as the engine in one transaction (the superuser connection `c`). */
 export async function asEngine(c, fn) {
@@ -26,7 +34,8 @@ const locator = () => { const A = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'; let s = ''
 export async function enrolledComputer(c, { roles = ['generic', 'verifier'], caps = [], name = 'fixture', fingerprint = null, s16a = false } = {}) {
   const computerId = randomUUID(), principalId = randomUUID(), codeId = randomUUID(), enrollmentId = randomUUID(), credentialId = randomUUID();
   const nodeId = nodeIdOf(principalId);
-  const pk = randomBytes(32);
+  const keys = ed25519();
+  const pk = keys.publicKey;
   await asEngine(c, async () => {
     await c.query(`insert into factory.computers (computer_id, tenant_id, display_name, created_by, s16a_bound_at, s16a_bound_by)
                    values ($1, $2, $3, $4, case when $5 then now() end, case when $5 then $4::uuid end)`,
@@ -55,7 +64,7 @@ export async function enrolledComputer(c, { roles = ['generic', 'verifier'], cap
     await c.query(`insert into factory.nodes (node_id, principal_id, computer_id, last_heartbeat_at, machine_fingerprint)
                    values ($1, $2, $3, now(), $4)`, [nodeId, principalId, computerId, fingerprint]);
   });
-  return { computerId, principalId, codeId, enrollmentId, credentialId, nodeId, publicKey: pk };
+  return { computerId, principalId, codeId, enrollmentId, credentialId, nodeId, publicKey: pk, privateKey: keys.privateKey, thumbprint: thumbprint(pk) };
 }
 
 /** A new-model work order (it holds factory-enrolled-v1). */
@@ -100,4 +109,14 @@ export async function legacyWorkOrder(c, { surface = [], title = 'legacy fixture
   await c.query(`insert into factory.work_orders (work_order_id, title, owned_surface, created_at) values ($1, $2, $3, coalesce($4::timestamptz, now()))`,
     [id, title, surface, createdAt]);
   return id;
+}
+
+/** A published release on the plane, as the founder's publish action records it (test-only: written as the engine). */
+export async function publishedRelease(c, { channel = 'dev', version = '0.1.0', digest = null } = {}) {
+  const id = randomUUID();
+  const d = digest || createHash('sha256').update(id).digest('hex');
+  await asEngine(c, () => c.query(`insert into factory.releases (release_id, tenant_id, channel, version, source_sha, digest, key_id, signature,
+      receipt_sha256, manifest, published_by) values ($1, $2, $3, $4, $5, $6, 'dev-key-0001', $7, $8, '{}', $9)`,
+    [id, OPERATOR, channel, version, createHash('sha1').update(id).digest('hex'), d, 'A'.repeat(86), createHash('sha256').update('r' + id).digest('hex'), ADMIN]));
+  return { releaseId: id, digest: d };
 }

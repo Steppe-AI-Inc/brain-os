@@ -10,6 +10,9 @@ create table factory.tenants (
   tenant_id    uuid primary key,
   name         text not null check (length(btrim(name)) between 1 and 120),
   is_operator  boolean not null default false,
+  -- gate 11: heavy work orders in progress across the whole plane (both fleets), server-side. The frozen legacy claim reads its
+  -- own FACTORY_HEAVY_PER_PLANE (default 2); an enrolled claim never takes a limit from the claimer.
+  max_heavy_per_plane integer not null default 2 check (max_heavy_per_plane between 0 and 64),
   created_at   timestamptz not null default now()
 );
 create unique index tenants_one_operator on factory.tenants (is_operator) where is_operator;
