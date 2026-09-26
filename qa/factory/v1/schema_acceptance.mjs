@@ -235,7 +235,8 @@ try {
     // the reserved capability, in any spelling
     const nid = 'legacy-' + randomUUID().slice(0, 8);
     const rc = [
-      await tryQuery(run, `insert into factory.nodes (node_id, capabilities) values ($1, '["factory-enrolled-v1"]')`, [nid]),
+      // its own id: were this insert wrongly allowed, L3 must show ALLOWED - not crash on the plain node below
+      await tryQuery(run, `insert into factory.nodes (node_id, capabilities) values ($1, '["factory-enrolled-v1"]')`, [nid + 'r']),
       await tryQuery(run, `insert into factory.nodes (node_id, capabilities) values ($1, '[" Factory-Enrolled-V1 "]')`, [nid + 'b']),
     ];
     await run.query(`insert into factory.nodes (node_id, capabilities) values ($1, '["edge-verify"]')`, [nid]);

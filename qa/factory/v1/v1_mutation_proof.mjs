@@ -85,7 +85,9 @@ const MUTANTS = [
 
   // ---- AC-12 / AC-10: the legacy fence and least privilege
   { id: 'LD', suite: 'schema', expect: ['C3', 'C7', 'L1', 'L1r', 'P1', 'X0'], what: 'the baseline default-privilege grant to factory_runner is no longer revoked for the new tables', edits: [condOff(V + '000_preconditions_roles.sql', "execute format('alter default privileges for role %I in schema factory revoke all on tables from factory_runner', r.owner);", 'null; -- (planted)')] },
-  { id: 'LX', suite: 'schema', expect: ['C6', 'L2', 'P1', 'X0'], what: 'factory_runner may EXECUTE a node front door', edits: [{ f: V + '190_node_grants.sql', after: '  to factory_node_api;', add: 'grant execute on function factory.node_heartbeat(bytea, jsonb) to factory_runner; -- (planted)' }] },
+  // planted AFTER 990's revoke sweep and self-check (a grant inside the migration is swept away by 990 - that layer is intact here), so
+  // the rows that must see a legacy EXECUTE are the ones judged
+  { id: 'LX', suite: 'schema', expect: ['C6', 'L2'], what: 'factory_runner may EXECUTE a node front door (granted after the migration\'s own sweep)', edits: [{ f: V + '990_finalize.sql', after: '$selfcheck$;', add: 'grant execute on function factory.node_heartbeat(bytea, jsonb) to factory_runner; -- (planted)' }] },
   { id: 'LR', suite: 'schema', expect: ['C8', 'L7', 'P1', 'X0'], what: 'an API role is granted to factory_runner', edits: [{ f: V + '190_node_grants.sql', after: '  to factory_node_api;', add: 'grant factory_node_api to factory_runner; -- (planted)' }] },
   { id: 'PR', suite: 'schema', expect: ['C9', 'P1', 'X0'], what: 'the Node API role may insert principals directly (a node could mint a principal)', edits: [{ f: V + '190_node_grants.sql', after: '  to factory_node_api;', add: 'grant insert on factory.agent_principals to factory_node_api; -- (planted)' }] },
   { id: 'LG', suite: 'schema', expect: ['L4'], what: 'the legacy guard lets factory_runner update or delete a new-model / enrolled row', edits: [condOff(V + '080_guards.sql', 'if old_nm then', 'if false then -- (planted) legacy writes to new-model rows allowed')] },
