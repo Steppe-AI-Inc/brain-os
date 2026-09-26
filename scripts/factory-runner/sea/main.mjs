@@ -7,6 +7,7 @@
 //   BrainFactory.exe worker [--home DIR]        (internal) the runtime loop, started by the supervisor
 //   BrainFactory.exe status | verify | start | stop | uninstall | logs  [--home DIR] [--task-name N]
 //   BrainFactory.exe upgrade --artifact EXE --manifest F [--home DIR]   verify a release BEFORE anything of it runs; install; switch
+//   BrainFactory.exe trust                      the trust set fixed in this artifact: (key id, sha256 of the public key), channel, mode
 //   BrainFactory.exe version | selftest
 //
 // RULES for this file and everything it imports - build-sea.mjs enforces the first three and fails the build otherwise:
@@ -184,13 +185,19 @@ export async function mainAsync(argv) {
     for (const f of ['setup', 'supervisor', 'worker']) { try { process.stdout.write('== ' + f + '.log\n' + readFileSync(p.logs + '\\' + f + '.log', 'utf8').split('\n').slice(-40).join('\n') + '\n'); } catch { /* none */ } }
     return EXIT_OK;
   }
+  if (cmd === 'trust') {
+    // the trust set FIXED IN THIS ARTIFACT, read back as (key id, sha256 of the public key), with its channel and mode (S-5)
+    const { trustReadback } = await import('../enrolled/release.mjs');
+    process.stdout.write(JSON.stringify(trustReadback()) + '\n');
+    return EXIT_OK;
+  }
   if (cmd === 'upgrade') {
     const { upgrade } = await import('../enrolled/upgrade.mjs');
     const r = await upgrade({ home, artifact: o.artifact, manifest: o.manifest });
     process.stdout.write(JSON.stringify(r) + '\n');
     return r.ok ? EXIT_OK : 3;
   }
-  process.stderr.write(printable(cmd) + ': not a Brain Factory command (setup, supervise, status, verify, start, stop, uninstall, logs, upgrade, version, selftest)\n');
+  process.stderr.write(printable(cmd) + ': not a Brain Factory command (setup, supervise, status, verify, start, stop, uninstall, logs, upgrade, trust, version, selftest)\n');
   return EXIT_NOT_AVAILABLE;
 }
 
