@@ -61,11 +61,49 @@ evidence may continue to say Work-PC where it describes what actually happened. 
 Some proposals change what must be true: the product contract, an invariant, a security boundary, a tenancy rule, a Work Order
 requirement, an acceptance criterion, a verification rule, takeover/fencing behavior, or the definition of PASS. The implementer
 may PROPOSE such a change but MUST NOT treat it as binding or implement against it until the Director ratifies it.
-- Flow: DISCOVERS ISSUE → CHANGE REQUEST / PROPOSAL → DIRECTOR RATIFICATION → BINDING CONTRACT/WO UPDATE → IMPLEMENTATION.
+- Flow: DISCOVERS ISSUE → CHANGE REQUEST / PROPOSAL → DIRECTOR RATIFICATION → BINDING CONTRACT/WO UPDATE → IMPLEMENTATION. Where a
+  change request is filed and how it is decided: "Ownership-based namespaces and the change-request path rule" below.
 - While a change waits, every non-conflicting item that remains valid under the ratified contract continues.
 - Implementation details that do not change what must be true stay entirely within the implementer's authority: file and module
   structure, helpers, test organization, refactoring, packaging mechanics, sequencing, local disposable test infrastructure, and
   semantics-preserving performance work.
+
+## Ownership-based namespaces and the change-request path rule (founder ruling, 2026-09-26)
+
+Explicit ownership separation. Ownership is by logical responsibility, never by machine hostname. **Implementation behavior does not
+silently redefine governance:** a path, label or practice becomes canonical only by an explicit Director revision with a stated
+rationale, never because the implementer used it first.
+
+| responsibility | namespace | holds |
+|---|---|---|
+| Director (canonical state) | `qa/work-orders/` | binding work orders, ledgers, and the record of every change request: its receipt (path, commit, sha256) and the decision |
+| Implementer (proposals) | `qa/implementation/<milestone>/change-requests/`, on the implementation branch | change-request submissions; never canonical |
+| Independent verifier (evidence) | `qa/verification/<milestone>/`, or the canonical verifier namespace the QA model defines | immutable verification evidence and receipts |
+
+- **Flow:** the implementer submits a change request → DIRECTOR DECISION → canonical ledger / contract revision if approved →
+  VERIFIER CHECKS.
+- **The implementer may** submit a change request.
+- **The implementer may not:**
+  - approve its own change request;
+  - modify binding work-order text through the change request itself.
+- **What the verifier checks:** the candidate changes no binding work-order text, ledger file or canonical document
+  (`VERIFICATION_SPEC.md` §3.1), and every change request the candidate relies on has a Director decision in the designated
+  Director commit. Implementing against an undecided or rejected change request is a finding.
+- **Rationale:** `qa/work-orders/` holds Director-owned binding texts. Implementer proposals in their own namespace, on the
+  implementation branch, keep implementer writes out of Director-owned space and make ownership visible by path and branch.
+- **Compatibility and migration:**
+  - The universal path `qa/work-orders/change-requests/` is retired as the repository-wide default. `CLAUDE.md` §8 and
+    `FEATURE_COMPLETENESS_CONTRACT.md` §8 name the ownership-based namespaces.
+  - Historical change requests stay at the paths where they were filed and decided, and are not moved: CR-001..CR-004 at
+    `qa/work-orders/change-requests/` (commit `33f14d6e`).
+  - For Auto-Enrollment V1 the implementer space is `qa/implementation/auto-enrollment-v1/change-requests/`. CR-005 is valid where
+    it is.
+  - A change request anywhere else is not received. The Director records each receipt and decision in the ledger.
+  - For Auto-Enrollment V1 the verifier namespace is the one `VERIFICATION_SPEC.md` §4 defines (the canonical verifier namespace the
+    founder's rule allows): `qa/verification/auto-enrollment-v1/<candidate-sha>/`. The Director-issued criteria, instruments and
+    referents elsewhere under `qa/verification/auto-enrollment-v1/` are Director canonical state, frozen by the ledger's document set;
+    the single-writer `qa/*.json` files are Director canonical state written only by the DIRECTOR capability (C-5). This reading is
+    surfaced to the founder for confirmation.
 
 ## Current placement (NOT architectural authority)
 
@@ -78,16 +116,23 @@ These hostnames are never encoded as role rules in the product, and never grant 
 
 **This milestone's founder restrictions** (II.1; contract S-16). They are restrictions only: they remove eligibility and never add it.
 - No Auto-Enrollment product code is authored on the Home machine by any session or run, Factory-scheduled or not, and the Director
-  capability authors no product code. At the product layer, an authoring run of such work never executes on the computer the
-  restriction is bound to. A Factory admin binds the restriction to the Home computer's record at its Add Computer enrollment; it is
-  keyed to the enrolled computer, never to a hostname.
-- Every milestone candidate is certified on a different physical node from every member of its authoring set (a different enrolled
-  computer record whose reported fingerprint also differs; a hostname or a different fingerprint alone never satisfies it).
+  capability authors no product code. At the product layer, an authoring run of such work never executes on a Home-computer record
+  (S-16 defines every such record): the record the restriction is bound to, archived or not, or any computer record that has reported a
+  machine fingerprint such a record has reported (S-16). A Factory admin binds the restriction to the Home computer's record at its Add
+  Computer enrollment; it is keyed to the enrolled computer, never to a hostname, and a fingerprint only adds restriction. Archiving
+  the bound record and enrolling the same computer again unbound never releases it (S-14).
+- Every milestone candidate is certified on a different physical node from every member of its authoring set. A different physical
+  machine means a different enrolled computer record whose machine fingerprint also differs: any fingerprint the certifying
+  computer has reported that equals any fingerprint an authoring-set member's computer reported during the candidate refuses
+  (detection may only restrict), and a hostname or a different fingerprint alone never satisfies it.
 
 Both are campaign-level policy data (`factory.verification_policies`, scope `campaign`), issued by the Director. They are not the
 generic Factory independence invariant. The Director writes their content. Through the Admin API a Factory admin may only make a
 policy stricter, and the campaign rows are frozen for this milestone. The certification front door enforces the independence floor
-whatever the policy says. No node credential or implementer migration can create or relax a policy.
+whatever the policy says. No node credential or implementer migration can create or relax a policy. During this milestone the
+Director narrows the first restriction at the product layer (contract S-16): a Home-computer record takes an authoring run only of
+a work order confined to the Director-document paths. That narrowing is a Director restriction, stricter than the founder's line,
+and only removes eligibility.
 
 ## Consequences
 

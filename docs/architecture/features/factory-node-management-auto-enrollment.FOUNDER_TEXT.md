@@ -5,7 +5,8 @@ canonical contract (`factory-node-management-auto-enrollment.md`) builds on this
 the DIRECTOR capability.
 
 The Director paraphrases nothing here:
-- Part II is transcribed from the founder's messages.
+- Part II is transcribed from the founder's messages. II.12 also quotes, verbatim, the Director message whose reconstruction the
+  founder confirmed.
 - Part I is a byte-for-byte copy of the implementer's transcription. **Founder confirmation of Part I is requested.**
 
 ## Provenance
@@ -13,7 +14,7 @@ The Director paraphrases nothing here:
 | Part | Source | Integrity |
 |---|---|---|
 | I | Part A of `docs/architecture/features/factory-auto-enrollment.md`, lines 24-337, on branch `factory/auto-enrollment-v1-contract` at commits `264987bb` and `33f14d6e55a41ee1a2a5acf463a000e3fe2975b9` (identical in both) | source file sha256 `53e61c0bea97c50ca294a471cf015fd1b8983799c32c12ad6bdb825537f53a06`; copied byte for byte |
-| II | the founder's messages to the Director, 2026-09-26 | transcribed as received |
+| II | the founder's messages to the Director, 2026-09-26 (UTC) | transcribed as received |
 
 **About Part I's provenance.** Part I was transcribed by the implementer.
 
@@ -570,3 +571,207 @@ And:
 Can hostname/resource fitness create authority?
 
 Expected: NO.
+
+## II.12 Change-request path discipline — founder ruling, 2026-09-26 16:26-16:53 UTC (2026-09-27 UTC+8)
+
+Every founder message is transcribed as received, in arrival order, with its UTC time. Some lines of the first delivery never
+arrived; the Director asked, and the founder resent the paths as sentences. The founder's "the governance ADR" (16:46:04Z) and "ADR-0001"
+(16:48:54Z) name `docs/architecture/adr/ADR-2026-09-26-node-roles-are-labels.md`, as the Director identified it in its message of
+16:50:13Z.
+
+**16:26:53Z**
+
+```text
+CHANGE-REQUEST PATH DISCIPLINE
+```
+
+**16:35:40Z**
+
+```text
+Do not make qa/implementation/auto-enrollment-v1/change-requests/ canonical merely because the Implementer used it first.
+
+Compare it against the current canonical CLAUDE.md / Director contract.
+
+If the existing canonical path is still correct, require CR-005 to be mirrored or reissued there.
+
+If a new per-milestone implementer change-request namespace is architecturally better, change it explicitly in Director r2 with a stated rationale and migration/compatibility rule.
+
+Implementation behavior must not silently redefine canonical governance
+```
+
+**16:35:52Z**
+
+```text
+Compare it against the current canonical CLAUDE.md / Director contract.
+  If the existing canonical path is still correct, require CR-005 to be mirrored or reissued there.
+
+  If a new per-milestone implementer change-request namespace is architecturally better, change it explicitly in Director r2
+  with a stated rationale and migration/compatibility rule.
+
+  Implementation behavior must not silently redefine canonical governance.
+CHANGE-REQUEST PATH DISCIPLINE — FOUNDER RULING
+```
+
+**16:35:52Z**
+
+```text
+For Auto-Enrollment V1, use explicit ownership separation.
+```
+
+**16:35:52Z**
+
+```text
+CANONICAL DIRECTOR-OWNED WORK-ORDER SPACE:
+```
+
+**16:35:53Z**
+
+```text
+→ DIRECTOR DECISION→ CANONICAL LEDGER / CONTRACT REVISION IF APPROVEDThe Implementer may submit a CR.
+```
+
+**16:35:53Z**
+
+```text
+The Implementer may NOT:
+```
+
+**16:35:53Z**
+
+```text
+- approve its own CR
+```
+
+**16:35:53Z**
+
+```text
+- modify binding WO text through the CR itself
+```
+
+**16:46:04Z**
+
+```text
+  Implementation behavior does not silently redefine governance.
+
+  This is now the binding path rule for Auto-Enrollment V1.  Record it explicitly in Director r2 and the governance ADR.
+```
+
+**16:48:38Z**
+
+```text
+FOUNDER RULING
+```
+
+**16:48:38Z**
+
+```text
+CANONICAL DIRECTOR-OWNED WORK-ORDER SPACE:
+```
+
+**16:48:54Z**
+
+```text
+→ VERIFIER CHECKSImplementation behavior does not silently redefine governance.
+
+Record this binding rule in Director r2 and ADR-0001.
+KEEP WORKING.
+```
+
+**16:52:55Z**
+
+```text
+CORRECTION TO "confirm the draft":
+```
+
+**16:52:55Z**
+
+```text
+Director space is qa/work-orders/.
+```
+
+**16:53:45Z**
+
+```text
+Implementer submission space is qa/implementation/auto-enrollment-v1/change-requests/.
+
+CR-005 is valid where it is.
+
+Historical CR-001..CR-004 stay at their existing paths and are not moved.
+
+IMPORTANT:
+qa/work-orders/change-requests/ does NOT remain the permanent repo-wide default.
+
+Director r2 must generalize CLAUDE.md §8 from the old universal CR path into ownership-based namespaces:
+
+Director canonical state:
+qa/work-orders/
+
+Implementer proposals:
+qa/implementation/<milestone>/change-requests/
+
+Independent verifier evidence:
+qa/verification/<milestone>/ or the canonical verifier namespace defined by the QA model.
+
+Ownership is by logical responsibility, not by machine hostname.
+
+With that correction, the rest of your reconstruction is confirmed.
+
+KEEP WORKING.
+```
+
+**The Director reconstruction the founder confirmed "with that correction"** (Director message of 16:50:13Z, the relevant part,
+verbatim, markdown markers included). The correction replaced the first sub-bullet of its Compatibility bullet:
+`qa/work-orders/change-requests/` does not remain the repo-wide default.
+
+```text
+**Please resend the paths inside a sentence.** For example: "Director space is qa/work-orders/, implementer submission space is qa/implementation/auto-enrollment-v1/change-requests/". Or just reply "confirm the draft" if my reconstruction below is right.
+
+**What the draft records, from what you sent:**
+- Explicit ownership separation.
+- The flow: the implementer submits a change request → Director decision → canonical ledger or contract revision if approved → the verifier checks it.
+- The implementer may submit a change request. It may not approve its own, or change binding work-order text through one.
+- "Implementation behavior does not silently redefine governance." Nothing becomes canonical because the implementer used it first; only an explicit Director revision with a stated reason makes it so.
+- The verifier check: a candidate may not change binding work-order text, the ledger or any canonical document. It must not build on a change request that has no Director decision.
+
+**My reconstruction of the two path lines, marked unconfirmed:**
+- **Director-owned work-order space:** `qa/work-orders/`. It holds the binding work orders, the ledger, and my receipt and decision for every change request.
+- **Implementer submission space:** `qa/implementation/auto-enrollment-v1/change-requests/` on the implementation branch. Submissions only, never canonical.
+- **Compatibility:**
+  - CLAUDE.md §8's `qa/work-orders/change-requests/` stays the default for the rest of the repository.
+  - This milestone's ledger names the submission space.
+  - CR-001..CR-004 keep their recorded path.
+  - CR-005 is accepted where it was filed.
+```
+
+## II.13 Implementer key confirmation — founder ruling, 2026-09-26 16:54 UTC (2026-09-27 UTC+8)
+
+Transcribed as received, in arrival order, with UTC times.
+
+**16:54:27Z**
+
+```text
+IMPLEMENTER KEY CONFIRMATION — ALREADY COMPLETE
+```
+
+**16:54:37Z**
+
+```text
+Subsequent Director checks have already verified the Work-PC implementation
+commits against this published signing identity, and CR-005 records the key.
+
+Therefore:- REMOVE "implementer key fingerprint confirmation" from pending founder actions.
+- Record the IMPLEMENTER / candidate-provenance signing identity as CONFIRMED.
+- Do not ask the founder to re-run fingerprint confirmation again.
+- Do not regenerate or replace the key.- Do not modify its ACLs.
+- Do not expose or transfer the private key.
+
+This confirmation applies only to the IMPLEMENTER / candidate-provenance key.
+
+It does NOT resolve:
+
+C-3 — PRODUCTION RELEASE-SIGNING KEY CUSTODY.
+
+C-3 remains the genuine founder/security gate.
+
+KEEP WORKING.
+```

@@ -1,6 +1,6 @@
 # WO-6 — Release manifest, pinned trust set, signing abstraction and runtime upgrade
 
-- **Binding**, revision 1, issued by the DIRECTOR.
+- **Binding**, revision 2, issued by the DIRECTOR.
 - Contract: §1 (Runtime release); S-5.
 - Founder text: II.4, II.11.
 - Executed by: the IMPLEMENTER.
@@ -12,8 +12,8 @@
   the candidate.
 - **Publishing and status.**
   - The release lifecycle is exactly contract §2's Release table.
-  - Publishing, superseding and revoking a release are **founder-only** (tier `founder`; CR-003). No Admin API or server path adds a
-    trust key.
+  - Publishing, superseding and revoking a release are **founder-only** per S-8 (tier `founder` in `tenant_admins` and live role
+    founder; CR-003). No Admin API or server path adds a trust key.
 - **Certified bytes.**
   - The artifact is **reproducible**: the verifier rebuilds it from the CERTIFIED candidate SHA and obtains the same digest.
   - The manifest's digest must equal the receipt's reproduced digest.
@@ -24,9 +24,10 @@
     channel and trust mode.
   - The digest is the PE Authenticode image hash (S-5). The production-channel artifact's digest is the one the founder signs; a
     dev-channel digest is recorded separately.
-  - **The live trust set (the founder's public keys) is a source input.** It is committed only after C-3, by a Director-recorded
-    change, so the live release candidate contains it in its SHA and is certified with it. Before C-3 the live trust set is empty and
-    no live-mode release exists.
+  - **The live trust set (the founder's public keys) is a source input.** After C-3 the Director's WO-6 revision records the
+    founder's public keys and key ids, and the implementer's next candidate adds exactly those bytes to the trust-set source (S-5;
+    under S-16 they are a Director input, and the Director authors no product code). So the live release candidate contains them in
+    its SHA and is certified with them. Before C-3 the live trust set is empty and no live-mode release exists.
 - **Pinned trust set.** A node verifies the manifest signature and the artifact digest **before execution**, against a **trust set
   pinned on the node**, never against a key named by the manifest or the API. Refused by name:
   - unsigned;

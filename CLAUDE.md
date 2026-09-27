@@ -139,8 +139,8 @@ current placement. The invariant it preserves: **the implementer never self-cert
 - Owns the product contract, invariants, binding Work Orders, binding acceptance criteria and the verification specification.
 - Is the single writer of the canonical coordination ledgers and acceptance state, including `qa/BUG_QUEUE.json`,
   `qa/COVERAGE_LEDGER.json`, `qa/FIXTURE_REGISTRY.json` and `qa/HANDOFF_STATE.json`.
-- Ratifies any proposal that changes what must be true. The implementer files a CHANGE REQUEST under
-  `qa/work-orders/change-requests/` and does not implement it before ratification.
+- Ratifies any proposal that changes what must be true. The implementer submits a CHANGE REQUEST in its own namespace (below) and
+  does not implement it before ratification. The Director decides it and records the receipt and the decision in `qa/work-orders/`.
 - Never implements work whose contract, Work Orders or acceptance criteria it wrote: for any feature, the Director and the implementer
   are different sessions. It never certifies, closes or accepts work in whose authoring set it took part; such work goes to a distinct
   authorized verifier, and the Director records the verdict only from that verifier's receipt. It never uses the implementer's signing
@@ -152,7 +152,8 @@ current placement. The invariant it preserves: **the implementer never self-cert
   boundary.
 - May mark READY FOR DEPLOYMENT, DEPLOYED, READY FOR INDEPENDENT QA.
 - May never mark PRODUCTION VERIFIED, CLOSED, or "production accepted".
-- **Can never define or alter the work or acceptance contract it is judged against. It may only propose.**
+- **Can never define or alter the work or acceptance contract it is judged against. It may only propose.** It may not approve its
+  own change request, or modify binding work-order text through one.
 - Publishes fix reports on branch `qa/home-pc-handoff` under `qa/home-pc-handoff/fixes/<BUG_ID>.json` (a historical branch name that
   confers nothing).
 - Publishes candidate notices where the feature's verification specification says: for Factory auto-enrollment, on
@@ -165,6 +166,17 @@ current placement. The invariant it preserves: **the implementer never self-cert
 - Is a distinct authorized verifier: never a run in the candidate's authoring set, and never one of its authoring identities.
 - Contributes immutable, content-addressed verification receipts through the defined workflow. The Director records CLOSED / REOPENED /
   CERTIFIED / REJECTED only on such a receipt.
+
+**Ownership-based namespaces** (by logical responsibility, never by machine hostname; founder ruling 2026-09-26, recorded in
+`docs/architecture/adr/ADR-2026-09-26-node-roles-are-labels.md`). Implementation behavior does not silently redefine governance.
+
+| responsibility | namespace | holds |
+|---|---|---|
+| Director (canonical state) | `qa/work-orders/` | binding work orders, ledgers, and the record of every change request: its receipt (path, commit, sha256) and the decision |
+| Implementer (proposals) | `qa/implementation/<milestone>/change-requests/`, on the implementation branch | change-request submissions; never canonical |
+| Independent verifier (evidence) | `qa/verification/<milestone>/`, or the canonical verifier namespace the QA model defines | immutable verification evidence and receipts |
+
+Historical change requests stay at the paths where they were filed and decided, and are not moved.
 
 **Founder-only actions** (prepare the exact change, never execute): rotate or revoke the
 Supabase service-role key; change live Vercel production secrets or redeploy for

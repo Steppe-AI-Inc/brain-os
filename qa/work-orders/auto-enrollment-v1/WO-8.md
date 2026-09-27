@@ -1,6 +1,6 @@
 # WO-8 — Brain OS → Factory → Computers, and the Factory Admin API
 
-- **Binding**, revision 1, issued by the DIRECTOR.
+- **Binding**, revision 2, issued by the DIRECTOR.
 - Contract: §4, §5, §7; P-5, P-9; S-7, S-8.
 - Founder text: I A.1 §1, I A.2.
 - Executed by: the IMPLEMENTER.
@@ -8,7 +8,8 @@
 - Scope changes: only a Director revision changes this WO.
 
 ## What must be true
-- **What the page offers.** Brain OS → Factory → Computers shows the computer list with server-derived states, and offers:
+- **What the page offers.** Brain OS → Factory → Computers shows the computer list with server-derived states (contract §1's rule,
+  with each principal's own state), and offers:
   - Add Computer (envelope + pairing code);
   - the installer download (public; the file sha256 as served, the S-5 digest and the signing state shown; CR-004);
   - drain / resume;
@@ -24,12 +25,18 @@
   OS token on every call:
   - (a) founder / holding_admin;
   - (b) presence in `factory.tenant_admins`.
-  - Founder-only actions require tier `founder` in `tenant_admins` **and** role founder (CR-003): granting `release_broker`, publishing
-    or revoking a release. No Admin API action adds a trust key (S-5).
+  - Founder-only actions require tier `founder` in `tenant_admins` **and** live role founder (S-8, CR-003): granting `release_broker`,
+    and publishing, superseding or revoking a release. No Admin API action adds a trust key (S-5).
   - Refused, with no data and no existence leak: every other persona, a self-promoted employee, a holding_admin who self-promoted to
     founder, and an admin not in `tenant_admins`.
 - **Policies are stricter-only.** The page and Admin API offer policy changes only in the stricter direction. The milestone campaign rows
   are read-only, except binding S-16(a) to a computer at its Add Computer (add-only; S-14).
+- **The S-16(a) binding is never released during this milestone** (S-14). Unbinding and rebinding are refused, and an archived
+  record keeps its binding. Registration refuses by name, a retry included, an unbound computer record whose reported machine
+  fingerprint equals any fingerprint that a record carrying the binding, archived or not, has reported; that record enters
+  `REGISTRATION_FAILED` and takes no work. A missing or mistaken binding is corrected only in S-14's order: archive every
+  non-archived record of the correct computer and of any wrongly bound one, then Add Computer with the binding for the correct
+  computer, audited.
 - **Truth on the page.** It shows server truth only (derived states, heartbeat age from server time, aggregate counts), matching the
   server row for row after a reload and in a fresh session. Every refusal is shown by name.
 - **Session-less routes.** Exactly the S-7 allowlist.
@@ -50,3 +57,5 @@ stays untouched in this phase.
 - The persona × path matrix, including the self-promoted employee.
 - The allowlist probe.
 - The row-for-row server comparison.
+- The S-16(a) binding cases of AC-12(e): unbinding, rebinding and an unbound re-enrollment of a bound VM are refused; the correction
+  is audited, and the archived record keeps its binding.

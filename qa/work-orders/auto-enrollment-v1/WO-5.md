@@ -1,6 +1,6 @@
 # WO-5 — Scheduler eligibility and ranking; capability reporting, telemetry, priority, drain; milestone restrictions
 
-- **Binding**, revision 1, issued by the DIRECTOR.
+- **Binding**, revision 2, issued by the DIRECTOR.
 - Contract: §3 P-6 / P-7.
 - Founder text: I A.1 §3, I A.4 §7, §11; II.1, II.10.
 - Executed by: the IMPLEMENTER.
@@ -26,17 +26,23 @@
 - **Refusals name the gate.** A refusal names the **first** failing gate in this order.
 - **Ranking never excludes.** No ranking factor, including a placement preference, excludes an eligible node. All ranking together may
   delay eligible work by **at most 30 s**, and never stalls it.
-- **Founder restrictions (S-16)** only remove eligibility:
-  - no authoring run of Auto-Enrollment product code on the computer the restriction is bound to. A Factory admin binds it to the Home
-    computer's record at its Add Computer enrollment (S-14's one permitted campaign write, add-only); unbinding and rebinding are
-    refused during this milestone. It is keyed to the enrolled computer, never to a hostname. At the product layer it is a scheduling
-    restriction: the bound computer takes an authoring run only of a work order whose declared owned surfaces are non-empty and lie
-    entirely within the Director-document paths (S-16). The authorship evidence is the governance-layer check;
+- **Milestone restrictions (S-16)** only remove eligibility. In the first, the product-layer allow-list (Director-document work
+  orders only) is a Director restriction, stricter than the founder's line:
+  - no authoring run of Auto-Enrollment product code on a Home-computer record (S-16, which defines every such record): the record the
+    restriction is bound to, archived or not, or any computer record that has reported a machine fingerprint such a record has
+    reported. A Factory admin binds it to the Home computer's record at its Add Computer enrollment (S-14's one permitted campaign
+    write, add-only). During this milestone the binding is never released: unbinding and rebinding are refused, an archived record
+    keeps it, and an unbound registration reporting a bound record's fingerprint is refused by name (S-14). A missing or mistaken
+    binding is corrected only in S-14's order. It is keyed to the enrolled computer, never to a hostname, and a fingerprint only adds
+    restriction. At the product layer it is a scheduling restriction: a Home-computer record takes an authoring run only of a work
+    order whose declared owned surfaces are non-empty and lie entirely within the Director-document paths (S-16). The authorship
+    evidence is the governance-layer check;
   - the campaign's physical-separation rule for certification.
 - **Assignment is temporary.** It is chosen per work item, within the envelope, and never widens the envelope.
 - **Numeric priority.** A regression proves 2 < 10 < 100.
 - **Drain.** A draining node takes no new work, and resume restores it.
-- **Dispatch.** Product dispatch (the Factory director through the API) uses these rules alone.
+- **Dispatch.** Product dispatch (the Factory director, a dispatcher process with no DIRECTOR governance authority, through the API)
+  uses these rules alone.
 
 ## Must satisfy
 AC-3, AC-6, AC-15, S-1, S-16, P-6, P-7
@@ -49,5 +55,6 @@ WO-1, WO-2.
 - The "best resources, no authorization" case.
 - The "self-reported capability outside the envelope" case.
 - The "preferred node unavailable" case.
-- The Home-authoring restriction case.
+- The Home-authoring restriction case, including a second record of the same machine that has reported the bound record's
+  fingerprint (AC-15).
 - The numeric-priority regression.

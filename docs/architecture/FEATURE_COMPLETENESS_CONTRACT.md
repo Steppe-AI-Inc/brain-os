@@ -154,9 +154,11 @@ Claude says "implemented", or implementer-side tests are green.
 
 Roles, not machines (`docs/architecture/adr/ADR-2026-09-26-node-roles-are-labels.md`
 supersedes the Home-PC / Work-PC mapping and records the current placement). The Director
-owns what must be true; a proposal that changes it is a CHANGE REQUEST
-(`qa/work-orders/change-requests/`) and is not implemented before ratification. The
+owns what must be true; a proposal that changes it is a CHANGE REQUEST, submitted in the implementer's namespace
+(`qa/implementation/<milestone>/change-requests/`), decided and recorded by the Director in `qa/work-orders/`, and not implemented
+before ratification (ownership-based namespaces: `CLAUDE.md` §8). The
 implementer never self-certifies, and can never define or alter the work or acceptance contract it is judged against.
+The Director never implements work whose contract, Work Orders or acceptance criteria it wrote (`CLAUDE.md` §8).
 
 | Director (a logical capability) | Implementer | Independent verifier / acceptance |
 |---|---|---|

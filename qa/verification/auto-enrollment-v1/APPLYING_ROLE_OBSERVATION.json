@@ -1,0 +1,201 @@
+{
+  "record": "live applying role (Supabase postgres), for VERIFICATION_SPEC.md §3.3 \"The judging plane\"",
+  "instrument": "qa/verification/auto-enrollment-v1/tools/applying_role_observation.mjs",
+  "observed": {
+    "mode": "interim",
+    "target": "live",
+    "current_user": "factory_runner",
+    "session_user": "factory_runner",
+    "database": "postgres",
+    "server_version": "17.6",
+    "server_address_sha256": "f64362401e61db28859cf1f3fea4b39a9f0205585d5f2254332ae7115523f47f",
+    "plane_identity": [
+      {
+        "project_ref": "npvhuoozkbexddnvkqsj",
+        "note": "dedicated Supabase control-plane project; provisioned by provision-control-plane.mjs"
+      }
+    ],
+    "session": {
+      "transaction_read_only": "on",
+      "search_path": "pg_catalog, pg_temp",
+      "TimeZone": "UTC",
+      "IntervalStyle": "iso_8601",
+      "DateStyle": "ISO, MDY",
+      "extra_float_digits": "1",
+      "bytea_output": "hex",
+      "quote_all_identifiers": "off",
+      "standard_conforming_strings": "on",
+      "temporary_objects": 0
+    },
+    "root_head": "69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6",
+    "pinned": [
+      {
+        "file": "scripts/factory-runner/db.mjs",
+        "sha256": "c2c3696427e54d50e573f3da15d8da695e49360c8f474cb38a32d91d3be9ef3f"
+      },
+      {
+        "file": "scripts/factory-runner/runner-env.mjs",
+        "sha256": "a852194ade0c65896b6d2a99d9a9831c744a2a5cdf81c0abe4e7dccce569b152"
+      },
+      {
+        "file": "scripts/factory-runner/url-judge.mjs",
+        "sha256": "4eaed32d5730b8f3bd0460690ce06743be1f15362b03d9e3b0f8cf824a818d8b"
+      },
+      {
+        "file": "package-lock.json",
+        "sha256": "e216195236979194bbad2ae23813a80a824e2b3dced77a435d11d731eee942d1"
+      },
+      {
+        "file": "node_modules/pg",
+        "version": "8.23.0"
+      },
+      {
+        "file": "node_modules/pg-connection-string",
+        "version": "2.14.0"
+      },
+      {
+        "file": "node_modules/pg-pool",
+        "version": "3.14.0"
+      },
+      {
+        "file": "node_modules/pg-protocol",
+        "version": "1.16.0"
+      },
+      {
+        "file": "node_modules/pg-types",
+        "version": "2.2.0"
+      },
+      {
+        "file": "node_modules/pg-int8",
+        "version": "1.0.1"
+      },
+      {
+        "file": "node_modules/postgres-array",
+        "version": "2.0.0"
+      },
+      {
+        "file": "node_modules/postgres-bytea",
+        "version": "1.0.1"
+      },
+      {
+        "file": "node_modules/postgres-date",
+        "version": "1.0.7"
+      },
+      {
+        "file": "node_modules/postgres-interval",
+        "version": "1.2.0"
+      },
+      {
+        "file": "node_modules/xtend",
+        "version": "4.0.2"
+      },
+      {
+        "file": "node_modules/pgpass",
+        "version": "1.0.5"
+      },
+      {
+        "file": "node_modules/split2",
+        "version": "4.2.0"
+      }
+    ]
+  },
+  "attributes": {
+    "rolname": "postgres",
+    "rolsuper": false,
+    "rolinherit": true,
+    "rolcreaterole": true,
+    "rolcreatedb": true,
+    "rolcanlogin": true,
+    "rolreplication": true,
+    "rolbypassrls": true
+  },
+  "role_configuration": [
+    {
+      "name": "search_path",
+      "value": "\"\\$user\", public, extensions"
+    }
+  ],
+  "database_role_configuration": [],
+  "database_configuration_all_roles": [
+    {
+      "name": "app.settings.jwt_exp",
+      "value_sha256": "8b34042b7a96b3ba94b27ad723ca8f57787eefbab2083b3098173c444aefbfdf"
+    }
+  ],
+  "createrole_self_grant": {
+    "value": "",
+    "read_as": "the observing session (server and database level; a role-level value is in role_configuration)"
+  },
+  "member_of": [
+    {
+      "granted_role": "anon",
+      "admin_option": true,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
+    },
+    {
+      "granted_role": "authenticated",
+      "admin_option": true,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
+    },
+    {
+      "granted_role": "authenticator",
+      "admin_option": true,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
+    },
+    {
+      "granted_role": "factory_runner",
+      "admin_option": true,
+      "inherit_option": false,
+      "set_option": false,
+      "grantor": "supabase_admin"
+    },
+    {
+      "granted_role": "pg_create_subscription",
+      "admin_option": true,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
+    },
+    {
+      "granted_role": "pg_monitor",
+      "admin_option": true,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
+    },
+    {
+      "granted_role": "pg_read_all_data",
+      "admin_option": true,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
+    },
+    {
+      "granted_role": "pg_signal_backend",
+      "admin_option": true,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
+    },
+    {
+      "granted_role": "service_role",
+      "admin_option": true,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
+    },
+    {
+      "granted_role": "supabase_privileged_role",
+      "admin_option": false,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
+    }
+  ]
+}

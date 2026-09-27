@@ -1,18 +1,18 @@
 // Director tool (READ-ONLY on the live plane): materialize the closed 69df2f52 two-machine baseline evidence as a hash manifest,
 // so AC-11 / AC-13 have a concrete referent. SELECT only. Never prints or stores the runner URL.
-// Credential, module pinning, the read-only pinned session and the observed identity: plane_access.mjs. ROOT (FACTORY_BASELINE_CHECKOUT)
-// is a checkout whose database modules are the 69df2f52 files (the Director-branch checkout after npm ci, a fresh 69df2f52 clone, or,
-// for the Director on the Home machine, the frozen legacy checkout read-only); never the candidate tree. On a disposable plane the
-// verifier compares the full set hashes printed here with the committed manifest's; the output file there is labelled VERIFIER and
-// names no live plane.
-// usage: FACTORY_TARGET=live|disposable <one credential variable> node baseline_manifest.mjs <outFile>
+// Credential, module pinning, the read-only pinned session and the observed identity: plane_access.mjs. ROOT, from
+// FACTORY_BASELINE_CHECKOUT (required), is a checkout whose database modules are the 69df2f52 files: for a disposable read, a fresh
+// 69df2f52 clone after npm ci; for a live read, also the Director-branch checkout after npm ci or, for the Director on the Home
+// machine, the frozen legacy checkout read-only. Never the candidate tree. On a disposable plane the verifier compares the full set
+// hashes printed here with the committed manifest's; the output file there is labelled VERIFIER and names no live plane.
+// usage: FACTORY_TARGET=live|disposable FACTORY_BASELINE_CHECKOUT=<ROOT> <one credential variable> node baseline_manifest.mjs <outFile>
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { openPlane } from './plane_access.mjs';
 
-const ROOT = process.env.FACTORY_BASELINE_CHECKOUT || 'C:/Users/Dell/dev/brain-os-factory-cp';
+const ROOT = process.env.FACTORY_BASELINE_CHECKOUT; // required: plane_access.mjs refuses an unset ROOT
 const WR = 'C:/Users/Dell/dev/brain-os-wo-resolver';
 const out = process.argv[2];
 if (!out) { console.log('usage: baseline_manifest.mjs <outFile>'); process.exit(2); }
@@ -41,9 +41,9 @@ const got = await session(async (q) => {
   const cps = await q(`select ${sel(CP_FIELDS)} from factory.checkpoints where work_order_id = any($1::uuid[]) or payload::text like '%69df2f52%' order by created_at, checkpoint_id`, [woIds]);
   if (!ROWS_OUT) return { runs, wos, cps };
   // The complete rows (EVERY column, as to_jsonb renders them in this UTC session), so a verifier loads an unchanged COPY into a
-  // disposable plane provisioned as 69df2f52 and re-hashes after the candidate migration (AC-11 at candidate stage). The set is
-  // closed under the 69df2f52 foreign keys: the manifest's runs, work orders and checkpoints, every work order and run they
-  // reference, every node a run references, and the dependency rows between exported work orders.
+  // judging plane provisioned as 69df2f52 (VERIFICATION_SPEC.md §3.3) and re-hashes after the candidate migration (AC-11 at
+  // candidate stage). The set is closed under the 69df2f52 foreign keys: the manifest's runs, work orders and checkpoints, every
+  // work order and run they reference, every node a run references, and the dependency rows between exported work orders.
   const J = async (sql, p) => (await q(sql, p)).map((r) => r.j);
   const cpAll = await J('select to_jsonb(t) j from factory.checkpoints t where checkpoint_id = any($1::uuid[]) order by created_at, checkpoint_id', [cps.map((c) => c.checkpoint_id)]);
   const runIds = [...new Set([...runs.map((r) => r.run_id), ...cpAll.map((c) => c.run_id)])];

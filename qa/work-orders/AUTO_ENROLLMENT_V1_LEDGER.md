@@ -11,7 +11,8 @@
 ## Rules
 
 1. **The DIRECTOR defines and issues every binding work order** (I A.4 §1; II.3; II.8).
-   - WO-1..WO-10 below are Director-issued, **BINDING, revision 1**.
+   - WO-1..WO-10 below are Director-issued and **BINDING**, each at the revision the table shows (r2 issued WO-1, WO-2, WO-5, WO-6,
+     WO-8, WO-9 and WO-10 as revision 2; WO-3, WO-4 and WO-7 remain revision 1).
    - The IMPLEMENTER owns its engineering decomposition inside them, on `factory/auto-enrollment-v1-implementation`, built on the
      Director commit this ledger designates.
    - **The implementer can never define or alter the work / acceptance contract it is judged against.**
@@ -21,7 +22,19 @@
    - A change is a new Director-issued revision, with new hashes and an event-log entry.
    - A changed file under an unchanged ledger hash is a tamper finding.
    - A WO's "Must satisfy" line is the single source of its coverage below.
-3. **Change requests** (I A.5).
+3. **Change requests** (I A.5; founder ruling 2026-09-26, ownership-based namespaces, ADR).
+   - The IMPLEMENTER submits a change request in `qa/implementation/auto-enrollment-v1/change-requests/` on
+     `factory/auto-enrollment-v1-implementation`. A submission is never canonical; a change request anywhere else is not received.
+   - Flow: submitted → DIRECTOR DECISION → canonical ledger / contract revision if approved → VERIFIER CHECKS.
+   - The implementer may not approve its own change request, or modify binding WO text through one.
+   - Historical CR-001..CR-004 stay at `qa/work-orders/change-requests/` (`33f14d6e`) and are not moved. CR-005 is valid where it is.
+   - **CR-005** received at `qa/implementation/auto-enrollment-v1/change-requests/CR-005-implementer-signing-key.md` (first at
+     `c838f5c9`, amended at `6719a8e9`; sha256 `aba57d6d82a1ed76fc818de13c9cc73d2fcccfe8440c0cbaf8b75e1a7fbc44b1`): **RATIFIED**. The
+     key is recorded as `implementer_signing_key` (rule 8).
+   - For this milestone the verifier namespace is `qa/verification/auto-enrollment-v1/<candidate-sha>/` (`VERIFICATION_SPEC.md` §4).
+     The Director-issued criteria, instruments and referents elsewhere under `qa/verification/auto-enrollment-v1/` are Director
+     canonical state frozen by the document set below; the single-writer `qa/*.json` files are Director canonical state written only
+     by the DIRECTOR capability (C-5). This reading is surfaced for the founder's confirmation.
    - The IMPLEMENTER may propose a change to what must be true, and does not implement against it until the Director ratifies it.
    - Every non-conflicting item continues meanwhile.
    - The Director records a decision per request.
@@ -33,11 +46,17 @@
        carries no authorization content.
      - Envelope enrollment lives in **WO-1**, **WO-2** and **WO-3**. **WO-5** only applies the envelope in scheduling.
    - Founder *boundaries* are actions, not policy questions. They are listed per WO.
-   - Three one-time founder actions are not gates under II.11:
-     - confirming the implementer signing-key fingerprint (rule 8);
-     - the pre-candidate Edge record for AC-10;
-     - provisioning the observer role (needed before final acceptance).
-     For the first two, verification and receipts proceed before them, and only a CERTIFIED entry waits for them.
+   - Two one-time founder actions are not gates under II.11 (the implementer signing identity is CONFIRMED, rule 8):
+     - the pre-candidate Edge record for AC-10, plus one founder-provided token (bounded by AC-10's timing rule): the provider lists
+       its scopes and each is read-only (unlisted scopes: refused, and the founder reads in person); the Director holds it only on the
+       Director machine, outside every repository and runner.env; the event log records its id, scopes and expiry, never its value;
+       the founder revokes it at final acceptance.
+       Each candidate's Edge reading is then a Director read with the token; if the founder reads in person instead, each reading is
+       a recurring founder action;
+     - provisioning the observer role (needed before final acceptance). Row security does not filter its reads of the factory
+       relations and `storage.buckets` (for example BYPASSRLS), and at its first read the founder confirms that every storage
+       bucket it lists is founder-approved (AC-10).
+     For the Edge record, verification and receipts proceed before it, and only a CERTIFIED entry waits for it.
 5. **The coverage rule.** Before the first CERTIFIED, every AC, S and P row is covered by at least one binding WO (table below). The
    Director closes a gap by issuing a WO or a revision. **AC-13 is the exception:** it is the cumulative Factory V1 record (P-8),
    acceptance state that only the Director records, so no WO claims it.
@@ -49,6 +68,8 @@
      - the Director-issued verifier assignment;
      - matching hashes;
      - evidence for every row the WO covers.
+   - CERTIFIED also needs AC-10's Edge clause resolved by a Director observation record: the candidate's Edge reading equals the
+     committed Edge record, except founder-approved changes, and no AC-10 timing-rule finding concerns the candidate (AC-10).
    - CERTIFIED is not final acceptance. AC-1..AC-4 and AC-13 are recorded by the Director at final acceptance.
    - A resubmission after REJECTED is a new SHA with different content. Re-verifying the same SHA takes an explicit Director order.
 7. **Placement and restrictions** (II.1, II.10).
@@ -56,12 +77,19 @@
      DESKTOP-MDPE6FS, acceptance on the third laptop.
    - **The milestone restrictions (S-16) are binding.** No Auto-Enrollment product code is authored on the Home machine. The Director
      authors no product code. Every milestone candidate is certified on a different physical machine from every author. On the
-     plane, the first restriction is keyed to the Home computer's enrolled record, never to a hostname (S-16).
+     plane, the first restriction is keyed to the Home computer's enrolled record and to every record that has reported its machine
+     fingerprint, never to a hostname; archive and unbound re-enrollment never release it (S-14, S-16).
+   - At the product layer the Director narrows the first restriction further, as a Director restriction stricter than the founder's
+     line: a Home-computer record takes an authoring run only of a work order confined to the Director-document paths (S-16).
 8. **Signing keys** (`VERIFICATION_SPEC.md` §1).
    - The Director key is recorded in the JSON as `director_signing_key`.
-   - The implementer key is recorded as `implementer_signing_key`, once the implementer publishes it in a change request and the
-     founder confirms its fingerprint out of band, as displayed on the implementing machine. The event log records the confirmation.
-     Until then no candidate can be CERTIFIED.
+   - The implementer key is recorded as `implementer_signing_key`: published in CR-005, and **CONFIRMED** by founder ruling on
+     2026-09-26 (Director checks had verified the implementation commits `8f9833ce..fbea204b`, 16 of 16, against the published
+     identity, and CR-005 records the key; later commits are checked against the confirmed key under `VERIFICATION_SPEC.md` §3.1).
+     It signs implementer / candidate-provenance commits only, is never a release trust root (S-5), and does not resolve C-3.
+   - The key is not regenerated or replaced, its ACLs are not modified, and the private key is never exposed or transferred (founder
+     text II.13). Any other implementer key exists only by founder order, recorded as a founder decision in the event log, then
+     confirmed by the founder and recorded here by a Director entry.
 9. **Designated Director commit.** For each candidate the Director designates the Director commit whose criteria apply. By default it
    is the latest Director commit when the candidate notice arrives.
 
@@ -69,16 +97,16 @@
 
 | WO | Title | Text (rev; sha256) | State | Depends on | Covers | Founder gate / boundary | Branch / candidate SHA | Receipts |
 |---|---|---|---|---|---|---|---|---|
-| WO-1 | Tenancy, identity, envelopes, credentials, admins, policies and legacy coexistence (schema) | `WO-1.md` r1 `b21f91f27ca92fce41329170e9e24085e53fe50251e6187affb21a7c2047b2cd` | BINDING | — | AC-1, AC-4, AC-6, AC-12, S-2, S-4, S-8, S-9, S-10, S-13, S-14, P-1 | boundary: Applying the schema to the live plane, and seeding `tenant_admins`, are founder actions. The candidate prepares the exact steps and does not run them. The prepared live-migration step is byte-identical to the migration the verifier ran to completion on the disposable copy, plus a Director-specified wrapper whose manifest recompute runs after the migration's last statement and before commit, aborting on any difference. The receipt records its sha256, and the founder applies exactly that file. | — | — |
-| WO-2 | Factory Node API: an authenticated boundary over the same lifecycle | `WO-2.md` r1 `94fbe486c55b6565146147d4cba5cb697a87d19a8903d31238129dda2de7a257` | BINDING | WO-1 | AC-9, S-3, S-4, S-7, S-10, P-2, P-3 | boundary: Deploying the Edge Functions live is a founder action (`ALLOW_FUNCTIONS_DEPLOY=1?`). | — | — |
+| WO-1 | Tenancy, identity, envelopes, credentials, admins, policies and legacy coexistence (schema) | `WO-1.md` r2 `7b4f8252028a340af413c5642aee8984d1d68fab7b6c43e64d3d338cda4f88fa` | BINDING | — | AC-1, AC-4, AC-6, AC-12, S-2, S-4, S-8, S-9, S-10, S-13, S-14, P-1 | boundary: Applying the schema to the live plane, and seeding `tenant_admins`, are founder actions. The candidate prepares the exact steps and does not run them. **The candidate migration** is every `.sql` file the candidate adds under `supabase/control-plane/`, recursively, excluding `supabase/control-plane/edge/`, since `69df2f52`, or since the last founder-applied step once one exists (the ledger event log lists each applied step's embedded files by path and sha256), applied in byte order of repository-relative path (contract §1). The `69df2f52` files `001`..`003`, and every file a founder-applied step embedded, are never changed. The candidate invokes the Director instrument as an external tool and never imports or copies it. The live-migration step is not candidate-written: the verifier builds it from the candidate migration's committed bytes with the Director instrument `qa/verification/auto-enrollment-v1/tools/build_live_migration_step.mjs`, as `begin`, the migration verbatim, the Director's manifest check after the migration's last statement (it aborts on any difference), and `commit`. The migration therefore holds no transaction control (BEGIN, START, COMMIT, END, ROLLBACK, ABORT, SAVEPOINT, RELEASE, PREPARE TRANSACTION, or a BEGIN ATOMIC body), no backslash, no psql variable reference and no COPY. It leaves no quote or comment open, and ends its last statement with `;`. Every statement runs inside the step's one transaction block: no `CONCURRENTLY`, and no procedure or DO block that commits. It leaves no deferrable constraint trigger, no deferrable exclusion constraint and no holdable cursor. The tool's header lists every refusal, and a refusal or an abort fails AC-11. The receipt records the step's sha256, and the founder applies exactly that file, in one session. | — | — |
+| WO-2 | Factory Node API: an authenticated boundary over the same lifecycle | `WO-2.md` r2 `a4f7775edee005e4abfee77433e62a7af7167a09c5e9302faa135c9a512ba7e9` | BINDING | WO-1 | AC-9, S-3, S-4, S-7, S-10, S-12, P-2, P-3 | boundary: Deploying the Edge Functions live is a founder action (`ALLOW_FUNCTIONS_DEPLOY=1?`). | — | — |
 | WO-3 | Add Computer: pairing and enrollment protocol (the capability envelope is granted here) | `WO-3.md` r1 `4fd171d31d4eaf6f1d51f0cb1258089bf9d090c9e62eaa13d3a5c4b20ca71713` | BINDING | WO-1, WO-2 | AC-8, S-4, S-6, S-8, S-12, P-9 | boundary: Creating the production pepper secret is a founder action. | — | — |
 | WO-4 | BrainFactorySetup.exe and the persistent node runtime | `WO-4.md` r1 `07cb3d37c000f72b60b4cbd27301d69b3963b75e1e23b53cd7422932262f5284` | BINDING | WO-2, WO-3, WO-6 | AC-1, AC-5, S-2, S-5, S-12, P-4, P-9 | boundary: Installer Authenticode code signing is a founder / external action (I A.2). Until then the installer is published unsigned, with its sha256. | — | — |
-| WO-5 | Scheduler eligibility and ranking; capability reporting, telemetry, priority, drain; milestone restrictions | `WO-5.md` r1 `a19db92e8caa8fd4b5a33aeeeb0df705669d656f916ed0fd8afe7b9e4898bf82` | BINDING | WO-1, WO-2 | AC-3, AC-6, AC-15, S-1, S-16, P-6, P-7 | — | — | — |
-| WO-6 | Release manifest, pinned trust set, signing abstraction and runtime upgrade | `WO-6.md` r1 `5e7a43551cbb1502e8c2c88cadbe6ce0d4b5d9002d81964709539a3c9f9f2853` | BINDING | — | AC-3, AC-5, S-5, P-9 | **gate: C-3, production release-signing key custody (the only founder gate) — - The implementer **must not choose, create or use the real production signing authority.** It states only the **interface** a production key must satisfy (algorithm, key-id format, rotation), without naming a custody option, provider or key. - Final acceptance waits for C-3. - Installer Authenticode signing is a separate founder / external boundary, under WO-4.** | — | — |
+| WO-5 | Scheduler eligibility and ranking; capability reporting, telemetry, priority, drain; milestone restrictions | `WO-5.md` r2 `bbeaf8098eac924094e34ff6619a1a41644f6c6b1ed11cef7a5efac7e37a1578` | BINDING | WO-1, WO-2 | AC-3, AC-6, AC-15, S-1, S-16, P-6, P-7 | — | — | — |
+| WO-6 | Release manifest, pinned trust set, signing abstraction and runtime upgrade | `WO-6.md` r2 `53411b250db11c6b3098be8161c935b0b541cd95a12225c446d267eac4ffc4ef` | BINDING | — | AC-3, AC-5, S-5, P-9 | **gate: C-3, production release-signing key custody (the only founder gate) — - The implementer **must not choose, create or use the real production signing authority.** It states only the **interface** a production key must satisfy (algorithm, key-id format, rotation), without naming a custody option, provider or key. - Final acceptance waits for C-3. - Installer Authenticode signing is a separate founder / external boundary, under WO-4.** | — | — |
 | WO-7 | Node lifecycle management: drain, resume, rotate, revoke, re-pair, archive, restore | `WO-7.md` r1 `1bd8c914b3089b10e6cfc8583754e403a66ee3ba0240bb808b82e8193c610a83` | BINDING | WO-1, WO-2 | AC-4, S-3, P-1 | — | — | — |
-| WO-8 | Brain OS → Factory → Computers, and the Factory Admin API | `WO-8.md` r1 `57be771a18cbe9a629bcf5915354f26a68da45994304799338668fff22d96a01` | BINDING | WO-1, WO-2, WO-3, WO-7 | AC-2, AC-7, AC-12, S-7, S-8, S-9, S-11, S-14, P-5, P-9 | boundary: The production Brain OS deploy (a PR into `master`), production secrets, and seeding `tenant_admins` are founder actions. `master` stays untouched in this phase. | — | — |
-| WO-9 | Independent verification model, policies and the verification state machine | `WO-9.md` r1 `6b700e60f55898f3b4c95a681cedb33d159317f584fa486c0fcd3412e8dee6dd` | BINDING | WO-1, WO-2, WO-5 | AC-3, AC-14, AC-16, S-13, S-16, P-10 | — | — | — |
-| WO-10 | Non-regression, evidence inputs for V1 accounting, isolation and release readiness | `WO-10.md` r1 `1947e164a1d7415cdca50a94c7e68fbcb5a644aba87d2d1b83a6c966661cb318` | BINDING | — | AC-3, AC-9, AC-10, AC-11, AC-12, AC-16, S-11, S-12, S-14, S-15, S-16, P-1, P-8, P-10 | — | — | — |
+| WO-8 | Brain OS → Factory → Computers, and the Factory Admin API | `WO-8.md` r2 `4262e43e163ba94cc176451a5ab27fd412ffad084453011c3896115394015884` | BINDING | WO-1, WO-2, WO-3, WO-7 | AC-2, AC-7, AC-12, S-7, S-8, S-9, S-11, S-14, P-5, P-9 | boundary: The production Brain OS deploy (a PR into `master`), production secrets, and seeding `tenant_admins` are founder actions. `master` stays untouched in this phase. | — | — |
+| WO-9 | Independent verification model, policies and the verification state machine | `WO-9.md` r2 `12a3a3d79379b5737365c1c2e5d82b4bbbd9305285e18958a7c0045f8e7a7d6a` | BINDING | WO-1, WO-2, WO-5 | AC-3, AC-14, AC-16, S-13, S-16, P-10 | — | — | — |
+| WO-10 | Non-regression, evidence inputs for V1 accounting, isolation and release readiness | `WO-10.md` r2 `bed23fe86b471879fef45c1368dc3f88d0b7eba2c52d2ce4007594bc6585e0de` | BINDING | — | AC-3, AC-9, AC-10, AC-11, AC-12, AC-16, S-11, S-12, S-14, S-15, S-16, P-1, P-8, P-10 | — | — | — |
 
 ## Coverage (generated from each WO's "Must satisfy" line; every WO row covered)
 
@@ -111,7 +139,7 @@
 | S-9 | WO-1, WO-8 |
 | S-10 | WO-1, WO-2 |
 | S-11 | WO-8, WO-10 |
-| S-12 | WO-3, WO-4, WO-10 |
+| S-12 | WO-2, WO-3, WO-4, WO-10 |
 | S-13 | WO-1, WO-9 |
 | S-14 | WO-1, WO-8, WO-10 |
 | S-15 | WO-10 |
@@ -131,21 +159,24 @@
 
 | Document | sha256 (LF, committed content) |
 |---|---|
-| `docs/architecture/features/factory-node-management-auto-enrollment.FOUNDER_TEXT.md` | `2a809839cbe3685a5ac33aae51592316e4c0b81ab922435d7685a7aa7a694a29` |
-| `docs/architecture/features/factory-node-management-auto-enrollment.md` | `68b0128f9270edaa123defb34c975fc9b00ea02b2917a47d1f0bd58ebe95cf48` |
-| `docs/architecture/features/factory-node-management-auto-enrollment.SECURITY_TENANCY.md` | `df0a711db68d80508c989e78133622646515ff3752b7fcf2b43ec5f46334dc66` |
-| `qa/verification/auto-enrollment-v1/ACCEPTANCE_MATRIX.md` | `2a75e21bcd32a22cfd1a863e40fb2b72a5fc4d929c1c1284e1633d2c1d46777a` |
-| `qa/verification/auto-enrollment-v1/VERIFICATION_SPEC.md` | `149a141138a9f03095a803de133e1b85e8aacec8dcaab1b0bd26a19e11e8d9fd` |
+| `docs/architecture/features/factory-node-management-auto-enrollment.FOUNDER_TEXT.md` | `023729dea282a0d0f47d08952e2395e949773f0d6500f20f74aba4e64266c845` |
+| `docs/architecture/features/factory-node-management-auto-enrollment.md` | `00b8b01c306a8e9c495ec0295b62cc846471d89af8de22aaa078f12e53268da7` |
+| `docs/architecture/features/factory-node-management-auto-enrollment.SECURITY_TENANCY.md` | `ae57c5763795c74f114bacaa2103faa6baa8d12a9b1d783683ac5339dd376d97` |
+| `qa/verification/auto-enrollment-v1/ACCEPTANCE_MATRIX.md` | `1b8ab5e70b12085fe422dd2470215136c07565386ef25add69cbd60daee92483` |
+| `qa/verification/auto-enrollment-v1/VERIFICATION_SPEC.md` | `3f4dce59e27cc527782e83f79916742fac489599c3495c998454dd43c8064628` |
 | `qa/verification/auto-enrollment-v1/BASELINE_69df2f52_EVIDENCE_MANIFEST.json` | `d62f96bd4639c5d5ae9b66e207681c9aa2bafd351d8071b57d696f4e565b13c5` |
 | `qa/verification/auto-enrollment-v1/BASELINE_69df2f52_EVIDENCE_ROWS.json` | `fc7f0e0ba0a5ae2f289977dd353031bee01b4255b5a5925e40c4f744920c8488` |
-| `docs/architecture/adr/ADR-2026-09-26-node-roles-are-labels.md` | `cda44e283cf004626970f7726f7a8d7ffb0f8c42066b22b7ebc08702def9e217` |
-| `CLAUDE.md` | `85af09a9092fdc5c688ddad68be94575b9cd3a9271c952e8dbc19818394ce6c2` |
-| `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md` | `0c1dbe5a00d79f21b1adc2f2da129dd2af5757c9f794f23efb6e5d8c856e37a9` |
+| `docs/architecture/adr/ADR-2026-09-26-node-roles-are-labels.md` | `3be77b836372127f6d7d9c4d4721b75b02a0aea78166baf7297cbcc86548d417` |
+| `CLAUDE.md` | `15a28827b6e0b6957c62c8af65c130427207135e5092c254c54597e3313bbc30` |
+| `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md` | `ce2cf71e479728d1bd410dd2f47b2734a48eb3031762a528beb1b73bfaeacd49` |
 | `docs/architecture/templates/FEATURE_CONTRACT_TEMPLATE.md` | `d315117c2c82b5b149bd3db44404096240da3b3c85a8e5577e7deb17cdd3a79b` |
-| `qa/verification/auto-enrollment-v1/LIVE_PLANE_CATALOG_SNAPSHOT_PRE_CANDIDATE.json` | `c56a7dc212ac96659d1fa9fa907954e1558d782a7eb4ee62a6be62ebeb45be87` |
-| `qa/verification/auto-enrollment-v1/tools/baseline_manifest.mjs` | `940e4bed83cb311d804a68247d770ca87169967aae1baafc47dec2ffdab344e0` |
-| `qa/verification/auto-enrollment-v1/tools/live_catalog_snapshot.mjs` | `cce945d496112ee443a1897368964b59f712fd9549a3fcb40c0ece26ac2c35b1` |
-| `qa/verification/auto-enrollment-v1/tools/plane_access.mjs` | `d526b6c9a4089d429b47d6caf8e5ebcbe045555010f09a71c3a3e7f2431cff1a` |
+| `qa/verification/auto-enrollment-v1/LIVE_PLANE_CATALOG_SNAPSHOT_PRE_CANDIDATE.json` | `95ba824a4b9ace25ae1d738747bfadc3e2a596d32821540c3b8a1436b4a910b3` |
+| `qa/verification/auto-enrollment-v1/tools/baseline_manifest.mjs` | `279ab9168475acfa110692b1551b348a7555028b1167db646793920f4c5c4d72` |
+| `qa/verification/auto-enrollment-v1/tools/live_catalog_snapshot.mjs` | `8b301475c445a875ca42fe20aaa8ade3ff3f401e562b83f3ec98756ffe3c9f70` |
+| `qa/verification/auto-enrollment-v1/tools/plane_access.mjs` | `21e6853931b6f68bc87abb44ed5a5606154bf878aa994b599a254044d5de4514` |
+| `qa/verification/auto-enrollment-v1/tools/build_live_migration_step.mjs` | `caaadc1e140479ba8c8016a1742e384ae503bcb61e5b919cdaabb44e814ac3ea` |
+| `qa/verification/auto-enrollment-v1/tools/applying_role_observation.mjs` | `6d707d8d8bfecd272de8602ac3fd023fdac9bf1bb5e495ed66554c6fb067ae0b` |
+| `qa/verification/auto-enrollment-v1/APPLYING_ROLE_OBSERVATION.json` | `8133a6d6f72edd5735fe8ce3a2eda7937b52d105756a30515f980dcff13f734e` |
 | `.claude/skills/feature-delivery/SKILL.md` | `fc3df3d1b1cf3ae3eb241cc0ec519a79e145bacac3309360ca3b505a36c22c83` |
 | `.claude/skills/commercial-demo-release/SKILL.md` | `cfdd7c1d2275a9ee290f00adc144a5acb95be28fb16ec2fb899af1ff486ad3a0` |
 | `qa/PRODUCTION_CHECKLIST.md` | `96ba51339f796f1b846442efa1db5665818d130bc0bd3e9948da49dae7b1722b` |
@@ -155,7 +186,8 @@
 ## Ratification register
 
 The implementer's step-1 drafts on `factory/auto-enrollment-v1-contract` were written at `264987bb` / `33f14d6e` and marked
-"SUPERSEDED — NOT CANONICAL" at `27d78ff6`. The Director read them as input and decided as follows.
+"SUPERSEDED — NOT CANONICAL" at `27d78ff6`. The Director read them as input and decided as follows. CR-005 was filed later, in
+the implementer namespace (rule 3).
 
 | Item (commit `33f14d6e55a41ee1a2a5acf463a000e3fe2975b9` unless stated) | sha256 at that commit | Director decision |
 |---|---|---|
@@ -169,6 +201,7 @@ The implementer's step-1 drafts on `factory/auto-enrollment-v1-contract` were wr
 | `CR-002-verification-failure-state.md` | `502fdda6fd7e342ff1602fe364650d7ad3702e7fc2d01332412a4ac2eaa1948e` | **RATIFIED**: `VERIFICATION_FAILED` (contract §2) |
 | `CR-003-founder-only-release-tier.md` | `55ced1fb68851233c723f859c167bf77e1b2641be72733a8979a7de4fb0ca2f1` | **RATIFIED**, with the founder test recorded as tier `founder` in `tenant_admins` **and** role founder (not `profiles.role` alone; S1) |
 | `CR-004-installer-distribution-visibility.md` | `b8fd5368ec01732257b499c39163915615285e26ee809a12d5d27daa1711d863` | **DECIDED: Option A**. Public download from storage (not a Factory route); sha256 and signing state shown; no secret in the binary |
+| `qa/implementation/auto-enrollment-v1/change-requests/CR-005-implementer-signing-key.md` (c838f5c9; amended 6719a8e9) | `aba57d6d82a1ed76fc818de13c9cc73d2fcccfe8440c0cbaf8b75e1a7fbc44b1` | **RATIFIED**: recorded as `implementer_signing_key`, CONFIRMED by founder ruling 2026-09-26 (founder text II.13); valid where it was filed (founder text II.12) |
 
 ## Founder items
 
@@ -183,13 +216,27 @@ The implementer's step-1 drafts on `factory/auto-enrollment-v1-contract` were wr
     record) but not enforced;
   - **ledger 218** (`bf59ea34`, candidate repo) is local and unpushed;
   - a **SELECT-only observer role** on the live Factory plane for Director reads. Until it exists, candidate-stage Director reads use
-    `runner.env` read-only; final acceptance waits for it;
-  - a **pre-candidate Edge record** (function names, versions, sha256, updated_at; secret names, never values), read by the founder
-    or with a read-only founder token (only CERTIFIED entries wait for it);
-  - **the implementer signing-key fingerprint**, confirmed out of band as displayed on the implementing machine, before the Director
-    records it;
+    `runner.env` read-only; final acceptance waits for it. Row security does not filter its reads of the factory relations and
+    `storage.buckets` (for example BYPASSRLS), and at its first read the founder confirms that every storage bucket it lists is
+    founder-approved (AC-10);
+  - a **pre-candidate Edge record** (function names, versions, sha256, updated_at; secret names and, where shown, value digests; never
+    values), read by the founder or with a founder-provided token: the provider lists its scopes, and each listed scope is read-only (a
+    token whose scopes are not listed is refused, and the founder reads in person instead). The Director holds the token only on the
+    Director machine, outside every repository and runner.env; the event log records its id, scopes and expiry, never its value; the
+    founder revokes it at final acceptance. Only CERTIFIED entries wait for the record. Taking the record, the founder also confirms
+    that each listed secret name existed before the handoff time. With the token, each candidate's Edge reading is a Director read; if
+    the founder reads in person instead, each reading is a recurring founder action (AC-10);
+  - **who confers the DIRECTOR capability** for features outside this milestone (a constitution question; for this milestone the
+    founder placed it on the Home machine, I A.4 §3);
   - **the implementation branch name** `factory/auto-enrollment-v1-implementation` (a Director decision, ADR amendment 10), for
-    confirmation.
+    confirmation;
+  - **the verifier-namespace reading** for this milestone (rule 3): `qa/verification/auto-enrollment-v1/<candidate-sha>/`, with the
+    Director-issued files elsewhere under `qa/verification/auto-enrollment-v1/` and the single-writer `qa/*.json` files counted as
+    Director canonical state, for confirmation;
+  - **the pre-push hook** `.githooks/pre-push` flags every new branch built from the `69df2f52` Factory history (its
+    `supabase/functions` change versus `master`); a fix to the hook is a founder-authorized PR on `master`.
+- **Completed:** the implementer / candidate-provenance signing identity (CR-005), CONFIRMED by founder ruling on 2026-09-26 (II.13).
+  It does not resolve C-3.
 
 ## Event log (append-only from the first commit)
 
@@ -201,3 +248,6 @@ The implementer's step-1 drafts on `factory/auto-enrollment-v1-contract` were wr
 | 2026-09-26 | Bounded four-lens review `wf_c2d41cde-da8` (pass 4; all four lenses answer both governance tests NO), made before any commit. Confirmed findings closed: one agent principal per computer, kept across rotate and re-pair; certification bound to its work order and exact provenance; no role membership to or from `factory_runner`; mixed-fleet and same-tables rules; trust-set entries as (key id, public-key sha256) and the PE Authenticode image hash as the digest; S-16(a) binding as the one permitted campaign write; product code defined by owned surfaces; the AC-10 referent before and after the migration; a live-activity check for S-15; a complete baseline rows export; reboot, per-user and failure-state rows in AC-1; the observer role required for final acceptance. | DIRECTOR |
 | 2026-09-26 | Bounded four-lens confirmation `wf_0702dba7-364` (pass 5; no HIGH; all four lenses answer both governance tests NO), made before any commit. The mediums the pass-4 wording introduced were closed: the digest check at final acceptance; the per-user logon start reconciled with the watchdog; the product-layer S-16(a) scope as a scheduling restriction to Director-document work orders, with the governance-layer authorship check as its evidence; the live S-16(a) binding observed; pairing codes issued for a target principal; authorship verified against the published key until the founder confirms it; the AC-10 referent as a catalog difference plus a pre-candidate Edge record; S-15 row hashes and counters; the legacy reaper skipping enrolled rows; the instruments pinned to the `69df2f52` modules, with an explicit target and an observed identity. | DIRECTOR |
 | 2026-09-26 | Bounded four-lens confirmation `wf_11c658f4-89d` (pass 6; all four lenses answer both governance tests NO), made before any commit. Two HIGH findings on pre-existing text were closed: no plane-conditioned behaviour (a static scan, and the prepared live migration byte-identical to the migration run on the copy, with the manifest recompute after its last statement); and the catalog instrument hardened (one read-only session with `search_path` pinned to `pg_catalog`, pinned module constants, a target checked both ways, and column ACLs, role and database settings, rules, views, constraints, indexes, extensions and storage policies read, with setting values hashed). Mediums closed: the Edge record handled like the fingerprint confirmation; the key-custody rule and the authoring-set check as S-16(a) evidence; the machine fingerprint defined (sha256 of MachineGuid) and compared across every reported value; per-credential enrollment states; a mistaken S-16(a) binding corrected by archive and re-enrollment; a lapsed enrolled lock never stalls the legacy queue; the runtime never reads the unhashed PE ranges. | DIRECTOR |
+| 2026-09-26 | Bounded four-lens confirmation `wf_cac670db-92c` (pass 7) on exactly the r1 bytes: no HIGH; all four lenses answer both governance tests NO; the residual mediums were registered for r2. | DIRECTOR |
+| 2026-09-26 | **Director r1** released by the founder and committed as `8f9833cea3bd8b70d995cfe5575b6dabadb8361d`, signed with the Director key; all 30 frozen hashes equal the committed blobs. Pushed to `origin/factory/auto-enrollment-v1-director` under a one-time founder-authorized pre-push override: the hook flagged the inherited `69df2f52` `supabase/functions` history; r1 changes no function, and no Actions run started for the branch or SHA. r1 authorizes implementation; it is not final-candidate certification readiness. | DIRECTOR |
+| 2026-09-26 | **Director r2.** It closes the pass-7 residuals. AC-10's Edge-record timing is bounded by the handoff, `2026-09-26T14:44:26Z` (committer time of `8f9833ce`, the first Director commit that issued binding work orders). The S-16(a) binding path is closed (Home-computer records by fingerprint; an unbound re-registration is refused). The live-migration step is specified and supplied as the Director instrument `tools/build_live_migration_step.mjs`. The first-migration binding check is added. The plane-conditioned-behaviour scan classifies each hit; the node runtime, installer and web code stay outside it, and node-side trust rests on S-5, AC-5 and live AC-1..AC-4. The instruments pin the session before every statement (`pg_temp` last, temporary objects refused, rendering pinned, `PG*` variables and a redirected home refused, ROOT required), hash activity keys and record per-section hashes. The key-custody rule is scoped to product code. Consistency items are closed. **Founder rulings recorded:** ownership-based namespaces for change requests (Director `qa/work-orders/`; implementer `qa/implementation/<milestone>/change-requests/`; verifier `qa/verification/<milestone>/`; CR-001..CR-004 are not moved; CR-005 is valid in place), in the ADR, `CLAUDE.md` §8, `FEATURE_COMPLETENESS_CONTRACT.md` §8 and rule 3; and the implementer / candidate-provenance signing identity CONFIRMED (C-3 unaffected). WO-1, WO-2, WO-5, WO-6, WO-8, WO-9 and WO-10 are issued as revision 2. The live catalog referent was re-read with the revised instrument and is unchanged (`2292e0ae`); its not-hashed activity section was taken after the handoff, and every row hash equals r1's read, the only counter delta being node heartbeats. The r2 confirmation review `wf_343cc695-4a3` (all four lenses answer both governance tests NO) found two HIGH defects (the candidate-migration definition, reported by two lenses; the applying role's attributes) and MEDIUM step-hardening items, all closed before release: "the candidate migration" is defined once (every `.sql` file added under `supabase/control-plane/`, recursively, excluding `edge/`, since `69df2f52` or the last founder-applied step, in byte order of path), and every disposable plane takes exactly the built step; every plane is provisioned and migrated as a non-superuser login that mirrors the live applying role, and the applying role's or an owner's attributes are plane-conditioned hits; the step resets session authorization and role, turns row security off before its check, and pins `client_encoding` to UTF8 (tested against a disposable PostgreSQL: 7 of 7 scenarios). Also closed: the verifier's change-request check (§2, §3.1); the CR-005 record; the founder's two rulings transcribed with their UTC times as founder text II.12 and II.13, with the Director reconstruction the founder confirmed; the verifier namespace stated with the founder's alternative, "or the canonical verifier namespace defined by the QA model". The fix-confirmation review `wf_250ab19d-e6b` (all four lenses answer both governance tests NO) found one HIGH, closed: inside a SECURITY DEFINER front door the current user is the owner, so the calling API role is read from the session user, and the applying login's or an owner's name or attributes fit no class. Also closed: the applying login named `postgres` with the referent's full attributes, on a plane whose bootstrap superuser has another name; every judging plane loads the baseline rows and every founder-applied step before the candidate step; the certified reference suites provision their own planes; the change-request check limited to requests the candidate names or implements; the key directives stated without a time bound; the Edge token's scopes, custody, record and revocation; dates in UTC. The second fix-confirmation review `wf_85ba49d5-85a` (no HIGH; all four lenses answer both governance tests NO) closed: the applying login built from `APPLYING_ROLE_OBSERVATION.json`, a read-only Director record of the live `postgres` role (attributes, `search_path`, memberships); AC-11's copy carries every founder-applied step; the calling API role read only from the session user; the reference-suite exception in the contract; the ledger rule 4 token terms; historical CR-001..CR-004 untouched by the change-request rule; the founder messages in fenced text blocks. The third fix-confirmation review `wf_0d5ddb8b-59a` (all four lenses answer both governance tests NO) found two HIGH, closed: every plane that judges a candidate is a judging plane, a local Supabase database whose bootstrap superuser aligns it to the live referent (roles and their attributes, memberships with their admin, inherit and set options and grantor, database and schema ACLs, default privileges, extensions, event triggers), and it must pass a fidelity check against the referent before the candidate step, or it judges nothing. The catalog instrument now reads each membership's inherit and set options and grantor, and every schema's default privileges; the applying-role record also reads them, the database's settings for all roles, and `createrole_self_grant`. Both were re-read from the live plane (read-only): every other catalog section kept its sha256, the live membership of `postgres` in `factory_runner` is admin without inherit or set, and the snapshot sha256 is now `d08016457cfd40e0346ec3a7b27b8ad9256044c76c062b43f63deeedeb4bc047`. Also closed: historical CR-001..CR-004 match their ratification-register sha256, and a proposal filed elsewhere is never decided; the AC-11 row; the candidate-migration base in every paraphrase; the `qa/*.json` reading; the other-key exception; the CR-005 decision text; the Edge digest wording, the token's revocation and the unobservables; the scan scope; the founder-text quote of the Director reconstruction. | DIRECTOR |
