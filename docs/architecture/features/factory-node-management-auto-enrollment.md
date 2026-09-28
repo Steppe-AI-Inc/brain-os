@@ -187,7 +187,9 @@ Contract reference: `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md`. Govern
   - The `69df2f52` files `001`..`003`, and every file a founder-applied step embedded, are never changed; a change to one is a
     finding (`VERIFICATION_SPEC.md` §3.1).
   - Every disposable plane that judges a candidate is a judging plane (`VERIFICATION_SPEC.md` §3.3): a local Supabase database whose
-    bootstrap superuser aligns its roles, memberships, ACLs, default privileges, extensions and event triggers to the live referent.
+    bootstrap superuser aligns its roles and their settings, memberships, database and schema ACLs, default privileges, extensions and
+    event triggers to the pre-candidate referent, leaving what the `69df2f52` provisioning and the founder-applied steps create to the
+    applying login (an object they change is aligned first, then changed by the replay).
     Its applying login `postgres` (NOSUPERUSER, aligned to the live applying role) then provisions it as `69df2f52` (the statements
     of the `69df2f52` provisioner's dedicated-Supabase mode and the `69df2f52` files, from a fresh `69df2f52` clone), loads
     `BASELINE_69df2f52_EVIDENCE_ROWS.json` unchanged, and applies, in event-log order, every founder-applied step at the sha256 its

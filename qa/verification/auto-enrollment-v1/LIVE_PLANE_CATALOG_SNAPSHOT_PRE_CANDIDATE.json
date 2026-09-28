@@ -254,12 +254,12 @@
       "rolbypassrls": false,
       "rolinherit": true,
       "rolcanlogin": false,
-      "rolconfig": {
-        "names": [
-          "statement_timeout"
-        ],
-        "values_sha256": "03b05d5c91cbb891e19776bfed93bd6c6286724f5fb16a11b4946d4a8da7f63e"
-      }
+      "rolconfig": [
+        {
+          "name": "statement_timeout",
+          "value_sha256": "1e93cc055d0a90f48e1b5c0ed4eceb9cb80879ab37e852be68668a3cfe880132"
+        }
+      ]
     },
     {
       "rolname": "authenticated",
@@ -270,12 +270,12 @@
       "rolbypassrls": false,
       "rolinherit": true,
       "rolcanlogin": false,
-      "rolconfig": {
-        "names": [
-          "statement_timeout"
-        ],
-        "values_sha256": "2733934ac3d875ceb5be963c28e332590de46c41a13fd3faaa1fe42391c6b39f"
-      }
+      "rolconfig": [
+        {
+          "name": "statement_timeout",
+          "value_sha256": "a5da9841fa3011b3c456f51181f7d7965ff96ee8a4f4c971920e2dce6d0cc0e1"
+        }
+      ]
     },
     {
       "rolname": "authenticator",
@@ -286,14 +286,20 @@
       "rolbypassrls": false,
       "rolinherit": false,
       "rolcanlogin": true,
-      "rolconfig": {
-        "names": [
-          "lock_timeout",
-          "session_preload_libraries",
-          "statement_timeout"
-        ],
-        "values_sha256": "5acbe884e743d6a90192290db2368586c3a183f5dd5ae4315186801771522f06"
-      }
+      "rolconfig": [
+        {
+          "name": "lock_timeout",
+          "value_sha256": "a5da9841fa3011b3c456f51181f7d7965ff96ee8a4f4c971920e2dce6d0cc0e1"
+        },
+        {
+          "name": "session_preload_libraries",
+          "value_sha256": "c010590ae41b57ca804a08839c5da5c2d4308c508296f9ceee3986a3b7da9240"
+        },
+        {
+          "name": "statement_timeout",
+          "value_sha256": "a5da9841fa3011b3c456f51181f7d7965ff96ee8a4f4c971920e2dce6d0cc0e1"
+        }
+      ]
     },
     {
       "rolname": "dashboard_user",
@@ -304,10 +310,7 @@
       "rolbypassrls": false,
       "rolinherit": true,
       "rolcanlogin": false,
-      "rolconfig": {
-        "names": [],
-        "values_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-      }
+      "rolconfig": []
     },
     {
       "rolname": "factory_runner",
@@ -318,10 +321,7 @@
       "rolbypassrls": false,
       "rolinherit": false,
       "rolcanlogin": true,
-      "rolconfig": {
-        "names": [],
-        "values_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-      }
+      "rolconfig": []
     },
     {
       "rolname": "pgbouncer",
@@ -332,10 +332,7 @@
       "rolbypassrls": false,
       "rolinherit": true,
       "rolcanlogin": true,
-      "rolconfig": {
-        "names": [],
-        "values_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-      }
+      "rolconfig": []
     },
     {
       "rolname": "postgres",
@@ -346,12 +343,12 @@
       "rolbypassrls": true,
       "rolinherit": true,
       "rolcanlogin": true,
-      "rolconfig": {
-        "names": [
-          "search_path"
-        ],
-        "values_sha256": "600d5011e564417c685ee8432ffa3ef5fd6d6abeab93c8bda6d174db3df46948"
-      }
+      "rolconfig": [
+        {
+          "name": "search_path",
+          "value_sha256": "e0b464b8b36c1e9198c444c8e1946add836c6dfe5712ceca848c69d48e0a0974"
+        }
+      ]
     },
     {
       "rolname": "service_role",
@@ -362,10 +359,7 @@
       "rolbypassrls": true,
       "rolinherit": true,
       "rolcanlogin": false,
-      "rolconfig": {
-        "names": [],
-        "values_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-      }
+      "rolconfig": []
     },
     {
       "rolname": "supabase_admin",
@@ -376,13 +370,16 @@
       "rolbypassrls": true,
       "rolinherit": true,
       "rolcanlogin": true,
-      "rolconfig": {
-        "names": [
-          "log_statement",
-          "search_path"
-        ],
-        "values_sha256": "3e8456d9bdafb7a01e6ed4d1be21e8a9c07774a0e5b1f275bf5fd6ec934b091b"
-      }
+      "rolconfig": [
+        {
+          "name": "log_statement",
+          "value_sha256": "140bedbf9c3f6d56a9846d2ba7088798683f4da0c248231336e6a05679e4fdfe"
+        },
+        {
+          "name": "search_path",
+          "value_sha256": "2fa71673b06ce4fea46f04ef6c8810109e8664b8df5d2c67c6724efd9a722569"
+        }
+      ]
     },
     {
       "rolname": "supabase_auth_admin",
@@ -393,14 +390,20 @@
       "rolbypassrls": false,
       "rolinherit": false,
       "rolcanlogin": true,
-      "rolconfig": {
-        "names": [
-          "idle_in_transaction_session_timeout",
-          "log_statement",
-          "search_path"
-        ],
-        "values_sha256": "7ca455d0d2b0557d18001008ec308964f3b31f893840be65fdbfe807f72896f5"
-      }
+      "rolconfig": [
+        {
+          "name": "idle_in_transaction_session_timeout",
+          "value_sha256": "d55d01d0341ed0ba2cd99b322e8c5b609254f47d10c7cd12b99b4922effeba44"
+        },
+        {
+          "name": "log_statement",
+          "value_sha256": "140bedbf9c3f6d56a9846d2ba7088798683f4da0c248231336e6a05679e4fdfe"
+        },
+        {
+          "name": "search_path",
+          "value_sha256": "bdf49c3c3882102fc017ffb661108c63a836d065888a4093994398cc55c2ea2f"
+        }
+      ]
     },
     {
       "rolname": "supabase_etl_admin",
@@ -411,10 +414,7 @@
       "rolbypassrls": true,
       "rolinherit": true,
       "rolcanlogin": true,
-      "rolconfig": {
-        "names": [],
-        "values_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-      }
+      "rolconfig": []
     },
     {
       "rolname": "supabase_privileged_role",
@@ -425,10 +425,7 @@
       "rolbypassrls": false,
       "rolinherit": true,
       "rolcanlogin": false,
-      "rolconfig": {
-        "names": [],
-        "values_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-      }
+      "rolconfig": []
     },
     {
       "rolname": "supabase_read_only_user",
@@ -439,12 +436,12 @@
       "rolbypassrls": true,
       "rolinherit": true,
       "rolcanlogin": true,
-      "rolconfig": {
-        "names": [
-          "default_transaction_read_only"
-        ],
-        "values_sha256": "c3893583d92a6edb7c2e85a3d6e471505c99966a116af5ef94354749231f11a5"
-      }
+      "rolconfig": [
+        {
+          "name": "default_transaction_read_only",
+          "value_sha256": "b8d31e852725afb1e26d53bab6095b2bff1749c9275be13ed1c05a56ed31ec09"
+        }
+      ]
     },
     {
       "rolname": "supabase_realtime_admin",
@@ -455,12 +452,12 @@
       "rolbypassrls": false,
       "rolinherit": false,
       "rolcanlogin": false,
-      "rolconfig": {
-        "names": [
-          "search_path"
-        ],
-        "values_sha256": "82be56eff6a42ad54b09ed1f632d890722a8916cf02afae4ee21c208294a7439"
-      }
+      "rolconfig": [
+        {
+          "name": "search_path",
+          "value_sha256": "ba6e987d189c020e008f4ab4609484c980b42071937d696c4f6c9dff8381d5ae"
+        }
+      ]
     },
     {
       "rolname": "supabase_replication_admin",
@@ -471,10 +468,7 @@
       "rolbypassrls": false,
       "rolinherit": true,
       "rolcanlogin": true,
-      "rolconfig": {
-        "names": [],
-        "values_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-      }
+      "rolconfig": []
     },
     {
       "rolname": "supabase_storage_admin",
@@ -485,13 +479,16 @@
       "rolbypassrls": false,
       "rolinherit": false,
       "rolcanlogin": true,
-      "rolconfig": {
-        "names": [
-          "log_statement",
-          "search_path"
-        ],
-        "values_sha256": "0828085c231220f698eb754961ab6e751c75068db3ddbd8d28ed9a547b1eca1a"
-      }
+      "rolconfig": [
+        {
+          "name": "log_statement",
+          "value_sha256": "140bedbf9c3f6d56a9846d2ba7088798683f4da0c248231336e6a05679e4fdfe"
+        },
+        {
+          "name": "search_path",
+          "value_sha256": "49a25f9feefaffecad0fcd30c50dc9331cff8b55ece53def6285c09e17e6f5d7"
+        }
+      ]
     }
   ],
   "role_memberships": [
@@ -676,88 +673,126 @@
     {
       "db": "(all databases)",
       "role": "anon",
-      "names": [
-        "statement_timeout"
-      ],
-      "values_sha256": "03b05d5c91cbb891e19776bfed93bd6c6286724f5fb16a11b4946d4a8da7f63e"
+      "settings": [
+        {
+          "name": "statement_timeout",
+          "value_sha256": "1e93cc055d0a90f48e1b5c0ed4eceb9cb80879ab37e852be68668a3cfe880132"
+        }
+      ]
     },
     {
       "db": "(all databases)",
       "role": "authenticated",
-      "names": [
-        "statement_timeout"
-      ],
-      "values_sha256": "2733934ac3d875ceb5be963c28e332590de46c41a13fd3faaa1fe42391c6b39f"
+      "settings": [
+        {
+          "name": "statement_timeout",
+          "value_sha256": "a5da9841fa3011b3c456f51181f7d7965ff96ee8a4f4c971920e2dce6d0cc0e1"
+        }
+      ]
     },
     {
       "db": "(all databases)",
       "role": "authenticator",
-      "names": [
-        "lock_timeout",
-        "session_preload_libraries",
-        "statement_timeout"
-      ],
-      "values_sha256": "5acbe884e743d6a90192290db2368586c3a183f5dd5ae4315186801771522f06"
+      "settings": [
+        {
+          "name": "lock_timeout",
+          "value_sha256": "a5da9841fa3011b3c456f51181f7d7965ff96ee8a4f4c971920e2dce6d0cc0e1"
+        },
+        {
+          "name": "session_preload_libraries",
+          "value_sha256": "c010590ae41b57ca804a08839c5da5c2d4308c508296f9ceee3986a3b7da9240"
+        },
+        {
+          "name": "statement_timeout",
+          "value_sha256": "a5da9841fa3011b3c456f51181f7d7965ff96ee8a4f4c971920e2dce6d0cc0e1"
+        }
+      ]
     },
     {
       "db": "(all databases)",
       "role": "postgres",
-      "names": [
-        "search_path"
-      ],
-      "values_sha256": "600d5011e564417c685ee8432ffa3ef5fd6d6abeab93c8bda6d174db3df46948"
+      "settings": [
+        {
+          "name": "search_path",
+          "value_sha256": "e0b464b8b36c1e9198c444c8e1946add836c6dfe5712ceca848c69d48e0a0974"
+        }
+      ]
     },
     {
       "db": "(all databases)",
       "role": "supabase_admin",
-      "names": [
-        "log_statement",
-        "search_path"
-      ],
-      "values_sha256": "3e8456d9bdafb7a01e6ed4d1be21e8a9c07774a0e5b1f275bf5fd6ec934b091b"
+      "settings": [
+        {
+          "name": "log_statement",
+          "value_sha256": "140bedbf9c3f6d56a9846d2ba7088798683f4da0c248231336e6a05679e4fdfe"
+        },
+        {
+          "name": "search_path",
+          "value_sha256": "2fa71673b06ce4fea46f04ef6c8810109e8664b8df5d2c67c6724efd9a722569"
+        }
+      ]
     },
     {
       "db": "(all databases)",
       "role": "supabase_auth_admin",
-      "names": [
-        "idle_in_transaction_session_timeout",
-        "log_statement",
-        "search_path"
-      ],
-      "values_sha256": "7ca455d0d2b0557d18001008ec308964f3b31f893840be65fdbfe807f72896f5"
+      "settings": [
+        {
+          "name": "idle_in_transaction_session_timeout",
+          "value_sha256": "d55d01d0341ed0ba2cd99b322e8c5b609254f47d10c7cd12b99b4922effeba44"
+        },
+        {
+          "name": "log_statement",
+          "value_sha256": "140bedbf9c3f6d56a9846d2ba7088798683f4da0c248231336e6a05679e4fdfe"
+        },
+        {
+          "name": "search_path",
+          "value_sha256": "bdf49c3c3882102fc017ffb661108c63a836d065888a4093994398cc55c2ea2f"
+        }
+      ]
     },
     {
       "db": "(all databases)",
       "role": "supabase_read_only_user",
-      "names": [
-        "default_transaction_read_only"
-      ],
-      "values_sha256": "c3893583d92a6edb7c2e85a3d6e471505c99966a116af5ef94354749231f11a5"
+      "settings": [
+        {
+          "name": "default_transaction_read_only",
+          "value_sha256": "b8d31e852725afb1e26d53bab6095b2bff1749c9275be13ed1c05a56ed31ec09"
+        }
+      ]
     },
     {
       "db": "(all databases)",
       "role": "supabase_realtime_admin",
-      "names": [
-        "search_path"
-      ],
-      "values_sha256": "82be56eff6a42ad54b09ed1f632d890722a8916cf02afae4ee21c208294a7439"
+      "settings": [
+        {
+          "name": "search_path",
+          "value_sha256": "ba6e987d189c020e008f4ab4609484c980b42071937d696c4f6c9dff8381d5ae"
+        }
+      ]
     },
     {
       "db": "(all databases)",
       "role": "supabase_storage_admin",
-      "names": [
-        "log_statement",
-        "search_path"
-      ],
-      "values_sha256": "0828085c231220f698eb754961ab6e751c75068db3ddbd8d28ed9a547b1eca1a"
+      "settings": [
+        {
+          "name": "log_statement",
+          "value_sha256": "140bedbf9c3f6d56a9846d2ba7088798683f4da0c248231336e6a05679e4fdfe"
+        },
+        {
+          "name": "search_path",
+          "value_sha256": "49a25f9feefaffecad0fcd30c50dc9331cff8b55ece53def6285c09e17e6f5d7"
+        }
+      ]
     },
     {
       "db": "postgres",
       "role": "(all roles)",
-      "names": [
-        "app.settings.jwt_exp"
-      ],
-      "values_sha256": "d1485c6de0620087fd916786b8a64cc9600466d00126f3c05fb888eca3e52a7f"
+      "settings": [
+        {
+          "name": "app.settings.jwt_exp",
+          "secret_named": true
+        }
+      ]
     }
   ],
   "database_acl": [
@@ -4257,39 +4292,71 @@
       "evtname": "issue_graphql_placeholder",
       "evtevent": "sql_drop",
       "evtenabled": "O",
-      "fn": "set_graphql_placeholder"
+      "fn": "extensions.set_graphql_placeholder",
+      "owner": "supabase_admin",
+      "security_definer": false,
+      "body_sha256": "80e0c97f0a475697c1b517e0d27887bfa0c2baf138229735a58a345d2168505b",
+      "tags": "DROP EXTENSION"
     },
     {
       "evtname": "issue_pg_cron_access",
       "evtevent": "ddl_command_end",
       "evtenabled": "O",
-      "fn": "grant_pg_cron_access"
+      "fn": "extensions.grant_pg_cron_access",
+      "owner": "supabase_admin",
+      "security_definer": false,
+      "body_sha256": "00db212b76cecd4b0794b2f20c414ab4988d675959747cd12d3eb4c6d6736f38",
+      "tags": "CREATE EXTENSION"
     },
     {
       "evtname": "issue_pg_graphql_access",
       "evtevent": "ddl_command_end",
       "evtenabled": "O",
-      "fn": "grant_pg_graphql_access"
+      "fn": "extensions.grant_pg_graphql_access",
+      "owner": "supabase_admin",
+      "security_definer": false,
+      "body_sha256": "03de03bb70da1d448f7a674215d1b63a924dc7115db657dae34b1aa8977e030e",
+      "tags": "CREATE EXTENSION"
     },
     {
       "evtname": "issue_pg_net_access",
       "evtevent": "ddl_command_end",
       "evtenabled": "O",
-      "fn": "grant_pg_net_access"
+      "fn": "extensions.grant_pg_net_access",
+      "owner": "supabase_admin",
+      "security_definer": false,
+      "body_sha256": "754e58111dbe32030af4d91591dfd78cb3cf8e8f4f56a5fcc199bb0cf7f4ac2b",
+      "tags": "CREATE EXTENSION"
     },
     {
       "evtname": "pgrst_ddl_watch",
       "evtevent": "ddl_command_end",
       "evtenabled": "O",
-      "fn": "pgrst_ddl_watch"
+      "fn": "extensions.pgrst_ddl_watch",
+      "owner": "supabase_admin",
+      "security_definer": false,
+      "body_sha256": "de987df746eb39647098459e7993bd8595e592969b0cd647828a3d13d37cffe0",
+      "tags": ""
     },
     {
       "evtname": "pgrst_drop_watch",
       "evtevent": "sql_drop",
       "evtenabled": "O",
-      "fn": "pgrst_drop_watch"
+      "fn": "extensions.pgrst_drop_watch",
+      "owner": "supabase_admin",
+      "security_definer": false,
+      "body_sha256": "791b41f0632fc86e0fc86a303ec0fd710c4e2ecf947a23422dae2b7a2c122f1d",
+      "tags": ""
     }
   ],
+  "database": {
+    "encoding": "UTF8",
+    "collate": "en_US.UTF-8",
+    "ctype": "en_US.UTF-8",
+    "locale_provider": "i",
+    "locale": "en-US",
+    "icu_rules": null
+  },
   "storage_buckets": {
     "readable": false,
     "note": "storage.buckets is not readable by this login; the observer role covers it"
@@ -4314,17 +4381,18 @@
     "indexes",
     "extensions",
     "event_triggers",
+    "database",
     "storage_buckets"
   ],
-  "snapshot_sha256": "d08016457cfd40e0346ec3a7b27b8ad9256044c76c062b43f63deeedeb4bc047",
+  "snapshot_sha256": "133561edf13cfe7f3dcad594707fa7aee5c485c8c1167bfd0b82b79646a9c8be",
   "section_sha256": {
     "relations": "261bad13b11956dd88b7dd1476434f939cfc48c11707b3daa9c85fd776551f0a",
     "columns": "1d2b4621a3497c2239ca5c5889b1b3603b512c5e408fa52e66704a67131c1357",
     "column_acl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
     "functions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-    "roles": "7bdbba4acfdca6697f1bda8d320edfba74dd550ddfae0d7f5c25dfe4e0cff1ca",
+    "roles": "36371a679fc6a39f29818ca4b8033b7e42aa837666a3b040cc6448b718a0809e",
     "role_memberships": "beaf6c7f306be4169957ae563c4c8fb25eae2bde4521e15fd29b52f9db959234",
-    "role_database_settings": "4b8b40310482ae1b6d4e772ddcad717fbccd1805545967b086823a1bdb09654a",
+    "role_database_settings": "0c31ab6becbbe2007c7bd83699924eadc16f9f9b913c0eac83b9adbfeb5b262a",
     "database_acl": "27df34c661ab9db678c702487575248e914f61e8da32f4d24ae2a3cc6ee6e7d7",
     "table_acl": "8cd90f12e4169f8ca7dd4fa7dbec08e6c76dacaf2a2131ae3c23e5aaf545d86e",
     "function_acl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
@@ -4336,11 +4404,12 @@
     "constraints": "ac240181b891fe62c76f0c06dce269d72d40d2dcf4eaa03463c26e03f5825636",
     "indexes": "15346b55e7dc1ca746f9b79f7b0d15d9644a5d7f646795d0fb7cab186ed9de3f",
     "extensions": "d2249282dc264573ae7d4a3734ae6180addd88a293751de5f12af39505a33a5f",
-    "event_triggers": "51a9a2a607c84227f04692c41e3da3853a72568e9c0aadb46c251dd6a4b69bb0",
+    "event_triggers": "993ce1ad3569b2d678638a327f6c06fc62de01e34c65d2c8882b4a857e6ff8f0",
+    "database": "29e4a56b1ff3f2e5d26553a4d2721937cd75e0cfc5506f88ff29a163a5767ac6",
     "storage_buckets": "f0dc7f0b57b2220936ffd99966920ffc0e87e4a03d2d9c68d09bbc493ebb1b6f"
   },
   "not_hashed": {
-    "observed_at_utc": "2026-09-26T19:54:29.224374Z",
+    "observed_at_utc": "2026-09-27T13:26:23.098033Z",
     "factory_table_counters": [
       {
         "tbl": "agent_runs",
@@ -4369,7 +4438,7 @@
       {
         "tbl": "nodes",
         "ins": "236",
-        "upd": "6752",
+        "upd": "8424",
         "del": "232"
       },
       {

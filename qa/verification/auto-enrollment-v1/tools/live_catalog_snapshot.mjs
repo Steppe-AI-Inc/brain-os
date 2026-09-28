@@ -6,7 +6,8 @@
 //     their ACLs;
 //   - every non-built-in role with its attributes and settings, role memberships (pg_auth_members, with their admin, inherit and set
 //     options and grantor), per-role / per-database settings, the current database's ACL, every schema's ACL, the default ACLs of
-//     every schema (platform schemas included), extensions, event triggers;
+//     every schema (platform schemas included), extensions, event triggers (with their function, owner, SECURITY DEFINER flag,
+//     body sha256 and tags), and the database's encoding, collation, ctype, locale provider, locale and ICU rules;
 //   - RLS policies on the platform `storage` schema, and storage buckets when this login may read them unfiltered by row security.
 // Not hashed: the observation time and, per `factory` table (plain or partitioned only), the pg_stat_user_tables counters and a sha256
 // per row (heartbeat and lease-expiry columns excluded), for the S-15 live-activity check. Each row is keyed by key_sha256, the sha256
@@ -96,7 +97,12 @@ const snap = await session(async (q) => {
   const idx = await q(`select n.nspname sch, c.relname idx, pg_get_indexdef(c.oid) def
     from pg_class c join pg_namespace n on n.oid = c.relnamespace where ${NP} and c.relkind in ('i','I') order by 1, 2`, P);
   const ext = await q(`select e.extname, e.extversion, n.nspname sch from pg_extension e join pg_namespace n on n.oid = e.extnamespace order by 1`);
-  const evt = await q(`select e.evtname, e.evtevent, e.evtenabled, p.proname fn from pg_event_trigger e join pg_proc p on p.oid = e.evtfoid order by 1`);
+  const evt = await q(`select e.evtname, e.evtevent, e.evtenabled, n.nspname fn_schema, p.proname fn, pg_get_userbyid(e.evtowner) owner, p.prosecdef secdef,
+    p.prosrc src, coalesce(array_to_string(e.evttags, ','), '') tags
+    from pg_event_trigger e join pg_proc p on p.oid = e.evtfoid join pg_namespace n on n.oid = p.pronamespace order by 1`);
+  const dbprops = await q(`select pg_encoding_to_char(d.encoding) encoding, d.datcollate collate, d.datctype ctype, d.datlocprovider::text locale_provider,
+    d.datlocale::text locale, d.daticurules::text icu_rules
+    from pg_database d where d.datname = current_database()`);
   // by oid, so a login without USAGE on schema storage gets "unreadable" instead of an error. A read that row security would filter is
   // never made: a filtered list is not the bucket list, and its policy would run in this session
   const bk = (await q(`select coalesce(bool_and(has_schema_privilege(current_user, n.oid, 'USAGE') and has_table_privilege(current_user, c.oid, 'SELECT')), false) ok,
@@ -125,11 +131,15 @@ const snap = await session(async (q) => {
     }).sort((a, b) => (a.key_sha256 < b.key_sha256 ? -1 : a.key_sha256 > b.key_sha256 ? 1 : 0));
     activity.push({ table: t.tbl, primary_key: pk, n: rows.length, rows: keyed });
   }
-  return { rels, cols, colacl, fns, roles, members, settings, dbacl, tacl, facl, schemas, dacl, trig, pol, rules, cons, idx, ext, evt, buckets, observedAt, counters, activity };
+  return { rels, cols, colacl, fns, roles, members, settings, dbacl, tacl, facl, schemas, dacl, trig, pol, rules, cons, idx, ext, evt, dbprops, buckets, observedAt, counters, activity };
 });
 
 const s = snap;
-const cfg = (arr) => ({ names: (arr || []).map((kv) => String(kv).split('=')[0]).sort(), values_sha256: sha(JSON.stringify([...(arr || [])].sort())) });
+// one entry per setting (Director r3): a value is recorded as its sha256, and a setting whose name suggests a secret by name only,
+// so a change to such a value is not observed (AC-10 states this limit; VERIFICATION_SPEC §3.4 inventories the candidate's writes)
+const SECRETISH = /key|secret|password|token|jwt/i;
+const cfg = (arr) => (arr || []).map((kv) => { const s = String(kv), i = s.indexOf('='), name = s.slice(0, i);
+  return SECRETISH.test(name) ? { name, secret_named: true } : { name, value_sha256: sha(s.slice(i + 1)) }; }).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
 const snapshot = {
   snapshot: 'Factory plane catalog, read from pg_catalog',
   materialized_by: target === 'live' ? 'DIRECTOR (read-only SELECT)' : 'VERIFIER (disposable plane)', observed,
@@ -139,25 +149,28 @@ const snapshot = {
   columns: s.cols.map((c) => c.sch + '.' + c.tbl + '.' + c.col + ':' + c.typ + (c.notnull ? ' not null' : '') + (c.dflt ? ' default=' + sha(c.dflt) : '')),
   column_acl: s.colacl,
   functions: s.fns.map((f) => ({ name: f.sch + '.' + f.proname, args: f.args, owner: f.owner, security_definer: f.secdef, config: f.config, body_sha256: sha(f.src) })),
-  // setting values can hold secrets: only their names are recorded in clear, and a sha256 of the values
+  // setting values can hold secrets: each value is recorded as its sha256, and a secret-named setting by name only
   roles: s.roles.map((r) => ({ ...r, rolconfig: cfg(r.rolconfig) })), role_memberships: s.members,
-  role_database_settings: s.settings.map((x) => ({ db: x.db, role: x.role, ...cfg(x.config) })), database_acl: s.dbacl,
+  role_database_settings: s.settings.map((x) => ({ db: x.db, role: x.role, settings: cfg(x.config) })), database_acl: s.dbacl,
   table_acl: s.tacl, function_acl: s.facl, schema_acl: s.schemas, default_acl: s.dacl,
   triggers: s.trig.map((t) => ({ table: t.sch + '.' + t.tbl, name: t.tgname, enabled: t.enabled, def_sha256: sha(t.def) })),
   policies: s.pol.map((p) => ({ table: p.sch + '.' + p.tbl, name: p.polname, cmd: p.cmd, permissive: p.permissive, roles: p.roles, qual_sha256: sha(p.qual), check_sha256: sha(p.chk) })),
   rules: s.rules.map((r) => ({ table: r.sch + '.' + r.tbl, name: r.rulename, def_sha256: sha(r.def) })),
   constraints: s.cons.map((k) => ({ table: k.sch + '.' + k.tbl, name: k.conname, type: k.contype, def_sha256: sha(k.def) })),
   indexes: s.idx.map((i) => ({ index: i.sch + '.' + i.idx, def_sha256: sha(i.def) })),
-  extensions: s.ext, event_triggers: s.evt, storage_buckets: s.buckets,
+  extensions: s.ext,
+  event_triggers: s.evt.map((e) => ({ evtname: e.evtname, evtevent: e.evtevent, evtenabled: e.evtenabled, fn: e.fn_schema + '.' + e.fn, owner: e.owner,
+    security_definer: e.secdef, body_sha256: sha(e.src), tags: e.tags })),
+  database: s.dbprops[0] || null, storage_buckets: s.buckets,
 };
 const HASHED = ['relations', 'columns', 'column_acl', 'functions', 'roles', 'role_memberships', 'role_database_settings', 'database_acl', 'table_acl',
-  'function_acl', 'schema_acl', 'default_acl', 'triggers', 'policies', 'rules', 'constraints', 'indexes', 'extensions', 'event_triggers', 'storage_buckets'];
+  'function_acl', 'schema_acl', 'default_acl', 'triggers', 'policies', 'rules', 'constraints', 'indexes', 'extensions', 'event_triggers', 'database', 'storage_buckets'];
 snapshot.hashed_sections = HASHED;
 snapshot.snapshot_sha256 = sha(canon(Object.fromEntries(HASHED.map((k) => [k, snapshot[k]]))));
 snapshot.section_sha256 = Object.fromEntries(HASHED.map((k) => [k, sha(canon(snapshot[k]))]));
 snapshot.not_hashed = { observed_at_utc: s.observedAt, factory_table_counters: s.counters, factory_table_rows: s.activity };
 writeFileSync(out, JSON.stringify(snapshot, null, 2) + '\n');
-console.log(HASHED.map((k) => k + ' ' + (Array.isArray(snapshot[k]) ? snapshot[k].length : (snapshot[k].readable ? snapshot[k].rows.length : 'unreadable'))).join(', '));
+console.log(HASHED.map((k) => k + ' ' + (Array.isArray(snapshot[k]) ? snapshot[k].length : k === 'database' ? JSON.stringify(snapshot[k]) : (snapshot[k].readable ? snapshot[k].rows.length : 'unreadable'))).join(', '));
 console.log('snapshot_sha256', snapshot.snapshot_sha256, '| observed:', observed.mode, observed.target, 'as', observed.current_user, 'plane',
   JSON.stringify(observed.plane_identity), 'root', observed.root_head.slice(0, 8), 'session', JSON.stringify(observed.session));
 process.exit(0);

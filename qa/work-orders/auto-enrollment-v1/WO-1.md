@@ -1,6 +1,6 @@
 # WO-1 — Tenancy, identity, envelopes, credentials, admins, policies and legacy coexistence (schema)
 
-- **Binding**, revision 2, issued by the DIRECTOR.
+- **Binding**, revision 3, issued by the DIRECTOR.
 - Contract: §1, §5.
 - Executed by: the IMPLEMENTER.
 - Certified by: a distinct authorized verifier.
@@ -99,7 +99,8 @@ never imports or copies it. The live-migration step is not candidate-written: th
 committed bytes with the Director instrument `qa/verification/auto-enrollment-v1/tools/build_live_migration_step.mjs`, as `begin`, the
 migration verbatim, the Director's manifest check after the migration's last statement (it aborts on any difference), and `commit`. The
 migration therefore holds no transaction control (BEGIN, START, COMMIT, END, ROLLBACK, ABORT, SAVEPOINT, RELEASE, PREPARE TRANSACTION,
-or a BEGIN ATOMIC body), no backslash, no psql variable reference and no COPY. It leaves no quote or comment open, and ends its last
+or a BEGIN ATOMIC body), no backslash outside a dollar-quoted body (a regular-expression constant is written dollar-quoted,
+for example `$r$...$r$`), no mention of `standard_conforming_strings` or `backslash_quote`, no psql variable reference and no COPY. It leaves no quote or comment open, and ends its last
 statement with `;`. Every statement runs inside the step's one transaction block: no `CONCURRENTLY`, and no procedure or DO block that
 commits. It leaves no deferrable constraint trigger, no deferrable exclusion constraint and no holdable cursor. The tool's header lists
 every refusal, and a refusal or an abort fails AC-11. The receipt records the step's sha256, and the founder applies exactly that file,

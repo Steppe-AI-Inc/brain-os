@@ -119,7 +119,7 @@
   "database_configuration_all_roles": [
     {
       "name": "app.settings.jwt_exp",
-      "value_sha256": "8b34042b7a96b3ba94b27ad723ca8f57787eefbab2083b3098173c444aefbfdf"
+      "secret_named": true
     }
   ],
   "createrole_self_grant": {
@@ -196,6 +196,132 @@
       "inherit_option": true,
       "set_option": true,
       "grantor": "supabase_admin"
+    }
+  ],
+  "role_settings": [
+    {
+      "role": "(all roles)",
+      "db": "postgres",
+      "settings": [
+        {
+          "name": "app.settings.jwt_exp",
+          "secret_named": true
+        }
+      ]
+    },
+    {
+      "role": "anon",
+      "db": "(all databases)",
+      "settings": [
+        {
+          "name": "statement_timeout",
+          "value": "3s"
+        }
+      ]
+    },
+    {
+      "role": "authenticated",
+      "db": "(all databases)",
+      "settings": [
+        {
+          "name": "statement_timeout",
+          "value": "8s"
+        }
+      ]
+    },
+    {
+      "role": "authenticator",
+      "db": "(all databases)",
+      "settings": [
+        {
+          "name": "session_preload_libraries",
+          "value": "supautils, safeupdate"
+        },
+        {
+          "name": "statement_timeout",
+          "value": "8s"
+        },
+        {
+          "name": "lock_timeout",
+          "value": "8s"
+        }
+      ]
+    },
+    {
+      "role": "postgres",
+      "db": "(all databases)",
+      "settings": [
+        {
+          "name": "search_path",
+          "value": "\"\\$user\", public, extensions"
+        }
+      ]
+    },
+    {
+      "role": "supabase_admin",
+      "db": "(all databases)",
+      "settings": [
+        {
+          "name": "search_path",
+          "value": "\"$user\", public, auth, extensions"
+        },
+        {
+          "name": "log_statement",
+          "value": "none"
+        }
+      ]
+    },
+    {
+      "role": "supabase_auth_admin",
+      "db": "(all databases)",
+      "settings": [
+        {
+          "name": "search_path",
+          "value": "auth"
+        },
+        {
+          "name": "idle_in_transaction_session_timeout",
+          "value": "60000"
+        },
+        {
+          "name": "log_statement",
+          "value": "none"
+        }
+      ]
+    },
+    {
+      "role": "supabase_read_only_user",
+      "db": "(all databases)",
+      "settings": [
+        {
+          "name": "default_transaction_read_only",
+          "value": "on"
+        }
+      ]
+    },
+    {
+      "role": "supabase_realtime_admin",
+      "db": "(all databases)",
+      "settings": [
+        {
+          "name": "search_path",
+          "value": "public, extensions, realtime"
+        }
+      ]
+    },
+    {
+      "role": "supabase_storage_admin",
+      "db": "(all databases)",
+      "settings": [
+        {
+          "name": "search_path",
+          "value": "storage"
+        },
+        {
+          "name": "log_statement",
+          "value": "none"
+        }
+      ]
     }
   ]
 }

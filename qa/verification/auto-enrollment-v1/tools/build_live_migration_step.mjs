@@ -15,6 +15,7 @@
 // THE OUTPUT, in order:
 //   comment lines naming the inputs by sha256;
 //   set client_encoding = 'UTF8';   so psql from any console and node-postgres store the same bytes;
+//   set standard_conforming_strings = on;   for the code the step runs (DO blocks, function bodies); the check requires it;
 //   begin;
 //   each migration file, byte for byte, then one LF;
 //   reset session authorization; reset role; set local row_security = off;   the check runs as the applying login, and a policy
@@ -31,8 +32,13 @@
 //
 // THE MIGRATION IS REFUSED (exit 2, nothing written) when it:
 //   - is not UTF-8, or holds a byte-order mark or a NUL;
-//   - holds a backslash anywhere, so no psql meta-command exists and no escape moves where a literal ends (in a function body,
-//     chr(92) gives the character);
+//   - holds a backslash anywhere except inside a dollar-quoted body: outside any literal psql would read a meta-command; in a
+//     single-quoted literal its extent would depend on the session's standard_conforming_strings when one simple-Query message is
+//     parsed (the whole message is parsed before its first SET runs); in an escape-string (E'...') or Unicode-escape (U&'...')
+//     literal it moves where the literal ends; in a comment or quoted identifier it is refused as well. A dollar-quoted body has the
+//     same extent under every setting, so a regular-expression constant is written dollar-quoted, for example $r$...$r$
+//     (Director r3);
+//   - names standard_conforming_strings or backslash_quote anywhere (it could change how later statements are read);
 //   - holds a psql variable reference outside literals, comments and dollar bodies (`:name`, `:'name'`, `:"name"`, `:{?name}`),
 //     which psql would replace with a client value (`::` and `:=` are not references; write an array slice as `[a : b]`);
 //   - has a statement that begins with BEGIN, START, COMMIT, END, ROLLBACK, ABORT, SAVEPOINT, RELEASE or PREPARE TRANSACTION: each
@@ -185,7 +191,9 @@ const dollarDelimiter = (s, i) => {
 const TXN = new Set(['begin', 'start', 'commit', 'end', 'rollback', 'abort', 'savepoint', 'release']);
 function scanMigration(src, name) {
   const no = (why) => refuse(name + ': ' + why);
-  if (src.includes(BACKSLASH)) no('a backslash (a psql meta-command, or an escape that moves where a literal ends)');
+  // the step pins standard_conforming_strings = on for the code it runs (a DO block or function body is parsed when it executes);
+  // the migration may not name that setting or backslash_quote anywhere, so it cannot change how later statements are read
+  if (/standard_conforming_strings|backslash_quote/i.test(src)) no('it names standard_conforming_strings or backslash_quote');
   if (src.includes(String.fromCharCode(0xfeff))) no('a byte-order mark');
   if (src.includes(String.fromCharCode(0))) no('a NUL character');
   if (src.includes('$aev1_')) no('the reserved dollar-quote tag prefix $aev1_');
@@ -194,22 +202,43 @@ function scanMigration(src, name) {
   const gap = () => { prev = ' '; run = ''; code += ' '; };
   while (i < src.length) {
     const c = src[i], d = src[i + 1];
-    if (c === '-' && d === '-') { while (i < src.length && src[i] !== LF && src[i] !== CR) i++; gap(); continue; }
+    if (c === '-' && d === '-') {
+      const s0 = i;
+      while (i < src.length && src[i] !== LF && src[i] !== CR) i++;
+      if (src.slice(s0, i).includes(BACKSLASH)) no('a backslash in a comment');
+      gap(); continue;
+    }
     if (c === '/' && d === '*') {
+      const s0 = i;
       let depth = 1; i += 2;
       while (depth > 0) {
         if (i >= src.length) no('a block comment is still open at the end');
         if (src[i] === '/' && src[i + 1] === '*') { depth++; i += 2; } else if (src[i] === '*' && src[i + 1] === '/') { depth--; i += 2; } else i++;
       }
+      if (src.slice(s0, i).includes(BACKSLASH)) no('a backslash in a comment');
       gap(); continue;
     }
     if (c === "'" || c === '"') {
+      // E'...' reads backslash escapes and U&'...' / U&"..." reads Unicode escapes: a backslash there moves where the literal ends.
+      // In a standard literal its extent depends on standard_conforming_strings at parse time. So no quoted literal or identifier
+      // may hold a backslash; a dollar-quoted body may.
+      const escape = c === "'" && (src[i - 1] === 'E' || src[i - 1] === 'e') && !IDCONT(src[i - 2]);
+      const unicode = src[i - 1] === '&' && (src[i - 2] === 'U' || src[i - 2] === 'u') && !IDCONT(src[i - 3]);
+      const s0 = i;
       let j = i + 1;
       for (;;) {
         const k = src.indexOf(c, j);
         if (k < 0) no((c === "'" ? 'a literal' : 'a quoted identifier') + ' is still open at the end');
         if (src[k + 1] === c) { j = k + 2; continue; }
         i = k + 1; break;
+      }
+      if (src.slice(s0, i).includes(BACKSLASH)) {
+        if (c === '"') no('a backslash in a quoted identifier');
+        if (escape || unicode) no('a backslash in an escape-string or Unicode-escape literal (it can move where the literal ends)');
+        // one simple-Query message is parsed whole before its first statement runs, so the step's SET cannot fix how a quoted
+        // literal is read: its extent would depend on the session's standard_conforming_strings when the message arrives. A
+        // dollar-quoted constant has the same extent under every setting.
+        no('a backslash in a single-quoted literal (write the constant dollar-quoted, for example $r$...$r$)');
       }
       gap(); continue;
     }
@@ -229,6 +258,7 @@ function scanMigration(src, name) {
       if (d === ':' || d === '=') { put(c); put(d); i += 2; continue; }
       if (IDCONT(d) || d === "'" || d === '"' || d === '{') no('a psql variable reference :' + d + '... (write an array slice as [a : b])');
     }
+    if (c === BACKSLASH) no('a backslash outside a literal or dollar-quoted body (psql would read a meta-command)');
     put(c); i++;
   }
   const stmts = code.split(';');
@@ -302,8 +332,8 @@ function buildStep(migrations, manifestText, rowsText) {
     ...TABLES.map((t) => `  ${REC[t]} record;`),
     `begin`,
     `  if current_user <> session_user or pg_catalog.current_setting('row_security') <> 'off'`,
-    `     or pg_catalog.current_setting('client_encoding') <> 'UTF8' then`,
-    `    raise exception 'AC-11 baseline check: the check must run as the applying login, row security off, client encoding UTF8';`,
+    `     or pg_catalog.current_setting('client_encoding') <> 'UTF8' or pg_catalog.current_setting('standard_conforming_strings') <> 'on' then`,
+    `    raise exception 'AC-11 baseline check: the check must run as the applying login, row security off, client encoding UTF8, standard_conforming_strings on';`,
     `  end if;`,
     ...TABLES.map((t) => `  if pg_catalog.row_security_active('factory.${t}') then raise exception 'AC-11 baseline check: row security is active on factory.${t}'; end if;`),
     `  if pg_catalog.pg_current_xact_id_if_assigned() is null then`,
@@ -349,6 +379,7 @@ function buildStep(migrations, manifestText, rowsText) {
     `-- Apply exactly this file in one session: as one simple-Query message, or psql -X -v ON_ERROR_STOP=1 -f <this file>. Never`,
     `-- supabase db query --file. It commits only if every manifest evidence field is unchanged after the migration's last statement.`,
     `set client_encoding = 'UTF8';`,
+    `set standard_conforming_strings = on;`,
     `begin;`,
   ].join(LF) + LF;
   const parts = [Buffer.from(header, 'utf8')];
@@ -366,7 +397,7 @@ function buildStep(migrations, manifestText, rowsText) {
 const [out, ...migPaths] = process.argv.slice(2);
 if (!out || !migPaths.length) { console.log('usage: build_live_migration_step.mjs <out.sql> <migration.sql> [<migration.sql> ...]'); process.exit(2); }
 // the candidate migration is applied in byte order of path (repository-relative, forward slashes): any other order is refused
-const norm = migPaths.map((p) => p.split('\\').join('/'));
+const norm = migPaths.map((p) => p.split(BACKSLASH).join('/'));
 for (let k = 1; k < norm.length; k++) {
   if (Buffer.compare(Buffer.from(norm[k - 1], 'utf8'), Buffer.from(norm[k], 'utf8')) >= 0) {
     console.log('refused: migration files must be given once each, in byte order of path (' + norm[k - 1] + ' then ' + norm[k] + ')');

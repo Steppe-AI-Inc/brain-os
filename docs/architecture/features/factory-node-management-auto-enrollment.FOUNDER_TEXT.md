@@ -6,7 +6,7 @@ the DIRECTOR capability.
 
 The Director paraphrases nothing here:
 - Part II is transcribed from the founder's messages. II.12 also quotes, verbatim, the Director message whose reconstruction the
-  founder confirmed.
+  founder confirmed, and II.14 the Director questions whose options the founder chose.
 - Part I is a byte-for-byte copy of the implementer's transcription. **Founder confirmation of Part I is requested.**
 
 ## Provenance
@@ -14,7 +14,7 @@ The Director paraphrases nothing here:
 | Part | Source | Integrity |
 |---|---|---|
 | I | Part A of `docs/architecture/features/factory-auto-enrollment.md`, lines 24-337, on branch `factory/auto-enrollment-v1-contract` at commits `264987bb` and `33f14d6e55a41ee1a2a5acf463a000e3fe2975b9` (identical in both) | source file sha256 `53e61c0bea97c50ca294a471cf015fd1b8983799c32c12ad6bdb825537f53a06`; copied byte for byte |
-| II | the founder's messages to the Director, 2026-09-26 (UTC) | transcribed as received |
+| II | the founder's messages to the Director, 2026-09-26 and 2026-09-27 (UTC); II.12 and II.14 also quote Director text verbatim | transcribed as received |
 
 **About Part I's provenance.** Part I was transcribed by the implementer.
 
@@ -355,7 +355,7 @@ production Brain OS deploy; BLOCKED — EXTERNAL where applicable).
 
 ---
 
-# PART II — Founder rulings sent to the Director, 2026-09-26 (verbatim)
+# PART II — Founder rulings sent to the Director, 2026-09-26 and 2026-09-27 (verbatim)
 
 ## II.1 Machine roles and authority
 
@@ -775,3 +775,74 @@ C-3 remains the genuine founder/security gate.
 
 KEEP WORKING.
 ```
+
+## II.14 QA receipt publication — founder rulings, 2026-09-27 (UTC)
+
+Transcribed as received, in arrival order, with UTC times. The Director's questions and the chosen options are quoted verbatim;
+each "(founder's choice)" block is the chosen option's label and description joined by ": " (the founder's answer was the
+label). The founder's "KEEP WORKING." messages (09:22:56Z, 09:28:19Z, 12:44:16Z, 16:32:04Z) carry no ruling and are omitted.
+
+**09:22:36Z**
+
+```text
+Commit the receipt and relay the packet to the Work PC
+```
+
+**09:24:01Z** (Director question)
+
+```text
+The repo Steppe-AI-Inc/brain-os is PUBLIC. How should the QA receipt for 412ac14e be committed and relayed? (Options that push authorize ALLOW_FUNCTIONS_DEPLOY=1 for that single Director-branch push only, under the same conditions as r2: no master, no Edge, no merge.)
+```
+
+**09:27:44Z** (founder's choice)
+
+```text
+Commit locally only: Sign and commit the receipt and ledger entry on the local Director branch; nothing is pushed. The Work PC gets nothing through git until you decide; I give you the packet file for a private handoff now.
+```
+
+**09:28:17Z**
+
+```text
+FOUNDER RULING — SECURITY-SENSITIVE QA RECEIPT
+```
+
+```text
+Choose option 3: COMMIT LOCALLY ONLY.
+```
+
+```text
+The repository is public.
+```
+
+**13:56:09Z** (Director question)
+
+```text
+The repository is public, and you ruled that the 412ac14e receipt stays local. How should future QA receipts and the public ledger handle candidates?
+```
+
+**16:31:46Z** (founder's choice)
+
+```text
+Local receipts, public verdict (Recommended): Every receipt, REJECTED or CERTIFIED, is committed signed on a local-only ref, and the full findings go to the Work PC privately. The public ledger records one line per candidate: SHA, verdict and the receipt's sha256, never findings. The designated Director commit is always a published commit.
+```
+
+**16:32:02Z**
+
+```text
+FOUNDER RULING — QA RECEIPT PUBLICATION POLICY
+```
+
+```text
+Choose option 1.
+```
+
+```text
+Permanent rule:
+```
+
+```text
+FULL QA RECEIPTS:
+```
+
+Nothing after "FULL QA RECEIPTS:" arrived except "KEEP WORKING." (16:32:04Z). Director note: the chosen option above governs
+until the founder completes the permanent rule; its completion is listed under the ledger's founder items.
