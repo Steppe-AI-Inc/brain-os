@@ -4,24 +4,41 @@
 //        FACTORY_DIRECTOR_INTERIM_RUNNER_ENV=1  the Director's interim, runner.env read-only,
 //                                               candidate stage only                                 -> FACTORY_TARGET=live
 //        FACTORY_RUNNER_PG_URL=<url>            a disposable plane (non-superuser login)             -> FACTORY_TARGET=disposable
-//   2. loads the database modules from ROOT only after checking them against sha256 constants of the 69df2f52 blobs, and checking
-//      that ROOT's package-lock is the 69df2f52 one and every installed package on pg's dependency path has its 69df2f52 version.
-//      This keeps candidate code out of the instrument's own modules. It does not hash installed package files (a recorded limit).
-//   3. runs every read on ONE session inside `begin transaction isolation level repeatable read read only`, with search_path,
-//      TimeZone and IntervalStyle set locally (search_path = pg_catalog), so a role or database setting cannot redirect a catalog
-//      name to a look-alike object, and any write that a read might trigger fails;
+//      and refuses every other connection input: FACTORY_RUNNER_ENV_FILE (the interim reads only ~/.brain-factory/runner.env),
+//      NODE_PG_FORCE_NATIVE, any variable whose name starts with PG (pg takes connection parameters, startup options and the TLS
+//      mode from them), and a home-directory variable (USERPROFILE / HOME) that differs from the account's own profile directory;
+//   2. loads the database modules from ROOT (FACTORY_BASELINE_CHECKOUT, required; there is no default) only after checking them
+//      against sha256 constants of the 69df2f52 blobs, and checking that ROOT's package-lock is the 69df2f52 one and every installed
+//      package on pg's dependency path has its 69df2f52 version. This keeps candidate code out of the instrument's own modules. It
+//      does not hash installed package files (a recorded limit). A disposable read also needs ROOT's HEAD (git --no-replace-objects)
+//      to be 69df2f52, and refuses the live legacy checkout as ROOT;
+//   3. runs every read on ONE session inside `begin transaction isolation level repeatable read read only`, with SESSION (below) set
+//      locally before every statement and read back. search_path is `pg_catalog, pg_temp`: pg_temp goes LAST, because a path that
+//      leaves it out searches the session's temporary schema FIRST for relation and type names. The session is refused if its
+//      temporary schema holds any relation or type (a login event trigger could have made one). So every unqualified catalog name
+//      resolves in pg_catalog, nothing a statement runs (a row-security policy or a cast function, say) changes how a later statement
+//      resolves a name or renders a value, no role, database or startup setting changes how a value or a definition renders, and
+//      any write a read might trigger fails. It reads pg_catalog as stored: a superuser who rewrote catalog rows would change what
+//      it sees (S-10 bars the candidate from that);
 //   4. observes, never asserts, what it reached (current_user, database, server version, factory.plane_identity, a sha256 of the
 //      server address, the session settings) and checks the target both ways: a live read must reach the live Factory plane, and a
 //      disposable read must not.
 // It never prints or stores a URL or a password.
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { homedir, userInfo } from 'node:os';
 import { execFileSync } from 'node:child_process';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const BASELINE = '69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6';
 export const LIVE_REF = 'npvhuoozkbexddnvkqsj';
+export const LEGACY_CHECKOUT = 'C:/Users/Dell/dev/brain-os-factory-cp';
+// set locally before every statement of a session (PIN) and read back; each value is PostgreSQL's own spelling, as current_setting returns it
+const SESSION = { search_path: 'pg_catalog, pg_temp', TimeZone: 'UTC', IntervalStyle: 'iso_8601', DateStyle: 'ISO, MDY',
+  extra_float_digits: '1', bytea_output: 'hex', quote_all_identifiers: 'off', standard_conforming_strings: 'on' };
+const PIN = 'select ' + Object.keys(SESSION).map((k, i) => 'pg_catalog.set_config($' + (2 * i + 1) + ', $' + (2 * i + 2) + ', true)').join(', ');
+const PIN_ARGS = Object.entries(SESSION).flat();
 // sha256 of each 69df2f52 blob, LF-normalized
 const PINNED = {
   'scripts/factory-runner/db.mjs': 'c2c3696427e54d50e573f3da15d8da695e49360c8f474cb38a32d91d3be9ef3f',
@@ -40,6 +57,12 @@ export async function openPlane(ROOT) {
   if (mode === 'interim' && process.env.FACTORY_DIRECTOR_INTERIM_RUNNER_ENV !== '1') refuse('FACTORY_DIRECTOR_INTERIM_RUNNER_ENV must be 1');
   const want = mode === 'disposable' ? 'disposable' : 'live';
   if (process.env.FACTORY_TARGET !== want) refuse('FACTORY_TARGET must be ' + want + ' for this credential (got ' + (process.env.FACTORY_TARGET || 'unset') + ')');
+  // case-insensitive: Windows reads an environment variable whatever the case of its name
+  const ambient = Object.keys(process.env).filter((k) => process.env[k] && /^(FACTORY_RUNNER_ENV_FILE|NODE_PG_FORCE_NATIVE|PG.*)$/i.test(k)).sort();
+  if (ambient.length) refuse('unset ' + ambient.join(', ') + ': each is a further connection input (pg reads PG* variables as connection defaults)');
+  // os.homedir() follows USERPROFILE / HOME, and runner-env.mjs finds runner.env and CA copies under it; userInfo() reads the account's own
+  if (resolve(homedir()).toLowerCase() !== resolve(userInfo().homedir).toLowerCase()) refuse('the home directory is redirected to ' + homedir() + ' (this account: ' + userInfo().homedir + ')');
+  if (!ROOT) refuse('set FACTORY_BASELINE_CHECKOUT to a checkout whose database modules are the ' + BASELINE + ' files (there is no default)');
 
   const pinned = [];
   let rootHead;
@@ -59,29 +82,38 @@ export async function openPlane(ROOT) {
       pinned.push({ file: k, version: installed });
     }
     rootHead = execFileSync('git', ['--no-replace-objects', '-C', ROOT, 'rev-parse', 'HEAD'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    if (want === 'disposable' && rootHead !== BASELINE) refuse('a disposable read needs ROOT at ' + BASELINE + ' (a fresh clone after npm ci); ROOT is at ' + rootHead);
+    const real = (p) => realpathSync.native(p).toLowerCase();
+    if (want === 'disposable' && existsSync(LEGACY_CHECKOUT) && real(ROOT) === real(LEGACY_CHECKOUT)) refuse('a disposable read never loads modules from the live legacy checkout');
   } catch (e) {
     refuse('ROOT ' + ROOT + ' cannot be proven to carry the ' + BASELINE + ' database modules and packages (' + String(e.code || e.message).split('\n')[0] + ')');
   }
 
-  const { loadRunnerUrl, ensureRunnerEnv } = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/runner-env.mjs')).href);
-  if (mode === 'observer') {
-    const r = loadRunnerUrl(process.env.FACTORY_OBSERVER_ENV);
-    if (!r.usable) refuse('observer env not usable: ' + r.note);
+  const { loadRunnerUrl, DEFAULT_ENV_FILE } = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/runner-env.mjs')).href);
+  if (mode !== 'disposable') {
+    // an explicit path each time, so FACTORY_RUNNER_ENV_FILE (refused above) could never redirect the interim
+    const r = loadRunnerUrl(mode === 'observer' ? process.env.FACTORY_OBSERVER_ENV : DEFAULT_ENV_FILE);
+    if (!r.usable) refuse(mode + ' env not usable: ' + r.note);
     process.env.FACTORY_RUNNER_PG_URL = r.url;
-  } else if (mode === 'interim') ensureRunnerEnv();
+  }
   const db = await import(pathToFileURL(join(ROOT, 'scripts/factory-runner/db.mjs')).href);
 
-  // one read-only, repeatable-read session with pinned settings; fn receives q(sql, params) -> rows
+  // one read-only, repeatable-read session. q runs PIN before EVERY statement, so nothing a statement runs (a row-security policy or a
+  // cast function, say) changes how a later statement resolves a name or renders a value. The settings are read back once, with the
+  // temporary objects; fn receives q(sql, params) -> rows, and the settings read back
   const session = (fn) => db.withClient(async (c) => {
     await c.query('begin transaction isolation level repeatable read read only');
     try {
-      await c.query('set local search_path = pg_catalog');
-      await c.query("set local timezone = 'UTC'");
-      await c.query("set local intervalstyle = 'iso_8601'");
-      const s = (await c.query(`select pg_catalog.current_setting('transaction_read_only') ro, pg_catalog.current_setting('search_path') sp,
-        pg_catalog.current_setting('TimeZone') tz`)).rows[0];
-      if (s.ro !== 'on' || s.sp !== 'pg_catalog' || s.tz !== 'UTC') refuse('session settings not pinned: ' + JSON.stringify(s));
-      return await fn(async (sql, p) => (await c.query(sql, p || [])).rows, s);
+      const q = async (sql, p) => { await c.query(PIN, PIN_ARGS); return (await c.query(sql, p || [])).rows; };
+      const s = {};
+      for (const k of ['transaction_read_only', ...Object.keys(SESSION)]) s[k] = (await q('select pg_catalog.current_setting($1) v', [k]))[0].v;
+      // a relation or type in this session's temporary schema (a login event trigger could create one) is refused
+      s.temporary_objects = Number((await q(`select (select pg_catalog.count(*) from pg_catalog.pg_class where relnamespace = pg_catalog.pg_my_temp_schema())
+        + (select pg_catalog.count(*) from pg_catalog.pg_type where typnamespace = pg_catalog.pg_my_temp_schema()) n`))[0].n);
+      if (s.transaction_read_only !== 'on' || Object.entries(SESSION).some(([k, v]) => s[k] !== v) || s.temporary_objects !== 0) {
+        refuse('session settings not pinned, or the session holds temporary objects: ' + JSON.stringify(s));
+      }
+      return await fn(q, s);
     } finally { await c.query('rollback'); }
   });
 
@@ -92,7 +124,7 @@ export async function openPlane(ROOT) {
     const pi = hasPI ? await q(`select project_ref, note from factory.plane_identity order by provisioned_at`) : 'none';
     return {
       mode, target: want, current_user: who.cu, session_user: who.su, database: who.dbname, server_version: who.ver,
-      server_address_sha256: sha(who.srv), plane_identity: pi, session: { transaction_read_only: s.ro, search_path: s.sp, timezone: s.tz },
+      server_address_sha256: sha(who.srv), plane_identity: pi, session: s,
       root_head: rootHead, pinned,
     };
   });

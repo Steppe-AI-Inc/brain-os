@@ -1,7 +1,7 @@
 # WO-2 — Factory Node API: an authenticated boundary over the same lifecycle
 
-- **Binding**, revision 1, issued by the DIRECTOR.
-- Contract: §3 P-2 / P-3; S-3, S-7, S-10.
+- **Binding**, revision 2, issued by the DIRECTOR.
+- Contract: §3 P-2 / P-3; S-3, S-7, S-10, S-12.
 - Founder text: I A.4 §5, §6, §10; II.7.
 - Executed by: the IMPLEMENTER.
 - Certified by: a distinct authorized verifier.
@@ -33,14 +33,17 @@
   - No row is "migrated" before its regression passes on the new primitive.
 - **Authentication.**
   - Every node call re-checks the credential status **inside its own transaction** (S-3). A session token never outlives a revocation.
+  - The server stores a session token at most as its hash, never in clear (S-12).
   - Tenant, identity and authority are derived from the credential.
 - **Session-less surface.** Exactly the S-7 allowlist.
 
 - **No plane-conditioned behaviour** (S-10). No front door or handler decides what it does from a value that tells the live plane from
-  a disposable one; the production-ref refusal is the one exception.
+  a disposable one, or live operation from the verifier's run; the production-ref refusal is the one exception. What is not such a
+  decision (for example pinning the front doors' `search_path` or a timeout, or a handler using its own plane's endpoint, credentials
+  and keys only to connect or to verify a token or code) and the scan's classes are in S-10 and `VERIFICATION_SPEC.md` §3.4.
 
 ## Must satisfy
-AC-9, S-3, S-4, S-7, S-10, P-2, P-3
+AC-9, S-3, S-4, S-7, S-10, S-12, P-2, P-3
 
 ## Depends on
 WO-1.

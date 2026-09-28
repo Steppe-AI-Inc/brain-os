@@ -32,6 +32,9 @@ Contract reference: `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md`. Govern
   - The DIRECTOR owns what must be true: this contract, the invariants, the binding Work Orders, the acceptance criteria, the
     verification specification, and the independence / campaign policies (§1).
   - The IMPLEMENTER owns decomposition, subtasks, sequencing and implementation.
+  - For this milestone the founder placed the DIRECTOR capability on the Home machine (I A.4 §3), a placement that grants nothing
+    (II.1). No session that implements this feature holds the DIRECTOR capability for it (`CLAUDE.md` §8). Who confers the
+    capability for other features is a constitution question, surfaced to the founder (ledger founder items).
   - **The implementer can never define or alter the contract it is judged against.** A change to what must be true is a CHANGE REQUEST,
     binding only after the Director ratifies it.
 - **Implementation through the Factory where safely possible** (II.4). Work reaches implementers through Factory work orders once the
@@ -60,20 +63,27 @@ Contract reference: `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md`. Govern
   - Implementation completes everything else with dev keys on disposable planes.
   - **Final acceptance (AC-1..AC-4) needs C-3 decided**, because a live-plane node trusts only a founder-provisioned key (S-5).
 - **Founder boundaries** (actions, not policy gates; I A.4 §12):
-  - the live Factory migration;
+  - the live Factory migration, applied as exactly the live-migration step in the certified candidate's receipt (AC-11);
   - the live Edge deploy;
   - production secrets (the pepper, API roles);
   - the production Brain OS deploy by PR into `master`;
   - installer Authenticode signing;
   - re-enrolling the existing nodes;
   - retiring the legacy path;
-  - a pre-candidate Edge record for AC-10 (function names, versions, sha256 and updated_at; secret names, never values), read by the
-    founder or with a read-only token the founder provides. A one-time action, not a gate under II.11: verification proceeds without
-    it, and only CERTIFIED ledger entries wait for it (AC-10);
-  - provisioning the SELECT-only observer role for the Director's live reads (required before final acceptance);
-  - confirming the implementer signing-key fingerprint out of band. This is a one-time action, not a policy decision and not a gate
-    under II.11: verification runs and receipts proceed before it, only the CERTIFIED ledger entry waits for it, and a REJECTED
-    verdict does not.
+  - a pre-candidate Edge record for AC-10 (function names, versions, sha256 and updated_at; secret names and, where shown, value
+    digests; never values), read by the founder or with a founder-provided token: the provider lists its scopes, and each listed
+    scope is read-only (a token whose scopes are not listed is refused, and the founder reads in person instead). The Director holds
+    the token only on the Director machine, outside every repository and runner.env; the event log records its id, scopes and
+    expiry, never its value. The one-time action is that record plus one such token, which the founder revokes at final acceptance;
+    each candidate's Edge reading is then a Director read with the token. If the founder reads in person instead, each reading is a
+    recurring founder action (surfaced in the ledger). Not a gate
+    under II.11: verification proceeds without it, only CERTIFIED ledger entries wait for it, and a missing record never REJECTS. Its
+    content is bounded by AC-10's timing rule (the handoff of binding work orders), and each CERTIFIED entry also waits for a
+    candidate's Edge reading, read the same way (AC-10);
+  - provisioning the SELECT-only observer role for the Director's live reads (required before final acceptance), and confirming at
+    its first read that every storage bucket it lists is founder-approved (AC-10);
+  - the implementer signing identity (CR-005): CONFIRMED by founder ruling on 2026-09-26 and recorded in the ledger. It covers
+    implementer / candidate-provenance commits only and does not resolve C-3.
 - **Side finding S1, surfaced to the founder** (a production matter, outside this feature's authority). The Brain OS production policy
   `profiles_update_self_or_admin` has no `WITH CHECK`, so at source level an employee can set its own `profiles.role`. S-8(b) keeps
   Factory administration safe regardless. The production fix is a founder action.
@@ -83,9 +93,9 @@ Contract reference: `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md`. Govern
   |---|---|
   | QA single-writer files | Director (II.6), not the independent-acceptance role |
   | Part I's machine-named ownership ("the WORK PC owns…", "Work-PC authority") | read as the IMPLEMENTER capability (II.1, II.10) |
-  | Verification placement | a preference, except the milestone restrictions S-16, which the founder stated as hard lines (II.1, I A.3 §1) |
+  | Verification placement | a preference, except the milestone restrictions S-16, which the founder stated as hard lines (II.1, I A.3 §1). S-16(a)'s product-layer allow-list (a Home-computer record takes an authoring run only of a work order confined to the Director-document paths) is a Director restriction, stricter than the founder's line, and only removes eligibility |
   | Eligibility order | I A.4 §7's exact order governs (the later, specific founder ruling); I A.1 §3's "authorization → tenancy → …" and II.10's list are summaries, not orders. Included in the Part I confirmation request |
-  | I A.4 §4 "service / watchdog" vs I A.2 "per-user install, no admin" | a per-user task at logon plus a watchdog, and no Windows service: after a reboot the node runs from the installing user's next logon. Included in the Part I confirmation request |
+  | I A.4 §4 "service / watchdog" vs I A.2 "per-user install, no admin" | a per-user task at logon plus a watchdog, and no Windows service: after a reboot the node runs from the installing user's next logon. While the installing user is logged off, the computer derives STALE / OFFLINE, does no work, and its leases lapse into the certified takeover (AC-1). Included in the Part I confirmation request, with that consequence, as the reading of I A.4 §4's "persistent" |
   | Branch names (I A.3 §3) | the feature branch `factory/auto-enrollment-v1-contract` was superseded at `27d78ff6` by the Director's branch decision (ADR amendment 10; founder confirmation requested). I A.3 §3's isolation rules apply unchanged to the implementation branch and its worktree. Implementation advances on `factory/auto-enrollment-v1-implementation`, built on the designated Director commit. The live legacy checkout rule is unchanged |
 
 ## 1. Canonical state (facts; the implementer designs the tables inside `supabase/control-plane/`, never `supabase/migrations/`)
@@ -102,7 +112,7 @@ Contract reference: `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md`. Govern
     effect of another action or of any node call. A node can never mint one.
   - The enrollment states (§2) apply per credential. A further principal's credential walks them from PAIRING_CODE_ISSUED while the
     computer stays ALIVE, and revoking one principal's credential moves only that credential to CREDENTIAL_REVOKED. The computer's
-    displayed state is derived from its credentials.
+    displayed state is derived from its principals' states by the rule under **Derived** below.
   - A principal created by "create an agent principal" receives its first credential only through a pairing code a Factory admin
     issues for it. Enrollment binds a credential to the principal its pairing code was issued for (at Add Computer, the computer's
     first principal), and re-pair targets the principal of the revoked credential.
@@ -120,10 +130,13 @@ Contract reference: `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md`. Govern
 
 - **Machine fingerprint:** sha256 of the Windows MachineGuid, readable by a standard user and the same for every enrollment and run
   on one PC. It is recorded on the computer record at registration and on every run. It never grants anything; it only refuses
-  (S-16b).
+  or restricts: S-16(b)'s certification refusal, S-14's refusal of an unbound registration that reports a bound record's
+  fingerprint, and S-16(a)'s Home-computer records. Its exact value is the lowercase hex sha256 of the UTF-8 bytes of the
+  MachineGuid registry string, exactly as stored.
 
 - **Node credential:** a per-node key pair. The server stores only the public key. States `active | superseded | revoked`.
-  - A session token may be exchanged, but **credential status is re-checked inside every call's transaction** (S-3).
+  - A session token may be exchanged, but **credential status is re-checked inside every call's transaction** (S-3). The server
+    stores a session token at most as its hash, never in clear (S-12).
   - **Re-pair** (a Factory admin action, audited): revokes a principal's active credential and issues a new pairing code for the same
     principal on the same computer.
     The new credential is a new key. A revoked credential never becomes active again. The computer keeps its durable identity and
@@ -144,10 +157,11 @@ Contract reference: `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md`. Govern
   - The legacy verification columns of `agent_runs` keep their `69df2f52` meaning and never count as a new-model certification.
   - A certification counts only for its work order, and only while its provenance is the work order's current candidate (S-13).
 - **Independence and campaign policies (Director-issued data; S-14).**
-  - The Director writes the content. A candidate migration seeds exactly these rows.
+  - The Director writes the content. A candidate migration seeds exactly these policy rows ("What a candidate migration writes").
   - Through the Admin API a Factory admin may only make a policy **stricter**, audited.
   - The campaign rows cannot be changed through the Admin API during this milestone, except S-14's one write: binding S-16(a) to a
-    computer record at its Add Computer (add-only).
+    computer record at its Add Computer (add-only; an archived record keeps it, and archiving and re-enrolling never release it;
+    S-14).
   - The certification front door enforces the S-13 floor whatever the policy data says.
 
   The rows:
@@ -158,12 +172,39 @@ Contract reference: `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md`. Govern
     - physical separation not required.
   - **Campaign "Auto-Enrollment V1":**
     - the tenant default;
-    - plus the certifying node differs physically from the node of every member of the authoring set, for every milestone candidate
-      (a different enrolled computer record whose reported fingerprint also differs; equal fingerprints refuse, and a hostname or a
-      different fingerprint alone never satisfies it);
-    - plus no authoring run of Auto-Enrollment product code on the computer the S-16 restriction is bound to. A Factory admin binds it
-      to the Home computer's record at that computer's Add Computer enrollment (S-14's one permitted write); unbinding and rebinding
-      are refused during this milestone. The product-layer scope and its evidence are stated in S-16.
+    - plus the certifying node differs physically from the node of every member of the authoring set, for every milestone candidate.
+      A different physical machine means a different enrolled computer record whose machine fingerprint also differs: any
+      fingerprint the certifying computer has reported that equals any fingerprint an authoring-set member's computer reported during
+      the candidate refuses (detection may only restrict), and a hostname or a different fingerprint alone never satisfies it;
+    - plus no authoring run of Auto-Enrollment product code on a Home-computer record: the record the S-16 restriction is bound to,
+      archived or not, or any computer record that has reported a machine fingerprint such a record has reported. A Factory admin
+      binds it to the Home computer's record at that computer's Add Computer enrollment (S-14's one permitted write); unbinding,
+      rebinding and an unbound re-enrollment of a bound computer are refused during this milestone (S-14). The definition, the
+      product-layer scope and its evidence are stated in S-16.
+- **The candidate migration** (AC-11, WO-1): every `.sql` file the candidate adds under `supabase/control-plane/`, recursively,
+  excluding `supabase/control-plane/edge/`, since `69df2f52`, or since the last founder-applied step once one exists (the ledger
+  event log lists each applied step's embedded files by path and sha256), applied in byte order of repository-relative path.
+  - The `69df2f52` files `001`..`003`, and every file a founder-applied step embedded, are never changed; a change to one is a
+    finding (`VERIFICATION_SPEC.md` §3.1).
+  - Every disposable plane that judges a candidate is a judging plane (`VERIFICATION_SPEC.md` §3.3): a local Supabase database whose
+    bootstrap superuser aligns its roles and their settings, memberships, database and schema ACLs, default privileges, extensions and
+    event triggers to the pre-candidate referent, leaving what the `69df2f52` provisioning and the founder-applied steps create to the
+    applying login (an object they change is aligned first, then changed by the replay).
+    Its applying login `postgres` (NOSUPERUSER, aligned to the live applying role) then provisions it as `69df2f52` (the statements
+    of the `69df2f52` provisioner's dedicated-Supabase mode and the `69df2f52` files, from a fresh `69df2f52` clone), loads
+    `BASELINE_69df2f52_EVIDENCE_ROWS.json` unchanged, and applies, in event-log order, every founder-applied step at the sha256 its
+    certifying receipt records. Once its catalog is proved equal to the referent, the same login applies exactly the step the verifier
+    builds from the candidate migration (§3.3, §3.5); a plane that is not equal judges nothing. The certified reference suites are the
+    exception: they create their own databases as their `69df2f52` bytes do, and prove legacy non-regression only.
+- **What a candidate migration writes** (S-4, S-8, S-13, S-14; checked by `VERIFICATION_SPEC.md` §3.5 and AC-12).
+  - It seeds exactly the policy rows above and the one operator tenant row. The tenant row holds no user id and refers to no
+    computer, principal, credential or envelope.
+  - It writes no other row: no computer, agent principal, credential, envelope, pairing code, enrollment attempt, `tenant_admins`,
+    release, release revocation or certification row, and no S-16(a) binding. No column default writes an S-16(a) binding.
+  - In a pre-existing table outside the system catalogs, it adds and deletes no row and changes no value. In a column it adds, a
+    pre-existing row holds a value, such as its `tenant_id`, that refers to no computer, principal, credential or envelope.
+  - No object it defines (a view, function, default, trigger or policy) holds a constant that identifies a Brain OS user, a
+    computer record, an agent principal, a credential, a signing key or an envelope.
 - **Legacy nodes.**
   - The two existing nodes run `69df2f52` as `legacy_manual` nodes on the baseline's shared credential. They hold no envelope, cannot
     certify release candidates, and count toward AC-3 only after re-enrollment through Add Computer (a founder boundary).
@@ -184,10 +225,21 @@ Contract reference: `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md`. Govern
     claim transaction: the `69df2f52` reaper's requeue and expired-lock delete skip them, and the front doors own their expiry.
   - A lapsed enrolled surface lock never makes the frozen legacy claim fail or stall the legacy queue, and never lets a legacy run
     hold that surface while the enrolled run can still complete.
-  - **No plane-conditioned behaviour.** No SQL object the candidate creates, and no step the founder applies, decides what it does from
-    a value that distinguishes the live plane from a disposable one: `factory.plane_identity`, `current_database()`,
-    `inet_server_addr()` / `inet_server_port()`, a setting, or a row that exists only on live. The production-ref refusal is the one
-    exception. The verifier lists every such reference in the candidate diff, and each is a REJECTED finding. (S-10)
+  - **`factory.director_lease`** is the `69df2f52` dispatcher's process lease (a single-row table). It grants no DIRECTOR (governance)
+    authority, no certification and no eligibility. One legacy director dispatches legacy work at a time, as at `69df2f52`, and
+    new-model dispatch never waits on the legacy director's lease. Any legacy write leaves new-model dispatcher state unchanged,
+    without failing the legacy director's transaction (S-10).
+  - **No plane-conditioned behaviour.** No SQL object or Edge handler the candidate adds or changes, and no step the founder applies,
+    decides what it does from a value that can tell the live plane from a disposable one, or live operation from the verifier's run:
+    for example `factory.plane_identity`, `current_database()`, `inet_server_addr()` / `inet_server_port()`, `version()`, a setting
+    whose value can differ between planes, a record or object that exists on only one of them, or the current time compared with a
+    fixed date. The production-ref refusal is the one exception; it behaves the same on the live plane and on every disposable plane.
+    Not such a decision (defined by the scan, `VERIFICATION_SPEC.md` §3.4): pinning a setting to a constant (the front doors'
+    `search_path`, a timeout); one rule applied to the call's own inputs whatever their values (the caller, the peer address S-6
+    limits); the plane's own endpoint, credentials and keys used only to connect or to verify (the S-6 pepper); and the Factory's own
+    rows read by a rule of the contract, the founder text or the ported `69df2f52` semantics. The verifier's static scan lists every
+    reference to such a value in the receipt with its class; one it classes as deciding, and one left unclassified, is a REJECTED
+    finding. (S-10)
   - `factory_runner` is granted no role and is granted to no role beyond its `69df2f52` memberships, and no API role is a member of it.
   - The claim front door refuses a work order without `factory-enrolled-v1`, so a legacy and an enrolled node never hold the same work
     order. Both fleets hold surface locks in the one `factory.surface_locks` table.
@@ -195,12 +247,23 @@ Contract reference: `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md`. Govern
     hold. A server guard refuses any legacy write of a reserved capability. So legacy nodes never claim new-model work.
   - This bounds the legacy door and is never a source of authority.
 - **The Director's live observer login:** a founder-provisioned SELECT-only role. It holds SELECT on every `factory` relation,
-  including those the migration adds (a recorded founder change), and on `storage.buckets`. Every Director read of the live plane uses
-  it, never an enrolled computer's credential. Until it exists, candidate-stage live reads use the documented `runner.env` interim,
-  read-only. The interim never serves final acceptance, which requires the observer role (`VERIFICATION_SPEC.md` §6).
+  including those the migration adds (a recorded founder change), and on `storage.buckets`, and row security does not filter its
+  reads of them (for example `BYPASSRLS`; the instrument lists a relation that row security would filter as unreadable). Every
+  Director read of the live plane uses it, never an enrolled computer's credential. Until it exists, candidate-stage live reads use
+  the documented `runner.env` interim, read-only. The interim never serves final acceptance, which requires the observer role
+  (`VERIFICATION_SPEC.md` §6). Its first read is the storage-bucket referent (AC-10), and no column it can read holds a bearer
+  value (S-12).
 - **Derived, never stored as a flag:**
   - runtime liveness: STALE after 180 s without a heartbeat, OFFLINE after 30 min;
-  - the displayed computer state;
+  - the displayed computer state, from each principal's state (that of its active credential; with none, that of its latest pairing
+    code or credential; UNENROLLED with neither):
+    - ARCHIVED when the computer is archived;
+    - otherwise ALIVE when any principal is ALIVE; liveness and the runtime state are derived separately and shown with it;
+    - otherwise CREDENTIAL_REVOKED when every principal is CREDENTIAL_REVOKED;
+    - otherwise the highest state of a principal that is not CREDENTIAL_REVOKED, in this order, lowest first: UNENROLLED,
+      PAIRING_EXPIRED, PAIRING_REVOKED, PAIRING_CODE_ISSUED, PAIRING_STARTED, PAIRING_VERIFIED, NODE_ID_ISSUED,
+      NODE_CREDENTIAL_ISSUED, RUNTIME_INSTALLING, INSTALL_FAILED, REGISTERING, REGISTRATION_FAILED;
+    - the Computers page also shows each principal's own state;
   - fleet counts (aggregate queries).
   - `ALIVE` is the stored terminal milestone of enrollment. Liveness is derived separately.
 
@@ -244,7 +307,7 @@ STALE and OFFLINE are derived (§1).
 
 | From | To | Trigger | Who | Effect |
 |---|---|---|---|---|
-| active (any enrollment or runtime state) | ARCHIVED | archive | Factory admin | every active credential of the computer is revoked, and no work is claimed or assigned; history stays readable |
+| active (any enrollment or runtime state) | ARCHIVED | archive | Factory admin | every active credential of the computer is revoked, and no work is claimed or assigned; history stays readable; an S-16(a) binding stays on the record (S-14) |
 | ARCHIVED | PAIRING_CODE_ISSUED | restore → re-pair | Factory admin | a new key; the old credential stays revoked |
 
 **Release**
@@ -253,7 +316,7 @@ STALE and OFFLINE are derived (§1).
 |---|---|---|---|
 | (after C-3) trust-set revision | candidate | the Director issues a WO-6 revision recording the founder's public keys and key ids; the implementer's next candidate adds exactly those bytes to the trust-set source; it receives a full verification pass | Director (revision), implementer (candidate) |
 | candidate | certified | a Director-committed receipt with verdict CERTIFIED, including the reproduced digest. The plane records it only through the founder's publish action, which cites that receipt; the Director never writes the plane | the verifier certifies; the Director records it in the ledger |
-| certified | published | the founder signs a manifest whose digest equals the reproduced digest (C-3) | founder (tier `founder`) |
+| certified | published | the founder signs a manifest whose digest equals the reproduced digest (C-3) | founder (tier `founder` and live role founder; S-8) |
 | published | superseded | a newer certified release is published | founder |
 | published | revoked | revoke | founder |
 | node on release X | node on the previous certified release | adopt / roll back | Factory admin (a node never downgrades silently) |
@@ -332,7 +395,7 @@ The security / tenancy / authority invariants S-1..S-16 (`.SECURITY_TENANCY.md`)
   - Then ranking among eligible nodes: resource fitness, work class, headroom, load, reliability, locality, priority, queue age.
   - **Resource fitness and hostname never create authority.**
   - No ranking factor, including a placement preference, excludes an eligible node. All ranking together may delay eligible work by
-    **at most 30 s**. Only a founder restriction (S-16) excludes.
+    **at most 30 s**. Only an S-16 milestone restriction excludes.
 - **P-7 Numeric priority** (I A.4 §11), with a regression proving 2 < 10 < 100.
 - **P-8 Factory V1 accounting is cumulative** (II.9; binding, not a gate). V1 evidence is, each part with exact release / SHA provenance:
   1. **the closed two-machine baseline evidence at `69df2f52`** (the manifest + ledger 218);
@@ -357,7 +420,7 @@ The security / tenancy / authority invariants S-1..S-16 (`.SECURITY_TENANCY.md`)
 |---|---|
 | Add Computer: configure the envelope, issue / revoke a pairing code, re-pair | a Factory admin (S-8: role founder \| holding_admin **and** listed in `tenant_admins`) |
 | grant `release_broker` in an envelope; publish a release | founder-only per S-8 (tier `founder` in `tenant_admins` and live role founder; CR-003) |
-| bind S-16(a) to a computer at its Add Computer (add-only) | a Factory admin (S-14's one permitted campaign write) |
+| bind S-16(a) to a computer at its Add Computer (add-only; never released by archive and re-enrollment) | a Factory admin (S-14's one permitted campaign write) |
 | start / verify pairing, obtain the node credential | the holder of a valid, unexpired, unconsumed code, once |
 | every node operation | the node's own active credential, within its envelope. Tenant, identity and authority come from the credential, never from the body |
 | amend envelope; drain / resume; rotate / revoke credential; archive / restore; create an agent principal and issue its pairing code | a Factory admin |

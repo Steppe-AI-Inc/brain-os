@@ -17,8 +17,15 @@
     ],
     "session": {
       "transaction_read_only": "on",
-      "search_path": "pg_catalog",
-      "timezone": "UTC"
+      "search_path": "pg_catalog, pg_temp",
+      "TimeZone": "UTC",
+      "IntervalStyle": "iso_8601",
+      "DateStyle": "ISO, MDY",
+      "extra_float_digits": "1",
+      "bytea_output": "hex",
+      "quote_all_identifiers": "off",
+      "standard_conforming_strings": "on",
+      "temporary_objects": 0
     },
     "root_head": "69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6",
     "pinned": [
@@ -247,12 +254,12 @@
       "rolbypassrls": false,
       "rolinherit": true,
       "rolcanlogin": false,
-      "rolconfig": {
-        "names": [
-          "statement_timeout"
-        ],
-        "values_sha256": "03b05d5c91cbb891e19776bfed93bd6c6286724f5fb16a11b4946d4a8da7f63e"
-      }
+      "rolconfig": [
+        {
+          "name": "statement_timeout",
+          "value_sha256": "1e93cc055d0a90f48e1b5c0ed4eceb9cb80879ab37e852be68668a3cfe880132"
+        }
+      ]
     },
     {
       "rolname": "authenticated",
@@ -263,12 +270,12 @@
       "rolbypassrls": false,
       "rolinherit": true,
       "rolcanlogin": false,
-      "rolconfig": {
-        "names": [
-          "statement_timeout"
-        ],
-        "values_sha256": "2733934ac3d875ceb5be963c28e332590de46c41a13fd3faaa1fe42391c6b39f"
-      }
+      "rolconfig": [
+        {
+          "name": "statement_timeout",
+          "value_sha256": "a5da9841fa3011b3c456f51181f7d7965ff96ee8a4f4c971920e2dce6d0cc0e1"
+        }
+      ]
     },
     {
       "rolname": "authenticator",
@@ -279,14 +286,20 @@
       "rolbypassrls": false,
       "rolinherit": false,
       "rolcanlogin": true,
-      "rolconfig": {
-        "names": [
-          "lock_timeout",
-          "session_preload_libraries",
-          "statement_timeout"
-        ],
-        "values_sha256": "5acbe884e743d6a90192290db2368586c3a183f5dd5ae4315186801771522f06"
-      }
+      "rolconfig": [
+        {
+          "name": "lock_timeout",
+          "value_sha256": "a5da9841fa3011b3c456f51181f7d7965ff96ee8a4f4c971920e2dce6d0cc0e1"
+        },
+        {
+          "name": "session_preload_libraries",
+          "value_sha256": "c010590ae41b57ca804a08839c5da5c2d4308c508296f9ceee3986a3b7da9240"
+        },
+        {
+          "name": "statement_timeout",
+          "value_sha256": "a5da9841fa3011b3c456f51181f7d7965ff96ee8a4f4c971920e2dce6d0cc0e1"
+        }
+      ]
     },
     {
       "rolname": "dashboard_user",
@@ -297,10 +310,7 @@
       "rolbypassrls": false,
       "rolinherit": true,
       "rolcanlogin": false,
-      "rolconfig": {
-        "names": [],
-        "values_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-      }
+      "rolconfig": []
     },
     {
       "rolname": "factory_runner",
@@ -311,10 +321,7 @@
       "rolbypassrls": false,
       "rolinherit": false,
       "rolcanlogin": true,
-      "rolconfig": {
-        "names": [],
-        "values_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-      }
+      "rolconfig": []
     },
     {
       "rolname": "pgbouncer",
@@ -325,10 +332,7 @@
       "rolbypassrls": false,
       "rolinherit": true,
       "rolcanlogin": true,
-      "rolconfig": {
-        "names": [],
-        "values_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-      }
+      "rolconfig": []
     },
     {
       "rolname": "postgres",
@@ -339,12 +343,12 @@
       "rolbypassrls": true,
       "rolinherit": true,
       "rolcanlogin": true,
-      "rolconfig": {
-        "names": [
-          "search_path"
-        ],
-        "values_sha256": "600d5011e564417c685ee8432ffa3ef5fd6d6abeab93c8bda6d174db3df46948"
-      }
+      "rolconfig": [
+        {
+          "name": "search_path",
+          "value_sha256": "e0b464b8b36c1e9198c444c8e1946add836c6dfe5712ceca848c69d48e0a0974"
+        }
+      ]
     },
     {
       "rolname": "service_role",
@@ -355,10 +359,7 @@
       "rolbypassrls": true,
       "rolinherit": true,
       "rolcanlogin": false,
-      "rolconfig": {
-        "names": [],
-        "values_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-      }
+      "rolconfig": []
     },
     {
       "rolname": "supabase_admin",
@@ -369,13 +370,16 @@
       "rolbypassrls": true,
       "rolinherit": true,
       "rolcanlogin": true,
-      "rolconfig": {
-        "names": [
-          "log_statement",
-          "search_path"
-        ],
-        "values_sha256": "3e8456d9bdafb7a01e6ed4d1be21e8a9c07774a0e5b1f275bf5fd6ec934b091b"
-      }
+      "rolconfig": [
+        {
+          "name": "log_statement",
+          "value_sha256": "140bedbf9c3f6d56a9846d2ba7088798683f4da0c248231336e6a05679e4fdfe"
+        },
+        {
+          "name": "search_path",
+          "value_sha256": "2fa71673b06ce4fea46f04ef6c8810109e8664b8df5d2c67c6724efd9a722569"
+        }
+      ]
     },
     {
       "rolname": "supabase_auth_admin",
@@ -386,14 +390,20 @@
       "rolbypassrls": false,
       "rolinherit": false,
       "rolcanlogin": true,
-      "rolconfig": {
-        "names": [
-          "idle_in_transaction_session_timeout",
-          "log_statement",
-          "search_path"
-        ],
-        "values_sha256": "7ca455d0d2b0557d18001008ec308964f3b31f893840be65fdbfe807f72896f5"
-      }
+      "rolconfig": [
+        {
+          "name": "idle_in_transaction_session_timeout",
+          "value_sha256": "d55d01d0341ed0ba2cd99b322e8c5b609254f47d10c7cd12b99b4922effeba44"
+        },
+        {
+          "name": "log_statement",
+          "value_sha256": "140bedbf9c3f6d56a9846d2ba7088798683f4da0c248231336e6a05679e4fdfe"
+        },
+        {
+          "name": "search_path",
+          "value_sha256": "bdf49c3c3882102fc017ffb661108c63a836d065888a4093994398cc55c2ea2f"
+        }
+      ]
     },
     {
       "rolname": "supabase_etl_admin",
@@ -404,10 +414,7 @@
       "rolbypassrls": true,
       "rolinherit": true,
       "rolcanlogin": true,
-      "rolconfig": {
-        "names": [],
-        "values_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-      }
+      "rolconfig": []
     },
     {
       "rolname": "supabase_privileged_role",
@@ -418,10 +425,7 @@
       "rolbypassrls": false,
       "rolinherit": true,
       "rolcanlogin": false,
-      "rolconfig": {
-        "names": [],
-        "values_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-      }
+      "rolconfig": []
     },
     {
       "rolname": "supabase_read_only_user",
@@ -432,12 +436,12 @@
       "rolbypassrls": true,
       "rolinherit": true,
       "rolcanlogin": true,
-      "rolconfig": {
-        "names": [
-          "default_transaction_read_only"
-        ],
-        "values_sha256": "c3893583d92a6edb7c2e85a3d6e471505c99966a116af5ef94354749231f11a5"
-      }
+      "rolconfig": [
+        {
+          "name": "default_transaction_read_only",
+          "value_sha256": "b8d31e852725afb1e26d53bab6095b2bff1749c9275be13ed1c05a56ed31ec09"
+        }
+      ]
     },
     {
       "rolname": "supabase_realtime_admin",
@@ -448,12 +452,12 @@
       "rolbypassrls": false,
       "rolinherit": false,
       "rolcanlogin": false,
-      "rolconfig": {
-        "names": [
-          "search_path"
-        ],
-        "values_sha256": "82be56eff6a42ad54b09ed1f632d890722a8916cf02afae4ee21c208294a7439"
-      }
+      "rolconfig": [
+        {
+          "name": "search_path",
+          "value_sha256": "ba6e987d189c020e008f4ab4609484c980b42071937d696c4f6c9dff8381d5ae"
+        }
+      ]
     },
     {
       "rolname": "supabase_replication_admin",
@@ -464,10 +468,7 @@
       "rolbypassrls": false,
       "rolinherit": true,
       "rolcanlogin": true,
-      "rolconfig": {
-        "names": [],
-        "values_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
-      }
+      "rolconfig": []
     },
     {
       "rolname": "supabase_storage_admin",
@@ -478,213 +479,320 @@
       "rolbypassrls": false,
       "rolinherit": false,
       "rolcanlogin": true,
-      "rolconfig": {
-        "names": [
-          "log_statement",
-          "search_path"
-        ],
-        "values_sha256": "0828085c231220f698eb754961ab6e751c75068db3ddbd8d28ed9a547b1eca1a"
-      }
+      "rolconfig": [
+        {
+          "name": "log_statement",
+          "value_sha256": "140bedbf9c3f6d56a9846d2ba7088798683f4da0c248231336e6a05679e4fdfe"
+        },
+        {
+          "name": "search_path",
+          "value_sha256": "49a25f9feefaffecad0fcd30c50dc9331cff8b55ece53def6285c09e17e6f5d7"
+        }
+      ]
     }
   ],
   "role_memberships": [
     {
       "granted_role": "anon",
       "member": "authenticator",
-      "admin_option": false
+      "admin_option": false,
+      "inherit_option": false,
+      "set_option": true,
+      "grantor": "supabase_admin"
     },
     {
       "granted_role": "anon",
       "member": "postgres",
-      "admin_option": true
+      "admin_option": true,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
     },
     {
       "granted_role": "anon",
       "member": "supabase_realtime_admin",
-      "admin_option": false
+      "admin_option": false,
+      "inherit_option": false,
+      "set_option": true,
+      "grantor": "supabase_admin"
     },
     {
       "granted_role": "authenticated",
       "member": "authenticator",
-      "admin_option": false
+      "admin_option": false,
+      "inherit_option": false,
+      "set_option": true,
+      "grantor": "supabase_admin"
     },
     {
       "granted_role": "authenticated",
       "member": "postgres",
-      "admin_option": true
+      "admin_option": true,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
     },
     {
       "granted_role": "authenticated",
       "member": "supabase_realtime_admin",
-      "admin_option": false
+      "admin_option": false,
+      "inherit_option": false,
+      "set_option": true,
+      "grantor": "supabase_admin"
     },
     {
       "granted_role": "authenticator",
       "member": "postgres",
-      "admin_option": true
+      "admin_option": true,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
     },
     {
       "granted_role": "authenticator",
       "member": "supabase_storage_admin",
-      "admin_option": false
+      "admin_option": false,
+      "inherit_option": false,
+      "set_option": true,
+      "grantor": "supabase_admin"
     },
     {
       "granted_role": "factory_runner",
       "member": "postgres",
-      "admin_option": true
+      "admin_option": true,
+      "inherit_option": false,
+      "set_option": false,
+      "grantor": "supabase_admin"
     },
     {
       "granted_role": "pg_create_subscription",
       "member": "postgres",
-      "admin_option": true
+      "admin_option": true,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
     },
     {
       "granted_role": "pg_monitor",
       "member": "postgres",
-      "admin_option": true
+      "admin_option": true,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
     },
     {
       "granted_role": "pg_monitor",
       "member": "supabase_etl_admin",
-      "admin_option": false
+      "admin_option": false,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
     },
     {
       "granted_role": "pg_monitor",
       "member": "supabase_read_only_user",
-      "admin_option": false
+      "admin_option": false,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
     },
     {
       "granted_role": "pg_read_all_data",
       "member": "postgres",
-      "admin_option": true
+      "admin_option": true,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
     },
     {
       "granted_role": "pg_read_all_data",
       "member": "supabase_etl_admin",
-      "admin_option": false
+      "admin_option": false,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
     },
     {
       "granted_role": "pg_read_all_data",
       "member": "supabase_read_only_user",
-      "admin_option": false
+      "admin_option": false,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
     },
     {
       "granted_role": "pg_signal_backend",
       "member": "postgres",
-      "admin_option": true
+      "admin_option": true,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
     },
     {
       "granted_role": "service_role",
       "member": "authenticator",
-      "admin_option": false
+      "admin_option": false,
+      "inherit_option": false,
+      "set_option": true,
+      "grantor": "supabase_admin"
     },
     {
       "granted_role": "service_role",
       "member": "postgres",
-      "admin_option": true
+      "admin_option": true,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
     },
     {
       "granted_role": "service_role",
       "member": "supabase_realtime_admin",
-      "admin_option": false
+      "admin_option": false,
+      "inherit_option": false,
+      "set_option": true,
+      "grantor": "supabase_admin"
     },
     {
       "granted_role": "supabase_privileged_role",
       "member": "postgres",
-      "admin_option": false
+      "admin_option": false,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
     },
     {
       "granted_role": "supabase_privileged_role",
       "member": "supabase_etl_admin",
-      "admin_option": false
+      "admin_option": false,
+      "inherit_option": true,
+      "set_option": true,
+      "grantor": "supabase_admin"
     }
   ],
   "role_database_settings": [
     {
       "db": "(all databases)",
       "role": "anon",
-      "names": [
-        "statement_timeout"
-      ],
-      "values_sha256": "03b05d5c91cbb891e19776bfed93bd6c6286724f5fb16a11b4946d4a8da7f63e"
+      "settings": [
+        {
+          "name": "statement_timeout",
+          "value_sha256": "1e93cc055d0a90f48e1b5c0ed4eceb9cb80879ab37e852be68668a3cfe880132"
+        }
+      ]
     },
     {
       "db": "(all databases)",
       "role": "authenticated",
-      "names": [
-        "statement_timeout"
-      ],
-      "values_sha256": "2733934ac3d875ceb5be963c28e332590de46c41a13fd3faaa1fe42391c6b39f"
+      "settings": [
+        {
+          "name": "statement_timeout",
+          "value_sha256": "a5da9841fa3011b3c456f51181f7d7965ff96ee8a4f4c971920e2dce6d0cc0e1"
+        }
+      ]
     },
     {
       "db": "(all databases)",
       "role": "authenticator",
-      "names": [
-        "lock_timeout",
-        "session_preload_libraries",
-        "statement_timeout"
-      ],
-      "values_sha256": "5acbe884e743d6a90192290db2368586c3a183f5dd5ae4315186801771522f06"
+      "settings": [
+        {
+          "name": "lock_timeout",
+          "value_sha256": "a5da9841fa3011b3c456f51181f7d7965ff96ee8a4f4c971920e2dce6d0cc0e1"
+        },
+        {
+          "name": "session_preload_libraries",
+          "value_sha256": "c010590ae41b57ca804a08839c5da5c2d4308c508296f9ceee3986a3b7da9240"
+        },
+        {
+          "name": "statement_timeout",
+          "value_sha256": "a5da9841fa3011b3c456f51181f7d7965ff96ee8a4f4c971920e2dce6d0cc0e1"
+        }
+      ]
     },
     {
       "db": "(all databases)",
       "role": "postgres",
-      "names": [
-        "search_path"
-      ],
-      "values_sha256": "600d5011e564417c685ee8432ffa3ef5fd6d6abeab93c8bda6d174db3df46948"
+      "settings": [
+        {
+          "name": "search_path",
+          "value_sha256": "e0b464b8b36c1e9198c444c8e1946add836c6dfe5712ceca848c69d48e0a0974"
+        }
+      ]
     },
     {
       "db": "(all databases)",
       "role": "supabase_admin",
-      "names": [
-        "log_statement",
-        "search_path"
-      ],
-      "values_sha256": "3e8456d9bdafb7a01e6ed4d1be21e8a9c07774a0e5b1f275bf5fd6ec934b091b"
+      "settings": [
+        {
+          "name": "log_statement",
+          "value_sha256": "140bedbf9c3f6d56a9846d2ba7088798683f4da0c248231336e6a05679e4fdfe"
+        },
+        {
+          "name": "search_path",
+          "value_sha256": "2fa71673b06ce4fea46f04ef6c8810109e8664b8df5d2c67c6724efd9a722569"
+        }
+      ]
     },
     {
       "db": "(all databases)",
       "role": "supabase_auth_admin",
-      "names": [
-        "idle_in_transaction_session_timeout",
-        "log_statement",
-        "search_path"
-      ],
-      "values_sha256": "7ca455d0d2b0557d18001008ec308964f3b31f893840be65fdbfe807f72896f5"
+      "settings": [
+        {
+          "name": "idle_in_transaction_session_timeout",
+          "value_sha256": "d55d01d0341ed0ba2cd99b322e8c5b609254f47d10c7cd12b99b4922effeba44"
+        },
+        {
+          "name": "log_statement",
+          "value_sha256": "140bedbf9c3f6d56a9846d2ba7088798683f4da0c248231336e6a05679e4fdfe"
+        },
+        {
+          "name": "search_path",
+          "value_sha256": "bdf49c3c3882102fc017ffb661108c63a836d065888a4093994398cc55c2ea2f"
+        }
+      ]
     },
     {
       "db": "(all databases)",
       "role": "supabase_read_only_user",
-      "names": [
-        "default_transaction_read_only"
-      ],
-      "values_sha256": "c3893583d92a6edb7c2e85a3d6e471505c99966a116af5ef94354749231f11a5"
+      "settings": [
+        {
+          "name": "default_transaction_read_only",
+          "value_sha256": "b8d31e852725afb1e26d53bab6095b2bff1749c9275be13ed1c05a56ed31ec09"
+        }
+      ]
     },
     {
       "db": "(all databases)",
       "role": "supabase_realtime_admin",
-      "names": [
-        "search_path"
-      ],
-      "values_sha256": "82be56eff6a42ad54b09ed1f632d890722a8916cf02afae4ee21c208294a7439"
+      "settings": [
+        {
+          "name": "search_path",
+          "value_sha256": "ba6e987d189c020e008f4ab4609484c980b42071937d696c4f6c9dff8381d5ae"
+        }
+      ]
     },
     {
       "db": "(all databases)",
       "role": "supabase_storage_admin",
-      "names": [
-        "log_statement",
-        "search_path"
-      ],
-      "values_sha256": "0828085c231220f698eb754961ab6e751c75068db3ddbd8d28ed9a547b1eca1a"
+      "settings": [
+        {
+          "name": "log_statement",
+          "value_sha256": "140bedbf9c3f6d56a9846d2ba7088798683f4da0c248231336e6a05679e4fdfe"
+        },
+        {
+          "name": "search_path",
+          "value_sha256": "49a25f9feefaffecad0fcd30c50dc9331cff8b55ece53def6285c09e17e6f5d7"
+        }
+      ]
     },
     {
       "db": "postgres",
       "role": "(all roles)",
-      "names": [
-        "app.settings.jwt_exp"
-      ],
-      "values_sha256": "d1485c6de0620087fd916786b8a64cc9600466d00126f3c05fb888eca3e52a7f"
+      "settings": [
+        {
+          "name": "app.settings.jwt_exp",
+          "secret_named": true
+        }
+      ]
     }
   ],
   "database_acl": [
@@ -1759,6 +1867,258 @@
   ],
   "default_acl": [
     {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "dashboard_user",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "dashboard_user",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "dashboard_user",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "dashboard_user",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "dashboard_user",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "dashboard_user",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "dashboard_user",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "dashboard_user",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "dashboard_user",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "dashboard_user",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "dashboard_user",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "dashboard_user",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "postgres",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "auth",
+      "for_role": "supabase_auth_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "extensions",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "extensions",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "extensions",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "extensions",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "extensions",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "extensions",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "extensions",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "extensions",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "extensions",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "extensions",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "extensions",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "extensions",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
       "sch": "factory",
       "for_role": "postgres",
       "grantee": "factory_runner",
@@ -1787,6 +2147,678 @@
       "priv": "UPDATE"
     },
     {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "graphql",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "graphql_public",
+      "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
       "sch": "public",
       "for_role": "postgres",
       "grantee": "anon",
@@ -2454,6 +3486,510 @@
     {
       "sch": "public",
       "for_role": "supabase_admin",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "dashboard_user",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "dashboard_user",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "dashboard_user",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "dashboard_user",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "dashboard_user",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "dashboard_user",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "dashboard_user",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "dashboard_user",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "dashboard_user",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "dashboard_user",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "dashboard_user",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "dashboard_user",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "realtime",
+      "for_role": "supabase_admin",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "anon",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "authenticated",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "postgres",
+      "objtype": "r",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "S",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "S",
+      "priv": "UPDATE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "S",
+      "priv": "USAGE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "f",
+      "priv": "EXECUTE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "DELETE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "INSERT"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "MAINTAIN"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "REFERENCES"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "SELECT"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "TRIGGER"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
+      "grantee": "service_role",
+      "objtype": "r",
+      "priv": "TRUNCATE"
+    },
+    {
+      "sch": "storage",
+      "for_role": "postgres",
       "grantee": "service_role",
       "objtype": "r",
       "priv": "UPDATE"
@@ -2756,39 +4292,71 @@
       "evtname": "issue_graphql_placeholder",
       "evtevent": "sql_drop",
       "evtenabled": "O",
-      "fn": "set_graphql_placeholder"
+      "fn": "extensions.set_graphql_placeholder",
+      "owner": "supabase_admin",
+      "security_definer": false,
+      "body_sha256": "80e0c97f0a475697c1b517e0d27887bfa0c2baf138229735a58a345d2168505b",
+      "tags": "DROP EXTENSION"
     },
     {
       "evtname": "issue_pg_cron_access",
       "evtevent": "ddl_command_end",
       "evtenabled": "O",
-      "fn": "grant_pg_cron_access"
+      "fn": "extensions.grant_pg_cron_access",
+      "owner": "supabase_admin",
+      "security_definer": false,
+      "body_sha256": "00db212b76cecd4b0794b2f20c414ab4988d675959747cd12d3eb4c6d6736f38",
+      "tags": "CREATE EXTENSION"
     },
     {
       "evtname": "issue_pg_graphql_access",
       "evtevent": "ddl_command_end",
       "evtenabled": "O",
-      "fn": "grant_pg_graphql_access"
+      "fn": "extensions.grant_pg_graphql_access",
+      "owner": "supabase_admin",
+      "security_definer": false,
+      "body_sha256": "03de03bb70da1d448f7a674215d1b63a924dc7115db657dae34b1aa8977e030e",
+      "tags": "CREATE EXTENSION"
     },
     {
       "evtname": "issue_pg_net_access",
       "evtevent": "ddl_command_end",
       "evtenabled": "O",
-      "fn": "grant_pg_net_access"
+      "fn": "extensions.grant_pg_net_access",
+      "owner": "supabase_admin",
+      "security_definer": false,
+      "body_sha256": "754e58111dbe32030af4d91591dfd78cb3cf8e8f4f56a5fcc199bb0cf7f4ac2b",
+      "tags": "CREATE EXTENSION"
     },
     {
       "evtname": "pgrst_ddl_watch",
       "evtevent": "ddl_command_end",
       "evtenabled": "O",
-      "fn": "pgrst_ddl_watch"
+      "fn": "extensions.pgrst_ddl_watch",
+      "owner": "supabase_admin",
+      "security_definer": false,
+      "body_sha256": "de987df746eb39647098459e7993bd8595e592969b0cd647828a3d13d37cffe0",
+      "tags": ""
     },
     {
       "evtname": "pgrst_drop_watch",
       "evtevent": "sql_drop",
       "evtenabled": "O",
-      "fn": "pgrst_drop_watch"
+      "fn": "extensions.pgrst_drop_watch",
+      "owner": "supabase_admin",
+      "security_definer": false,
+      "body_sha256": "791b41f0632fc86e0fc86a303ec0fd710c4e2ecf947a23422dae2b7a2c122f1d",
+      "tags": ""
     }
   ],
+  "database": {
+    "encoding": "UTF8",
+    "collate": "en_US.UTF-8",
+    "ctype": "en_US.UTF-8",
+    "locale_provider": "i",
+    "locale": "en-US",
+    "icu_rules": null
+  },
   "storage_buckets": {
     "readable": false,
     "note": "storage.buckets is not readable by this login; the observer role covers it"
@@ -2813,11 +4381,35 @@
     "indexes",
     "extensions",
     "event_triggers",
+    "database",
     "storage_buckets"
   ],
-  "snapshot_sha256": "2292e0ae3c421eae2a3b6b1a4ea0743ff8d5c5aabbf9ccf87b762092d4324ccc",
+  "snapshot_sha256": "133561edf13cfe7f3dcad594707fa7aee5c485c8c1167bfd0b82b79646a9c8be",
+  "section_sha256": {
+    "relations": "261bad13b11956dd88b7dd1476434f939cfc48c11707b3daa9c85fd776551f0a",
+    "columns": "1d2b4621a3497c2239ca5c5889b1b3603b512c5e408fa52e66704a67131c1357",
+    "column_acl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "functions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "roles": "36371a679fc6a39f29818ca4b8033b7e42aa837666a3b040cc6448b718a0809e",
+    "role_memberships": "beaf6c7f306be4169957ae563c4c8fb25eae2bde4521e15fd29b52f9db959234",
+    "role_database_settings": "0c31ab6becbbe2007c7bd83699924eadc16f9f9b913c0eac83b9adbfeb5b262a",
+    "database_acl": "27df34c661ab9db678c702487575248e914f61e8da32f4d24ae2a3cc6ee6e7d7",
+    "table_acl": "8cd90f12e4169f8ca7dd4fa7dbec08e6c76dacaf2a2131ae3c23e5aaf545d86e",
+    "function_acl": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "schema_acl": "a4456ebe1c93622c2eec78c2697c2fccc125c3a9a453162ec9db43087f8e8cc9",
+    "default_acl": "245530e94aac26937bcdf391ef3215d258dc70a31bf82ae32b9bc5c790c46bd6",
+    "triggers": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "policies": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "rules": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "constraints": "ac240181b891fe62c76f0c06dce269d72d40d2dcf4eaa03463c26e03f5825636",
+    "indexes": "15346b55e7dc1ca746f9b79f7b0d15d9644a5d7f646795d0fb7cab186ed9de3f",
+    "extensions": "d2249282dc264573ae7d4a3734ae6180addd88a293751de5f12af39505a33a5f",
+    "event_triggers": "993ce1ad3569b2d678638a327f6c06fc62de01e34c65d2c8882b4a857e6ff8f0",
+    "database": "29e4a56b1ff3f2e5d26553a4d2721937cd75e0cfc5506f88ff29a163a5767ac6",
+    "storage_buckets": "f0dc7f0b57b2220936ffd99966920ffc0e87e4a03d2d9c68d09bbc493ebb1b6f"
+  },
   "not_hashed": {
-    "observed_at_utc": "2026-09-26T10:39:07.147188Z",
+    "observed_at_utc": "2026-09-27T13:26:23.098033Z",
     "factory_table_counters": [
       {
         "tbl": "agent_runs",
@@ -2846,7 +4438,7 @@
       {
         "tbl": "nodes",
         "ins": "236",
-        "upd": "5695",
+        "upd": "8424",
         "del": "232"
       },
       {
@@ -2883,52 +4475,52 @@
         "n": 12,
         "rows": [
           {
-            "key": "1522f765-d3c5-4a13-8ae3-be5a8b2fe473",
-            "sha256": "0dc61defe15f6b0bea1bc5c34bfc3d0af92e91cb9fc06320dc49bf0eba7f4f5c"
-          },
-          {
-            "key": "285d4439-af11-4a50-ab98-88db45e15e28",
-            "sha256": "967d0268a46ed303aec89b09af1ca5a8081124b5d09f7675c0d3067df9ca046a"
-          },
-          {
-            "key": "2f4c6d88-8c86-4a34-8f3c-b9064ab49feb",
-            "sha256": "77e3deef57ac25456680010fa36c446ca456b365e1f8c7a39aaa01f1d703cba5"
-          },
-          {
-            "key": "33ce7276-c4e5-4cf6-a1e0-cb97b7d61abd",
-            "sha256": "5c5d1da694f92a655e0fbc56a17f0d43adeeafa55dacc4d1acc6033f935413e0"
-          },
-          {
-            "key": "56ab2fc7-5432-4050-940e-6a24c6922dd2",
-            "sha256": "b62dbf4dc0b183bb6dd193d53ef2a996b29a6ac84736d224adde1fa9c434e9b6"
-          },
-          {
-            "key": "6b9447ec-4b59-4452-b8b1-55938a9fa6e5",
-            "sha256": "110a01d197b141b0fe20d13a35f2c2a0eecb43e7967a1c7afd7e0f23b84bcebb"
-          },
-          {
-            "key": "8dacd112-87ab-4903-8a90-b8e5be69844f",
-            "sha256": "ff22c8731aaf4c441b960ae7efe37b06457071e49b7caf9e79dc140f309f4d02"
-          },
-          {
-            "key": "9bce37ed-bf42-44d4-bacb-049f9721dd21",
-            "sha256": "ce236b9132813621f3e160d7345437f583ae0a18a7bb0df9403d619f2f5e7b22"
-          },
-          {
-            "key": "cc3572c4-bbf8-4cc0-a333-58d036bd1649",
-            "sha256": "0e63c388d9de9815b2f095a0ad29cd210773010e3855fb40deb98035376841f1"
-          },
-          {
-            "key": "d8562881-efe7-4831-aa04-c9b066bf7778",
+            "key_sha256": "1284a6353c58e18b3becdc6df347b068c45dda82fac033940060dfda2af607e3",
             "sha256": "fd62ffa18c1413261843768f449e1346e77ff78568c2cdca42691b1dfc526d6c"
           },
           {
-            "key": "dbc44e76-9db3-4bea-98c2-717b6a9ff059",
+            "key_sha256": "5708e0e826f660828504fd1f9f5c67eb441410f60b94bcce29aedddb6e76e376",
+            "sha256": "77e3deef57ac25456680010fa36c446ca456b365e1f8c7a39aaa01f1d703cba5"
+          },
+          {
+            "key_sha256": "62ea19210ff1de4c9b165bc0f457f492eb4a237876d1b7f085485e47efea3c83",
+            "sha256": "cbcd53a4801fcbe72d8edd428c21f1c0b52f8dc5ba6b76e048cf8679d6107192"
+          },
+          {
+            "key_sha256": "78a3c425e87d9238f49f80ff908d4656e12a6795ae23a547f9744c69ac6e2f6f",
             "sha256": "5349f60a1c7f49d3e3e3a3e09feb01aea7fbc5485105c946baa8533fc70a200d"
           },
           {
-            "key": "fe90383d-3db1-4ef6-a0ba-fab02f565b8d",
-            "sha256": "cbcd53a4801fcbe72d8edd428c21f1c0b52f8dc5ba6b76e048cf8679d6107192"
+            "key_sha256": "a8e946755be6a14668ffe36d523c9bdf8a9b3418cde3d86e6f8f9b416241a059",
+            "sha256": "967d0268a46ed303aec89b09af1ca5a8081124b5d09f7675c0d3067df9ca046a"
+          },
+          {
+            "key_sha256": "bb4a3a34862c1b586979919f1b83c2b8f881fca8f58b42318a48b0bd9249ec7c",
+            "sha256": "ff22c8731aaf4c441b960ae7efe37b06457071e49b7caf9e79dc140f309f4d02"
+          },
+          {
+            "key_sha256": "c2104f08df29c54979846d0def30d7dfbd391bee37c32ba85cfcb4435fb46da1",
+            "sha256": "b62dbf4dc0b183bb6dd193d53ef2a996b29a6ac84736d224adde1fa9c434e9b6"
+          },
+          {
+            "key_sha256": "e011fed4384f428d4a71235671fbb86b5c11070f25cd2d48212f3514914c88c2",
+            "sha256": "0dc61defe15f6b0bea1bc5c34bfc3d0af92e91cb9fc06320dc49bf0eba7f4f5c"
+          },
+          {
+            "key_sha256": "e10dd7ed92436e96e75337f0deba1cb90bf94f9cf33f3448bba3ba351f2f52a9",
+            "sha256": "110a01d197b141b0fe20d13a35f2c2a0eecb43e7967a1c7afd7e0f23b84bcebb"
+          },
+          {
+            "key_sha256": "e165f7cd654ec12e8bd7d372f4579b9aed206dec824dc5c5cfa46175bbe9bef6",
+            "sha256": "ce236b9132813621f3e160d7345437f583ae0a18a7bb0df9403d619f2f5e7b22"
+          },
+          {
+            "key_sha256": "e6de2da82a83c3e14bada6cf7ee3e6b814d78d131e91a4a0b5bfec0b00f524d0",
+            "sha256": "5c5d1da694f92a655e0fbc56a17f0d43adeeafa55dacc4d1acc6033f935413e0"
+          },
+          {
+            "key_sha256": "eabc5f80e75010f1578bcf95924e9899dbb9c0c295be41c28a567b1cabf6b4d8",
+            "sha256": "0e63c388d9de9815b2f095a0ad29cd210773010e3855fb40deb98035376841f1"
           }
         ]
       },
@@ -2940,52 +4532,52 @@
         "n": 12,
         "rows": [
           {
-            "key": "15524e07-539d-42f6-9821-cc17ba50374f",
-            "sha256": "1f0ad1c51c92dda696bfa32a99b8012398998b17528426e43a9ae4f9895915a3"
-          },
-          {
-            "key": "3dbd358e-f895-4393-9a9d-189136bd699b",
-            "sha256": "0ba6a7799578110477da773a48412e1b3bff5a3118c4e757fb8485ae0aafa016"
-          },
-          {
-            "key": "520b2ad1-25eb-4f8f-bc28-33e561775519",
-            "sha256": "4848df7bf629eafeda1a98f365402a1e7a52f68af42ace479f062ff7e40b5971"
-          },
-          {
-            "key": "5578fbf3-7c87-4f24-a0cc-4c185d4d387c",
-            "sha256": "4b17be9bfc95f7bb70e32f646f6247fc60ea94f6810293e8dc72e830a465f332"
-          },
-          {
-            "key": "55cdb59e-a80b-49e6-8e3f-718d67156b2c",
-            "sha256": "4454e500e163d52f7fa2398397f25ea7b5c5f3247afe5e777b4cb6d93be713c0"
-          },
-          {
-            "key": "828444b2-c779-4aaa-ae30-4c0674fb67fb",
-            "sha256": "b29f6718d93deeb1d726212501fff2fecd7e62dd04ad46a9179ca559c0ead407"
-          },
-          {
-            "key": "90ec020a-0dad-4ab6-a69e-6699f3e246d6",
-            "sha256": "957e20d996caaca1e82f3a2bbd9e6f98813d71f5307e97118af921a654109c1e"
-          },
-          {
-            "key": "ae84569a-6d44-4b3e-9f99-7322cfe567fd",
-            "sha256": "1a107450e922c16bb4b6b38028d728157e26e9b639ea18942c7c82641d93b778"
-          },
-          {
-            "key": "c038b9aa-fc15-42c5-84a6-36cee8e23a63",
+            "key_sha256": "0056fee60063dad2856f7ed24d6d05d2e7d19d92241df1aa7f71cbb96afb4702",
             "sha256": "bbb6e42a7437e659afb66cb91b78870f602f3a71b04848599825ea209cc4f9fa"
           },
           {
-            "key": "c7dbda0d-a414-4ede-8a44-b52c9d03b36c",
+            "key_sha256": "058d193bab8a9b305e050ce0508b5870031623253078a9780502adcd572ba4cf",
+            "sha256": "957e20d996caaca1e82f3a2bbd9e6f98813d71f5307e97118af921a654109c1e"
+          },
+          {
+            "key_sha256": "29695fdf0030cd17efef91298278c0be3ae26ea96758dea5f352f83cd6bfefe5",
+            "sha256": "b29f6718d93deeb1d726212501fff2fecd7e62dd04ad46a9179ca559c0ead407"
+          },
+          {
+            "key_sha256": "3b18bc4ac3e59f6f8c04770f2425c9c9b4375c2fb6419a1365d05293d3117565",
+            "sha256": "fa3b1c7e6b159455acc02bd1c4e502e2eaee070e1f37099b49813b78e75ff1c0"
+          },
+          {
+            "key_sha256": "63ae5e57aeb4dc2a4134ec82a5b2a1ccc408f8809cc2ca71f832353f746e0dd6",
+            "sha256": "4454e500e163d52f7fa2398397f25ea7b5c5f3247afe5e777b4cb6d93be713c0"
+          },
+          {
+            "key_sha256": "69022d1b9d345feff6cbf7030b409967a0e372c2674485f1271f3570ef25777f",
+            "sha256": "4848df7bf629eafeda1a98f365402a1e7a52f68af42ace479f062ff7e40b5971"
+          },
+          {
+            "key_sha256": "89e037608723d5e4deaac213b2469874c2fff8efb160ae3b7cae74c8c6b48475",
+            "sha256": "0ba6a7799578110477da773a48412e1b3bff5a3118c4e757fb8485ae0aafa016"
+          },
+          {
+            "key_sha256": "b4249a4a70a7bf2271a01fd0f9a57f4b9cf0c9b102f19e1d6887f4d1675ca7fe",
             "sha256": "675c836f28417342a2199a879eeb3465cbb9334dbaeebbff59f975b84514bdf0"
           },
           {
-            "key": "e5b4fecd-daae-407f-9c54-a3395beefb2b",
-            "sha256": "fd0d6798531aadc9b9deb2b5bba75a6eee846e6b04e09fe2e9a587967e56fce1"
+            "key_sha256": "bdf380320ad01fc543f88cf1dd717fad9a632a11427b8859ff07527893739697",
+            "sha256": "1a107450e922c16bb4b6b38028d728157e26e9b639ea18942c7c82641d93b778"
           },
           {
-            "key": "ef55ddbe-eb59-401d-a99a-9f84bac2d6bf",
-            "sha256": "fa3b1c7e6b159455acc02bd1c4e502e2eaee070e1f37099b49813b78e75ff1c0"
+            "key_sha256": "cb44fa5a651319659d7656a92ee98ff151212b4518b7b3e52bb8a8d0b8e5a190",
+            "sha256": "4b17be9bfc95f7bb70e32f646f6247fc60ea94f6810293e8dc72e830a465f332"
+          },
+          {
+            "key_sha256": "ddd3ee89b175da6af68fd39a1410ac5b8a7134de3d6a1666c50c01e9a0d23c9d",
+            "sha256": "1f0ad1c51c92dda696bfa32a99b8012398998b17528426e43a9ae4f9895915a3"
+          },
+          {
+            "key_sha256": "fd729e60afef62531170b993bf1aedb5862b357174bb516e0881dba5609bcbf2",
+            "sha256": "fd0d6798531aadc9b9deb2b5bba75a6eee846e6b04e09fe2e9a587967e56fce1"
           }
         ]
       },
@@ -3013,19 +4605,19 @@
         "n": 4,
         "rows": [
           {
-            "key": "node-4d4a74dd-4035-4d34-9cac-d2d1a8050d37",
-            "sha256": "263ea5aaa3cf18b65fff2fea5f9b818819293f26de21322ceb789fa93623202b"
-          },
-          {
-            "key": "node-9985e092-bacb-4e8e-8437-e91243af5ff9",
+            "key_sha256": "731278dc2a6cd8612c8c4d2818de7927366932c560d7d4c3e28dbf3505fdd71a",
             "sha256": "4b5c86c1519fa795aa190ef6b0b4e16d1277adb647be14ed98de7227b053e747"
           },
           {
-            "key": "node-tms-4d4a74dd-403",
+            "key_sha256": "78a254fed4f31c7d9a6345004b4ec41f4255439c3b11e5db81a6a3735cbbb1e1",
+            "sha256": "263ea5aaa3cf18b65fff2fea5f9b818819293f26de21322ceb789fa93623202b"
+          },
+          {
+            "key_sha256": "b2604b74e1efa753f11e66ab4885ea0841e81f6d6d2570874b0813a9a59681ec",
             "sha256": "761e00173b0a17e08f365ff857c75ad4b60d224f2b9510f6091ae59fe43f043f"
           },
           {
-            "key": "node-tms-9985e092-bac",
+            "key_sha256": "e0848d6c46ed8a6f75f363122548e2deec2a776459a63e40ed3374c8434b7544",
             "sha256": "d9d872037bc95eb47c92cfe0e3da8797281cbc64d1ae6b1e12f188c86d1ad488"
           }
         ]
@@ -3038,7 +4630,7 @@
         "n": 1,
         "rows": [
           {
-            "key": "npvhuoozkbexddnvkqsj",
+            "key_sha256": "1215821091d8e3daabeedb48cb73b1b6b6e6f75c35d62d31bc2b75e8dfcafa1c",
             "sha256": "cfc980b58c01cb09275bf44e530f7abaf283991b7d0ea537c2a4d300e7b27a87"
           }
         ]
@@ -3068,44 +4660,44 @@
         "n": 10,
         "rows": [
           {
-            "key": "001a358a-3e76-49e6-b70c-5b1da08d330e",
-            "sha256": "e6c7c49da2e26b1e19955b8864560320b443cec4de5aded21f17ff4bdb00570c"
-          },
-          {
-            "key": "14e30db9-ebdf-4039-8a89-90a05793eb71",
-            "sha256": "01ddbb179657aa165a73c005d7df94f61d3df2aa421ef8b3847c38dab5ade263"
-          },
-          {
-            "key": "28027e09-2975-4b8d-be08-c2a3b1f63abc",
-            "sha256": "165580eb004c05b531dd64f43a11b895f900ea63ac221217573d0a6d614def5d"
-          },
-          {
-            "key": "54fb6200-ac7f-4c57-85ea-741b8eea88c9",
-            "sha256": "67f8d31fb4c6539ed916d108e0bb88c3d8c8dd090bb21e5541a2a34aae8e9803"
-          },
-          {
-            "key": "57fb5f84-738e-419b-a36c-be7a7c756209",
-            "sha256": "dbeb860e9ff319dcee9fdf4fba635375abbafc159b0f020798f58495eb5c0c20"
-          },
-          {
-            "key": "852322de-b67d-4e28-adfb-7683bdc18a22",
-            "sha256": "b743aa8bf3a885de295616110bdc997f34bc6244823ed8da351a1df0bd9177ea"
-          },
-          {
-            "key": "d1cb5674-2037-46f5-b08c-f089e9953ac0",
+            "key_sha256": "1791ca3b8dc40e6bc0bc59f44dc8d56c4556606ddbe9986d17d6adb7e77fe986",
             "sha256": "8b97ba66b93ec3f83c83894e734b767993fb7cd52262b4a6227d711d6e8db3bc"
           },
           {
-            "key": "e992749f-4264-41b3-a057-23938e346dfe",
-            "sha256": "5eedcb2ac260419114bd4a0b62369ae170c150c128f4666918600bb02c7ac21e"
+            "key_sha256": "1a6de668c218b26cc69bf5d541723b0358be905ec80b319830dedecc306efab8",
+            "sha256": "c0dae6c4d999fa31762cd58f02173dd495ea23102a977ec5e936856682ec0e52"
           },
           {
-            "key": "f59b680c-39db-4a5c-be69-ec5ded763216",
+            "key_sha256": "5b8413b1e249dcd961392c071b41e7bda78c3fb419436748922404c62f4d71ef",
+            "sha256": "67f8d31fb4c6539ed916d108e0bb88c3d8c8dd090bb21e5541a2a34aae8e9803"
+          },
+          {
+            "key_sha256": "62b948de89cfd281a06d77fe1b470819ad8a228f23e2e45ae50802de90826c55",
+            "sha256": "dbeb860e9ff319dcee9fdf4fba635375abbafc159b0f020798f58495eb5c0c20"
+          },
+          {
+            "key_sha256": "7a581d0b6a99713d12cd379352802f0ecb60ffe16a9247b10ddb979a5b60910e",
             "sha256": "00968e3ac2979bbd7f207f362068034b6a6395205b9d8881c6e44c74c4a18760"
           },
           {
-            "key": "faf6bd9f-16b5-4a91-ab95-beced33aef0e",
-            "sha256": "c0dae6c4d999fa31762cd58f02173dd495ea23102a977ec5e936856682ec0e52"
+            "key_sha256": "83ad5e29089b27538a84485c9adcfa182aa25daa388bc99e64476cedc6d2c5f5",
+            "sha256": "b743aa8bf3a885de295616110bdc997f34bc6244823ed8da351a1df0bd9177ea"
+          },
+          {
+            "key_sha256": "9e5f7b909868642799b133e2df728fbdcd9deb06b0bb7b2b36ee4b901c7a2a2c",
+            "sha256": "5eedcb2ac260419114bd4a0b62369ae170c150c128f4666918600bb02c7ac21e"
+          },
+          {
+            "key_sha256": "aa7276bcbd802e3e9926907b53fd0d73e40f660e6849a7b0724503d2986094f4",
+            "sha256": "01ddbb179657aa165a73c005d7df94f61d3df2aa421ef8b3847c38dab5ade263"
+          },
+          {
+            "key_sha256": "bb0b7b1de3616c3e208dfb63a017e41ed5d40b12530b4f4d9da1d8e84407274f",
+            "sha256": "e6c7c49da2e26b1e19955b8864560320b443cec4de5aded21f17ff4bdb00570c"
+          },
+          {
+            "key_sha256": "cf602c2132cc5052b05119f994cf1acfd482720a5859ad9d7994235ca9eef7eb",
+            "sha256": "165580eb004c05b531dd64f43a11b895f900ea63ac221217573d0a6d614def5d"
           }
         ]
       }

@@ -1,6 +1,6 @@
 # WO-9 — Independent verification model, policies and the verification state machine
 
-- **Binding**, revision 1, issued by the DIRECTOR.
+- **Binding**, revision 2, issued by the DIRECTOR.
 - Contract: §1 (Verification record, Policies), §2 (Verification).
 - Founder text: I A.3 §1, I A.4 §8; II.1, II.3, II.10.
 - Executed by: the IMPLEMENTER.
@@ -28,8 +28,10 @@
 - **What is never enough.** A different hostname, fingerprint or machine is never sufficient on its own.
 - **Policies are Director-issued data** (contract §1): the tenant default and the campaign "Auto-Enrollment V1".
   - The campaign requires physical-node separation from every member of the authoring set for every milestone candidate, whoever the
-    author is. A different physical node means a different enrolled computer record whose reported fingerprint also differs (equal
-    fingerprints refuse); a hostname or a different fingerprint alone never satisfies it.
+    author is. A different physical machine means a different enrolled computer record whose machine fingerprint (contract §1) also
+    differs: any fingerprint the certifying computer has reported that equals any fingerprint an authoring-set member's computer
+    reported during the candidate refuses (detection may only restrict), and a hostname or a different fingerprint alone never
+    satisfies it (S-16b).
   - No node credential or implementer migration can create or relax a policy beyond the Director-stated rows.
 - **The verification state machine** is exactly contract §2, including **`VERIFICATION_FAILED`** (CR-002 ratified):
   - it is never COMPLETE;
@@ -48,6 +50,6 @@ AC-3, AC-14, AC-16, S-13, S-16, P-10
 WO-1, WO-2, WO-5.
 
 ## Candidate report must include
-- Tests AC-14 (a)–(o).
+- Tests AC-14 (a)–(p).
 - The policy-write refusal test.
 - The certification record format.
