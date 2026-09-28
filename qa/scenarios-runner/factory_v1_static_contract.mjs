@@ -14,9 +14,13 @@
 //      unclassified one fails this contract; the platform limits are named UNMEASURED
 //   X  secret hygiene in the Edge and web Factory sources: the pepper is read only from the secret store; no service-role key; no
 //      database URL literal; the web forwards only the user's own token, and only through lib/factory/admin-client.ts
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+//   M  the candidate migration (WO-1 r3): no 69df2f52 control-plane file changed; the Director instrument, run from the designated
+//      Director commit as an external tool, builds the live-migration step from it; the r3 instrument-integrity constructs are absent
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const EDGE = join(ROOT, 'supabase', 'control-plane', 'edge', 'supabase');
@@ -148,6 +152,40 @@ const UNMEASURED = [
   check('X3 the web forwards only the user\'s own token, after supabase.auth.getUser(), and only from lib/factory/admin-client.ts',
     /auth\.getUser\(\)/.test(client) && client.indexOf('auth.getUser()') < client.indexOf('authorization: `Bearer ${token}`') && /sessionData\.session\?\.access_token/.test(client)
       && !/fetch\(/.test(read(webFiles[2]).replace(/await fetch\(url, \{ cache: "no-store", signal: AbortSignal\.timeout\(120000\) \}\)/, '')));
+}
+
+// ---------------------------------------------------------------- M: the candidate migration (WO-1 r3, contract §1)
+{
+  // The designated Director commit; FACTORY_DESIGNATED_DIRECTOR overrides it. The instrument runs as an external tool, exported from
+  // that commit into a temporary directory at run time; it is never imported or copied into this tree (WO-1 r3).
+  const DIRECTOR = process.env.FACTORY_DESIGNATED_DIRECTOR || 'c7a845b61a3b0b419e8c9dfeff397547fdc75b03';
+  const BASE = '69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6';
+  const git = (...a) => { const r = spawnSync('git', ['-C', ROOT, ...a], { encoding: 'buffer', maxBuffer: 1 << 28 }); return r.status === 0 ? r.stdout : null; };
+  const changed = (git('diff', '--name-only', '--diff-filter=MDR', BASE, '--', 'supabase/control-plane/') || Buffer.from('?')).toString('utf8').trim();
+  check('M0 no 69df2f52 control-plane file is changed, deleted or renamed (contract §1)', changed === '', changed);
+  const added = (git('diff', '--name-only', '--diff-filter=A', BASE, '--', 'supabase/control-plane/') || Buffer.from('')).toString('utf8').trim().split('\n')
+    .filter((p) => p.endsWith('.sql') && !p.startsWith('supabase/control-plane/edge/'));
+  const untracked = (git('ls-files', '--others', '--exclude-standard', '--', 'supabase/control-plane/') || Buffer.from('')).toString('utf8').trim().split('\n')
+    .filter((p) => p.endsWith('.sql') && !p.startsWith('supabase/control-plane/edge/'));
+  const mig = [...new Set([...added, ...untracked])].filter(Boolean).sort((a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b)));
+  const tmp = mkdtempSync(join(tmpdir(), 'factory-step-'));
+  try {
+    const tools = join(tmp, 'director', 'tools'); mkdirSync(tools, { recursive: true });
+    const listing = git('ls-tree', '-r', '--name-only', DIRECTOR, 'qa/verification/auto-enrollment-v1/tools/');
+    if (!listing) throw new Error('the designated Director commit ' + DIRECTOR + ' is not in this repository (git fetch origin factory/auto-enrollment-v1-director)');
+    for (const p of listing.toString('utf8').trim().split('\n')) writeFileSync(join(tools, p.split('/').pop()), git('show', DIRECTOR + ':' + p));
+    for (const f of ['BASELINE_69df2f52_EVIDENCE_MANIFEST.json', 'BASELINE_69df2f52_EVIDENCE_ROWS.json'])
+      writeFileSync(join(tmp, 'director', f), git('show', DIRECTOR + ':qa/verification/auto-enrollment-v1/' + f));
+    const out = join(tmp, 'step.sql');
+    const r = spawnSync(process.execPath, [join(tools, 'build_live_migration_step.mjs'), out, ...mig.map((p) => join(ROOT, p))], { cwd: tools, encoding: 'utf8' });
+    check('M1 the Director instrument (' + DIRECTOR.slice(0, 8) + ') builds the live-migration step from the candidate migration (' + mig.length + ' files, byte order of path): no transaction control, no backslash outside a dollar-quoted body, no psql variable, no COPY',
+      r.status === 0 && existsSync(out), (r.stdout + r.stderr).trim().split('\n').pop());
+  } catch (e) { check('M1 the Director instrument builds the live-migration step', false, e.message); }
+  finally { rmSync(tmp, { recursive: true, force: true }); }
+  const sql = mig.map((p) => read(join(ROOT, p)).replace(/--[^\n]*/g, '')).join('\n');
+  const integrity = [/create\s+event\s+trigger/i, /create\s+cast\s*\([^)]*\bas\s+jsonb?\s*\)/i, /allow_system_table_mods/i,
+    /(insert\s+into|update|delete\s+from|truncate)\s+pg_catalog\./i].filter((re) => re.test(sql)).map(String);
+  check('M2 instrument integrity (S-10): no event trigger, no cast to json / jsonb, no allow_system_table_mods, no pg_catalog write', integrity.length === 0, integrity.join(', '));
 }
 
 console.log('\nfactory_v1_static_contract: ' + pass + ' passed, ' + failures.length + ' failed');

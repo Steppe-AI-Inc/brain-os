@@ -11,7 +11,7 @@ create table factory.releases (
   release_id                uuid primary key default gen_random_uuid(),
   tenant_id                 uuid not null references factory.tenants (tenant_id),
   channel                   text not null check (channel in ('production', 'dev')),
-  version                   text not null check (version ~ '^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]{1,40})?$'),
+  version                   text not null check (version ~ $r$^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]{1,40})?$$r$),
   source_sha                text not null check (source_sha ~ '^[0-9a-f]{40}$'),
   -- the artifact digest: the SHA-256 PE Authenticode image hash (S-5), equal to the receipt's reproduced digest
   digest                    text not null check (digest ~ '^[0-9a-f]{64}$'),
