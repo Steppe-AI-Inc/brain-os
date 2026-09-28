@@ -6,7 +6,7 @@ the DIRECTOR capability.
 
 The Director paraphrases nothing here:
 - Part II is transcribed from the founder's messages. II.12 also quotes, verbatim, the Director message whose reconstruction the
-  founder confirmed, and II.14 the Director questions whose options the founder chose.
+  founder confirmed, and II.14 and II.15 the Director questions whose options the founder chose.
 - Part I is a byte-for-byte copy of the implementer's transcription. **Founder confirmation of Part I is requested.**
 
 ## Provenance
@@ -14,7 +14,7 @@ The Director paraphrases nothing here:
 | Part | Source | Integrity |
 |---|---|---|
 | I | Part A of `docs/architecture/features/factory-auto-enrollment.md`, lines 24-337, on branch `factory/auto-enrollment-v1-contract` at commits `264987bb` and `33f14d6e55a41ee1a2a5acf463a000e3fe2975b9` (identical in both) | source file sha256 `53e61c0bea97c50ca294a471cf015fd1b8983799c32c12ad6bdb825537f53a06`; copied byte for byte |
-| II | the founder's messages to the Director, 2026-09-26 and 2026-09-27 (UTC); II.12 and II.14 also quote Director text verbatim | transcribed as received |
+| II | the founder's messages to the Director, 2026-09-26 to 2026-09-28 (UTC); II.12, II.14 and II.15 also quote Director text verbatim | transcribed as received |
 
 **About Part I's provenance.** Part I was transcribed by the implementer.
 
@@ -355,7 +355,7 @@ production Brain OS deploy; BLOCKED — EXTERNAL where applicable).
 
 ---
 
-# PART II — Founder rulings sent to the Director, 2026-09-26 and 2026-09-27 (verbatim)
+# PART II — Founder rulings sent to the Director, 2026-09-26 to 2026-09-28 (verbatim)
 
 ## II.1 Machine roles and authority
 
@@ -844,5 +844,119 @@ Permanent rule:
 FULL QA RECEIPTS:
 ```
 
-Nothing after "FULL QA RECEIPTS:" arrived except "KEEP WORKING." (16:32:04Z). Director note: the chosen option above governs
+Nothing after "FULL QA RECEIPTS:" arrived in that sequence except "KEEP WORKING." (16:32:04Z), and no later founder message
+completes the permanent rule (II.15's do not). Director note: the chosen option above governs
 until the founder completes the permanent rule; its completion is listed under the ledger's founder items.
+
+## II.15 Director r3 release — founder authorization, 2026-09-28 (UTC)
+
+Transcribed as received, in arrival order, with UTC times. The Director's question and the chosen option are quoted verbatim;
+the "(founder's choice)" block is the chosen option's label and description joined by ": " (the founder's answer was the
+label). The founder's "KEEP WORKING." message at 02:55:07Z carries no ruling and is omitted.
+
+**2026-09-27 19:37:56Z** (Director question)
+
+```text
+Director r3 is ready. Its last two confirmation rounds found no HIGH, the final round found no MEDIUM, and every lens answers both governance tests NO; the remaining lows are listed as r4 work in the r3 event. The change is 13 Director-document files on top of r2 5709a6a4, with no supabase/functions/** changes. How should r3 be released?
+```
+
+**2026-09-28 01:23:38Z** (founder's choice)
+
+```text
+Release + push now (Recommended): Sign and commit r3 on factory/auto-enrollment-v1-director (parent 5709a6a4). Push only that branch, by explicit refspec (never the local receipt ref), with ALLOW_FUNCTIONS_DEPLOY=1 for this single push only. Then check the remote refs read-only (director = r3 SHA, factory = 69df2f52, master = 55a15917) and publish the r3 SHA to the Work PC.
+```
+
+**01:24:15Z**
+
+```text
+FOUNDER AUTHORIZATION — RELEASE DIRECTOR R3
+```
+
+```text
+Release Director r3 now.
+```
+
+**01:24:16Z**
+
+```text
+Requirements:
+```
+
+```text
+1. Commit exactly the current reviewed r3 bytes.
+```
+
+```text
+origin/master   = 55a159172a9bbc9b69cde4d2f832418573a4b0b910. Confirm no production workflow/deployment was triggered.
+```
+
+**01:24:20Z**
+
+```text
+11. Publish the exact r3 SHA to the Work PC.
+
+From that point forward, the next implementation candidate must consume r3,
+not r2.
+
+The remaining LOW findings become r4 work and must not delay r3 release.
+
+KEEP WORKING.
+```
+
+Nothing arrived between "1. Commit exactly the current reviewed r3 bytes." and the line beginning "origin/master". Director note: r3 was released under the chosen
+option and the items above, with the conditions of the r2 push (the commit changes no `supabase/functions/**`; the pre-push
+override for that one push only; the Director branch alone, by explicit refspec); the ledger event log records the result.
+
+## II.16 Public implementer records — founder ruling, 2026-09-28 (UTC)
+
+Transcribed as received, in arrival order, with UTC times. Director note: the ruling answers the Director's report of
+2026-09-28 that the implementer's public `qa/implementation/auto-enrollment-v1/R3_RECONCILIATION.md` (commit `c1f52a14`)
+lists its own r3 gaps file by file.
+
+**04:29:42Z**
+
+```text
+FOUNDER RULING — IMPLEMENTER RECONCILIATION DISCLOSURE
+```
+
+**04:29:57Z**
+
+```text
+The existing public reconciliation note may remain as-is unless it contains
+credentials, exploit instructions, or materially increases exposure beyond
+what is already obvious from the public code.
+
+Do NOT rewrite public git history merely to remove it.
+
+Going forward:
+
+PUBLIC IMPLEMENTER RECORDS MAY CONTAIN:
+- Director revision consumed
+- candidate/base SHA
+- finding IDs
+- disposition state
+- affected requirement IDs
+- test/result summary
+- statement that reconciliation is complete/incomplete
+
+KEEP PRIVATE:
+- exploit mechanisms
+- race interleavings
+- privilege-bypass details
+- secret-handling weaknesses
+- detailed file-by-file instructions that materially aid exploitation
+- verifier-only evidence
+
+Public Git remains code/version truth, not the default disclosure channel for
+live unfixed security defects.
+
+Record this prospectively in r4/r5 governance as appropriate.
+
+KEEP WORKING.
+```
+
+The founder sent the same two messages again, byte-identical, at 04:33:38Z and 04:33:47Z; they are transcribed once.
+
+Director note: the existing note contains no credentials or exploit instructions and does not materially increase exposure
+beyond what is already obvious from the public code, so it remains as-is; no public history is rewritten. The ruling is recorded prospectively in
+ledger rule 3 ("Public implementer records").

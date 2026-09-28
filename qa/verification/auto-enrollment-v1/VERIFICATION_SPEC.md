@@ -53,6 +53,8 @@ The IMPLEMENTER publishes a **candidate notice** on `factory/auto-enrollment-v1-
 - every change request it relies on: path, commit and sha256 (ADR, change-request path rule);
 - its own test output. That output is information only and never counts toward a verdict (`CLAUDE.md` §3).
 
+The notice, like every public implementer record, follows ledger rule 3 ("Public implementer records", founder text II.16).
+
 ## 3. Procedure, one pass per candidate
 
 There are no exploratory rounds. A failure is a finding, and the verdict is REJECTED. **Every candidate row and every rehearsal runs on
@@ -112,13 +114,13 @@ entry (§3.11).
      machine.
    - **Candidate code runs apart from the Director's secrets.** Every candidate build, suite and tool, and every dependency install
      script, runs as a separate standard OS account that cannot read the Director signing key, `runner.env`, the Director's records
-     or the verifier session's environment; its environment is an allowlist (no session token, key-log file or askpass hook); the verifier fixes the allowlist (variable names) and the protected-path list (the verifier's secret locations, as directories) before the account's first run, never from the candidate tree, and the receipt records both with the isolation proof. Every credential created later (each cluster's credentials, the Edge token, the observer credential) is written only under a listed location, and the denied read of each listed location is proved before each candidate's first run and again after each cluster's credentials are issued. The
-     account belongs to no administrative, remote-access or container-engine group. The protected paths include the founder-provided
+     or the verifier session's environment; its environment is an allowlist (no session token, key-log file or askpass hook); the verifier fixes the allowlist (variable names) and the protected-location list (the verifier's secret locations, as directories) before the account's first run, never from the candidate tree, and the receipt records both with the isolation proof. Every credential created later (each cluster's credentials, the Edge token, the observer credential) is written only under a listed location, and the denied reads (below) are proved before each candidate's first run, again after each cluster's credentials are issued, and again after any other such credential is written, before candidate code next runs; the receipt records each proof. The
+     account belongs to no administrative, remote-access or container-engine group. The protected locations hold the founder-provided
      Edge token and the observer credential once they exist. Before each candidate's first run the account's home, temporary and
      working directories are emptied and its scheduled tasks and processes removed, so no state from an earlier run survives. A
      container runtime that executes candidate code is started by that account, or with only the scratch clone and the working
      directory mounted. The verifier then proves the isolation (the account's group memberships and privileges, none beyond a
-     standard user's; a denied read of each protected location; the environment holding only the allowlist; each container runtime's
+     standard user's; a denied read of each protected location, and a denied open of each credential file in it by its full path; the environment holding only the allowlist; each container runtime's
      mounts) and records the proof as receipt evidence. The judging planes' logins are protected as §3.3 ("Plane logins") states. Verifier scripts pin their working directory outside every live checkout and write only absolute paths.
    - The Director may **read** the live plane for AC-10 and AC-11.
 3. **Baseline (AC-11).**
@@ -148,7 +150,8 @@ entry (§3.11).
      and no seed, never the candidate tree; the receipt records the CLI version and the database image digest), on PostgreSQL of the referent's major version (17; its `observed.server_version`; the minor version is the image's and is not compared, a recorded limit). Only that image carries the
      platform's roles, schemas, extensions and event triggers. The **referent** is `LIVE_PLANE_CATALOG_SNAPSHOT_PRE_CANDIDATE.json`
      until the first founder-applied step; after one, it is the latest live catalog read that AC-10 found as expected, committed as a
-     Director observation record.
+     Director observation record (an observer-login read is taken from its local-only full-read file, checked against the
+     published `full_read_sha256`; AC-10).
      - **Alignment.** First, the plane's bootstrap superuser (`supabase_admin`) makes the plane equal to
        `LIVE_PLANE_CATALOG_SNAPSHOT_PRE_CANDIDATE.json` in the roles and their attributes, the role memberships with their admin,
        inherit and set options and grantor, the database ACL, the schema ACLs, the default privileges, the extensions and the event
@@ -180,11 +183,13 @@ entry (§3.11).
          and EXECUTE on its own front doors. Every role it reaches is NOLOGIN, was created by the candidate migration or a
          founder-applied step, and is neither a predefined `pg_*` role nor a platform role. A listed role that fails this is a
          finding and is handled as a non-API login, and so is a login the migration creates that the notice does not list. The
-         verifier sets the API logins' credentials after the step, and the local function runtimes receive only those.
+         verifier sets the API logins' credentials after the after-step refused-connection proof and its comparisons, and the local
+         function runtimes receive only those.
        - **After the step** the bootstrap superuser compares each role's LOGIN attribute, credential and validity with its
-         state before the step (a role the step created had none), and records each change to a pre-existing role as a
-         finding. The verifier then gives each changed role a fresh verifier-held credential (NOLOGIN if it could not log in
-         before the step and is not an API login), and gives `factory_runner`, the reader and every other login created after
+         state before the step (a role the step created had none), and records as a finding each change to a pre-existing role
+         and each credential or validity the step gives a role it creates (API-role credentials are a founder boundary;
+         AC-10). The verifier then gives each changed role other than an API login a fresh verifier-held credential (NOLOGIN
+         if it could not log in before the step), and gives `factory_runner`, the reader and every other login created after
          the credentials were issued, except the API logins, verifier-held credentials. Only then does it take the
          refused-connection proof. The receipt records the comparison.
        - **Refused connections.** Right after the cluster's credentials are issued, and again after the step (above), the
@@ -193,13 +198,14 @@ entry (§3.11).
          VM that executes candidate code, from the isolated account and from inside each such container and VM (one started
          later is probed before candidate code runs in it), over the address it uses. The receipt records each such container's
          and VM's environment variable names, never values, and the plane's host-based authentication rules, showing that no
-         trust or peer rule matches a source candidate code can use. Immediately before each proof after the step, the
-         bootstrap superuser also compares each login's LOGIN attribute, credential and validity with what the verifier last
-         set; a difference is a finding, since besides the verifier only the step and candidate code write the plane (S-10: no
-         DDL from any API). A connection not refused is a finding (REJECTED) when either comparison shows that the step or
-         candidate code changed or created that login. Any other connection not refused, in any proof, is a verifier setup
-         failure and never a candidate defect: that cluster judges nothing, the pass continues on a new cluster, and the
-         receipt keeps the voided cluster's records.
+         trust or peer rule matches a source candidate code can use. Immediately before and immediately after each proof after
+         the step, and once after each cluster's last candidate process ends, the bootstrap superuser also compares each
+         role's LOGIN attribute, credential and validity with their state when the verifier last set credentials (a role
+         created since had none); the receipt records each comparison. A difference is a finding, since besides the verifier
+         only the step and candidate code write the plane (S-10: no DDL from any API). A connection not refused is a finding
+         (REJECTED) when any comparison shows that the step or candidate code changed or created that login. Any other
+         connection not refused, in any proof, is a verifier setup failure and never a candidate defect: that cluster judges
+         nothing, the pass continues on a new cluster, and the receipt keeps the voided cluster's records.
        - **Probes that act as `factory_runner`.** The verifier's own probes for the cases that WO-1's legacy-refusal tests and
          AC-9's legacy side list, and for AC-12(g), run as the verifier, from its own `69df2f52` clone outside the isolated
          account, with the verifier-held credential. The candidate's own tests for these cases run in the isolated account and
@@ -215,8 +221,10 @@ entry (§3.11).
          step run, the re-hash, the catalog-trust reads, the §3.5 read-backs and row checks, and AC-10's before and after reads
          run while the isolated account has no process and no scheduled task, no container other than the plane's own database
          container runs, and no VM executes candidate code; the verifier starts none during the phase and proves this
-         immediately before and after it (receipt evidence). Every after-step read is taken before the API-login credentials
-         are issued and before candidate code first reaches that plane. In-database schedulers and outbound calls (for example
+         immediately before and after it (receipt evidence). Every after-step evidence read above (the re-hash, the
+         catalog-trust reads, the §3.5 read-backs and row checks, AC-10's after read) is taken before the API-login credentials
+         are issued and before candidate code first reaches that plane; the login comparisons around a refused-connection proof
+         are taken whenever that proof is ("Refused connections"). In-database schedulers and outbound calls (for example
          the platform's `cron` and `net` schemas) are covered by the §3.4 platform-schema inventory.
      - **The applying login** is the plane's `postgres`, so aligned: NOSUPERUSER, with the live role's attributes, memberships and
        settings. It provisions the plane as `69df2f52`, loads the baseline rows, and applies every founder-applied step and the
