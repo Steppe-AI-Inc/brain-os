@@ -6,7 +6,7 @@ the DIRECTOR capability.
 
 The Director paraphrases nothing here:
 - Part II is transcribed from the founder's messages. II.12 also quotes, verbatim, the Director message whose reconstruction the
-  founder confirmed, and II.14 and II.15 the Director questions whose options the founder chose.
+  founder confirmed, and II.14, II.15 and II.17 the Director questions whose options the founder chose.
 - Part I is a byte-for-byte copy of the implementer's transcription. **Founder confirmation of Part I is requested.**
 
 ## Provenance
@@ -14,7 +14,7 @@ The Director paraphrases nothing here:
 | Part | Source | Integrity |
 |---|---|---|
 | I | Part A of `docs/architecture/features/factory-auto-enrollment.md`, lines 24-337, on branch `factory/auto-enrollment-v1-contract` at commits `264987bb` and `33f14d6e55a41ee1a2a5acf463a000e3fe2975b9` (identical in both) | source file sha256 `53e61c0bea97c50ca294a471cf015fd1b8983799c32c12ad6bdb825537f53a06`; copied byte for byte |
-| II | the founder's messages to the Director, 2026-09-26 to 2026-09-28 (UTC); II.12, II.14 and II.15 also quote Director text verbatim | transcribed as received |
+| II | the founder's messages to the Director, 2026-09-26 to 2026-09-28 (UTC); II.12, II.14, II.15 and II.17 also quote Director text verbatim | transcribed as received |
 
 **About Part I's provenance.** Part I was transcribed by the implementer.
 
@@ -960,3 +960,57 @@ The founder sent the same two messages again, byte-identical, at 04:33:38Z and 0
 Director note: the existing note contains no credentials or exploit instructions and does not materially increase exposure
 beyond what is already obvious from the public code, so it remains as-is; no public history is rewritten. The ruling is recorded prospectively in
 ledger rule 3 ("Public implementer records").
+
+## II.17 Director r4 release and the scope of II.16 — founder rulings, 2026-09-28 (UTC)
+
+Transcribed as received, in arrival order, with UTC times. The Director's questions and the chosen options are quoted verbatim;
+each block under "(founder's choices)" is a chosen option's label and description joined by ": " (the founder's answer was the
+label). The founder's later messages up to 2026-09-29T02:51Z, when Director r5 was drafted, carry no ruling on these questions
+and are omitted: "KEEP WORKING." at
+11:42:41Z and 11:46:51Z, and on 2026-09-29 "RESUME DIRECTOR / VERIFIER — FRESH STATE FIRST" (02:47:39Z) and "KEEP WORKING."
+(02:47:41Z).
+
+**05:24:17Z** (Director questions)
+
+```text
+Director r4 is ready. It carries the r3 lows, the release record of r3, and your II.15 and II.16 rulings. Its last review round found no HIGH and no MEDIUM, and every lens answers both governance tests NO. It is 5 Director-document files on top of r3 c7a845b6, with no supabase/functions changes. Remaining lows go to r5. The Work PC's next candidate still consumes r3: r4 says a notice naming r3 is judged against r3. How should r4 be released?
+```
+
+```text
+Your II.16 ruling applies its test only to the one existing reconciliation note: it may remain unless it contains credentials, exploit instructions, or materially increases exposure beyond the public code. r4 applies the same test to any other implementer record published before 2026-09-28, as a Director reading surfaced for your confirmation. Do you confirm that reading?
+```
+
+**11:42:12Z** (founder's choices)
+
+```text
+Release + push now (Recommended): Sign and commit exactly the reviewed r4 bytes on factory/auto-enrollment-v1-director (parent c7a845b6). Push only that branch by explicit refspec, with ALLOW_FUNCTIONS_DEPLOY=1 for that single push. Verify the refs read-only (director = r4, factory = 69df2f52, master = 55a15917), then re-read Actions and deployments a few minutes later and report any Preview.
+```
+
+```text
+Confirm the reading (Recommended): Every public implementer record published before 2026-09-28 is judged by the same test. One that fails it becomes a founder item, and no history is rewritten. r5 records your confirmation.
+```
+
+**11:42:29Z**
+
+```text
+FOUNDER AUTHORIZATION — RELEASE DIRECTOR R4
+```
+
+```text
+Release r4 now exactly as reviewed.
+```
+
+```text
+Parent:
+```
+
+```text
+c7a845b61a3b0b419e8c9dfeff397547fdc75b03
+```
+
+Director note: r4 was released under the first chosen option and these messages, with the conditions of the r2 and r3 pushes
+(the commit changes no `supabase/functions/**`; the pre-push override for that one push only; the Director branch alone, by
+explicit refspec); the ledger event log records the result. The second chosen option confirms that II.16's test applies to every
+public implementer record published before 2026-09-28 (ledger rule 3, "Public implementer records"); the records published on
+2026-09-28 before the ruling (04:29:42Z) are covered by a Director reading surfaced for the founder's confirmation. The
+founder's messages from 2026-09-29T02:54Z concern the release of r5 and are transcribed with it.
