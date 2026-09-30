@@ -41,8 +41,9 @@ Two checks then run as `factory_owner`, inside the migration's transaction. Each
 What they read, and nothing else: in `pg_catalog`, the `pg_proc` rows of schema `factory` (namespace, ACL, and the signature named in
 (c)'s error text) and the `pg_default_acl` rows of schema `factory` (namespace, ACL); `aclexplode` of those two ACLs; and the name
 lookups `'factory'::regnamespace` and `'factory_runner'::regrole`. No role attribute, membership, owner or setting is read. How
-VERIFICATION_SPEC §3.4 r3 classes these reads is change request CR-021, which the Director has not decided. The candidate does not rely
-on its answer. Until it is decided, the static contract's row P3p stays red and lists each such hit.
+VERIFICATION_SPEC §3.4 r3 classes these reads was change request CR-021. The Director's CR-disposition record (2026-09-30) approved
+Alternative 1: "an in-migration catalog check over objects and grants the same transaction created is classed same-on-every-plane",
+with each hit's construction named in the verifier's receipt. The static contract's row P3p holds the inventory's class to that record.
 
 Part 000 carries no precondition block. Its statements name what they need, and the migration is one transaction. On a database
 without the `69df2f52` objects, the first statement that refers to one the database lacks aborts it (schema row P0n: 3F000 at the schema grant
@@ -107,15 +108,19 @@ an owner's attributes, a membership, a setting or a platform schema, or reads `p
 - step 2: `rolcanlogin` of the two API roles, looked up by their fixed names. They are neither the applying login nor an object
   owner, and the value is only displayed.
 
-Whether the observer role's name, which the founder substitutes into step 1b, needs a §3.4 class is change request CR-023; the
-candidate does not rely on its answer. Step 3's INSERT fires two guards of part 080 that read `session_user` (the tenant-admins guard,
-through `factory._via_api`) and `current_user` (the authority guard); in the step those are the applying login and `factory_owner`.
-Whether §3.4 counts such a trigger's reads as reads of the founder step is change request CR-026, which the candidate does not rely
-on either. Schema E10b (mutant TAG) proves the tenant-admins guard refuses an API-login write.
+Whether the observer role's name, which the founder substitutes into step 1b, needs a §3.4 class was change request CR-023; the
+Director approved it as own-plane addressing (a founder-provided configuration name used the same way wherever the step runs).
+Step 3's INSERT fires two guards of part 080 that read `session_user` (the tenant-admins guard, through `factory._via_api`) and
+`current_user` (the authority guard); in the step those are the applying login and `factory_owner`. Whether §3.4 counts such a
+trigger's reads as reads of the founder step was change request CR-026. The Director approved it on the same basis as CR-022 (b): both
+reads are the S-10 authority mechanism and have the same outcome on every plane. Schema E10b (mutant TAG) proves the tenant-admins guard
+refuses an API-login write.
 
 Step R does what `qa/work-orders/FACTORY_CONTROL_PLANE_SETUP.md:114` says about rotation. Two Director runbook rows instead say to
-rotate by re-running the `69df2f52` provisioner. Change request CR-006 asks the Director to decide which runbook applies after V1; the
-implementer's measurement went to the Director privately, through the founder (ledger rule 3). Step R's second read-back lists any
+rotate by re-running the `69df2f52` provisioner. Change request CR-006 asked the Director to decide which runbook applies after V1;
+the implementer's measurement went to the Director privately, through the founder (ledger rule 3). The Director approved the requested
+change: on a plane that has the V1 migration, the plane's applying login rotates the password with psql's `\password factory_runner`,
+`runner.env` is then updated on each legacy node and the node restarted, and the `69df2f52` provisioner is never re-run. Step R's second read-back lists any
 default privilege reaching `factory_runner`, and it must list none.
 
 ## The claim lock
@@ -150,13 +155,15 @@ behaviour holds: `compat_regressions.mjs` shows the claim giving up within the b
 ## What the next candidate report must carry for this area
 
 - Each finding's status: F-1, L7-28, L1-F9, L6-7, L6-9 and R3-SCAN-B fixed with developer rows and mutants; L7-18 refuted, with step
-  1 rewritten to the r3 step anyway (R7); L1-F11 and L6-5 met by the rows above; L1-F6 open, "FIX + CR pending": step R works
-  (RO1, RO2), and the Director runbook rows are the subject of CR-006 (measurement sent privately);
-  R3-SCAN-A met for the applying login and object owners (R1, R2, R6), while the class of the remaining fail-closed catalog reads
-  (part 990's checks (c) and (d)) waits on CR-021, and that of the engine test in the two guards of part 080 on CR-022 (b);
-  founder step 3's trigger reads wait on CR-026. The ids of the rows the migration seeds are proposed as not a hit (the r3 hit item
-  for literals needs a record that is not on both planes; the migration inserts these rows, under the same ids, wherever it runs).
-- That the static contract fails at the candidate on row P3p only, and why (CR-021, CR-022).
+  1 rewritten to the r3 step anyway (R7); L1-F11 and L6-5 met by the rows above; L1-F6: step R works (RO1, RO2), and CR-006
+  (APPROVED) superseded the Director runbook rows that re-ran the provisioner (measurement sent privately);
+  R3-SCAN-A met for the applying login and object owners (R1, R2, R6); the class of the remaining fail-closed catalog reads (part
+  990's checks (c) and (d)) rests on the Director's CR-021 ruling (Alternative 1), that of the engine test in the two guards of part
+  080 on CR-022 (b), and founder step 3's trigger reads on CR-026 (all three APPROVED in the Director's CR-disposition record). The ids
+  of the rows the migration seeds are proposed as not a hit (the r3 hit item for literals needs a record that is not on both planes;
+  the migration inserts these rows, under the same ids, wherever it runs).
+- That the static contract passes every row at the candidate, P3p included: each class that rests on a ruling is held to the
+  Director's CR-disposition record (decided by the Director, APPROVED, the quoted class in the decision, the CR's recorded sha256).
 - The four membership rows above, citing `predicted_catalog_difference.json` and this record.
 - For L6-9: step 1b grants SELECT on the 19 new tables and their three identity sequences and reads back every `factory` relation.
   It does not grant or probe `storage.buckets`. The contract leaves that to the founder's observer provisioning, and a

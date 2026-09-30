@@ -20,8 +20,9 @@
 //     hit is still classified);
 //   - a function is classed by the context it is defined in, never by the statement that runs it: a trigger that a founder step's
 //     INSERT fires (founder step 3 fires the tenant-admins and authority guards, which read session_user and current_user) is not
-//     reported as a read of that founder step. Whether §3.4 r3 reads it that way is change request CR-026; the inventory lists both
-//     reads as UNTRACED entries pending on it, so the static contract's P3p stays red until the Director decides.
+//     reported as a read of that founder step. The Director decided that reading in CR-026 (APPROVED, on the same basis as CR-022 (b);
+//     the Director's CR-disposition record): the inventory lists both reads as UNTRACED entries classed on that ruling, and the static
+//     contract's P3p checks the ruling against the Director's record.
 //
 // CONTEXTS. A SQL file is split into statements (comments, literals, quoted identifiers and dollar-quoted bodies recognized). Each
 // piece of code has one context:
@@ -488,6 +489,12 @@ export function founderStepSql(md) {
 // classification against the developer inventory (a proposal; the verifier classes)
 export const CLASSES = ['production-ref', 'same-on-every-plane', 'call-input', 'own-plane', 'carried'];
 export const BRANCH_CLASSES = new Set(['production-ref', 'same-on-every-plane', 'call-input']);
+// A BRANCH UNDER A DIRECTOR RULING: r3 own-plane addressing says "no branch tests the value itself". The Director's CR-021 ruling
+// (APPROVED, Alternative 1) classes an Edge handler's fail-closed validation of its own configuration values - a check whose only
+// effect is to refuse - as own-plane addressing, branch included. Only that ruling admits a branch in a class that otherwise permits
+// none; an entry claims it by `ruling: { cr, quote }`, and the static contract's P3p holds every such claim to the Director's record.
+export const RULED_BRANCH = { 'own-plane': new Set(['CR-021']) };
+const ruledBranch = (e) => !!(e.ruling && RULED_BRANCH[e.cls] && RULED_BRANCH[e.cls].has(e.ruling.cr));
 // NOT A HIT: the proposal that a construct this approximation reports is outside §3.4 r3's hit list altogether, so it needs no class
 // and may be branched on. Only for a literal the scanner recognises by its form (a UUID) that names a record THIS migration creates,
 // with that value, on every plane. The entry must quote the r3 hit item it is read against (`reading`), name the statement that
@@ -543,7 +550,8 @@ export function insertedKeys(files) {
 }
 
 /**
- * inventory: [{ file, construct, fn? (function name, or '-' for top-level / DO), ctx?, value?, count, cls, why, construction?, reading?, seeded?, pending? }]
+ * inventory: [{ file, construct, fn? (function name, or '-' for top-level / DO), ctx?, value?, count, cls, why, construction?, reading?, seeded?, pending?, ruling? }]
+ * ruling: { cr, quote } - the Director decision the class rests on, with a verbatim quote of it (checked by the static contract's P3p).
  * opts.seeded: insertedKeys() of the migration (a not-a-hit entry is refused without it).
  * Returns { hard, unmatched, stale, miscount, badClass, branchInNoBranchClass, pending, matched }.
  */
@@ -561,7 +569,7 @@ export function classify(hits, inventory, { seeded } = {}) {
     matched.push({ entry: e, hits: hs });
     if (e.count !== hs.length) miscount.push({ entry: e, found: hs.length, lines: hs.map((h) => h.line) });
     if (e.cls === NOT_A_HIT ? !notHitOk(e, seeded) : (!CLASSES.includes(e.cls) || (e.cls === 'same-on-every-plane' && !e.construction))) badClass.push(e);
-    if (hs.some((h) => h.branches) && e.cls !== NOT_A_HIT && !BRANCH_CLASSES.has(e.cls)) branchBad.push({ entry: e, lines: hs.filter((h) => h.branches).map((h) => h.line) });
+    if (hs.some((h) => h.branches) && e.cls !== NOT_A_HIT && !BRANCH_CLASSES.has(e.cls) && !ruledBranch(e)) branchBad.push({ entry: e, lines: hs.filter((h) => h.branches).map((h) => h.line) });
     if (e.cls === 'production-ref' && hs.some((h) => h.productionRef === false)) branchBad.push({ entry: e, lines: hs.filter((h) => !h.productionRef).map((h) => h.line), why: 'not the production-ref refusal' });
     if (e.pending) pending.push({ entry: e, lines: hs.map((h) => h.line) });
   }
@@ -679,6 +687,15 @@ export function selfTest() {
     ['not a hit NEG: refused without the quoted r3 hit item, without the construction, while pending, without the key column, or for a key the migration does not insert',
       () => nh({ reading: 'exists on every plane' }).badClass.length === 1 && nh({ construction: '' }).badClass.length === 1 && nh({ pending: 'CR-0' }).badClass.length === 1
         && nh({ seeded: undefined }).badClass.length === 1 && nh({ seeded: 'factory.t.other' }).badClass.length === 1 && nh({}, new Set()).badClass.length === 1 && nh({}, null).badClass.length === 1],
+    ['a branch under a Director ruling: an own-plane Edge branch is refused, accepted only under the CR-021 ruling, and a pending entry is still listed as pending',
+      () => { const eb = edge("const x = Deno.env.get('QA_X') || '';\nif (!x) throw new Error('y');").hits.filter((h) => h.construct === 'env-branch' && h.branches);
+        const own = (over) => classify(eb, [{ file: 'e.ts', construct: 'env-branch', fn: '-', value: 'QA_X', count: eb.length, cls: 'own-plane', why: 'w', ...over }]);
+        return eb.length === 1 && own({}).branchBad.length === 1 && own({ ruling: { cr: 'CR-021', quote: 'q' } }).branchBad.length === 0
+          && own({ ruling: { cr: 'CR-022', quote: 'q' } }).branchBad.length === 1 && own({ ruling: { quote: 'q' } }).branchBad.length === 1
+          && own({ pending: 'CR-021' }).pending.length === 1; }],
+    ['NEG a ruling admits a branch in no other class: a carried entry that branches is refused under the CR-021 ruling',
+      () => { const eb = edge("const x = Deno.env.get('QA_X') || '';\nif (!x) throw new Error('y');").hits.filter((h) => h.construct === 'env-branch' && h.branches);
+        return classify(eb, [{ file: 'e.ts', construct: 'env-branch', fn: '-', value: 'QA_X', count: eb.length, cls: 'carried', why: 'w', ruling: { cr: 'CR-021', quote: 'q' } }]).branchBad.length === 1; }],
   ];
   const steps = founderStepSql("## 1.\n```sql\nselect current_user;\n```\ntext `select 1 from pg_catalog.pg_roles` and `factory_runner` prose\n```psql\n\\password factory_runner\n```\n");
   const stepCases = [

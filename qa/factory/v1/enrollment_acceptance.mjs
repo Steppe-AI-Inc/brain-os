@@ -557,7 +557,8 @@ try {
   row('EN12 the 61st attempt for the tenant within the hour is refused (rate_limited_tenant), unknown locators included (S-6), and is itself one attempt row',
     lastT && lastT.refused !== 'rate_limited_tenant' && t61.refused === 'rate_limited_tenant' && one(at12, { outcome: 'rate_limited_tenant', tenant: OPERATOR }),
     'tenant attempts ' + have + ', then ' + t61.refused + ' ' + brief(at12));
-  // EN12v - change request CR-016 (S-6 as ratified, kept until the Director decides; detail sent to the Director privately)
+  // EN12v - change request CR-016 (the r3 literal reading of S-6, which the Director's ruling keeps: RECORDED; detail sent to the
+  // Director privately)
   const fresh = await add('Laptop-after-cap');
   m0 = await mark();
   const valid = fresh.ok ? await enrollStart(node.baseUrl, fresh.pairing_code, ed25519(), {}, { localAddress: '127.0.0.' + (ip + 2) }) : null;

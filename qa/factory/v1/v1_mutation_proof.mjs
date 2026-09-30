@@ -10,7 +10,7 @@
 // node_modules as a directory junction to this checkout's (read only), the ONE defect planted in the working tree, the suite run there
 // with TEMP/TMP inside the run directory, the junction unlinked by itself (never a recursive delete through it), the copy removed.
 // A CONTROL (the unmutated copy) runs each suite first; a suite whose control fails a row judges nothing and the proof fails. The one
-// exception is a row listed in BY_DESIGN_RED (red on purpose until the change request it names is decided, e.g. static P3p): a control
+// exception is a row listed in BY_DESIGN_RED (red on purpose until the change request it names is decided; static P3p was, until the Director's CR-disposition record; the list is empty now): a control
 // whose ONLY failing rows are listed there, and that ran to its summary line, judges each mutant on the expected rows it PASSED
 // (differential judging; a mutant whose expected rows are all red by design is not judged, and fails the proof). A control failing
 // any other row still judges nothing, and the proof exits non-zero.
@@ -55,9 +55,8 @@ const SPARSE = ['/supabase/control-plane/', '/scripts/', '/qa/factory/', '/qa/ve
 const RUN_TIMEOUT_MS = 45 * 60 * 1000;
 // ROWS RED BY DESIGN: suite -> { row: the undecided change request(s) it waits on }. Only these rows may fail in a control that still
 // judges (differentially); remove an entry when its change request is decided and the row is green.
-const BY_DESIGN_RED = {
-  static: { P3p: 'CR-021, CR-022 and CR-026 (the row lists every hit, and every hand-listed UNTRACED read or branch, whose proposed class waits on a Director decision)' },
-};
+// (static P3p left this list when the Director's CR-disposition record decided CR-021, CR-022 and CR-026 and the row turned green)
+const BY_DESIGN_RED = {};
 const NODE_MODULES = path.join(ROOT, 'node_modules');
 
 // an edit: { f, line: <needle>, to: <the new line> }   the ONE line containing the needle is replaced (its indentation kept)
@@ -789,6 +788,18 @@ const MUTANTS = [
   { id: 'PC8', suite: 'static', expect: ['P2'], what: 'the Edge compares its database URL with a loopback address', edits: [{ f: EDGE + 'db.ts', after: "if (!url) return 'the database URL is unset';", add: "  if (url.includes('127.0.0.1')) return 'planted'; // (planted)" }] },
   { id: 'PC10', suite: 'static', expect: ['P3'], what: 'a new function branches on a setting whose value differs between planes', edits: [{ f: V + '100_node_common.sql', append: "create function factory._qa_pc10() returns boolean language sql stable set search_path = pg_catalog, pg_temp as $p$ select current_setting('server_version_num')::int >= 170000 $p$; -- (planted)" }] },
   { id: 'PC9', suite: 'static', expect: ['P2'], what: 'a SECURITY DEFINER body reads the superuser status of current_user (the owner)', edits: [{ f: V + '100_node_common.sql', append: 'create function factory._qa_pc9() returns boolean language plpgsql security definer set search_path = pg_catalog, pg_temp as $p$ begin return (select r.rolsuper from pg_catalog.pg_roles r where r.rolname = current_user); end $p$; -- (planted)' }] },
+  // the plane scan's Director rulings (CR-disposition record): a ruling is held to the Director's record, and only the CR-021 ruling
+  // admits a branch in own-plane addressing
+  { id: 'RLQ', suite: 'static', expect: ['P3p'], what: 'an inventory ruling quotes a class the Director\'s decision does not contain', edits: [
+    { f: 'qa/scenarios-runner/factory_v1_plane_scan_inventory.mjs', line: "const CR021_EDGE = { cr: 'CR-021', quote:", to: "const CR021_EDGE = { cr: 'CR-021', quote: 'is classed own-plane addressing, a branch on any configuration value included' }; // (planted) a quote the decision does not contain" }] },
+  { id: 'RLA', suite: 'static', expect: ['P3p'], what: 'an inventory class rests on a change request the Director RECORDED, not APPROVED (CR-010)', edits: [
+    { f: 'qa/scenarios-runner/factory_v1_plane_scan_inventory.mjs', line: "const CR022_CHANNEL = { cr: 'CR-022',", to: "const CR022_CHANNEL = { cr: 'CR-010', quote: 'r3 reading stands' }; // (planted) a decision that approves no class" }] },
+  { id: 'RLP', suite: 'static', expect: ['P3p'], what: 'a ruled UNTRACED entry is marked pending again', edits: [
+    { f: 'qa/scenarios-runner/factory_v1_plane_scan_inventory.mjs', line: "called by the trigger factory._tenant_admins_guard)', cls: 'same-on-every-plane', ruling: CR026, construction: STEP3_FIXED,", to: "  { file: STEPS, construct: 'session_user (factory._via_api, called by the trigger factory._tenant_admins_guard)', cls: 'same-on-every-plane', ruling: CR026, construction: STEP3_FIXED, pending: 'CR-026 (planted)'," }] },
+  { id: 'RLB', suite: 'static', expect: ['P3'], what: 'an Edge configuration branch is proposed own-plane without the CR-021 ruling (own-plane admits no branch otherwise)', edits: [
+    { f: 'qa/scenarios-runner/factory_v1_plane_scan_inventory.mjs', line: "value: 'FACTORY_ADMIN_DB_URL+FACTORY_NODE_DB_URL', count: 6, cls: 'own-plane', ruling: CR021_EDGE,", to: "  { file: EDGE + '_shared/db.ts', construct: 'env-branch', fn: '-', value: 'FACTORY_ADMIN_DB_URL+FACTORY_NODE_DB_URL', count: 6, cls: 'own-plane', // (planted) no ruling" }] },
+  { id: 'RLD', suite: 'static', expect: ['P3p'], what: 'the static contract reads the rulings at r3, which records no CR decision, instead of the Director\'s CR-disposition record', edits: [
+    { f: 'qa/scenarios-runner/factory_v1_static_contract.mjs', line: "const CR_DISPOSITION_COMMIT = '", to: "const CR_DISPOSITION_COMMIT = 'c7a845b61a3b0b419e8c9dfeff397547fdc75b03'; // (planted) the r3 commit" }] },
   { id: 'M0F', suite: 'static', expect: ['M0'], what: 'a 69df2f52 control-plane file is changed', edits: [{ f: 'supabase/control-plane/001_factory_control_plane.sql', append: '-- (planted) a changed 69df2f52 control-plane file' }] },
   { id: 'TXC', suite: 'static', expect: ['M1'], what: 'a transaction-control statement added to the migration', edits: [{ f: V + '990_finalize.sql', append: 'commit; -- (planted)' }] },
   { id: 'SM2s', suite: 'static', expect: ['M3'], what: 'a migration statement calls a function that writes the S-16(a) binding', edits: [

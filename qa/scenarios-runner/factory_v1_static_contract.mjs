@@ -47,6 +47,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const EDGE = join(ROOT, 'supabase', 'control-plane', 'edge', 'supabase');
@@ -152,6 +153,10 @@ check('O2 every Admin API op names exactly one admin front door (factory.admin_*
 // from the Director catalog tool at the designated Director commit (never copied into this tree). The class of each hit is the
 // implementer's PROPOSAL (factory_v1_plane_scan_inventory.mjs); the verifier classes every hit itself.
 const DIRECTOR_COMMIT = process.env.FACTORY_DESIGNATED_DIRECTOR || 'c7a845b61a3b0b419e8c9dfeff397547fdc75b03';
+// THE DIRECTOR'S CR-DISPOSITION RECORD (2026-09-30): the designated Director commit that records the decision on each change request
+// the implementer filed (CR-006..CR-026). It is NOT a product-semantic revision: the candidate's contract stays DIRECTOR_COMMIT (r3), and
+// the Director's documents in this tree stay byte-identical to it. P3p reads the ledger at this commit; H2 accepts citations of it.
+const CR_DISPOSITION_COMMIT = 'a0bb79856a7a82ea8277c7bbf3a23ad6cc0631a0';
 const BASE_COMMIT = '69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6';
 const gitOut = (...a) => { const r = spawnSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28 }); return r.status === 0 ? r.stdout : null; };
 const byteOrder = (a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b));
@@ -215,14 +220,36 @@ const candidateMigration = () => [...new Set([...(gitOut('diff', '--name-only', 
     JSON.stringify({ unmatched: cls.unmatched.map(fmt), miscount: cls.miscount.map((m) => m.entry.file.replace(/^.*\//, '') + ' ' + m.entry.construct + ' ' + (m.entry.fn || '') + ': listed ' + m.entry.count + ', found ' + m.found + ' at ' + m.lines.join(',')),
       badClass: cls.badClass.map((e) => e.construct + ' ' + e.cls), stale: cls.stale.map((e) => e.file.replace(/^.*\//, '') + ' ' + e.construct + ' ' + (e.fn || '')), branch: nonPendingBranch.map((b) => b.entry.construct + ' ' + b.entry.cls + ' at ' + b.lines.join(',')),
       untraced: untracedBad.map((u) => u.entry.file.replace(/^.*\//, '') + ' ' + u.entry.construct + ': ' + (u.missing.length ? 'anchor gone ' + u.missing.join(', ') : u.lines.length ? 'no class and no pending change request' : 'no hit line')) }));
-  // P3p the classes that rest on a change request the Director has not decided: under the r3 text as ratified these hits may fit no
-  // class, so the row fails until the decision is recorded (and the inventory updated to it)
+  // P3p the classes that rest on a change request: an entry still marked pending fails (under the r3 text as ratified its hit may fit
+  // no class until the Director decides), and an entry that rests on a Director ruling is held to the Director's CR-disposition record at
+  // CR_DISPOSITION_COMMIT - a descendant of the designated r3 commit; the ruling decided by the DIRECTOR and APPROVED; the entry's
+  // quote verbatim in the decision's text; and the sha256 the Director recorded for the change request equal to the CR file at HEAD
+  // (the decision was made on exactly the text this candidate carries)
   const pendingBy = new Map();
   for (const p of cls.pending) pendingBy.set(p.entry.pending.split(' ')[0], (pendingBy.get(p.entry.pending.split(' ')[0]) || []).concat(p.entry.file.replace(/^.*\//, '') + ':' + p.lines.join(',') + ' ' + p.entry.construct + (p.entry.value ? '(' + p.entry.value + ')' : '')));
   const untracedPending = untraced.filter((u) => u.entry.pending);
   for (const u of untracedPending) pendingBy.set(u.entry.pending.split(' ')[0], (pendingBy.get(u.entry.pending.split(' ')[0]) || []).concat(u.entry.file.replace(/^.*\//, '') + ':' + u.lines.join(',') + ' ' + u.entry.construct + ' [untraced]'));
-  check('P3p no proposed class rests on an undecided change request (' + (cls.pending.length + untracedPending.length) + ' groups, ' + (cls.pending.reduce((n, p) => n + p.lines.length, 0) + untracedPending.reduce((n, u) => n + u.lines.length, 0)) + ' hits depend on ' + [...pendingBy.keys()].sort().join(', ') + '; ' + untracedPending.length + ' of the groups are UNTRACED entries, reads and branches listed by hand)',
-    cls.pending.length === 0 && untracedPending.length === 0, [...pendingBy.entries()].map(([cr, l]) => cr + ': ' + l.join('; ')).join(' || '));
+  const ruled = [...cls.matched.filter((m) => m.entry.ruling).map((m) => ({ entry: m.entry, n: m.hits.length })), ...untraced.filter((u) => u.entry.ruling).map((u) => ({ entry: u.entry, n: u.lines.length }))];
+  let ledger = null; try { ledger = JSON.parse(gitOut('show', CR_DISPOSITION_COMMIT + ':qa/work-orders/AUTO_ENROLLMENT_V1_LEDGER.json') || 'null'); } catch { ledger = null; }
+  const descends = gitOut('merge-base', '--is-ancestor', DIRECTOR_COMMIT, CR_DISPOSITION_COMMIT) !== null;
+  const records = ledger && Array.isArray(ledger.change_requests) ? ledger.change_requests : [];
+  const blobSha = (p) => { const r = spawnSync('git', ['-C', ROOT, 'cat-file', 'blob', 'HEAD:' + p], { maxBuffer: 1 << 26 }); return r.status === 0 ? createHash('sha256').update(r.stdout).digest('hex') : null; };
+  const rulingBad = [], byCr = new Map();
+  for (const r of ruled) {
+    const { cr, quote } = r.entry.ruling || {};
+    const rec = records.find((x) => x && x.id === cr);
+    const why = !cr || !quote ? 'no cr or quote' : !rec ? 'no record of ' + cr + ' at ' + CR_DISPOSITION_COMMIT.slice(0, 8)
+      : rec.decided_by !== 'DIRECTOR' ? cr + ' not decided by the DIRECTOR' : !/^APPROVED\b/.test(String(rec.decision)) ? cr + ' not APPROVED'
+      : !String(rec.decision).includes(quote) ? cr + ' decision does not contain the quote "' + quote.slice(0, 60) + '"'
+      : !new RegExp('^qa/implementation/auto-enrollment-v1/change-requests/' + cr + '-[a-z0-9-]+\\.md$').test(String(rec.path)) ? cr + ' recorded at an unexpected path ' + rec.path
+      : blobSha(rec.path) !== rec.sha256 ? cr + ' sha256 at HEAD differs from the recorded ' + String(rec.sha256).slice(0, 16) : null;
+    if (why) rulingBad.push(r.entry.file.replace(/^.*\//, '') + ' ' + r.entry.construct + ': ' + why);
+    if (cr) { const c = byCr.get(cr) || { groups: 0, hits: 0 }; c.groups++; c.hits += r.n; byCr.set(cr, c); }
+  }
+  const ruledTxt = [...byCr.entries()].sort().map(([cr, c]) => cr + ' ' + c.groups + ' groups / ' + c.hits + ' hits').join(', ');
+  check('P3p no proposed class rests on an undecided change request (' + (cls.pending.length + untracedPending.length) + ' groups pending); every class that rests on a Director ruling (' + ruled.length + ' groups: ' + ruledTxt + ') is held to the Director\'s CR-disposition record ' + CR_DISPOSITION_COMMIT.slice(0, 8) + ' (a descendant of r3 ' + DIRECTOR_COMMIT.slice(0, 8) + '): decided by the DIRECTOR, APPROVED, the quoted class in the decision, and the recorded sha256 of the change request equal to its file at HEAD',
+    cls.pending.length === 0 && untracedPending.length === 0 && ledger !== null && descends && rulingBad.length === 0,
+    [...[...pendingBy.entries()].map(([cr, l]) => 'PENDING ' + cr + ': ' + l.join('; ')), ...(ledger ? [] : ['the Director ledger at ' + CR_DISPOSITION_COMMIT + ' cannot be read here (fetch the Director branch)']), ...(descends ? [] : ['the CR-disposition record does not descend from r3 ' + DIRECTOR_COMMIT]), ...rulingBad].join(' || '));
   for (const [cr, l] of pendingBy) console.log('     PENDING ' + cr + ' - ' + l.length + ' groups: ' + l.join('; '));
   // P4 the production ref: only as the refusal in _shared/db.ts; both entry points connect only through it
   const scanned = [...mig, ...edgeTs];
@@ -264,10 +291,10 @@ const GATES = [
   ['bad_signature', 'node', 'DETERMINISTIC REFUSAL', 'a session assertion whose Ed25519 signature does not verify'],
   ['bad_proof', 'node', 'DETERMINISTIC REFUSAL', 'enrollment or rotation without proof of possession of the key'],
   ['plane_unavailable', 'node', 'DETERMINISTIC REFUSAL (outcome unknown)', 'the plane did not answer: every node operation is idempotent and safe to retry'],
-  ['pepper_unavailable', 'both', 'PLATFORM CONDITION (fail closed, named)', 'FACTORY_PAIRING_PEPPER unset: pairing is refused by name; nothing else is affected. On the Node API each such request is one recorded pairing attempt, named before the caps are applied (enrollment_acceptance PU1); its consequence under S-6 is a Director decision (CR-016; analysis sent privately)'],
+  ['pepper_unavailable', 'both', 'PLATFORM CONDITION (fail closed, named)', 'FACTORY_PAIRING_PEPPER unset: pairing is refused by name; nothing else is affected. On the Node API each such request is one recorded pairing attempt, named before the caps are applied (enrollment_acceptance PU1); under S-6 the r3 literal reading stands (CR-016, RECORDED; analysis sent privately)'],
   ['peer_unavailable', 'node', 'PLATFORM CONDITION (fail closed, named)', 'the runtime reported no usable peer address (no info, a transport without a hostname, a value that is not an IP address; peer.ts): enroll/start and enroll/complete are refused 503 by name and still recorded (peer_ip null); every other route is served. What the hosted runtime reports is measured only on a deployed function (UNMEASURED below); its consequence under S-6 is a Director decision (CR-015 / CR-016; analysis sent privately)'],
-  ['rate_limited_ip', 'node', 'S-6 ABUSE LIMIT (SQL, 429)', '20 attempts per peer address per rolling hour, serialized per peer (part 150 _pairing_serialize), every recorded attempt of the address counted. How this cap behaves on the hosted runtime and for IPv6 clients is a Director decision (CR-015; analysis sent privately)'],
-  ['rate_limited_tenant', 'node', 'S-6 ABUSE LIMIT (SQL, 429)', '60 attempts per tenant per rolling hour, serialized per tenant (part 150). Which recorded requests count toward this cap is a Director decision (CR-016; analysis sent privately)'],
+  ['rate_limited_ip', 'node', 'S-6 ABUSE LIMIT (SQL, 429)', '20 attempts per peer address per rolling hour, serialized per peer (part 150 _pairing_serialize), every recorded attempt of the address counted. The cap keys on the peer address the hosted runtime hands the handler (CR-015, RECORDED: the r3 reading stands; analysis sent privately)'],
+  ['rate_limited_tenant', 'node', 'S-6 ABUSE LIMIT (SQL, 429)', '60 attempts per tenant per rolling hour, serialized per tenant (part 150). The recorded requests that count toward this cap are those the r3 literal text counts (CR-016, RECORDED; analysis sent privately)'],
   ['claim_lock_busy', 'node', 'DETERMINISTIC REFUSAL (SQL, 503, retry)', 'the plane-wide claim lock stayed busy for its fixed bound of 150 tries 0.1 s apart (part 120): nothing claimed this time; the runtime retries'],
   ['server_refused', 'both', 'DETERMINISTIC REFUSAL; LOAD-DEPENDENT for 55P03 / 57014 (retryable)', 'the PostgreSQL server raised a SQLSTATE (db.ts serverSqlState: only a server error, never a transport error\'s code): the transaction rolled back, nothing changed. Most are deterministic. A lock wait longer than a front door\'s lock_timeout (15 s: SQLSTATE 55P03) or a cancelled statement (57014) depends on load and is retryable; on the enrollment routes it rolls back with its attempt row, so that request is not recorded (load behaviour: UNMEASURED below)'],
   ['unavailable', 'both', 'DETERMINISTIC REFUSAL (outcome unknown)', 'the plane or Brain OS did not answer: the caller reloads / retries idempotently (with BRAIN_OS_URL unset, a token issued by the bare path /auth/v1 ends here: G7)'],
@@ -1315,10 +1342,12 @@ const bodyCode = (body) => lexSql(body + ';').map((s) => s.code + ' ' + s.dos.ma
   const toks = [...cited.keys()];
   const bc = spawnSync('git', ['-C', ROOT, 'cat-file', '--batch-check=%(objectname) %(objecttype)'], { input: toks.join('\n') + '\n', encoding: 'utf8', maxBuffer: 1 << 28 });
   const kinds = (bc.stdout || '').trim().split('\n');
-  const history = new Set((gitOut('rev-list', 'HEAD') || '').trim().split('\n'));
+  // a citation resolves when it is in HEAD's history, or in the Director's published history up to the designated CR-disposition record
+  // (the Director branch, which every verifier of this candidate reads)
+  const history = new Set([...(gitOut('rev-list', 'HEAD') || '').trim().split('\n'), ...(gitOut('rev-list', CR_DISPOSITION_COMMIT) || '').trim().split('\n')].filter(Boolean));
   let commits = 0; const dangling = [];
   toks.forEach((k, i) => { const [sha, type] = (kinds[i] || '').split(' '); if (type !== 'commit') return; commits++; if (!history.has(sha)) dangling.push(k + ' in ' + [...cited.get(k)].sort().join(', ')); });
-  check('H2 every commit the candidate\'s own files cite is in HEAD\'s history, so each citation resolves for anyone who receives this branch alone (' + commits + ' commit citations in ' + paths.length + ' files added or changed since ' + PUBLISHED.slice(0, 7) + ', the last published commit; the Director\'s documents aside)',
+  check('H2 every commit the candidate\'s own files cite is in HEAD\'s history or in the Director\'s published history up to the CR-disposition record ' + CR_DISPOSITION_COMMIT.slice(0, 8) + ', so each citation resolves for anyone who receives this branch and the Director branch (' + commits + ' commit citations in ' + paths.length + ' files added or changed since ' + PUBLISHED.slice(0, 7) + ', the last published commit; the Director\'s documents aside)',
     gitOut('merge-base', '--is-ancestor', PUBLISHED, 'HEAD') !== null && bc.status === 0 && kinds.length === toks.length && history.size > 100 && dangling.length === 0, dangling.join(' | '));
 }
 

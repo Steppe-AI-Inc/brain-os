@@ -178,8 +178,8 @@ try {
   const legacyTenant = (await sup.query(`select count(*)::int n from factory.agent_runs where tenant_id <> $1`, [OPERATOR])).rows[0].n;
   row('P5 every existing row carries the operator tenant (tenant_id added; evidence fields untouched)', legacyTenant === 0);
   // S-9 over every table of schema factory. factory.plane_identity is a 69df2f52 provisioning row present only on a dedicated-Supabase
-  // plane; giving it tenant_id would need a statement that names it (S-10). It is excluded here pending the Director's ruling on
-  // CR-007, and the exclusion is printed on every run.
+  // plane; giving it tenant_id would need a statement that names it (S-10). It is excluded here under the Director's ruling on
+  // CR-007 (APPROVED, option 1: a 69df2f52 provisioning artifact, outside S-9), and the exclusion is printed on every run.
   const s9 = (await sup.query(`select c.relname r, a.attnum is not null has_col, coalesce(a.attnotnull, false) not_null
       from pg_class c left join pg_attribute a on a.attrelid = c.oid and a.attname = 'tenant_id' and not a.attisdropped
      where c.relnamespace = 'factory'::regnamespace and c.relkind in ('r', 'p') and c.relname <> 'plane_identity' order by 1`)).rows;
@@ -187,7 +187,7 @@ try {
   row('P5b S-9: every table in schema factory - the 69df2f52 tables and every table the migration adds - has a NOT NULL tenant_id (factory.plane_identity excluded: CR-007)',
     s9.length >= BASE_TABLES.length + NEW_TABLES.length && BASE_TABLES.concat(NEW_TABLES).every((t) => s9.some((x) => x.r === t)) && s9Bad.length === 0,
     s9.length + ' tables' + (s9Bad.length ? '; without a NOT NULL tenant_id: ' + s9Bad.join(', ') : ''));
-  note('plane_identity: factory.plane_identity (a 69df2f52 provisioning row, plane-dependent) is excluded from the P5b tenant_id scan pending CR-007 (S-9 vs S-10); present here: '
+  note('plane_identity: factory.plane_identity (a 69df2f52 provisioning row, plane-dependent) is excluded from the P5b tenant_id scan: outside S-9 (CR-007, APPROVED option 1); present here: '
     + (await sup.query(`select count(*)::int n from pg_class where relnamespace = 'factory'::regnamespace and relname = 'plane_identity'`)).rows[0].n);
   console.log('INFO ' + evidence[evidence.length - 1]);
   const reserved = (await sup.query(`select count(*)::int n from factory.work_orders where 'factory-enrolled-v1' = any(requires_capabilities)`)).rows[0].n;

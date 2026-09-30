@@ -282,6 +282,7 @@ select d.defaclobjtype, a.privilege_type from pg_catalog.pg_default_acl d, pg_ca
 ```
 
 Two Director runbook rows (`qa/work-orders/TWO_MACHINE_CONTROL_PLANE.md:68` and `:175`) rotate this password by re-running
-`provision-control-plane.mjs`. Do not follow them on a plane that has step 1: use step R. Which runbook applies after step 1 is the
-Director's decision on CR-006; the implementer's measurement went to the Director privately, through the founder (ledger rule 3).
+`provision-control-plane.mjs`. Do not follow them on a plane that has step 1: use step R. The Director decided which runbook applies
+after step 1 in CR-006 (APPROVED): step R, and the provisioner is never re-run on such a plane. The implementer's measurement went to
+the Director privately, through the founder (ledger rule 3).
 The second read-back above lists any default privilege reaching `factory_runner`, and it must list none.
