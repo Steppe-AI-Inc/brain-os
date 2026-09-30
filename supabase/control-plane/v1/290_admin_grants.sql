@@ -1,5 +1,5 @@
 -- FACTORY CONTROL PLANE V1 - PART 290: the Admin API's front doors, exactly. factory_admin_api holds EXECUTE on these and on nothing
--- else; the node API role holds none of them; the migration's final self-check (part 990) holds both lists to exactly this.
+-- else; the node API role holds none of them. Schema acceptance C18 / C19 and the §3.5 read-back hold both lists to exactly this.
 
 set local role factory_owner;
 

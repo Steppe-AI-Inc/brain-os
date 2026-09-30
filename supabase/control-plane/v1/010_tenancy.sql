@@ -36,8 +36,12 @@ create table factory.tenant_admins (
   primary key (tenant_id, auth_user_id)
 );
 
--- The 69df2f52 tables gain a foreign key to tenants below; the migrating login needs REFERENCES for that one step.
-grant references on factory.tenants to session_user;
+-- The 69df2f52 tables gain a foreign key to tenants below. Their owner (the applying login, which provisioned them as 69df2f52)
+-- runs that ALTER TABLE, and PostgreSQL checks REFERENCES on factory.tenants for it. No statement names the applying login
+-- (S-10; VERIFICATION_SPEC §3.4 r3), so REFERENCES goes to PUBLIC on a table this still-uncommitted transaction created: no other
+-- session can see the table, let alone use the grant, and it is revoked again at the end of this part. Part 990 revokes
+-- everything from PUBLIC on every new relation once more, by name (static R5 holds its list to every relation created).
+grant references on factory.tenants to public;
 
 reset role;
 
@@ -57,5 +61,5 @@ alter table factory.founder_notifications   add column tenant_id uuid not null d
 alter table factory.director_lease          add column tenant_id uuid not null default 'a1e0f000-0000-4000-8000-000000000001' references factory.tenants (tenant_id);
 
 set local role factory_owner;
-revoke references on factory.tenants from session_user;
+revoke references on factory.tenants from public;
 reset role;

@@ -10,16 +10,16 @@ set local role factory_owner;
 -- reported by a node.
 -- ---------------------------------------------------------------------------------------------------
 create function factory._capability_reserved(c text) returns boolean
-  language sql immutable parallel safe set search_path = ''
+  language sql immutable parallel safe set search_path = pg_catalog, pg_temp
   as $$ select lower(btrim(coalesce(c, ''))) = 'factory-enrolled-v1' $$;
 
 create function factory._capability_name_ok(c text) returns boolean
-  language sql immutable parallel safe set search_path = ''
+  language sql immutable parallel safe set search_path = pg_catalog, pg_temp
   as $$ select c is not null and c ~ '^[a-z0-9][a-z0-9._:/-]{0,63}$' $$;
 
 -- an envelope's capability list: well-formed names, none reserved, no duplicates, at most 64
 create function factory._envelope_capabilities_ok(cs text[]) returns boolean
-  language sql immutable parallel safe set search_path = ''
+  language sql immutable parallel safe set search_path = pg_catalog, pg_temp
   as $$
     select cs is not null
        and cardinality(cs) <= 64
@@ -29,7 +29,7 @@ create function factory._envelope_capabilities_ok(cs text[]) returns boolean
 
 -- a list of work types / work classes: well-formed names, 1..32 of them
 create function factory._work_names_ok(ws text[]) returns boolean
-  language sql immutable parallel safe set search_path = ''
+  language sql immutable parallel safe set search_path = pg_catalog, pg_temp
   as $$
     select ws is not null
        and cardinality(ws) between 1 and 32
@@ -63,10 +63,15 @@ create table factory.computers (
   -- the machine fingerprint recorded at the computer's first registration (contract §1); every later report is kept in
   -- computer_fingerprints. Descriptive: it only ever refuses (S-16b), never grants.
   registered_fingerprint    text check (registered_fingerprint is null or registered_fingerprint ~ '^[0-9a-f]{64}$'),
+  -- S-14: when a registration of this UNBOUND record was first refused because the record has reported a machine fingerprint that a
+  -- record carrying the S-16(a) binding has reported (s16a_bound_fingerprint). From then on the record takes no work (gate 1),
+  -- whatever state its enrollment shows. Server-written, set once, never cleared (guard, part 080); it only ever restricts (S-1).
+  s14_registration_refused_at timestamptz,
   unique (tenant_id, computer_id),
   check ((archived_at is null) = (archived_by is null)),
   check ((drain_requested_at is null) = (drain_requested_by is null)),
-  check ((s16a_bound_at is null) = (s16a_bound_by is null))
+  check ((s16a_bound_at is null) = (s16a_bound_by is null)),
+  check (s14_registration_refused_at is null or s16a_bound_at is null)
 );
 -- at most one ACTIVE computer carries the S-16(a) binding in a tenant: a rebinding elsewhere is refused while it is active
 create unique index computers_one_active_s16a on factory.computers (tenant_id)

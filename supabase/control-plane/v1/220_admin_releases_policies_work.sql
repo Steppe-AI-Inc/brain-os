@@ -6,9 +6,13 @@ set local role factory_owner;
 -- RELEASES (contract §2 Release; S-5; CR-003). Publishing, superseding and revoking are FOUNDER-ONLY. The plane records the manifest
 -- the founder signed (under C-3 on the live plane); it holds no trust key and adds none to any node: a node's trust set is fixed in
 -- the artifact it installed. What reaches a node from here is a revocation, never a key.
+-- Superseding happens only here: publishing a release supersedes the channel's published one, inside this founder-only action.
+-- Two publishes on one tenant are serialized (the tenant row), so the second sees the first and supersedes it. A key revoke takes
+-- the same tenant row first: a publish racing the revoke of its signing key either commits first (and the revoke then covers its
+-- release), or waits and is refused key_revoked; two revokes of one key are one revocation and one "already".
 -- ---------------------------------------------------------------------------------------------------
 create function factory.admin_publish_release(p_actor uuid, p_live_role text, p_body jsonb) returns jsonb
-  language plpgsql volatile security definer set search_path = '' set lock_timeout = '15s'
+  language plpgsql volatile security definer set search_path = pg_catalog, pg_temp set lock_timeout = '15s'
   as $$
   declare a record; rid uuid := gen_random_uuid(); prev factory.releases; ch text := p_body ->> 'channel';
   begin
@@ -18,9 +22,10 @@ create function factory.admin_publish_release(p_actor uuid, p_live_role text, p_
        or coalesce(p_body ->> 'version', '') !~ '^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]{1,40})?$'
        or coalesce(p_body ->> 'source_sha', '') !~ '^[0-9a-f]{40}$' or coalesce(p_body ->> 'digest', '') !~ '^[0-9a-f]{64}$'
        or coalesce(p_body ->> 'key_id', '') !~ '^[A-Za-z0-9:_-]{8,80}$' or coalesce(p_body ->> 'signature', '') !~ '^[A-Za-z0-9_-]{86}$'
-       or coalesce(p_body ->> 'receipt_sha256', '') !~ '^[0-9a-f]{64}$' or jsonb_typeof(p_body -> 'manifest') <> 'object' then
+       or coalesce(p_body ->> 'receipt_sha256', '') !~ '^[0-9a-f]{64}$' or jsonb_typeof(p_body -> 'manifest') is distinct from 'object' then
       return factory._refusal('bad_request', 400, 'a release is {channel, version, source_sha, digest, key_id, signature, receipt_sha256, manifest}');
     end if;
+    perform factory._lock_tenant((a.ctx).tenant_id); -- publishes and key revokes of this tenant queue here
     if exists (select 1 from factory.release_revocations v where v.tenant_id = (a.ctx).tenant_id and v.kind = 'key' and v.key_id = p_body ->> 'key_id') then
       return factory._refusal('key_revoked', 409, 'this release is signed by a revoked key');
     end if;
@@ -41,14 +46,14 @@ create function factory.admin_publish_release(p_actor uuid, p_live_role text, p_
   end $$;
 
 create function factory.admin_revoke_release(p_actor uuid, p_live_role text, p_body jsonb) returns jsonb
-  language plpgsql volatile security definer set search_path = '' set lock_timeout = '15s'
+  language plpgsql volatile security definer set search_path = pg_catalog, pg_temp set lock_timeout = '15s'
   as $$
   declare a record; r factory.releases;
   begin
     select * into a from factory._admin(p_actor, p_live_role, p_body, 'revoke_release', true);
     if a.refusal is not null then return a.refusal; end if;
     select x.* into r from factory.releases x where x.release_id = factory._uuid(p_body, 'release_id') and x.tenant_id = (a.ctx).tenant_id for update;
-    if r.release_id is null then return factory._refusal('not_found', 404, 'no such release'); end if;
+    if r.release_id is null then return factory._not_found(a.ctx, 'revoke_release', p_body, 'release_id'); end if;
     if r.state = 'revoked' then return jsonb_build_object('ok', true, 'already', true); end if;
     update factory.releases set state = 'revoked', revoked_at = now(), revoked_by = (a.ctx).actor, revoke_reason = left(p_body ->> 'reason', 300)
      where release_id = r.release_id;
@@ -59,13 +64,18 @@ create function factory.admin_revoke_release(p_actor uuid, p_live_role text, p_b
   end $$;
 
 create function factory.admin_revoke_key(p_actor uuid, p_live_role text, p_body jsonb) returns jsonb
-  language plpgsql volatile security definer set search_path = '' set lock_timeout = '15s'
+  language plpgsql volatile security definer set search_path = pg_catalog, pg_temp set lock_timeout = '15s'
   as $$
   declare a record; k text := p_body ->> 'key_id';
   begin
     select * into a from factory._admin(p_actor, p_live_role, p_body, 'revoke_key', true);
     if a.refusal is not null then return a.refusal; end if;
     if k is null or k !~ '^[A-Za-z0-9:_-]{8,80}$' then return factory._refusal('bad_request', 400, 'key_id is required'); end if;
+    -- the tenant row first (as a publish takes it): a publish of this key and a second revoke of it wait for this one to commit
+    perform factory._lock_tenant((a.ctx).tenant_id); -- a key revoke queues behind a publish, and a publish behind it
+    -- then the key's releases: an adoption of one of them (FOR SHARE) either commits before this, or waits and then sees the key
+    -- revoked
+    perform 1 from factory.releases x where x.tenant_id = (a.ctx).tenant_id and x.key_id = k order by x.release_id for no key update;
     if exists (select 1 from factory.release_revocations v where v.tenant_id = (a.ctx).tenant_id and v.kind = 'key' and v.key_id = k) then
       return jsonb_build_object('ok', true, 'already', true);
     end if;
@@ -75,7 +85,7 @@ create function factory.admin_revoke_key(p_actor uuid, p_live_role text, p_body 
   end $$;
 
 create function factory.admin_list_releases(p_actor uuid, p_live_role text, p_body jsonb) returns jsonb
-  language plpgsql volatile security definer set search_path = ''
+  language plpgsql volatile security definer set search_path = pg_catalog, pg_temp
   as $$
   declare a record; items jsonb; total integer;
   begin
@@ -93,7 +103,7 @@ create function factory.admin_list_releases(p_actor uuid, p_live_role text, p_bo
 -- milestone. The guard (part 080) enforces the same for every API-login writer; this front door names the refusal first.
 -- ---------------------------------------------------------------------------------------------------
 create function factory.admin_list_policies(p_actor uuid, p_live_role text, p_body jsonb) returns jsonb
-  language plpgsql volatile security definer set search_path = ''
+  language plpgsql volatile security definer set search_path = pg_catalog, pg_temp
   as $$
   declare a record;
   begin
@@ -106,7 +116,7 @@ create function factory.admin_list_policies(p_actor uuid, p_live_role text, p_bo
   end $$;
 
 create function factory.admin_update_policy(p_actor uuid, p_live_role text, p_body jsonb) returns jsonb
-  language plpgsql volatile security definer set search_path = '' set lock_timeout = '15s'
+  language plpgsql volatile security definer set search_path = pg_catalog, pg_temp set lock_timeout = '15s'
   as $$
   declare a record; p factory.verification_policies; ch jsonb := p_body -> 'changes'; k text;
           b1 boolean; b2 boolean; b3 boolean; b4 boolean; b5 boolean; paths text[];
@@ -114,12 +124,16 @@ create function factory.admin_update_policy(p_actor uuid, p_live_role text, p_bo
     select * into a from factory._admin(p_actor, p_live_role, p_body, 'update_policy', false);
     if a.refusal is not null then return a.refusal; end if;
     select x.* into p from factory.verification_policies x where x.policy_id = factory._uuid(p_body, 'policy_id') and x.tenant_id = (a.ctx).tenant_id for update;
-    if p.policy_id is null then return factory._refusal('not_found', 404, 'no such policy'); end if;
+    if p.policy_id is null then return factory._not_found(a.ctx, 'update_policy', p_body, 'policy_id'); end if;
     if p.frozen then
       perform factory._audit(p.tenant_id, 'admin', (a.ctx).actor::text, 'policy.update', 'policy', p.policy_id::text, 'refused', 'frozen');
       return factory._refusal('policy_frozen', 403, 'the milestone campaign rows cannot be changed through the Admin API (S-14)');
     end if;
-    if jsonb_typeof(p_body -> 'expected_version') <> 'number' or (p_body ->> 'expected_version')::integer <> p.version then
+    if jsonb_typeof(p_body -> 'expected_version') is distinct from 'number' then
+      return factory._refusal('bad_request', 400, 'expected_version is the policy version you read (a number)');
+    end if;
+    if (p_body ->> 'expected_version')::numeric <> p.version then
+      perform factory._audit(p.tenant_id, 'admin', (a.ctx).actor::text, 'policy.update', 'policy', p.policy_id::text, 'refused', 'stale_state', jsonb_build_object('current_version', p.version, 'expected_version', p_body -> 'expected_version'));
       return factory._refusal('stale_state', 409, 'the policy changed since you read it', jsonb_build_object('current_version', p.version));
     end if;
     if ch is null or jsonb_typeof(ch) <> 'object' then return factory._refusal('bad_request', 400, 'changes is an object'); end if;
@@ -161,7 +175,7 @@ create function factory.admin_update_policy(p_actor uuid, p_live_role text, p_bo
 -- each enrolled node's FIRST failing gate for it, computed by the same gates the claim uses. Never self-certified.
 -- ---------------------------------------------------------------------------------------------------
 create function factory.admin_list_waiting_verifications(p_actor uuid, p_live_role text, p_body jsonb) returns jsonb
-  language plpgsql volatile security definer set search_path = ''
+  language plpgsql volatile security definer set search_path = pg_catalog, pg_temp
   as $$
   declare a record; items jsonb := '[]'::jsonb; w factory.work_orders; v factory.work_orders; n factory.nodes; gates jsonb; oc factory.node_ctx; total integer;
   begin
@@ -194,12 +208,17 @@ create function factory.admin_list_waiting_verifications(p_actor uuid, p_live_ro
 -- ---------------------------------------------------------------------------------------------------
 -- SUBMIT A WORK ORDER (product dispatch through the API; WO-5 "Dispatch"): a new-model work order, holding factory-enrolled-v1, with
 -- numeric priority. The scheduler alone decides which node takes it; the admin never assigns one.
+-- A CAMPAIGN a work order names must be a campaign policy row of the caller's tenant: an unknown or malformed campaign_key gets the
+-- named refusal unknown_campaign with no row written (never stored, so never silently read as "the tenant default"; P-9). A work order
+-- carrying a campaign's key is a milestone candidate under r3's per-work-order membership, and S-16(b) has every milestone candidate
+-- certified, so it cannot be submitted with requires_verification false. (How a milestone candidate submitted WITHOUT a campaign_key
+-- is identified is a Director question, change request CR-011; until it is decided the r3 behaviour stands.)
 -- ---------------------------------------------------------------------------------------------------
 create function factory.admin_submit_work_order(p_actor uuid, p_live_role text, p_body jsonb) returns jsonb
-  language plpgsql volatile security definer set search_path = '' set lock_timeout = '15s'
+  language plpgsql volatile security definer set search_path = pg_catalog, pg_temp set lock_timeout = '15s'
   as $$
   declare a record; wid uuid := gen_random_uuid(); caps text[]; surf text[]; deps uuid[]; role text := coalesce(p_body ->> 'requires_security_role', 'generic');
-          d uuid; pr integer;
+          d uuid; pr integer; camp text;
   begin
     select * into a from factory._admin(p_actor, p_live_role, p_body, 'submit_work_order', role = 'release_broker');
     if a.refusal is not null then return a.refusal; end if;
@@ -211,30 +230,45 @@ create function factory.admin_submit_work_order(p_actor uuid, p_live_role text, 
     end if;
     surf := case when jsonb_typeof(p_body -> 'owned_surface') = 'array' then array(select x from jsonb_array_elements_text(p_body -> 'owned_surface') x) else '{}' end;
     if exists (select 1 from unnest(surf) s where s is null or btrim(s) = '' or octet_length(s) > 1000) then return factory._refusal('bad_request', 400, 'owned_surface entries are 1..1000 bytes'); end if;
-    if jsonb_typeof(p_body -> 'priority') <> 'number' then return factory._refusal('bad_request', 400, 'priority is a number (larger is more urgent)'); end if;
-    pr := (p_body ->> 'priority')::numeric::integer;
-    deps := case when jsonb_typeof(p_body -> 'depends_on') = 'array' then array(select x::uuid from jsonb_array_elements_text(p_body -> 'depends_on') x where x ~ '^[0-9a-f-]{36}$') else '{}' end;
+    if jsonb_typeof(p_body -> 'priority') is distinct from 'number' then return factory._refusal('bad_request', 400, 'priority is a number (larger is more urgent)'); end if;
+    if factory._num(p_body, 'priority') not between -2147483648 and 2147483647 then return factory._refusal('bad_request', 400, 'priority is an integer (larger is more urgent)'); end if;
+    pr := factory._jint(p_body, 'priority');
+    deps := case when jsonb_typeof(p_body -> 'depends_on') = 'array' then array(select x::uuid from jsonb_array_elements_text(p_body -> 'depends_on') x where factory._is_uuid(x)) else '{}' end;
     if exists (select 1 from unnest(deps) d2 where not exists (select 1 from factory.work_orders w where w.work_order_id = d2 and w.tenant_id = (a.ctx).tenant_id
                                                                and factory._new_model_capabilities(w.requires_capabilities))) then
       return factory._refusal('bad_request', 400, 'depends_on names new-model work orders of your tenant');
+    end if;
+    if p_body ? 'campaign_key' and jsonb_typeof(p_body -> 'campaign_key') <> 'null' then
+      camp := case when jsonb_typeof(p_body -> 'campaign_key') = 'string' then p_body ->> 'campaign_key' end;
+      if camp is null or not exists (select 1 from factory.verification_policies q
+                                      where q.tenant_id = (a.ctx).tenant_id and q.scope = 'campaign' and q.campaign_key = camp) then
+        perform factory._audit((a.ctx).tenant_id, 'admin', (a.ctx).actor::text, 'work_order.submitted', 'work_order', null, 'refused', 'unknown_campaign',
+                               jsonb_build_object('campaign_key', left(p_body ->> 'campaign_key', 64)));
+        return factory._refusal('unknown_campaign', 400, 'campaign_key names no campaign policy of your tenant; nothing was written');
+      end if;
+      if not coalesce((p_body ->> 'requires_verification')::boolean, true) then
+        perform factory._audit((a.ctx).tenant_id, 'admin', (a.ctx).actor::text, 'work_order.submitted', 'work_order', null, 'refused', 'campaign_requires_verification',
+                               jsonb_build_object('campaign_key', camp));
+        return factory._refusal('campaign_requires_verification', 400, 'a work order of a campaign is certified: requires_verification cannot be false; nothing was written');
+      end if;
     end if;
     insert into factory.work_orders (work_order_id, tenant_id, title, work_type, status, owned_surface, requires_security_role, requires_capabilities,
                                      priority_num, weight, company_id, campaign_key, requires_verification, min_resources, handoff, queued_at, submitted_by)
     values (wid, (a.ctx).tenant_id, btrim(p_body ->> 'title'), coalesce(nullif(p_body ->> 'work_type', ''), 'software_development'), 'queued', surf, role,
             array['factory-enrolled-v1'] || caps, pr, coalesce(p_body ->> 'weight', 'normal'), factory._uuid(p_body, 'company_id'),
-            p_body ->> 'campaign_key', coalesce((p_body ->> 'requires_verification')::boolean, true),
+            camp, coalesce((p_body ->> 'requires_verification')::boolean, true),
             case when jsonb_typeof(p_body -> 'min_resources') = 'object' then p_body -> 'min_resources' end, left(p_body ->> 'handoff', 20000), now(), (a.ctx).actor);
     foreach d in array deps loop
       insert into factory.work_order_dependencies (work_order_id, depends_on, tenant_id) values (wid, d, (a.ctx).tenant_id);
     end loop;
     perform factory._audit((a.ctx).tenant_id, 'admin', (a.ctx).actor::text, 'work_order.submitted', 'work_order', wid::text, 'ok', null,
-                           jsonb_build_object('priority', pr, 'role', role, 'surfaces', to_jsonb(surf), 'campaign_key', p_body ->> 'campaign_key'));
+                           jsonb_build_object('priority', pr, 'role', role, 'surfaces', to_jsonb(surf), 'campaign_key', camp));
     return jsonb_build_object('ok', true, 'work_order_id', wid);
   end $$;
 
 -- WORK OBSERVATION: new-model work orders and their runs (a CollectionEnvelope; the total from an aggregate count)
 create function factory.admin_list_work(p_actor uuid, p_live_role text, p_body jsonb) returns jsonb
-  language plpgsql volatile security definer set search_path = ''
+  language plpgsql volatile security definer set search_path = pg_catalog, pg_temp
   as $$
   declare a record; items jsonb; total integer;
   begin

@@ -4,6 +4,12 @@
 -- is the only writer the guards trust with authority records and with new-model rows. It is a fact about the executing role,
 -- never a GUC, never a session flag, never a value the caller supplies (SECURITY_INVARIANTS #8).
 --
+-- NOTHING THE CALLING SESSION CREATES TAKES PART IN A DECISION HERE. A guard runs as the writer. Every function of this migration
+-- pins `search_path = pg_catalog, pg_temp`: built-in type and relation names resolve in pg_catalog, and the session's temporary
+-- schema is listed last. The identity tests below compare current_user / session_user (type name) with a pg_catalog.name constant
+-- and cast them to nothing, so they hold whatever the search_path. That every function pins exactly that search_path is read back
+-- after the migration (schema acceptance C10, VERIFICATION_SPEC §3.5) and from the source (static contract R8).
+--
 -- THREE KINDS OF GUARD
 --   1. AUTHORITY RECORDS (every table this migration creates): written only by the engine. Anyone else - the legacy role
 --      factory_runner above all, whatever grants a later provisioning run might hand it - is refused by name.
@@ -12,7 +18,7 @@
 --      founder-only tenant_admins table, principal binding (S-13).
 --   3. THE LEGACY GUARD on the 69df2f52 tables. For a writer that is not the engine:
 --        * an INSERT of a new-model row (a work order holding `factory-enrolled-v1`, a run / checkpoint / lock of an enrolled
---          principal, a dependency or notification naming a new-model work order) is REFUSED;
+--          principal, a row naming an enrolled node id, a dependency or notification naming a new-model work order) is REFUSED;
 --        * an UPDATE or DELETE of such a row is SKIPPED: the row is left exactly as it was and the statement goes on. That is what
 --          keeps the frozen 69df2f52 claim transaction working when its reaper's `update ... where lease_expires_at < now()`
 --          reaches an enrolled run whose lease lapsed: the enrolled row is untouched, the legacy rows are reaped, the claim
@@ -22,24 +28,20 @@
 set local role factory_owner;
 
 create function factory._operator_tenant() returns uuid
-  language sql immutable parallel safe set search_path = ''
+  language sql immutable parallel safe set search_path = pg_catalog, pg_temp
   as $$ select 'a1e0f000-0000-4000-8000-000000000001'::uuid $$;
-
-create function factory._is_engine() returns boolean
-  language sql stable parallel safe set search_path = ''
-  as $$ select current_user::text = 'factory_owner' $$;
 
 -- a call that arrived through an API login (the Node API's or the Admin API's database role)
 create function factory._via_api() returns boolean
-  language sql stable parallel safe set search_path = ''
-  as $$ select session_user::text in ('factory_node_api', 'factory_admin_api') $$;
+  language sql stable parallel safe set search_path = pg_catalog, pg_temp  -- pinned: _via_api
+  as $$ select session_user in ('factory_node_api'::pg_catalog.name, 'factory_admin_api'::pg_catalog.name) $$;
 
 create function factory._new_model_capabilities(caps text[]) returns boolean
-  language sql immutable parallel safe set search_path = ''
+  language sql immutable parallel safe set search_path = pg_catalog, pg_temp
   as $$ select exists (select 1 from unnest(coalesce(caps, '{}'::text[])) c where factory._capability_reserved(c)) $$;
 
 create function factory._jsonb_has_reserved(caps jsonb) returns boolean
-  language sql immutable parallel safe set search_path = ''
+  language sql immutable parallel safe set search_path = pg_catalog, pg_temp
   as $$
     select case when jsonb_typeof(caps) = 'array'
       then exists (select 1 from jsonb_array_elements(caps) e
@@ -48,20 +50,20 @@ create function factory._jsonb_has_reserved(caps jsonb) returns boolean
   $$;
 
 create function factory._refuse(code text, msg text) returns void
-  language plpgsql set search_path = ''
+  language plpgsql set search_path = pg_catalog, pg_temp
   as $$ begin raise exception using errcode = '42501', message = code || ': ' || msg; end $$;
 
 -- ===================================================================================================
 -- 1. AUTHORITY RECORDS: the engine only.
 -- ===================================================================================================
 create function factory._authority_guard() returns trigger
-  language plpgsql set search_path = ''
+  language plpgsql set search_path = pg_catalog, pg_temp  -- pinned: _authority_guard
   as $$
   -- SELF-CONTAINED ON PURPOSE (like the legacy guard below): a trigger function runs as the writer, and a function it calls is
   -- checked for EXECUTE against that writer. The legacy role holds EXECUTE on no factory function, so a guard it can reach calls
   -- none; its refusal is then always this message, never a "permission denied for function".
   begin
-    if current_user::text <> 'factory_owner' then
+    if current_user <> 'factory_owner'::pg_catalog.name then  -- the engine test of the authority guard
       raise exception using errcode = '42501', message = format(
         'factory_authority_refused: %s on factory.%s - authority records are written only through the Factory front doors (S-10)',
         tg_op, tg_table_name);
@@ -70,7 +72,7 @@ create function factory._authority_guard() returns trigger
   end $$;
 
 create function factory._no_truncate() returns trigger
-  language plpgsql set search_path = ''
+  language plpgsql set search_path = pg_catalog, pg_temp
   as $$
   begin
     raise exception using errcode = '42501', message = format('factory_truncate_refused: factory.%s is never truncated', tg_table_name);
@@ -82,7 +84,7 @@ create function factory._no_truncate() returns trigger
 
 -- append-only history and immutable records: no UPDATE, no DELETE
 create function factory._append_only() returns trigger
-  language plpgsql set search_path = ''
+  language plpgsql set search_path = pg_catalog, pg_temp
   as $$
   begin
     perform factory._refuse('factory_immutable', format('%s on factory.%s - this record is append-only / immutable', tg_op, tg_table_name));
@@ -91,7 +93,7 @@ create function factory._append_only() returns trigger
 
 -- rows that are never deleted (their history is evidence)
 create function factory._no_delete() returns trigger
-  language plpgsql set search_path = ''
+  language plpgsql set search_path = pg_catalog, pg_temp
   as $$
   begin
     perform factory._refuse('factory_immutable', format('DELETE on factory.%s - these records are never deleted', tg_table_name));
@@ -100,11 +102,11 @@ create function factory._no_delete() returns trigger
 
 -- the columns of `r_new` and `r_old` other than `mutable` must be equal
 create function factory._only_changed(r_new jsonb, r_old jsonb, mutable text[]) returns boolean
-  language sql immutable parallel safe set search_path = ''
+  language sql immutable parallel safe set search_path = pg_catalog, pg_temp
   as $$ select (r_new - mutable) = (r_old - mutable) $$;
 
 create function factory._tenant_guard() returns trigger
-  language plpgsql set search_path = ''
+  language plpgsql set search_path = pg_catalog, pg_temp
   as $$
   begin
     if tg_op = 'UPDATE' and new.tenant_id <> old.tenant_id then
@@ -115,7 +117,7 @@ create function factory._tenant_guard() returns trigger
 
 -- factory.tenant_admins: only the founder's provisioning step writes it (S-8; CR-001, CR-003). No API path does.
 create function factory._tenant_admins_guard() returns trigger
-  language plpgsql set search_path = ''
+  language plpgsql set search_path = pg_catalog, pg_temp
   as $$
   begin
     if factory._via_api() then
@@ -128,16 +130,20 @@ create function factory._tenant_admins_guard() returns trigger
 -- computers: never deleted; identity and the S-16(a) binding immutable after Add Computer (S-14: add-only, never unbound or
 -- rebound through the Admin API)
 create function factory._computers_guard() returns trigger
-  language plpgsql set search_path = ''
+  language plpgsql set search_path = pg_catalog, pg_temp
   as $$
   begin
     if not factory._only_changed(to_jsonb(new), to_jsonb(old), array['display_name', 'archived_at', 'archived_by',
-         'drain_requested_at', 'drain_requested_by', 'current_envelope_version', 'adopted_release_id', 'registered_fingerprint']) then
+         'drain_requested_at', 'drain_requested_by', 'current_envelope_version', 'adopted_release_id', 'registered_fingerprint',
+         's14_registration_refused_at']) then
       perform factory._refuse('factory_immutable',
         'a computer''s identity, creation record and S-16(a) binding never change (the binding is add-only, set only at Add Computer)');
     end if;
     if old.registered_fingerprint is not null and new.registered_fingerprint is distinct from old.registered_fingerprint then
       perform factory._refuse('factory_immutable', 'the fingerprint recorded at the computer''s first registration never changes');
+    end if;
+    if old.s14_registration_refused_at is not null and new.s14_registration_refused_at is distinct from old.s14_registration_refused_at then
+      perform factory._refuse('factory_immutable', 'an S-14 registration refusal on a computer record is kept: it is never cleared or moved');
     end if;
     if new.current_envelope_version < old.current_envelope_version then
       perform factory._refuse('factory_envelope_refused', 'an envelope amendment adds a version; it never rewinds the pointer');
@@ -147,7 +153,7 @@ create function factory._computers_guard() returns trigger
 
 -- envelopes: an insert must be the computer's next version
 create function factory._envelope_insert_guard() returns trigger
-  language plpgsql set search_path = ''
+  language plpgsql set search_path = pg_catalog, pg_temp
   as $$
   declare last integer;
   begin
@@ -162,7 +168,7 @@ create function factory._envelope_insert_guard() returns trigger
 -- change; a new credential is bound to the principal its enrollment's code targeted, or to the principal of the credential it
 -- rotates.
 create function factory._credentials_guard() returns trigger
-  language plpgsql set search_path = ''
+  language plpgsql set search_path = pg_catalog, pg_temp
   as $$
   declare p uuid; c uuid;
   begin
@@ -194,7 +200,7 @@ create function factory._credentials_guard() returns trigger
 -- pairing codes (S-6): never deleted; the code itself never changes; its state only moves forward; terminal states are final;
 -- failed attempts only grow
 create function factory._pairing_codes_guard() returns trigger
-  language plpgsql set search_path = ''
+  language plpgsql set search_path = pg_catalog, pg_temp
   as $$
   begin
     if tg_op = 'INSERT' then
@@ -223,7 +229,7 @@ create function factory._pairing_codes_guard() returns trigger
 
 -- enrollments: never deleted; identity immutable; the founder's enrollment transitions only (contract §2)
 create function factory._enrollment_step_ok(f text, t text) returns boolean
-  language sql immutable parallel safe set search_path = ''
+  language sql immutable parallel safe set search_path = pg_catalog, pg_temp
   as $$
     select f = t or (f, t) in (
       ('PAIRING_STARTED', 'PAIRING_VERIFIED'), ('PAIRING_STARTED', 'PAIRING_CONSUMED'), ('PAIRING_STARTED', 'PAIRING_EXPIRED'),
@@ -238,7 +244,7 @@ create function factory._enrollment_step_ok(f text, t text) returns boolean
   $$;
 
 create function factory._enrollments_guard() returns trigger
-  language plpgsql set search_path = ''
+  language plpgsql set search_path = pg_catalog, pg_temp
   as $$
   begin
     if tg_op = 'INSERT' then
@@ -247,7 +253,7 @@ create function factory._enrollments_guard() returns trigger
       end if;
       return new;
     end if;
-    if not factory._only_changed(to_jsonb(new), to_jsonb(old), array['state', 'state_reason', 'state_at', 'credential_id',
+    if not factory._only_changed(to_jsonb(new), to_jsonb(old), array['state', 'state_reason', 'state_actor', 'state_at', 'credential_id',
          'reported_fingerprint', 'reported_hostname']) then
       perform factory._refuse('factory_immutable', 'an enrollment''s code, principal, key and challenge never change');
     end if;
@@ -260,9 +266,26 @@ create function factory._enrollments_guard() returns trigger
     return new;
   end $$;
 
+-- THE ENROLLMENT WALK IS STRUCTURAL (contract §2 Enrollment; AC-1): every insert of an enrollment and every change of its state writes
+-- its enrollment_transitions row here, with the actor and reason the writer set on the row (state_actor, state_reason). No statement
+-- that changes an enrollment's state - a front door's, an admin action's, a helper's - can leave the walk without its row.
+create function factory._enrollment_transition_log() returns trigger
+  language plpgsql set search_path = pg_catalog, pg_temp
+  as $$
+  begin
+    if tg_op = 'INSERT' then
+      insert into factory.enrollment_transitions (tenant_id, enrollment_id, from_state, to_state, actor_kind, reason)
+      values (new.tenant_id, new.enrollment_id, null, new.state, new.state_actor, new.state_reason);
+    elsif new.state is distinct from old.state then
+      insert into factory.enrollment_transitions (tenant_id, enrollment_id, from_state, to_state, actor_kind, reason)
+      values (new.tenant_id, new.enrollment_id, old.state, new.state, new.state_actor, new.state_reason);
+    end if;
+    return null;
+  end $$;
+
 -- releases: never deleted; content immutable; published -> superseded | revoked, superseded -> revoked; revoked is final
 create function factory._releases_guard() returns trigger
-  language plpgsql set search_path = ''
+  language plpgsql set search_path = pg_catalog, pg_temp
   as $$
   begin
     if tg_op = 'INSERT' then
@@ -287,7 +310,7 @@ create function factory._releases_guard() returns trigger
 -- STRICTER (a requirement may be added, never removed; the Director-document paths may only shrink). Only a Director revision,
 -- carried by a new candidate migration, restores the Director rows (contract §8).
 create function factory._policies_guard() returns trigger
-  language plpgsql set search_path = ''
+  language plpgsql set search_path = pg_catalog, pg_temp
   as $$
   begin
     if tg_op = 'DELETE' then
@@ -319,11 +342,17 @@ create function factory._policies_guard() returns trigger
     return new;
   end $$;
 
--- every policy version is kept
+-- every policy version is kept. The migration writes no version row (contract §1): the version a change replaces is recorded here the
+-- first time it is replaced (a seeded row's version 1), then the new version; the guard above makes every change a new version.
 create function factory._policies_record_version() returns trigger
-  language plpgsql set search_path = ''
+  language plpgsql set search_path = pg_catalog, pg_temp
   as $$
   begin
+    if tg_op = 'UPDATE' then
+      insert into factory.verification_policy_versions (policy_id, version, tenant_id, snapshot, recorded_by)
+      values (old.policy_id, old.version, old.tenant_id, to_jsonb(old) - 'updated_at', old.updated_by)
+      on conflict (policy_id, version) do nothing;
+    end if;
     insert into factory.verification_policy_versions (policy_id, version, tenant_id, snapshot, recorded_by)
     values (new.policy_id, new.version, new.tenant_id, to_jsonb(new) - 'updated_at', new.updated_by);
     return null;
@@ -333,11 +362,19 @@ create function factory._policies_record_version() returns trigger
 -- 3. THE LEGACY GUARD on the 69df2f52 tables
 -- ===================================================================================================
 create function factory._legacy_guard() returns trigger
-  language plpgsql set search_path = ''
+  language plpgsql set search_path = pg_catalog, pg_temp  -- pinned: _legacy_guard
   as $$
   -- SELF-CONTAINED ON PURPOSE: it runs as the writer, and the legacy role holds EXECUTE on no factory function, so it calls none.
-  -- It reads only 69df2f52 tables, which the legacy role can read. Its column lists equal factory._baseline_columns(), which part
-  -- 000 asserted against the catalog; part 990 asserts the two agree.
+  -- It reads only 69df2f52 tables, which the legacy role can read. Its 69df2f52 column lists (`base` below) are compared, table by
+  -- table, with factory._baseline_columns() by the static contract (R10) and by schema acceptance C15.
+  --
+  -- THE ENROLLED NODE-ID NAMESPACE. Every agent principal's node id is Factory-issued as 'node-' followed by 32 lowercase hex digits
+  -- (part 210 mints it; part 020's CHECK on agent_principals.node_id holds it to that form). The 69df2f52 code never issues an id in
+  -- that form (its node ids are 'node-' || a dashed UUID, 'node-tms-...' and 'director-...'). A legacy row naming such an id - a node,
+  -- a run's node / authoring node / verification node, a lock's node, a work order's director node - would act as, or on behalf of,
+  -- an enrolled node identity (contract §1), whether or not that identity has enrolled yet, so it is a new-model row. The rule reads
+  -- only the row itself: no race with an enrollment committing, and no window before one. factory.director_lease is left out on
+  -- purpose: it is the 69df2f52 dispatcher's process lease, grants no authority, and a legacy write to it never fails (contract §1).
   declare
     base    text[];
     r_new   jsonb;
@@ -346,8 +383,9 @@ create function factory._legacy_guard() returns trigger
     is_nm   boolean;
     old_nm  boolean := false;
     new_nm  boolean := false;
+    enrolled_id constant text := '^node-[0-9a-f]{32}$';
   begin
-    if current_user::text = 'factory_owner' then
+    if current_user = 'factory_owner'::pg_catalog.name then  -- the engine test of the legacy guard
       return case when tg_op = 'DELETE' then old else new end;
     end if;
     base := case tg_table_name
@@ -378,24 +416,32 @@ create function factory._legacy_guard() returns trigger
     if tg_op <> 'DELETE' then r_new := to_jsonb(new); end if;
 
     -- IS THE ROW (before / after) PART OF THE NEW MODEL? A work order holding factory-enrolled-v1; a node, run, checkpoint or lock
-    -- of an enrolled principal; a run, checkpoint, dependency or notification naming a new-model work order.
+    -- of an enrolled principal; a row naming an id in the enrolled node-id namespace (above); a run, checkpoint, dependency or
+    -- notification naming a new-model work order. An enrolled run is one with a principal or an enrolled node id.
     for i in 1..2 loop
       r := case i when 1 then r_old else r_new end;
       continue when r is null;
-      is_nm := case tg_table_name
+      is_nm := coalesce(case tg_table_name
         when 'nodes' then r->>'principal_id' is not null
+          or r->>'node_id' ~ enrolled_id  -- enrolled node-id namespace (nodes): before or after the enrollment
         when 'work_orders' then exists (
           select 1 from jsonb_array_elements_text(coalesce(r->'requires_capabilities', '[]'::jsonb)) c
            where lower(btrim(c)) = 'factory-enrolled-v1')
-        when 'agent_runs' then r->>'principal_id' is not null or exists (
+          or r->>'director_node_id' ~ enrolled_id  -- enrolled node-id namespace (work_orders): directed as an enrolled node
+        when 'agent_runs' then r->>'principal_id' is not null
+          or r->>'node_id' ~ enrolled_id or r->>'authoring_node_id' ~ enrolled_id or r->>'verification_node_id' ~ enrolled_id  -- enrolled node-id namespace (agent_runs)
+          or exists (
           select 1 from factory.work_orders w cross join unnest(w.requires_capabilities) c
            where w.work_order_id = (r->>'work_order_id')::uuid and lower(btrim(c)) = 'factory-enrolled-v1')
         when 'checkpoints' then r->>'principal_id' is not null
-          or exists (select 1 from factory.agent_runs x where x.run_id = (r->>'run_id')::uuid and x.principal_id is not null)
+          or exists (select 1 from factory.agent_runs x where x.run_id = (r->>'run_id')::uuid
+                        and (x.principal_id is not null or x.node_id ~ enrolled_id))  -- enrolled node-id namespace (checkpoints): of an enrolled run
           or exists (select 1 from factory.work_orders w cross join unnest(w.requires_capabilities) c
                       where w.work_order_id = (r->>'work_order_id')::uuid and lower(btrim(c)) = 'factory-enrolled-v1')
         when 'surface_locks' then r->>'principal_id' is not null
-          or exists (select 1 from factory.agent_runs x where x.run_id = (r->>'run_id')::uuid and x.principal_id is not null)
+          or r->>'node_id' ~ enrolled_id  -- enrolled node-id namespace (surface_locks): held in an enrolled node's name
+          or exists (select 1 from factory.agent_runs x where x.run_id = (r->>'run_id')::uuid
+                        and (x.principal_id is not null or x.node_id ~ enrolled_id))  -- enrolled node-id namespace (surface_locks): of an enrolled run
         when 'work_order_dependencies' then exists (
           select 1 from factory.work_orders w cross join unnest(w.requires_capabilities) c
            where w.work_order_id in ((r->>'work_order_id')::uuid, (r->>'depends_on')::uuid)
@@ -404,7 +450,7 @@ create function factory._legacy_guard() returns trigger
           select 1 from factory.work_orders w cross join unnest(w.requires_capabilities) c
            where w.work_order_id = (r->>'work_order_id')::uuid and lower(btrim(c)) = 'factory-enrolled-v1')
         else false
-      end;
+      end, false);
       if i = 1 then old_nm := is_nm; else new_nm := is_nm; end if;
     end loop;
 
@@ -488,6 +534,8 @@ create trigger factory_v1_c_invariants before insert or update on factory.pairin
   for each row execute function factory._pairing_codes_guard();
 create trigger factory_v1_c_invariants before insert or update on factory.enrollments
   for each row execute function factory._enrollments_guard();
+create trigger factory_v1_d_transition_log after insert or update of state on factory.enrollments
+  for each row execute function factory._enrollment_transition_log();
 create trigger factory_v1_c_invariants before insert or update on factory.releases
   for each row execute function factory._releases_guard();
 create trigger factory_v1_c_invariants before insert or update or delete on factory.verification_policies
@@ -495,9 +543,15 @@ create trigger factory_v1_c_invariants before insert or update or delete on fact
 create trigger factory_v1_d_record_version after insert or update on factory.verification_policies
   for each row execute function factory._policies_record_version();
 
--- the 69df2f52 tables belong to the migrating login: it creates their triggers, which needs EXECUTE on the guard for this step
-grant execute on function factory._legacy_guard() to session_user;
 reset role;
+
+-- THE LEGACY GUARD ON THE 69df2f52 TABLES. Those tables belong to the applying login; CREATE TRIGGER needs TRIGGER on the table and
+-- EXECUTE on the guard. The applying login (their owner) grants TRIGGER to factory_owner for this step only, factory_owner (the
+-- guard's owner) attaches the guard, and the applying login revokes TRIGGER again. No statement names the applying login (S-10;
+-- VERIFICATION_SPEC §3.4 r3), and EXECUTE is never checked when a trigger fires, so the legacy writer needs nothing on the guard.
+grant trigger on factory.nodes, factory.work_orders, factory.work_order_dependencies, factory.agent_runs, factory.surface_locks,
+  factory.checkpoints, factory.founder_notifications, factory.director_lease to factory_owner;
+set local role factory_owner;
 
 do $legacy$
 declare t text;
@@ -510,6 +564,6 @@ begin
 end
 $legacy$;
 
-set local role factory_owner;
-revoke execute on function factory._legacy_guard() from session_user;
 reset role;
+revoke trigger on factory.nodes, factory.work_orders, factory.work_order_dependencies, factory.agent_runs, factory.surface_locks,
+  factory.checkpoints, factory.founder_notifications, factory.director_lease from factory_owner;

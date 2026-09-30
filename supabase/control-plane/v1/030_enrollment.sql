@@ -38,6 +38,8 @@ create table factory.pairing_codes (
                       ('admin', 'envelope_amended', 'attempts_exceeded', 'reissued', 'computer_archived')),
   check (expires_at > issued_at and expires_at <= issued_at + interval '15 minutes'),
   check ((state = 'PAIRING_CONSUMED') = (consumed_at is not null and consumed_by_enrollment_id is not null)),
+  -- a code is consumed before its TTL elapses: the consume is judged, and stamped, at the server's clock after its lock waits (part 150)
+  check (consumed_at is null or consumed_at < expires_at),
   check ((state = 'PAIRING_EXPIRED') = (expired_at is not null)),
   check ((state = 'PAIRING_REVOKED') = (revoked_at is not null and revoke_reason is not null)),
   check (state = 'PAIRING_CODE_ISSUED' or state = 'PAIRING_EXPIRED' or state = 'PAIRING_REVOKED' or started_at is not null),
@@ -75,6 +77,8 @@ create table factory.enrollments (
                          'RUNTIME_INSTALLING', 'INSTALL_FAILED', 'REGISTERING', 'REGISTRATION_FAILED', 'ALIVE',
                          'CREDENTIAL_REVOKED', 'PAIRING_CONSUMED', 'PAIRING_EXPIRED', 'PAIRING_REVOKED')),
   state_reason         text check (state_reason is null or length(state_reason) <= 200),
+  -- who made the latest state change (with state_reason, what the transition log records for it; part 080)
+  state_actor          text not null default 'installer' check (state_actor in ('installer', 'node', 'server', 'admin')),
   started_at           timestamptz not null default now(),
   state_at             timestamptz not null default now(),
   credential_id        uuid unique,
@@ -98,7 +102,9 @@ alter table factory.enrollments
   add constraint enrollments_credential_fk foreign key (credential_id) references factory.node_credentials (credential_id)
   deferrable initially deferred;
 
--- The walk itself, append-only: AC-1's "server rows walk the founder's enrollment states to ALIVE".
+-- The walk itself, append-only: AC-1's "server rows walk the founder's enrollment states to ALIVE". Written by one AFTER trigger on
+-- factory.enrollments (part 080) for the insert and for every change of state, whichever statement makes it: no state change can
+-- leave the walk without its row.
 create table factory.enrollment_transitions (
   transition_id  bigint generated always as identity primary key,
   tenant_id      uuid not null,
@@ -116,12 +122,15 @@ create index enrollment_transitions_by_enrollment on factory.enrollment_transiti
 -- PAIRING ATTEMPTS: every attempt, audited (S-6), and the source of the rate limits: <= 20 per source IP per hour (the
 -- connecting peer address as the Edge platform sees it, never a client header) and <= 60 per tenant per hour, unknown locators
 -- included (an unknown locator counts against the operator tenant). The per-locator cap lives on the code (failed_attempts).
+-- Every request to enroll/start and enroll/complete is one row, the ones the Edge refuses before any check of a code included; a
+-- request for which the platform reported no usable peer address is recorded with peer_ip null (peer_unavailable) and counts
+-- against its tenant only.
 -- ---------------------------------------------------------------------------------------------------
 create table factory.pairing_attempts (
   attempt_id   bigint generated always as identity primary key,
   tenant_id    uuid not null references factory.tenants (tenant_id),
   at           timestamptz not null default clock_timestamp(),
-  peer_ip      inet not null,
+  peer_ip      inet,
   phase        text not null check (phase in ('start', 'complete')),
   locator      text check (locator is null or locator ~ '^[0-9A-HJKMNP-TV-Z]{4,10}$'),
   code_id      uuid references factory.pairing_codes (code_id),

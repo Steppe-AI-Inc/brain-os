@@ -14,25 +14,19 @@
 set local role factory_owner;
 
 create function factory.node_verification_claim(p_token_hash bytea, p_body jsonb) returns jsonb
-  language plpgsql volatile security definer set search_path = '' set lock_timeout = '15s'
+  language plpgsql volatile security definer set search_path = pg_catalog, pg_temp set lock_timeout = '15s'
   as $$
-  declare a record; r jsonb; w factory.work_orders; cand factory.agent_runs;
+  declare a record;
   begin
     if factory._identity_refusal(p_body) is not null then return factory._identity_refusal(p_body); end if;
     select * into a from factory._node_session(p_token_hash, false, 'verification_claim');
     if a.refusal is not null then return a.refusal; end if;
-    r := factory._claim(a.ctx, p_body, 'verification');
-    if coalesce(r -> 'claimed', 'null'::jsonb) = 'null'::jsonb then return r; end if;
-    select x.* into w from factory.work_orders x where x.work_order_id = (r -> 'claimed' -> 'work_order' ->> 'verifies_work_order_id')::uuid;
-    select x.* into cand from factory.agent_runs x where x.run_id = w.current_candidate_run_id;
-    return jsonb_set(r, '{claimed,verifies}', jsonb_build_object(
-      'work_order', factory._work_order_view(w),
-      'candidate', jsonb_build_object('run_id', cand.run_id, 'head_commit', cand.head_commit, 'candidate_tree', cand.candidate_tree,
-                                      'summary', cand.summary, 'finished_at', cand.finished_at)));
+    -- the verification door of the one ranked pick (part 120 _claim): verification work only; the claimed run carries `verifies`
+    return factory._claim(a.ctx, p_body, 'verification');
   end $$;
 
 create function factory.node_certify(p_token_hash bytea, p_body jsonb) returns jsonb
-  language plpgsql volatile security definer set search_path = '' set lock_timeout = '15s'
+  language plpgsql volatile security definer set search_path = pg_catalog, pg_temp set lock_timeout = '15s'
   as $$
   declare
     a record; ctx factory.node_ctx; me factory.nodes;
@@ -53,7 +47,7 @@ create function factory.node_certify(p_token_hash bytea, p_body jsonb) returns j
       return factory._refusal('bad_request', 400, 'verdict is PASS or FAIL');
     end if;
     select x.* into vr from factory.agent_runs x
-     where x.run_id = case when p_body ->> 'run_id' ~ '^[0-9a-f-]{36}$' then (p_body ->> 'run_id')::uuid end for update;
+     where x.run_id = case when factory._is_uuid(p_body ->> 'run_id') then (p_body ->> 'run_id')::uuid end for update;
     if vr.run_id is null or vr.node_id is distinct from ctx.node_id or vr.status <> 'in_progress' or vr.run_kind <> 'verification' then
       perform factory._audit(ctx.tenant_id, 'node', ctx.principal_id::text, 'node.certify', 'run', p_body ->> 'run_id', 'refused', 'superseded');
       return factory._refusal('superseded', 409, 'this verification run no longer holds its verification work: nothing certified');
@@ -77,6 +71,8 @@ create function factory.node_certify(p_token_hash bytea, p_body jsonb) returns j
       why := 'identity_in_authoring_set: the certifying identity authored this candidate (a second run of an authoring identity never certifies)';
     elsif not ('verifier' = any (ctx.authorized_roles)) then
       why := 'no_verifier_authority: the certifier''s CURRENT envelope does not authorize the verifier role';
+    elsif not factory._campaign_known(w.tenant_id, w.campaign_key) then
+      why := 'campaign_unknown: the work order names a campaign that has no policy row (no fallback to the tenant default)';
     end if;
     -- THE POLICIES (they can only add)
     select coalesce(jsonb_agg(jsonb_build_object('policy_id', p.policy_id, 'version', p.version, 'scope', p.scope,
@@ -88,6 +84,8 @@ create function factory.node_certify(p_token_hash bytea, p_body jsonb) returns j
     if why is null and phys then
       if exists (select 1 from factory._authoring_set(w.work_order_id, cand.run_id) s where s.computer_id = ctx.computer_id) then
         why := 'campaign_same_computer: the certifier is the same enrolled computer record as an authoring-set member';
+      elsif factory._fingerprint_unknown(w.work_order_id, cand.run_id, mine) then
+        why := 'campaign_fingerprint_unknown: a machine fingerprint (the certifier''s, or an authoring-set member computer''s) is unknown: physical separation cannot be shown';
       elsif factory._authoring_fingerprints(w.work_order_id, cand.run_id) && mine then
         why := 'campaign_same_fingerprint: a machine fingerprint the certifier reported equals one an authoring-set member reported';
       end if;
@@ -121,9 +119,9 @@ create function factory.node_certify(p_token_hash bytea, p_body jsonb) returns j
        where work_order_id = w.work_order_id;
     else
       -- VERIFICATION_FAILED: never COMPLETE, dependents stay blocked; the work order returns to the queue for a repair (a new
-      -- authoring run) with no founder keystroke, and this candidate is never re-verified
+      -- authoring run) with no founder keystroke - keeping its queue age - and this candidate is never re-verified
       update factory.work_orders
-         set verification_state = 'VERIFICATION_FAILED', verification_state_at = now(), status = 'queued', queued_at = now(),
+         set verification_state = 'VERIFICATION_FAILED', verification_state_at = now(), status = 'queued',
              updated_at = now(), verification_reason = 'FAILED by certification ' || cert
        where work_order_id = w.work_order_id;
     end if;

@@ -9,7 +9,7 @@
 set local role factory_owner;
 
 create function factory._document_paths_ok(ps text[]) returns boolean
-  language sql immutable parallel safe set search_path = ''
+  language sql immutable parallel safe set search_path = pg_catalog, pg_temp
   as $$
     select ps is not null
        and cardinality(ps) <= 32
@@ -46,7 +46,9 @@ create table factory.verification_policies (
 create unique index verification_policies_one_default on factory.verification_policies (tenant_id) where scope = 'tenant_default';
 create unique index verification_policies_one_per_campaign on factory.verification_policies (tenant_id, campaign_key) where scope = 'campaign';
 
--- every version of every policy, append-only: the certification record cites (policy_id, version)
+-- every version of every policy, append-only: the certification record cites (policy_id, version). The migration writes no row here
+-- (contract §1: it seeds exactly the two policy rows and the one operator tenant row): a seeded policy's version 1 is recorded by the
+-- trigger of part 080 when the first change replaces it, and every later version when it is made.
 create table factory.verification_policy_versions (
   policy_id     uuid not null references factory.verification_policies (policy_id),
   version       integer not null,
@@ -72,9 +74,6 @@ values
   ('a1e0f000-0000-4000-8000-000000000102', 'a1e0f000-0000-4000-8000-000000000001', 'campaign', 'auto-enrollment-v1',
    'Auto-Enrollment V1', true, true, true, true, true,
    array['docs/', 'qa/verification/', 'qa/work-orders/', 'governance/'], true, 'director:contract-§1');
-
-insert into factory.verification_policy_versions (policy_id, version, tenant_id, snapshot, recorded_by)
-select p.policy_id, p.version, p.tenant_id, to_jsonb(p) - 'updated_at', p.updated_by from factory.verification_policies p;
 
 -- ---------------------------------------------------------------------------------------------------
 -- CERTIFICATION RECORDS: the new-model verification record, in its own table (S-10, S-13). The legacy verification columns of

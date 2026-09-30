@@ -11,9 +11,9 @@ set local role factory_owner;
 -- the Edge generated; only its sha256 is stored. The token never carries authority by itself: every call re-reads the credential.
 create function factory.node_session_open(p_thumbprint text, p_jti text, p_iat timestamptz, p_exp timestamptz, p_audience text,
                                           p_token_hash bytea) returns jsonb
-  language plpgsql volatile security definer set search_path = '' set lock_timeout = '15s'
+  language plpgsql volatile security definer set search_path = pg_catalog, pg_temp set lock_timeout = '15s'  -- pinned: node_session_open
   as $$
-  declare cred factory.node_credentials; comp factory.computers; inserted integer; until timestamptz := now() + interval '600 seconds';
+  declare cred factory.node_credentials; comp factory.computers; inserted integer; until timestamptz := now() + interval '600 seconds'; t_open timestamptz;
   begin
     perform factory._refuse_superuser();
     if factory._hex64(p_thumbprint) is null or p_token_hash is null or octet_length(p_token_hash) <> 32
@@ -21,6 +21,9 @@ create function factory.node_session_open(p_thumbprint text, p_jti text, p_iat t
       return factory._refusal('bad_assertion', 400, 'a session assertion carries a key, a jti (16..128 base64url characters), iat and exp');
     end if;
     select c.* into cred from factory.node_credentials c where c.key_thumbprint = p_thumbprint for share;
+    -- the assertion's lifetime is judged at the server's clock AFTER the credential lock was granted (the wait may be up to the lock
+    -- timeout): an assertion that expired while this call waited is refused
+    t_open := pg_catalog.clock_timestamp();
     if cred.credential_id is null then
       return factory._refusal('unknown_key', 401, 'no node credential has this key');
     end if;
@@ -36,7 +39,7 @@ create function factory.node_session_open(p_thumbprint text, p_jti text, p_iat t
     if p_audience is distinct from 'factory-node-api' then
       return factory._refusal('bad_assertion', 401, 'the assertion''s audience is not factory-node-api');
     end if;
-    if p_exp <= now() or p_exp - p_iat > interval '60 seconds' or p_exp <= p_iat or p_iat > now() + interval '120 seconds' then
+    if p_exp <= t_open or p_exp - p_iat > interval '60 seconds' or p_exp <= p_iat or p_iat > t_open + interval '120 seconds' then
       return factory._refusal('assertion_expired', 401, 'the assertion is expired, longer than 60 s, or from the future (correct the clock from GET /v1/time)');
     end if;
     delete from factory.node_assertion_jtis where credential_id = cred.credential_id and expires_at < now();
@@ -52,23 +55,35 @@ create function factory.node_session_open(p_thumbprint text, p_jti text, p_iat t
     delete from factory.node_sessions where credential_id = cred.credential_id and expires_at < now() - interval '1 hour';
     insert into factory.node_sessions (tenant_id, credential_id, token_hash, expires_at)
     values (cred.tenant_id, cred.credential_id, p_token_hash, until);
+    -- the credential's identifiers (no secret): a node that resolves a rotation or an enrollment whose reply it lost learns from a
+    -- session with its stored key which credential that key holds (contract §9: it continues with the same credential)
     return jsonb_build_object('ok', true, 'session_expires_at', until, 'server_time', now(),
       'node_id', (select p.node_id from factory.agent_principals p where p.principal_id = cred.principal_id),
-      'principal_id', cred.principal_id, 'computer_id', cred.computer_id);
+      'principal_id', cred.principal_id, 'computer_id', cred.computer_id, 'credential_id', cred.credential_id);
   end $$;
 
 -- CREDENTIAL ROTATE (node-initiated; contract §8 "rotate -> the old credential is superseded"). The session proves the OLD key;
 -- the Edge verified the NEW key's signature over the rotate message. The new credential is bound to the SAME principal (S-13: a
 -- node can never mint a principal), the old one is superseded (its sessions then fail the per-call re-check: credential_superseded). The credential row is locked EXCLUSIVELY, so
 -- a rotate and a revoke of the same credential serialize: whichever commits second sees the first.
+-- A credential rotates only once its enrollment walk reached ALIVE (contract §2: until then a retry reuses the same credential): a
+-- credential that is still installing, or whose registration was refused (REGISTRATION_FAILED; S-14), never leaves its walk by
+-- rotating. Refused by name, audited, nothing issued.
 create function factory.node_credential_rotate(p_token_hash bytea, p_new_thumbprint text, p_new_public_key bytea) returns jsonb
-  language plpgsql volatile security definer set search_path = '' set lock_timeout = '15s'
+  language plpgsql volatile security definer set search_path = pg_catalog, pg_temp set lock_timeout = '15s'
   as $$
   declare a record; ctx factory.node_ctx; newc uuid := gen_random_uuid();
   begin
     select * into a from factory._node_session(p_token_hash, true, 'rotate');
     if a.refusal is not null then return a.refusal; end if;
     ctx := a.ctx;
+    if factory._credential_walk_state(ctx.credential_id) is distinct from 'ALIVE' then
+      perform factory._audit(ctx.tenant_id, 'node', ctx.principal_id::text, 'node.credential_rotate', 'credential', ctx.credential_id::text,
+                             'refused', 'enrollment_not_alive', jsonb_build_object('enrollment_state', factory._credential_walk_state(ctx.credential_id)));
+      return factory._refusal('enrollment_not_alive', 409,
+        'a credential rotates only once its enrollment reached ALIVE; this one is ' || coalesce(factory._credential_walk_state(ctx.credential_id), 'not enrolled')
+        || ' - nothing was issued');
+    end if;
     if p_new_public_key is null or octet_length(p_new_public_key) <> 32 or factory._hex64(p_new_thumbprint) is null
        or encode(pg_catalog.sha256(p_new_public_key), 'hex') <> p_new_thumbprint then
       return factory._refusal('bad_request', 400, 'the new public key (32 bytes) and its sha256 thumbprint are required');

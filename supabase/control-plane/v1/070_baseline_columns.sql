@@ -9,10 +9,13 @@
 --     work order's requires_capabilities.
 --   * The engine (the front doors, running as factory_owner) is the only writer of these columns.
 
--- the migrating login adds foreign keys from its 69df2f52 tables to factory_owner's tables: REFERENCES for this part only
+-- The applying login (the owner of the 69df2f52 tables) adds foreign keys from them to factory_owner's tables, which needs REFERENCES
+-- on those tables for this part only. As in part 010 it goes to PUBLIC, never to a named login (S-10; VERIFICATION_SPEC §3.4 r3),
+-- on tables this still-uncommitted transaction created and no other session can see; it is revoked at the end of this part, and
+-- part 990 revokes again, by name.
 set local role factory_owner;
 grant references on factory.agent_principals, factory.node_credentials, factory.authorization_envelopes, factory.releases
-  to session_user;
+  to public;
 reset role;
 
 -- ---------------------------------------------------------------------------------------------------
@@ -73,7 +76,8 @@ alter table factory.work_orders
   -- gate 12: hard minimum resources (narrowing only), e.g. {"ram_mb": 4096, "disk_mb": 20000, "cpu_cores": 2}
   add column min_resources             jsonb check (min_resources is null or (jsonb_typeof(min_resources) = 'object'
                                          and octet_length(min_resources::text) <= 2048)),
-  -- ranking: queue age is measured from here
+  -- ranking: queue age is measured from here. A requeue (a lapsed lease, a FAILED verification, a refused resubmission) keeps it:
+  -- its position by queue age stays as it was (the 69df2f52 reaper left queued_at untouched)
   add column queued_at                 timestamptz,
   -- who submitted it through the Admin API (a Factory admin's auth user id)
   add column submitted_by              uuid,
@@ -153,5 +157,5 @@ alter table factory.surface_locks
 
 set local role factory_owner;
 revoke references on factory.agent_principals, factory.node_credentials, factory.authorization_envelopes, factory.releases
-  from session_user;
+  from public;
 reset role;
