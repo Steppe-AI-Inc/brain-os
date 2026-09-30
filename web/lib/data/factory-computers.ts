@@ -3,7 +3,7 @@
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { callFactoryAdmin, type AdminResult } from "@/lib/factory/admin-client";
-import { factoryReleasesUrl, INSTALLER_FILE, MANIFEST_FILE } from "@/lib/factory/config";
+import { factoryNodeApiUrl, factoryReleasesUrl, INSTALLER_FILE, MANIFEST_FILE } from "@/lib/factory/config";
 import { authenticodeImageHash, certificateTable } from "@/lib/factory/pe-image";
 
 // Brain OS -> Factory -> Computers (WO-8). Every read and every action here is ONE Factory Admin API call made with the signed-in
@@ -62,12 +62,18 @@ export type Computer = {
   display_name: string;
   created_at: string;
   created_by: string;
+  /** contract §1's derived state over EVERY principal (ARCHIVED / ALIVE / CREDENTIAL_REVOKED / the highest enrollment state) */
   state: string;
+  /** beside ALIVE only (null otherwise): the freshest ALIVE principal's liveness (FRESH / STALE / OFFLINE) and runtime phase */
+  liveness: string | null;
+  runtime_phase: string | null;
   archived_at: string | null;
   draining: boolean;
   drain_requested_at: string | null;
   s16a_bound: boolean;
   s16a_bound_at: string | null;
+  /** S-14: when a registration of this unbound record was refused for a bound record's fingerprint (it then takes no work), else null */
+  s14_registration_refused_at?: string | null;
   envelope: Envelope | null;
   adopted_release_id: string | null;
   registered_fingerprint: string | null;
@@ -121,6 +127,8 @@ export type WorkOrderView = {
   campaign_key: string | null;
   owned_surface: string[];
   verifies_work_order_id: string | null;
+  verification_state?: string | null;
+  verification_reason?: string | null;
 };
 
 export type Waiting = {
@@ -289,9 +297,9 @@ export async function inspectServedInstaller(releaseId: string): Promise<AdminRe
 }
 
 /** the public download addresses of a release (no request is made) */
-export async function releaseDownloadUrls(channel: string, version: string): Promise<{ installer: string; manifest: string } | null> {
+export async function releaseDownloadUrls(channel: string, version: string): Promise<{ installer: string; manifest: string; nodeApi: string | null } | null> {
   const base = factoryReleasesUrl();
   if (!base) return null;
   const dir = `${base}/${encodeURIComponent(channel)}/${encodeURIComponent(version)}`;
-  return { installer: `${dir}/${INSTALLER_FILE}`, manifest: `${dir}/${MANIFEST_FILE}` };
+  return { installer: `${dir}/${INSTALLER_FILE}`, manifest: `${dir}/${MANIFEST_FILE}`, nodeApi: factoryNodeApiUrl() };
 }

@@ -25,6 +25,15 @@ export function factoryAdminApiUrl(): string | null {
   return allowed(process.env.FACTORY_ADMIN_API_URL || DEFAULT_ADMIN_API);
 }
 
+/** the Factory Node API address a dev-channel setup is given with --api (the dev build carries no endpoint of its own): the
+ *  FACTORY_NODE_API_URL override, else the function beside the Admin API on the same project; null when it cannot be known. Non-secret. */
+export function factoryNodeApiUrl(): string | null {
+  if (process.env.FACTORY_NODE_API_URL) return allowed(process.env.FACTORY_NODE_API_URL);
+  const admin = factoryAdminApiUrl();
+  const suffix = "/factory-admin-api";
+  return admin && admin.endsWith(suffix) ? admin.slice(0, -suffix.length) + "/factory-node-api" : null;
+}
+
 /** the public release storage: <base>/<channel>/<version>/BrainFactorySetup.exe and BrainFactorySetup.manifest.json */
 export function factoryReleasesUrl(): string | null {
   return allowed(process.env.FACTORY_RELEASES_URL || DEFAULT_RELEASES);

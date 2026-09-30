@@ -47,7 +47,12 @@ export function ComputerDetail({ detail, releases, downloads }: { detail: Detail
         icon={Cpu}
         title={c.display_name}
         description={`${t("fc.computerId", "Computer")} ${c.computer_id} - ${t("fc.added", "added")} ${new Date(c.created_at).toLocaleString()}`}
-        actions={<StateBadge state={c.state} />}
+        actions={
+          <div className="flex flex-wrap items-center gap-1">
+            <StateBadge state={c.state} />
+            {c.state === "ALIVE" && <StateBadge state={c.draining ? "DRAINING" : c.liveness === "FRESH" ? c.runtime_phase : c.liveness} />}
+          </div>
+        }
       />
       {act.last && <ReceiptNotice label={act.last.label} result={act.last.result} downloads={downloads} />}
 
@@ -75,6 +80,7 @@ export function ComputerDetail({ detail, releases, downloads }: { detail: Detail
           <div>{t("fc.registeredFp", "Registered fingerprint")}: <code>{c.registered_fingerprint ?? "-"}</code></div>
           <div>{t("fc.allFp", "Every fingerprint reported")}: {c.fingerprints.length ? c.fingerprints.map((f) => <code key={f} className="mr-2">{short(f, 16)}</code>) : "-"}</div>
           <div>S-16(a): {c.s16a_bound ? `${t("fc.bound", "bound")} ${c.s16a_bound_at ? new Date(c.s16a_bound_at).toLocaleString() : ""}` : t("fc.notBound", "not bound")}</div>
+          {c.s14_registration_refused_at && <div className="text-destructive">S-14: {t("fc.s14RefusedAt", "a registration was refused (a bound record's fingerprint); this record takes no work since")} {new Date(c.s14_registration_refused_at).toLocaleString()}</div>}
         </CardContent>
       </Card>
 
@@ -120,7 +126,7 @@ function PrincipalCard({ computerId, p, archived, act, serverTime }: { computerI
           <div>{t("fc.credential", "Credential")}: {cred ? <>{cred.status} <code>{short(cred.key_thumbprint, 16)}</code> ({cred.issued_via}, {new Date(cred.issued_at).toLocaleString()}){cred.rotation_requested ? ` - ${t("fc.rotationRequested", "rotation requested")}` : ""}{cred.revoke_reason ? ` - ${cred.revoke_reason}` : ""}</> : "-"}</div>
           <div>{t("fc.pairingCode", "Pairing code")}: {p.code ? `${p.code.state} (${p.code.purpose}; ${t("fc.expiresAt", "expires")} ${new Date(p.code.expires_at).toLocaleTimeString()}; ${p.code.failed_attempts} ${t("fc.failedAttempts", "failed attempts")})` : "-"}</div>
           <div>{t("fc.enrollment", "Enrollment")}: {p.enrollment_state ?? "-"}</div>
-          <div>{t("fc.heartbeat", "Heartbeat")}: {r ? `${r.liveness}, ${ageText(r.heartbeat_age_s)} (${t("fc.factoryClock", "Factory clock")})` : "-"}</div>
+          <div>{t("fc.heartbeat", "Heartbeat")}: {r ? `${r.liveness}${r.phase ? `, ${r.phase}` : ""}, ${ageText(r.heartbeat_age_s)} (${t("fc.factoryClock", "Factory clock")})` : "-"}</div>
           <div>{t("fc.runtimeVersion", "Runtime")}: {r?.runtime_version ?? "-"} <code>{short(r?.runtime_digest, 16)}</code></div>
           <div>{t("fc.reported", "Reports")}: {r ? `${r.reported_hostname ?? "-"} / ${r.reported_os ?? "-"}` : "-"}</div>
           {r?.reported_resources && <div className="sm:col-span-2">{t("fc.resources", "Resources")}: <code>{JSON.stringify(r.reported_resources).slice(0, 200)}</code></div>}

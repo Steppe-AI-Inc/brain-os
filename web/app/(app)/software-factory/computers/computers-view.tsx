@@ -96,9 +96,21 @@ export function ComputersView({ computers, releases, policies, waiting, work, do
                           <div className="text-[11px] text-muted-foreground">
                             {p?.runtime?.reported_hostname ? `${t("fc.reportedHost", "reports")} ${p.runtime.reported_hostname}` : short(c.computer_id, 8)}
                             {c.s16a_bound && <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[10px]">S-16(a)</Badge>}
+                            {c.s14_registration_refused_at && <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[10px] text-destructive">{t("fc.s14Refused", "S-14: takes no work")}</Badge>}
                           </div>
                         </td>
-                        <td className="py-2 pr-3"><StateBadge state={c.state} /></td>
+                        <td className="py-2 pr-3">
+                          <div className="flex flex-wrap items-center gap-1">
+                            <StateBadge state={c.state} />
+                            {c.state === "ALIVE" && <StateBadge state={c.draining ? "DRAINING" : c.liveness === "FRESH" ? c.runtime_phase : c.liveness} />}
+                          </div>
+                          {c.principals.length > 0 && (
+                            <div className="mt-1 flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+                              {t("fc.principalStates", "Principals")}:
+                              {c.principals.map((x) => <StateBadge key={x.principal_id} state={x.state} />)}
+                            </div>
+                          )}
+                        </td>
                         <td className="py-2 pr-3 text-xs">{p?.runtime ? ageText(p.runtime.heartbeat_age_s) : "-"}</td>
                         <td className="py-2 pr-3 text-xs">{p?.runtime?.runtime_version ?? "-"}</td>
                         <td className="py-2 pr-3 text-xs">
@@ -262,6 +274,7 @@ function WorkCard({ work }: { work: Props["work"] }) {
                 <Badge variant="outline">{w.status}</Badge>
                 {w.verification_state && <Badge variant="outline">{w.verification_state}</Badge>}
                 <span className="text-xs text-muted-foreground">{t("fc.priority", "priority")} {w.priority} - {w.runs.length} {t("fc.runsWord", "run(s)")}{w.runs.length ? `: ${w.runs.map((r) => `${r.kind} ${r.status}`).join(", ")}` : ""}</span>
+                {w.verification_reason && <span className="basis-full text-xs text-muted-foreground">{w.verification_reason}</span>}
               </div>
             ))}
           </>

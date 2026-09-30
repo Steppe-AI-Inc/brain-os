@@ -1,5 +1,7 @@
-// The derived computer states the Factory reports (contract §3; factory._computer_view / _principal_state). The page only labels
-// and colours them - it never computes a state. An unknown state is shown verbatim, never hidden or mapped to a guess.
+// The derived computer states the Factory reports (contract §1 "Derived"; factory._computer_view / _principal_state): a computer's state
+// is derived over every principal's state, and beside ALIVE the page shows the liveness (STALE / OFFLINE) or the runtime phase the
+// Factory derives. The page only labels and colours them - it never computes a state. An unknown state is shown verbatim, never hidden
+// or mapped to a guess.
 
 export type Tone = "good" | "busy" | "warn" | "bad" | "idle";
 
@@ -15,7 +17,7 @@ export const COMPUTER_STATES: Record<string, { label: string; tone: Tone; hint: 
   INSTALL_FAILED: { label: "Install failed", tone: "bad", hint: "Setup names the failed step and retries with the same credential." },
   REGISTERING: { label: "Registering", tone: "warn", hint: "The runtime is registering with the Factory." },
   REGISTRATION_FAILED: { label: "Registration failed", tone: "bad", hint: "The runtime could not register (see the reason)." },
-  ALIVE: { label: "Alive", tone: "good", hint: "Registered and heartbeating." },
+  ALIVE: { label: "Alive", tone: "good", hint: "Enrolled and registered on a certified release. Its liveness and runtime state are shown beside it." },
   AVAILABLE: { label: "Available", tone: "good", hint: "Heartbeating and ready for work." },
   CLAIMING: { label: "Claiming", tone: "busy", hint: "Taking a work order." },
   BUSY: { label: "Busy", tone: "busy", hint: "Running work." },

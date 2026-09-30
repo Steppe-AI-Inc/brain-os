@@ -12,7 +12,8 @@ import { stateInfo, TONE_CLASS } from "@/lib/factory/computer-states";
 import type { AdminResult } from "@/lib/factory/admin-client";
 import type { EnvelopeInput, Receipt } from "@/lib/data/factory-computers";
 
-export type Downloads = { channel: string; version: string; installer: string; manifest: string } | null;
+// nodeApi: the address a dev-channel setup is given with --api (a production-channel build carries its own)
+export type Downloads = { channel: string; version: string; installer: string; manifest: string; nodeApi?: string | null } | null;
 
 export function StateBadge({ state }: { state: string | null | undefined }) {
   const { t } = useT();
@@ -85,14 +86,25 @@ export function PairingCodePanel({ code, expiresAt, downloads }: { code: string;
             <span className="text-muted-foreground">{t("fc.code.noRelease", "BrainFactorySetup.exe - no published release is available on this plane yet.")}</span>
           )}
         </li>
-        <li>{t("fc.code.step2", "Run BrainFactorySetup.exe and enter the code. Setup verifies the release before anything runs, enrolls, installs and starts the runtime.")}</li>
+        <li>
+          {downloads && downloads.channel !== "production" ? (
+            <>
+              {t("fc.code.step2dev", "On this channel the build carries no Factory address: open a terminal in that folder and run")}{" "}
+              <code className="rounded bg-background/60 px-1 font-mono text-xs">.\BrainFactorySetup.exe setup --api {downloads.nodeApi ?? t("fc.code.nodeApiUnknown", "<this plane's Factory Node API URL>")}</code>.{" "}
+              {t("fc.code.step2devCode", "Enter the code at its prompt, never on the command line. Setup verifies the release before anything runs, enrolls, installs and starts the runtime.")}
+            </>
+          ) : (
+            t("fc.code.step2", "Run BrainFactorySetup.exe and enter the code. Setup verifies the release before anything runs, enrolls, installs and starts the runtime.")
+          )}
+        </li>
         <li>{t("fc.code.step3", "This page shows the computer ALIVE when it registers. Nothing else is needed: no Git, npm, checkout or database URL.")}</li>
       </ol>
     </div>
   );
 }
 
-/** the result of an action: done (or "already"), or refused by name; a pairing code in the receipt is shown once */
+/** the result of an action: done (or "already"), or refused by name; a pairing code in the receipt is shown once, and only from a
+ *  receipt that issued one (an "already" answer stored no code) */
 export function ReceiptNotice({ label, result, downloads }: { label: string; result: AdminResult<Receipt>; downloads: Downloads }) {
   const { t } = useT();
   if (!result.ok) return <RefusalNotice result={result} context={label} />;
@@ -105,7 +117,7 @@ export function ReceiptNotice({ label, result, downloads }: { label: string; res
           {result.already ? t("fc.already", "already in that state - nothing changed") : t("fc.done", "done (read back from the Factory below)")}
         </div>
       </div>
-      {typeof result.pairing_code === "string" && <PairingCodePanel code={result.pairing_code} expiresAt={typeof result.expires_at === "string" ? result.expires_at : undefined} downloads={downloads} />}
+      {!result.already && typeof result.pairing_code === "string" && <PairingCodePanel code={result.pairing_code} expiresAt={typeof result.expires_at === "string" ? result.expires_at : undefined} downloads={downloads} />}
     </div>
   );
 }
