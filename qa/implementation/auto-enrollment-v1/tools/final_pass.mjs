@@ -3,18 +3,39 @@
 // at a time) from a clean tree, each with its full output, command, commit, start, duration and exit written to <out>/<name>.txt;
 // SUMMARY.md tabulates them. The artifacts are rebuilt first from the same commit (so the runtime rows test that commit's bytes).
 // Developer verification only - never independent acceptance, and never a substitute for the verifier's run.
-//   node qa/implementation/auto-enrollment-v1/tools/final_pass.mjs <out dir>
+//   node qa/implementation/auto-enrollment-v1/tools/final_pass.mjs <out dir> [--declarations <dir>]
+// --declarations: the per-channel build declarations of THIS commit (provenance.mjs --emit; the implementer's information-only WO-10
+// release-provenance evidence, offered for CR-019 and not presented as the candidate's release manifest unless the Director so
+// decides); the pass then also rebuilds both channels and compares them with the declarations (provenance.mjs --check). The
+// declarations are committed in the candidate-notice commit, a CHILD of the commit they declare, so this pass runs in a clean checkout
+// of the declared commit (the frozen SHA) with the declarations copied to a directory outside the tree - never at the notice commit.
+// A declaration of another commit is refused before any step runs (exit 2).
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isolatedSuiteEnv, isolationHeader, isolationProof } from '../../../factory/v1/isolation.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
-const OUT = resolve(process.argv[2] || join(ROOT, 'qa/implementation/auto-enrollment-v1/evidence/candidate/final'));
+const DECL_AT = process.argv.indexOf('--declarations');
+const DECL = DECL_AT > 1 && process.argv[DECL_AT + 1] ? resolve(process.argv[DECL_AT + 1]) : null;
+if (DECL_AT > 1 && !DECL) { console.log('REFUSED: --declarations needs a directory'); process.exit(2); }
+const OUT = resolve(process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : join(ROOT, 'qa/implementation/auto-enrollment-v1/evidence/candidate/final'));
 mkdirSync(OUT, { recursive: true });
 const git = (...a) => spawnSync('git', ['-C', ROOT, ...a], { encoding: 'utf8' });
 const head = git('rev-parse', 'HEAD').stdout.trim();
 if (git('status', '--porcelain', '--untracked-files=no').stdout.trim()) { console.log('REFUSED: the tree has uncommitted changes to tracked files - the pass must run on exactly one commit'); process.exit(2); }
+// the declarations must be of this very commit (provenance.mjs --check would refuse them mid-pass otherwise): say so before any step
+if (DECL) {
+  for (const ch of ['production', 'dev']) {
+    const f = join(DECL, ch + '.build-declaration.json');
+    let x; try { x = JSON.parse(readFileSync(f, 'utf8')); } catch (e) { console.log('REFUSED: --declarations: ' + f + ' cannot be read as JSON (' + (e.code || e.message) + ')'); process.exit(2); }
+    if (!x || x.source_sha !== head) {
+      console.log('REFUSED: --declarations: ' + f + ' declares ' + (x && x.source_sha) + ', and this checkout is ' + head + '. Run the pass in a clean checkout of the declared commit (the frozen SHA), not at the candidate-notice commit that carries the declarations, with the declarations copied to a directory outside the tree.');
+      process.exit(2);
+    }
+  }
+}
 
 const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 const N = (args, minutes = 30, cwd = ROOT) => ({ cmd: process.execPath, args, minutes, cwd });
@@ -24,6 +45,7 @@ const STEPS = [
   ['build production channel', N(['scripts/factory-build/build-sea.mjs', '--channel', 'production'], 20)],
   ['verify-build dev (IDENTICAL)', N(['scripts/factory-build/verify-build.mjs', '--against', 'dist/brain-factory/0.1.0/dev'], 20)],
   ['verify-build production (IDENTICAL)', N(['scripts/factory-build/verify-build.mjs', '--against', 'dist/brain-factory/0.1.0/production'], 20)],
+  ...(DECL ? [['provenance --check (the declared per-channel builds)', N(['qa/implementation/auto-enrollment-v1/tools/provenance.mjs', '--check', DECL], 30)]] : []),
   ['static: factory_v1_static_contract', N(['qa/scenarios-runner/factory_v1_static_contract.mjs'], 5)],
   ['static: architecture_impact_registry_contract', N(['qa/scenarios-runner/architecture_impact_registry_contract.mjs'], 5)],
   ['static: secret scan self-test', N(['qa/implementation/auto-enrollment-v1/tools/secret_scan.mjs', '--selftest'], 5)],
@@ -46,27 +68,35 @@ const STEPS = [
   ['independence_acceptance', N(['qa/factory/v1/independence_acceptance.mjs'], 30)],
   ['edge_db_tls_acceptance', N(['qa/factory/v1/edge_db_tls_acceptance.mjs'], 20)],
   ['setup_manifest_locate', N(['qa/factory/v1/setup_manifest_locate.mjs'], 10)],
+  ['release_trust_unit', N(['qa/factory/v1/release_trust_unit.mjs'], 10)],
   ['runtime_acceptance', N(['qa/factory/v1/runtime_acceptance.mjs'], 30)],
   ['release_acceptance', N(['qa/factory/v1/release_acceptance.mjs'], 60)],
   ['web_computers_acceptance', N(['qa/factory/v1/web_computers_acceptance.mjs'], 30)],
   ['sea_package_regression', N(['qa/factory/sea_package_regression.mjs'], 45)],
 ];
 
+// S-15: every step runs with FACTORY_RUNNER_ENV_FILE naming an ABSENT absolute path (never the default
+// runner.env), applied AFTER a step's own variables so no step can reset it, and proved once first (qa/factory/v1/isolation.mjs).
+// The Director instrument that refuses any such variable gets it deleted by its own harness (manifest_rehearsal.mjs toolEnv).
+const ISO = isolatedSuiteEnv();
+const ISO_PROOF = isolationProof(ISO);
+if (!ISO_PROOF.ok) { console.log('REFUSED: the isolation proof failed - ' + isolationHeader(ISO, ISO_PROOF).join(' / ') + ' ' + (ISO_PROOF.error || '')); process.exit(2); }
 const rows = [];
 for (const [name, s] of STEPS) {
   const t0 = Date.now();
   const r = spawnSync(s.cmd, s.args, { cwd: s.cwd, encoding: 'utf8', timeout: s.minutes * 60000, maxBuffer: 1 << 28, windowsHide: true, shell: !!s.shell,
-    env: { ...process.env, FACTORY_RUNNER_PG_URL: '', FACTORY_RUNNER_ENV_FILE: '', ...(s.env || {}) } });
+    env: { ...ISO.env, ...(s.env || {}), FACTORY_RUNNER_PG_URL: '', FACTORY_RUNNER_ENV_FILE: ISO.envFile } });
   const out = (r.stdout || '') + (r.stderr ? '\n--- stderr ---\n' + r.stderr : '');
   const secs = Math.round((Date.now() - t0) / 1000);
   const last = (out.split('\n').filter((l) => /(\d+\/\d+ (OK|rows)|passed|failed|IDENTICAL|DIFFERENT|CANNOT VERIFY|clean|HIT|BUILT|Check file|rules hit|Compiled|Generating static|error)/i.test(l)).pop() || '').trim();
   const file = name.replace(/[^A-Za-z0-9._-]+/g, '_') + '.txt';
-  writeFileSync(join(OUT, file), ['step ' + name, 'command ' + [s.cmd, ...s.args].join(' '), 'cwd ' + s.cwd, 'commit ' + head, 'started ' + new Date(t0).toISOString(),
+  writeFileSync(join(OUT, file), ['step ' + name, 'command ' + [s.cmd, ...s.args].join(' '), 'cwd ' + s.cwd, 'commit ' + head, ...isolationHeader(ISO, ISO_PROOF), 'started ' + new Date(t0).toISOString(),
     'seconds ' + secs, 'exit ' + r.status + (r.error ? ' error ' + r.error.code : ''), 'summary ' + last, '', out].join('\n'));
   rows.push({ name, exit: r.status, secs, last, file });
   console.log((r.status === 0 ? 'PASS ' : 'FAIL ') + name.padEnd(46) + String(secs).padStart(5) + 's  ' + last.slice(0, 140));
 }
 const md = ['# Final developer pass', '', 'Commit `' + head + '`; run by `qa/implementation/auto-enrollment-v1/tools/final_pass.mjs` (serial; developer verification, never independent).', '',
+  ...isolationHeader(ISO, ISO_PROOF).map((l) => '- ' + l), '',
   '| step | exit | seconds | summary | evidence |', '|---|---|---|---|---|',
   ...rows.map((r) => '| ' + r.name + ' | ' + r.exit + ' | ' + r.secs + ' | ' + r.last.replace(/\|/g, '/').slice(0, 160) + ' | `' + r.file + '` |'), '',
   (rows.every((r) => r.exit === 0) ? 'Every step exited 0.' : 'FAILED steps: ' + rows.filter((r) => r.exit !== 0).map((r) => r.name).join(', '))];

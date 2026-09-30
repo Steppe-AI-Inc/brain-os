@@ -29,8 +29,17 @@ for (const { f, t } of sql) {
   const part = f.split('/').pop();
   for (const m of t.matchAll(/^create table (factory\.[a-z0-9_]+)/gm)) created.push({ name: m[1], part });
   for (const m of t.matchAll(/^alter table (factory\.[a-z0-9_]+)\s+add column/gm)) altered.push(m[1]);
-  for (const m of t.matchAll(/create (?:or replace )?function (factory\.[a-z0-9_]+)\(([^)]*)\)\s*returns ([a-z0-9_.]+)/g)) {
-    funcs.push({ name: m[1], args: m[2].replace(/\s+/g, ' ').trim(), ret: m[3], definer: /security definer/.test(t.slice(m.index, m.index + 600)), part });
+  // every function, whether it names a RETURNS clause or declares its result only through OUT parameters (then the result is the
+  // one OUT parameter's type, or a record of them): the argument list is read to its matching parenthesis
+  for (const m of t.matchAll(/create (?:or replace )?function (factory\.[a-z0-9_]+)\(/g)) {
+    let i = m.index + m[0].length, depth = 1;
+    for (; i < t.length && depth > 0; i++) depth += t[i] === '(' ? 1 : t[i] === ')' ? -1 : 0;
+    const args = t.slice(m.index + m[0].length, i - 1).replace(/\s+/g, ' ').trim();
+    const rest = t.slice(i, i + 600);
+    const named = /^\s*returns ([a-z0-9_.]+)/.exec(rest);
+    const outs = args.split(/,(?![^(]*\))/).map((a) => a.trim()).filter((a) => /^(?:in)?out\s/.test(a)).map((a) => a.split(/\s+/).slice(2).join(' '));
+    const ret = named ? named[1] : outs.length === 1 ? outs[0] : outs.length > 1 ? 'record' : '?';
+    funcs.push({ name: m[1], args, ret, definer: /security definer/.test(rest), part });
   }
   for (const m of t.matchAll(/create role ([a-z0-9_]+)/g)) roles.push(m[1]);
   for (const m of t.matchAll(/^create trigger ([a-z0-9_]+)\s+(?:before|after)[^;]*? on (factory\.[a-z0-9_]+)/gms)) triggers.push(m[1] + ' on ' + m[2]);
@@ -111,14 +120,16 @@ say('|---|---|');
 for (const k of Object.keys(secretUse).sort()) say('| ' + tick(k) + ' | ' + [...secretUse[k]].sort().join(', ') + ' |');
 say();
 const envFiles = [...files('scripts/factory-runner/enrolled', /\.mjs$/), 'scripts/factory-runner/sea/main.mjs', ...files('scripts/factory-build', /\.mjs$/),
-  ...files('scripts/factory-control-plane', /\.mjs$/), ...files('web/lib/factory', /\.ts$/), 'web/lib/data/factory-computers.ts'];
+  ...files('scripts/factory-control-plane', /\.mjs$/), ...files('web/lib/factory', /\.ts$/), 'web/lib/data/factory-computers.ts',
+  // the tool founder step 4 runs (it reads none today: factory_v1_static_contract C3 holds it to that)
+  'qa/implementation/auto-enrollment-v1/tools/founder_secrets.mjs'];
 const envs = {};
 for (const f of envFiles) for (const m of read(f).matchAll(/process\.env\.([A-Za-z_][A-Za-z0-9_]*)|process\.env\[['"]([A-Za-z_][A-Za-z0-9_]*)['"]\]/g)) (envs[m[1] || m[2]] ||= new Set()).add(f);
-say('## Environment variables read by the candidate\'s runtime, build, migration and web code');
+say('## Environment variables read by the candidate\'s runtime, build, migration and web code, and by the founder\'s step-4 tool');
 say();
 say('| variable | read by |');
 say('|---|---|');
 for (const k of Object.keys(envs).sort()) say('| ' + tick(k) + ' | ' + [...envs[k]].map(tick).join(', ') + ' |');
 say();
-say('No variable above holds a secret the repository supplies. ' + tick('FACTORY_ADMIN_API_URL') + ' / ' + tick('FACTORY_RELEASES_URL') + ' (web) are non-secret and accept only a Supabase project over HTTPS or a loopback harness.');
+say('No variable above holds a secret the repository supplies. ' + tick('FACTORY_ADMIN_API_URL') + ' / ' + tick('FACTORY_RELEASES_URL') + ' / ' + tick('FACTORY_NODE_API_URL') + ' (web) are non-secret; the web accepts for them only an https address of a Supabase project, or a loopback address. A pairing code is never an environment variable or an argument: setup reads it on standard input only.');
 process.stdout.write(out.join('\n') + '\n');

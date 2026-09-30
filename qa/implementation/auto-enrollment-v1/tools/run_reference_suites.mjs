@@ -9,6 +9,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isolatedSuiteEnv, isolationHeader, isolationProof } from '../../../factory/v1/isolation.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
 const BASELINE = '69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6';
@@ -17,6 +18,11 @@ const only = process.argv[3] ? process.argv[3].split(',') : null;
 mkdirSync(OUT, { recursive: true });
 const git = (...a) => spawnSync('git', ['-C', ROOT, ...a], { encoding: 'utf8' });
 const head = git('rev-parse', 'HEAD').stdout.trim();
+// S-15: every suite runs with FACTORY_RUNNER_ENV_FILE naming an ABSENT absolute path (never the default runner.env),
+// proved once per run by resolving both frozen resolvers under exactly that environment (qa/factory/v1/isolation.mjs)
+const ISO = isolatedSuiteEnv();
+const PROOF = isolationProof(ISO);
+if (!PROOF.ok) { console.log('REFUSED: the isolation proof failed - ' + isolationHeader(ISO, PROOF).join(' / ') + ' ' + (PROOF.error || '')); process.exit(2); }
 
 // [name, argv, minutes]
 const SUITES = [
@@ -63,21 +69,21 @@ for (const [name, args, minutes] of SUITES) {
     const dir = join(ROOT, '.factory', 'control-plane'); mkdirSync(dir, { recursive: true });
     const pf = join(dir, 'port'); let port = 0; try { port = Number(readFileSync(pf, 'utf8').trim()); } catch { /* none */ }
     if (!port || port === 54329) writeFileSync(pf, '55439\n');
-    const st = spawn(process.execPath, [join(ROOT, 'qa/factory/shared_local_pg.mjs'), 'start'], { cwd: ROOT, detached: true, stdio: 'ignore', windowsHide: true }); st.unref();
-    for (let i = 0; i < 60; i++) { const r0 = spawnSync(process.execPath, [join(ROOT, 'qa/factory/shared_local_pg.mjs'), 'status'], { cwd: ROOT, encoding: 'utf8' }); if (r0.status === 0) break; spawnSync(process.execPath, ['-e', 'setTimeout(()=>{},2000)']); }
+    const st = spawn(process.execPath, [join(ROOT, 'qa/factory/shared_local_pg.mjs'), 'start'], { cwd: ROOT, detached: true, stdio: 'ignore', windowsHide: true, env: ISO.env }); st.unref();
+    for (let i = 0; i < 60; i++) { const r0 = spawnSync(process.execPath, [join(ROOT, 'qa/factory/shared_local_pg.mjs'), 'status'], { cwd: ROOT, encoding: 'utf8', env: ISO.env }); if (r0.status === 0) break; spawnSync(process.execPath, ['-e', 'setTimeout(()=>{},2000)'], { env: ISO.env }); }
   }
   const t0 = Date.now();
   const r = spawnSync(process.execPath, args, { cwd: ROOT, encoding: 'utf8', timeout: minutes * 60000, maxBuffer: 1 << 28, windowsHide: true,
-    env: { ...process.env, FACTORY_RUNNER_PG_URL: '', FACTORY_RUNNER_ENV_FILE: '' } });
+    env: ISO.env });
   const out = (r.stdout || '') + (r.stderr ? '\n--- stderr ---\n' + r.stderr : '');
   const secs = Math.round((Date.now() - t0) / 1000);
-  if (shared) spawnSync(process.execPath, [join(ROOT, 'qa/factory/shared_local_pg.mjs'), 'stop'], { cwd: ROOT, encoding: 'utf8' });
+  if (shared) spawnSync(process.execPath, [join(ROOT, 'qa/factory/shared_local_pg.mjs'), 'stop'], { cwd: ROOT, encoding: 'utf8', env: ISO.env });
   // the suite's own count line first ("<suite>: N passed, M failed", "N/N", "N pass, M fail", "killed"); else the last row-like line
   const lines = out.trim().split('\n');
   const last = lines.filter((l) => /: \d+ passed|\d+ passed, \d+ failed|\d+ pass, \d+ fail|\d+\/\d+ (OK|passed)|mutants killed|rc=\d+ ::/i.test(l)).slice(-1)[0]
     || lines.filter((l) => /passed|failed|killed|PASS|FAIL|OK\b/i.test(l)).slice(-1)[0] || '(no summary line)';
   writeFileSync(join(OUT, name.replace(/[^A-Za-z0-9._-]+/g, '_') + '.txt'), ['suite ' + name, 'command node ' + args.join(' '), 'cwd ' + ROOT, 'commit ' + head,
-    'suite file identical to ' + BASELINE + ': yes', 'environment disposable (local): FACTORY_RUNNER_PG_URL and FACTORY_RUNNER_ENV_FILE emptied',
+    'suite file identical to ' + BASELINE + ': yes', ...isolationHeader(ISO, PROOF),
     'started ' + new Date(t0).toISOString(), 'seconds ' + secs, 'exit ' + r.status + (r.error ? ' error ' + r.error.code : ''), 'summary ' + last.trim(), '', out].join('\n'));
   const line = name.padEnd(52) + ' exit ' + String(r.status).padEnd(4) + String(secs).padStart(5) + 's  ' + last.trim();
   summary.push(line);

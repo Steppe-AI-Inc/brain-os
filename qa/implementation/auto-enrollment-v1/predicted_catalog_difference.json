@@ -1,0 +1,62 @@
+{
+  "what": "The catalog difference (after minus before) the candidate migration produces on a plane provisioned as 69df2f52 and applied by the live-shaped applying login, in the format of the Director's snapshot tool, for the sections the migration's privilege model decides. Implementer prediction (S-11 / AC-10); qa/factory/v1/manifest_rehearsal.mjs compares it with the tool's before/after reads on the developer applying-role plane.",
+  "tool": "qa/verification/auto-enrollment-v1/tools/live_catalog_snapshot.mjs",
+  "applying_login": "postgres",
+  "bootstrap_superuser": "supabase_admin",
+  "why": {
+    "role_memberships": "PostgreSQL 16+: CREATE ROLE by a CREATEROLE login that is not a superuser grants the new role to its creator WITH ADMIN OPTION, INHERIT FALSE, SET FALSE, the bootstrap superuser as grantor; createrole_self_grant (set by part 000 to the constant 'set' for factory_owner only, '' otherwise) adds one grant from the creator with SET only. No statement of the migration grants a role membership.",
+    "default_acl": "Part 000 revokes the applying login's own 69df2f52 entry for factory_runner in schema factory (ALTER DEFAULT PRIVILEGES without FOR ROLE) and records factory_owner's global function entry without PUBLIC EXECUTE.",
+    "schema_acl": "USAGE on schema factory for the three new roles; the CREATE factory_owner holds while the migration runs is revoked by part 990.",
+    "table_acl_69df2f52": "factory_owner gets SELECT, INSERT, UPDATE, DELETE, REFERENCES on the eight 69df2f52 tables; the TRIGGER it holds while part 080 attaches the legacy guard is revoked there.",
+    "transient": "REFERENCES to PUBLIC on five new tables (parts 010 and 070) and TRIGGER to factory_owner on the eight 69df2f52 tables (part 080) are granted and revoked inside the one transaction, on objects no other session can see before commit; they net to nothing."
+  },
+  "sections": {
+    "role_memberships": {
+      "added": [
+        { "granted_role": "factory_admin_api", "member": "postgres", "admin_option": true, "inherit_option": false, "set_option": false, "grantor": "supabase_admin" },
+        { "granted_role": "factory_node_api", "member": "postgres", "admin_option": true, "inherit_option": false, "set_option": false, "grantor": "supabase_admin" },
+        { "granted_role": "factory_owner", "member": "postgres", "admin_option": false, "inherit_option": false, "set_option": true, "grantor": "postgres" },
+        { "granted_role": "factory_owner", "member": "postgres", "admin_option": true, "inherit_option": false, "set_option": false, "grantor": "supabase_admin" }
+      ],
+      "removed": []
+    },
+    "default_acl": {
+      "added": [
+        { "sch": "(all schemas)", "for_role": "factory_owner", "grantee": "factory_owner", "objtype": "f", "priv": "EXECUTE" }
+      ],
+      "removed": [
+        { "sch": "factory", "for_role": "postgres", "grantee": "factory_runner", "objtype": "r", "priv": "DELETE" },
+        { "sch": "factory", "for_role": "postgres", "grantee": "factory_runner", "objtype": "r", "priv": "INSERT" },
+        { "sch": "factory", "for_role": "postgres", "grantee": "factory_runner", "objtype": "r", "priv": "SELECT" },
+        { "sch": "factory", "for_role": "postgres", "grantee": "factory_runner", "objtype": "r", "priv": "UPDATE" }
+      ]
+    },
+    "roles": {
+      "added": [
+        { "rolname": "factory_admin_api", "rolsuper": false, "rolcreatedb": false, "rolcreaterole": false, "rolreplication": false, "rolbypassrls": false, "rolinherit": false, "rolcanlogin": false, "rolconfig": [] },
+        { "rolname": "factory_node_api", "rolsuper": false, "rolcreatedb": false, "rolcreaterole": false, "rolreplication": false, "rolbypassrls": false, "rolinherit": false, "rolcanlogin": false, "rolconfig": [] },
+        { "rolname": "factory_owner", "rolsuper": false, "rolcreatedb": false, "rolcreaterole": false, "rolreplication": false, "rolbypassrls": false, "rolinherit": false, "rolcanlogin": false, "rolconfig": [] }
+      ],
+      "removed": []
+    },
+    "schema_acl": {
+      "added": [
+        { "schema": "factory", "owner": "postgres", "grantee": "factory_admin_api", "priv": "USAGE" },
+        { "schema": "factory", "owner": "postgres", "grantee": "factory_node_api", "priv": "USAGE" },
+        { "schema": "factory", "owner": "postgres", "grantee": "factory_owner", "priv": "USAGE" }
+      ],
+      "removed": []
+    },
+    "database_acl": { "added": [], "removed": [] },
+    "role_database_settings": { "added": [], "removed": [] },
+    "column_acl": { "added": [], "removed": [] },
+    "extensions": { "added": [], "removed": [] },
+    "event_triggers": { "added": [], "removed": [] },
+    "table_acl": {
+      "rule": "added: for each of the eight 69df2f52 tables, factory_owner SELECT, INSERT, UPDATE, DELETE, REFERENCES (40 rows); for each relation the migration creates, its owner factory_owner and nobody else (no PUBLIC, factory_runner, applying login, API role or reader row). removed: none."
+    },
+    "function_acl": {
+      "rule": "added: factory_owner EXECUTE on every new factory function, and EXECUTE for exactly one API role on each of its front doors; no PUBLIC, factory_runner or applying-login row. removed: none."
+    }
+  }
+}

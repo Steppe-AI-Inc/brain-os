@@ -8,6 +8,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isolatedSuiteEnv, isolationHeader, isolationProof } from '../../../factory/v1/isolation.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
 const PROOF = 'qa/factory/acceptance_mutation_proof.mjs';
@@ -39,15 +40,19 @@ const pick = li > 0 ? process.argv.slice(li + 1).filter((l) => runnable.includes
 if (!pick.length) { console.log('chunk ' + n + ' is empty (' + runnable.length + ' runnable labels)'); process.exit(0); }
 const head = spawnSync('git', ['-C', ROOT, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).stdout.trim();
 const same = spawnSync('git', ['-C', ROOT, 'diff', '--quiet', BASELINE, head, '--', PROOF], { encoding: 'utf8' }).status === 0;
+// S-15: an ABSENT absolute FACTORY_RUNNER_ENV_FILE (never the default runner.env), proved first (isolation.mjs)
+const ISO = isolatedSuiteEnv();
+const ISO_PROOF = isolationProof(ISO);
+if (!ISO_PROOF.ok) { console.log('REFUSED: the isolation proof failed - ' + isolationHeader(ISO, ISO_PROOF).join(' / ') + ' ' + (ISO_PROOF.error || '')); process.exit(2); }
 const t0 = Date.now();
 const r = spawnSync(process.execPath, [PROOF, ...pick], { cwd: ROOT, encoding: 'utf8', timeout: 20 * 60000, maxBuffer: 1 << 28, windowsHide: true,
-  env: { ...process.env, FACTORY_RUNNER_PG_URL: '', FACTORY_RUNNER_ENV_FILE: '' } });
+  env: ISO.env });
 const out = (r.stdout || '') + (r.stderr ? '\n--- stderr ---\n' + r.stderr : '');
 const secs = Math.round((Date.now() - t0) / 1000);
 const last = (out.match(/acceptance_mutation_proof: \d+ of \d+ mutants killed[^\n]*/) || ['(no summary line)'])[0];
 const name = 'acceptance_mutation_proof chunk ' + n + ' (' + pick.join(' ') + ')';
 writeFileSync(join(OUT, 'acceptance_mutation_proof.chunk-' + String(n).padStart(2, '0') + '.txt'), ['suite ' + name, 'command node ' + PROOF + ' ' + pick.join(' '), 'cwd ' + ROOT, 'commit ' + head,
-  'suite file identical to ' + BASELINE + ': ' + (same ? 'yes' : 'NO'), 'environment disposable (local): FACTORY_RUNNER_PG_URL and FACTORY_RUNNER_ENV_FILE emptied',
+  'suite file identical to ' + BASELINE + ': ' + (same ? 'yes' : 'NO'), ...isolationHeader(ISO, ISO_PROOF),
   'started ' + new Date(t0).toISOString(), 'seconds ' + secs, 'exit ' + r.status + (r.error ? ' error ' + r.error.code : ''), 'summary ' + last, '', out].join('\n'));
 console.log(name.slice(0, 120) + '  exit ' + r.status + '  ' + secs + 's  ' + last);
 for (const l of out.split('\n').filter((x) => /^SURVIVED /.test(x))) console.log('  ' + l.slice(0, 200));

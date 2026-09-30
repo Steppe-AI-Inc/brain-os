@@ -12,8 +12,8 @@
       "old_authority_check": "none: the shared factory_runner login; node_id and security_role come from the caller",
       "old_lease_fencing_rule": "stamp:false writes the epoch (never beaten) until a claim cycle completes; onlyIfAbsent writes nothing over an existing record",
       "new_api_endpoint": "POST /v1/node/register",
-      "new_server_primitive": { "front_door": "factory.node_register", "writes": ["nodes (runtime_version, runtime_digest, release_id, reported_*, runtime_phase = RECOVERING; never last_heartbeat_at)", "computer_fingerprints", "enrollments + enrollment_transitions (RUNTIME_INSTALLING -> REGISTERING -> ALIVE | REGISTRATION_FAILED)"] },
-      "new_authority_check": "session -> credential under a SHARE lock inside the call's transaction (S-3); identity, tenant and envelope from the credential; ALIVE only on a certified release; a body naming identity is refused",
+      "new_server_primitive": { "front_door": "factory.node_register", "writes": ["nodes (runtime_version, runtime_digest, release_id, reported_*, runtime_phase = RECOVERING; never last_heartbeat_at)", "computer_fingerprints", "enrollments + enrollment_transitions (RUNTIME_INSTALLING -> REGISTERING -> ALIVE | REGISTRATION_FAILED)", "a registration refused under S-14 writes: computer_fingerprints, nodes.machine_fingerprint and computers.registered_fingerprint (while empty) for the reported fingerprint; computers.s14_registration_refused_at (set once); the enrollment walk of a credential still in it (-> REGISTRATION_FAILED); one audit_events row. No release stamp, no runtime phase"] },
+      "new_authority_check": "session -> credential under a SHARE lock inside the call's transaction (S-3); identity, tenant and envelope from the credential; ALIVE only on a certified release; a body naming identity is refused; an unbound record that has reported, now or before, a fingerprint a record carrying the S-16(a) binding reported is refused by name (s16a_bound_fingerprint, S-14), every retry, and from then on takes no work (gate 1)",
       "regressions": ["node_truth_acceptance.mjs:1299 N8 / claim.mjs:75 (stamp:false)"]
     },
     {
@@ -36,8 +36,8 @@
       "old_authority_check": "role and capabilities read from factory.nodes (a row the node writes itself); local admission before any SQL",
       "old_lease_fencing_rule": "lease from BEGIN; started_at = clock_timestamp() at the insert",
       "new_api_endpoint": "POST /v1/node/claim",
-      "new_server_primitive": { "front_door": "factory.node_claim -> factory._claim", "writes": ["agent_runs (insert; principal_id, computer_id, credential_id, run_kind, envelope_version, release stamp)", "surface_locks (insert; principal_id, lease 'infinity')", "work_orders.status = claimed", "the reaper: agent_runs / work_orders / surface_locks (both fleets)"] },
-      "new_authority_check": "the SAME advisory lock key as the frozen legacy claim; the 12 hard gates in the founder's order from the credential's CURRENT envelope, then ranking; a lock held past the lock timeout -> claim_lock_busy (nothing claimed); only work orders holding factory-enrolled-v1",
+      "new_server_primitive": { "front_door": "factory.node_claim -> factory._claim('claim'): ONE ranked pick across authoring and verification work, as 69df2f52 ranked generic and verifier work in one pick (claim.mjs:229, :248-249) - a node that lists the reserved type 'verification' is offered both kinds in numeric priority, then queue age, and the kind of the work order picked is the run's kind", "writes": ["agent_runs (insert; principal_id, computer_id, credential_id, run_kind authoring | verification, envelope_version, release stamp)", "surface_locks (insert; principal_id, lease 'infinity')", "work_orders.status = claimed", "work_orders.verification_state = VERIFICATION_CLAIMED (when a verification work order is picked)", "the reaper: agent_runs / work_orders / surface_locks (both fleets)"] },
+      "new_authority_check": "the SAME advisory lock key as the frozen legacy claim; the 12 hard gates in the founder's order from the credential's CURRENT envelope (gate 1 requires the credential's enrollment walk ALIVE and no S-14 registration refusal on its computer), then ranking; a lock held past the lock timeout -> claim_lock_busy (nothing claimed); only work orders holding factory-enrolled-v1",
       "regressions": ["acceptance.mjs:71 A", "acceptance.mjs:82 H", "shared_control_plane_acceptance.mjs:76 CP-3", "acceptance.mjs:87 I", "acceptance.mjs:93 I2", "acceptance.mjs:756 S", "acceptance.mjs:544 N", "shared_control_plane_acceptance.mjs:179 CP-9", "shared_control_plane_acceptance.mjs:183 CP-10"]
     },
     {
@@ -108,7 +108,7 @@
       "old_authority_check": "none",
       "old_lease_fencing_rule": "only a REAL lease expiry makes work claimable again; the stale owner is fenced by renew / checkpoint / complete",
       "new_api_endpoint": "POST /v1/node/claim (the reaper)",
-      "new_server_primitive": { "front_door": "factory._reap + factory._claim", "writes": ["agent_runs / work_orders / surface_locks (the same statements, both fleets)", "work_orders.verification_state (a lapsed verification claim returns to WAITING)", "agent_runs.resumed_from_checkpoint_id (the checkpoint handed to the new owner)"] },
+      "new_server_primitive": { "front_door": "factory._reap + factory._claim", "writes": ["agent_runs / work_orders / surface_locks (the same statements, both fleets: a requeue leaves queued_at, the queue age, as it was)", "work_orders.verification_state (a lapsed verification claim returns to WAITING)", "agent_runs.resumed_from_checkpoint_id (the checkpoint handed to the new owner)"] },
       "new_authority_check": "as claim; the new owner must pass every gate; the reaper's effects commit with the call (work still becomes claimable only after a real expiry)",
       "regressions": ["acceptance.mjs:112 E/G", "acceptance.mjs:116 G2", "acceptance.mjs:120 G3", "shared_control_plane_acceptance.mjs:97 CP-5", "acceptance.mjs:515 M"]
     },
@@ -120,7 +120,7 @@
       "old_authority_check": "the node's self-written role",
       "old_lease_fencing_rule": "as claim",
       "new_api_endpoint": "POST /v1/node/verification-claim",
-      "new_server_primitive": { "front_door": "factory.node_verification_claim -> factory._claim('verification')", "writes": ["agent_runs (run_kind verification)", "work_orders.verification_state = VERIFICATION_CLAIMED"] },
+      "new_server_primitive": { "front_door": "factory.node_verification_claim -> factory._claim('verification') (verification work only); verification runs are also issued by the claim door to a node that lists the reserved type 'verification' (the one ranked pick)", "writes": ["agent_runs (run_kind verification)", "work_orders.verification_state = VERIFICATION_CLAIMED"] },
       "new_authority_check": "gate 5 (verifier in the CURRENT envelope) and gate 7 (the S-13 floor against the whole authoring set; the campaign's physical separation). The 69df2f52 model-assurance decline is not one of contract P-6's twelve gates; the enrolled runtime keeps it as its own local veto (it does not ask for verifier work its model may not serve)",
       "regressions": ["shared_control_plane_acceptance.mjs:179 CP-9", "shared_control_plane_acceptance.mjs:210 CP-11"]
     },
