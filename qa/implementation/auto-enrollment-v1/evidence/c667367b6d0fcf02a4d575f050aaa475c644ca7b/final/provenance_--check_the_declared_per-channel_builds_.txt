@@ -1,0 +1,14 @@
+step provenance --check (the declared per-channel builds)
+command C:\Program Files\nodejs\node.exe qa/implementation/auto-enrollment-v1/tools/provenance.mjs --check D:\FactoryQA\implementer\c2-c667367\build-declarations
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c667367b6d0fcf02a4d575f050aaa475c644ca7b
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-PulsWu\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-PulsWu\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-PulsWu\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-09-30T15:16:09.127Z
+seconds 31
+exit 0
+summary dev: rebuilt digest 49e0917f0a7058970c613773d71625bb5faa141cb04538eab68a561bf44e6cb2 (declared 49e0917f0a7058970c613773d71625bb5faa141cb04538eab68a561bf44e6cb2)
+
+production: rebuilt digest 29698cacc284e841a5d39dee749f12ae4383fea744a9c9b553362e73274f0264 (declared 29698cacc284e841a5d39dee749f12ae4383fea744a9c9b553362e73274f0264)
+dev: rebuilt digest 49e0917f0a7058970c613773d71625bb5faa141cb04538eab68a561bf44e6cb2 (declared 49e0917f0a7058970c613773d71625bb5faa141cb04538eab68a561bf44e6cb2)
+MATCH: both channels' rebuilds of c667367b6d0fcf02a4d575f050aaa475c644ca7b equal the declarations in D:\FactoryQA\implementer\c2-c667367\build-declarations

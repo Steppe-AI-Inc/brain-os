@@ -1,0 +1,23 @@
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-hXdqK6\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-hXdqK6\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-hXdqK6\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+v1_mutation_proof: 17 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ c667367b6d0fcf02a4d575f050aaa475c644ca7b
+CONTROL  units       passed - runtime_units: 26/26 OK (51 s)
+CAUGHT   UFL   units        [semantic] expected FAIL FP1; seen FAIL [FP1]; runtime_units: 25/26 OK; FAILED: FP1 (51 s) - the fingerprint hashes the MachineGuid lower-cased (not exactly as stored)
+CAUGHT   UFE   units        [semantic] expected FAIL FP3; seen FAIL [FP3 FP6]; runtime_units: 24/26 OK; FAILED: FP3, FP6 (51 s) - the fingerprint hashes a value's Latin-1 bytes instead of its UTF-8 bytes
+CAUGHT   UFU   units        [semantic] expected FAIL FP4; seen FAIL [FP4]; runtime_units: 25/26 OK; FAILED: FP4 (51 s) - the registry reader sends the value's UTF-16 bytes instead of its UTF-8 bytes
+CAUGHT   UFC   units        [semantic] expected FAIL FP5; seen FAIL [FP5]; runtime_units: 25/26 OK; FAILED: FP5 (51 s) - a failed fingerprint read is kept for the life of the process (never read again)
+CAUGHT   RVW   units        [semantic] expected FAIL RV2; seen FAIL [RV2]; runtime_units: 25/26 OK; FAILED: RV2 (51 s) - the worker overwrites state\revocations.json with each heartbeat's list again (no union)
+CAUGHT   LCW   units        [semantic] expected FAIL LC1|LC2; seen FAIL [LC1 LC2]; runtime_units: 24/26 OK; FAILED: LC1, LC2 (82 s) - the lease guard sizes the lease from the server's expiry minus the node's wall clock again
+CAUGHT   SIP   units        [semantic] expected FAIL SI1; seen FAIL [SI1]; runtime_units: 25/26 OK; FAILED: SI1 (51 s) - the supervisor again treats a lock record naming a live (or EPERM) pid as a running supervisor
+CAUGHT   WKP   units        [semantic] expected FAIL SI3; seen FAIL [SI3]; runtime_units: 25/26 OK; FAILED: SI3 (51 s) - the worker goes on when another worker holds the home's worker pipe
+CAUGHT   CGB   units        [semantic] expected FAIL CL1; seen FAIL [CL1]; runtime_units: 25/26 OK; FAILED: CL1 (51 s) - a lost claim answer is never read as lost (nothing given back; the orphan waits out its lease)
+CAUGHT   RPA   units        [semantic] expected FAIL RR1; seen FAIL [RR1]; runtime_units: 25/26 OK; FAILED: RR1 (51 s) - the pending key is promoted on any probe answer other than unknown_key (a 404, a 400, a body without a refusal name)
+CAUGHT   RFP   units        [semantic] expected FAIL RR2; seen FAIL [RR2 RR3 X0]; runtime_units: 23/26 OK; FAILED: RR2, RR3, X0 (51 s) - a repeated rotation refused credential_superseded discards the pending key without the final probe
+CAUGHT   LCR   units        [semantic] expected FAIL LC3; seen FAIL [LC3]; runtime_units: 25/26 OK; FAILED: LC3 (53 s) - a renewed lease is counted from the answer to the renewal instead of from when it was sent
+CAUGHT   CFE   units        [semantic] expected FAIL CF1; seen FAIL [CF1]; runtime_units: 25/26 OK; FAILED: CF1 (51 s) - a rotation starts from {} when config.json cannot be read
+CAUGHT   SVR   units        [semantic] expected FAIL SV1; seen FAIL [SV1]; runtime_units: 25/26 OK; FAILED: SV1 (51 s) - a REFUSED record keeps the worker from starting even while a rotation of the home is pending
+CAUGHT   SV7   units        [semantic] expected FAIL SV2; seen FAIL [SV2]; runtime_units: 25/26 OK; FAILED: SV2 (56 s) - an exit 7 of the worker is treated as a crash (restarted only after the backoff)
+CAUGHT   SIK   units        [semantic] expected FAIL SI3; seen FAIL [SI3]; runtime_units: 25/26 OK; FAILED: SI3 (51 s) - a pipe holder that does not stop is ended by the pid it reports
+CAUGHT   UFS   units        [semantic] expected FAIL FP7; seen FAIL [FP7]; runtime_units: 25/26 OK; FAILED: FP7 (51 s) - the fingerprint read of the worker blocks the event loop again (the synchronous read)
+
+v1_mutation_proof: 17 of 17 mutants killed

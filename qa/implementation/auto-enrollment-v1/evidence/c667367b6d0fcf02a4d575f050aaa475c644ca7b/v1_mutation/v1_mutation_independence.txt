@@ -1,0 +1,31 @@
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-4HBTDz\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-4HBTDz\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-4HBTDz\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+v1_mutation_proof: 25 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ c667367b6d0fcf02a4d575f050aaa475c644ca7b
+CONTROL  independencepassed - independence_acceptance: 25/25 OK (28 s)
+CAUGHT   VR    independence [semantic] expected FAIL (r); seen FAIL [(r)]; independence_acceptance: 24/25 OK; FAILED: (r) (29 s) - after revoke or archive the verifier keeps holding its claim; others wait for the lease to run out
+CAUGHT   IN    independence [semantic] expected FAIL (b)(c)|(g)|(j)|(m)|(n); seen FAIL [(b)(c) (d) (f) (g) (h) X0]; independence_acceptance: 2/8 OK; FAILED: (b)(c), (d), (f), (g), (h), X0 (11 s) - independence reduced to run-only: an authoring identity may claim (gate 7) and certify (floor) its own candidate
+CAUGHT   IN2   independence [semantic] expected FAIL (j)|(j2); seen FAIL [(k2) (j2)]; independence_acceptance: 23/25 OK; FAILED: (k2), (j2) (29 s) - the authoring set reduced to the completing run (a taken-over author may verify)
+CAUGHT   FLP   independence [semantic] expected FAIL (k2); seen FAIL [(k2)]; independence_acceptance: 24/25 OK; FAILED: (k2) (29 s) - the floor no longer refuses a candidate that is not the work order's current one
+CAUGHT   FLR   independence [semantic] expected FAIL (k2); seen FAIL [(k2)]; independence_acceptance: 24/25 OK; FAILED: (k2) (29 s) - the floor no longer refuses a certifying run that is in the authoring set
+CAUGHT   FLI   independence [semantic] expected FAIL (k2); seen FAIL [(k2)]; independence_acceptance: 24/25 OK; FAILED: (k2) (29 s) - the floor no longer refuses an authoring identity (the gate kept)
+CAUGHT   FLA   independence [semantic] expected FAIL (h); seen FAIL [(h)]; independence_acceptance: 24/25 OK; FAILED: (h) (29 s) - the floor no longer requires verifier authority in the CURRENT envelope
+CAUGHT   FLS   independence [semantic] expected FAIL (k2); seen FAIL [(k2)]; independence_acceptance: 24/25 OK; FAILED: (k2) (29 s) - the floor's campaign check of the same computer record removed (the fingerprint check kept)
+CAUGHT   FLF   independence [semantic] expected FAIL (k2); seen FAIL [(k2)]; independence_acceptance: 24/25 OK; FAILED: (k2) (29 s) - the floor's campaign fingerprint check removed
+CAUGHT   FLC   independence [semantic] expected FAIL (k2); seen FAIL [(k2) (k3)]; independence_acceptance: 23/25 OK; FAILED: (k2), (k3) (29 s) - the floor applies no campaign check at all
+CAUGHT   G7c   independence [semantic] expected FAIL (m); seen FAIL [(m)]; independence_acceptance: 24/25 OK; FAILED: (m) (29 s) - gate 7's campaign check of the same computer record removed (the floor kept)
+CAUGHT   G7p   independence [semantic] expected FAIL (i)(e)|(p)|(p2); seen FAIL [(p4) (i)(e) (p) (p2)]; independence_acceptance: 21/25 OK; FAILED: (p4), (i)(e), (p), (p2) (28 s) - gate 7's campaign fingerprint check removed (the floor kept)
+CAUGHT   CKG   independence [semantic] expected FAIL (i2); seen FAIL [(i2)]; independence_acceptance: 24/25 OK; FAILED: (i2) (30 s) - gate 7 reads a campaign with no policy row as the tenant default
+CAUGHT   CKF   independence [semantic] expected FAIL (i2); seen FAIL [(i2)]; independence_acceptance: 24/25 OK; FAILED: (i2) (29 s) - the certification reads a campaign with no policy row as the tenant default
+CAUGHT   FPH   independence [semantic] expected FAIL (p2); seen FAIL [(k2) (p2)]; independence_acceptance: 23/25 OK; FAILED: (k2), (p2) (29 s) - the authoring side counts only its runs' own fingerprints, not what its computers reported before
+CAUGHT   FPM   independence [semantic] expected FAIL (p2); seen FAIL [(p2)]; independence_acceptance: 24/25 OK; FAILED: (p2) (29 s) - the certifier side counts only the fingerprint of this call, not what its computer reported before
+CAUGHT   FPN   independence [semantic] expected FAIL (p3); seen FAIL [(p3) (p5) (k3)]; independence_acceptance: 22/25 OK; FAILED: (p3), (p5), (k3) (30 s) - an unknown fingerprint under the campaign no longer refuses (gate and floor)
+CAUGHT   FPA   independence [semantic] expected FAIL (p5); seen FAIL [(p5) (k3)]; independence_acceptance: 23/25 OK; FAILED: (p5), (k3) (29 s) - an author whose computer never reported a fingerprint no longer counts as unknown (the shared helper: gate 7 and the floor; the certifier side kept)
+CAUGHT   FLU   independence [semantic] expected FAIL (k3); seen FAIL [(k3)]; independence_acceptance: 24/25 OK; FAILED: (k3) (30 s) - the floor's own unknown-fingerprint check removed (gate 7 kept)
+CAUGHT   FPV   independence [semantic] expected FAIL (p4); seen FAIL [(p4)]; independence_acceptance: 24/25 OK; FAILED: (p4) (29 s) - the runtime's fingerprint varies per process (per install)
+CAUGHT   RSW   independence [semantic] expected FAIL (o3); seen FAIL [(o3) X0]; independence_acceptance: 20/22 OK; FAILED: (o3), X0 (15 s) - a refused resubmission leaves the work order out of the queue (withheld from the next repair)
+CAUGHT   RSN   independence [semantic] expected FAIL (o3); seen FAIL [(o3)]; independence_acceptance: 24/25 OK; FAILED: (o3) (29 s) - a refused resubmission is not named on the work order
+CAUGHT   RQR   independence [semantic] expected FAIL (o3); seen FAIL [(o3)]; independence_acceptance: 24/25 OK; FAILED: (o3) (29 s) - a refused resubmission resets the work order's queue age
+CAUGHT   RQF   independence [semantic] expected FAIL (o3); seen FAIL [(o3)]; independence_acceptance: 24/25 OK; FAILED: (o3) (30 s) - a FAIL resets the work order's queue age
+CAUGHT   CP    independence [semantic] expected FAIL (o2); seen FAIL [(o2)]; independence_acceptance: 24/25 OK; FAILED: (o2) (29 s) - a certification is not bound to its work order and exact candidate provenance
+
+v1_mutation_proof: 25 of 25 mutants killed

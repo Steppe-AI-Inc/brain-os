@@ -1,0 +1,29 @@
+step transport_compatibility_contract
+command C:\Program Files\nodejs\node.exe qa/factory/v1/transport_compatibility_contract.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c667367b6d0fcf02a4d575f050aaa475c644ca7b
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-PulsWu\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-PulsWu\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-PulsWu\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-09-30T15:19:52.916Z
+seconds 67
+exit 0
+summary transport_compatibility_contract: 16/16 rows MIGRATED
+
+OK   register                 MIGRATED  (1 ported regressions)
+OK   heartbeat                MIGRATED  (2 ported regressions)
+OK   discover / claim         MIGRATED  (9 ported regressions)
+OK   lease renewal            MIGRATED  (2 ported regressions)
+OK   checkpoint               MIGRATED  (4 ported regressions)
+OK   complete                 MIGRATED  (8 ported regressions)
+OK   surface-lock acquire     MIGRATED  (4 ported regressions)
+OK   surface-lock release     MIGRATED  (3 ported regressions)
+OK   takeover / recovery      MIGRATED  (5 ported regressions)
+OK   verification claim       MIGRATED  (2 ported regressions)
+OK   certification            MIGRATED  (2 ported regressions)
+OK   abort give-back          MIGRATED  (1 ported regressions)
+OK   orphan give-back         MIGRATED  (1 ported regressions)
+OK   completion-landed check  MIGRATED  (1 ported regressions)
+OK   run setup                MIGRATED  (2 ported regressions)
+OK   status / health reads    MIGRATED  (1 ported regressions)
+
+transport_compatibility_contract: 16/16 rows MIGRATED

@@ -1,0 +1,37 @@
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-wGgpCl\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-wGgpCl\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-wGgpCl\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+v1_mutation_proof: 31 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ c667367b6d0fcf02a4d575f050aaa475c644ca7b
+CONTROL  eligibility passed - eligibility_acceptance: 25/25 OK (76 s)
+CAUGHT   G2    eligibility  [semantic] expected FAIL G1-G12; seen FAIL [G1-G12 O2]; eligibility_acceptance: 23/25 OK; FAILED: G1-G12, O2 (76 s) - gate 2 (tenant) removed
+CAUGHT   G3    eligibility  [semantic] expected FAIL G1-G12|O1; seen FAIL [G1-G12 H1 O1 O2]; eligibility_acceptance: 21/25 OK; FAILED: G1-G12, H1, O1, O2 (76 s) - gate 3 (company scope) removed
+CAUGHT   G4a   eligibility  [semantic] expected FAIL G1-G12|O1; seen FAIL [G1-G12 O1 O2 K2 Y3]; eligibility_acceptance: 20/25 OK; FAILED: G1-G12, O1, O2, K2, Y3 (76 s) - gate 4 (the envelope's work types) removed
+CAUGHT   G4b   eligibility  [semantic] expected FAIL G4r; seen FAIL [O2 G4r]; eligibility_acceptance: 23/25 OK; FAILED: O2, G4r (76 s) - gate 4 (a current certified release) removed
+CAUGHT   G5    eligibility  [semantic] expected FAIL G1-G12|O1; seen FAIL [G1-G12 O1 O2]; eligibility_acceptance: 22/25 OK; FAILED: G1-G12, O1, O2 (76 s) - gate 5 (required role) removed
+CAUGHT   G6a   eligibility  [semantic] expected FAIL G1-G12|O1; seen FAIL [G1-G12 O1 O2]; eligibility_acceptance: 22/25 OK; FAILED: G1-G12, O1, O2 (76 s) - gate 6 (capabilities from the envelope) removed
+CAUGHT   G6b   eligibility  [semantic] expected FAIL D1; seen FAIL [O2 D1]; eligibility_acceptance: 23/25 OK; FAILED: O2, D1 (76 s) - gate 6 (detection only restricts) removed: a capability the node detects as absent no longer makes it ineligible
+CAUGHT   G7h   eligibility  [semantic] expected FAIL H1; seen FAIL [G1-G12 H1 H2 H3 O2]; eligibility_acceptance: 20/25 OK; FAILED: G1-G12, H1, H2, H3, O2 (76 s) - gate 7 (the S-16(a) authoring restriction) removed
+CAUGHT   G7f   eligibility  [semantic] expected FAIL H2; seen FAIL [H2 O2]; eligibility_acceptance: 23/25 OK; FAILED: H2, O2 (76 s) - gate 7 restricts only the bound record itself, not a record that reported the bound record's fingerprint
+CAUGHT   G11b  eligibility  [semantic] expected FAIL G11b; seen FAIL [G11b O2]; eligibility_acceptance: 23/25 OK; FAILED: G11b, O2 (76 s) - gate 11 (the per-computer heavy limit) removed
+CAUGHT   PX1   eligibility  [semantic] expected FAIL K3|K4; seen FAIL [K3 K4]; eligibility_acceptance: 23/25 OK; FAILED: K3, K4 (92 s) - a preference excludes: a node without it defers for as long as any active computer prefers the class
+CAUGHT   PX2   eligibility  [semantic] expected FAIL K4b; seen FAIL [K4b]; eligibility_acceptance: 24/25 OK; FAILED: K4b (76 s) - a preference is a hard gate: a node that prefers another class is refused this work
+CAUGHT   ORD67 eligibility  [semantic] expected FAIL O2; seen FAIL [H2 O2]; eligibility_acceptance: 23/25 OK; FAILED: H2, O2 (76 s) - gate 7's authoring restriction checked before gate 6
+CAUGHT   ORD1011 eligibility  [semantic] expected FAIL O2; seen FAIL [O2]; eligibility_acceptance: 24/25 OK; FAILED: O2 (76 s) - gate 11's run limit checked before gate 10
+CAUGHT   ORD1112 eligibility  [semantic] expected FAIL O2; seen FAIL [O2 RS3]; eligibility_acceptance: 23/25 OK; FAILED: O2, RS3 (76 s) - gate 12 checked before gate 11
+CAUGHT   G8    eligibility  [semantic] expected FAIL G1-G12|O1; seen FAIL [G1-G12 O1 O2]; eligibility_acceptance: 22/25 OK; FAILED: G1-G12, O1, O2 (76 s) - gate 8 (surface locks) removed
+CAUGHT   G9    eligibility  [semantic] expected FAIL G1-G12|O1; seen FAIL [G1-G12 O1 O2]; eligibility_acceptance: 22/25 OK; FAILED: G1-G12, O1, O2 (76 s) - gate 9 (drain) removed
+CAUGHT   G10a  eligibility  [semantic] expected FAIL G1-G12; seen FAIL [G1-G12 O2]; eligibility_acceptance: 23/25 OK; FAILED: G1-G12, O2 (76 s) - gate 10 (heartbeat freshness) removed
+CAUGHT   G10b  eligibility  [semantic] expected FAIL G1-G12; seen FAIL [G1-G12 O2]; eligibility_acceptance: 23/25 OK; FAILED: G1-G12, O2 (76 s) - gate 10 (a RECOVERING node) removed
+CAUGHT   G11a  eligibility  [semantic] expected FAIL G1-G12; seen FAIL [G1-G12 O2]; eligibility_acceptance: 23/25 OK; FAILED: G1-G12, O2 (76 s) - gate 11 (the computer's max concurrency) removed
+CAUGHT   G11c  eligibility  [semantic] expected FAIL G1-G12; seen FAIL [G11b G1-G12 O2]; eligibility_acceptance: 22/25 OK; FAILED: G11b, G1-G12, O2 (76 s) - gate 11 (the tenant's plane-wide heavy limit) removed
+CAUGHT   G12   eligibility  [semantic] expected FAIL G1-G12|O1; seen FAIL [G1-G12 O2]; eligibility_acceptance: 23/25 OK; FAILED: G1-G12, O2 (76 s) - gate 12 (hard minimum resources) removed
+CAUGHT   DB    eligibility  [semantic] expected FAIL K1; seen FAIL [K1 K4]; eligibility_acceptance: 23/25 OK; FAILED: K1, K4 (107 s) - the preference-deferral bound is 300 s instead of 30 s
+CAUGHT   NP    eligibility  [semantic] expected FAIL Y1; seen FAIL [Y1 Y2]; eligibility_acceptance: 23/25 OK; FAILED: Y1, Y2 (76 s) - priority ordered as text (lexical) instead of numerically
+CAUGHT   KR    eligibility  [semantic] expected FAIL G4r; seen FAIL [G4r]; eligibility_acceptance: 24/25 OK; FAILED: G4r (76 s) - a release signed by a revoked key counts as current again (the 4eec9f0 defect)
+CAUGHT   RSE   eligibility  [semantic] expected FAIL RS1; seen FAIL [RS1]; eligibility_acceptance: 24/25 OK; FAILED: RS1 (76 s) - the Node API accepts any resources object (the Edge layer alone reverted)
+CAUGHT   RSQ   eligibility  [semantic] expected FAIL RS1; seen FAIL [RS1]; eligibility_acceptance: 24/25 OK; FAILED: RS1 (76 s) - the front doors accept any resources object (the SQL layer alone reverted)
+CAUGHT   RKC   eligibility  [semantic] expected FAIL RS2; seen FAIL [RS2]; eligibility_acceptance: 24/25 OK; FAILED: RS2 (76 s) - the ranking casts a peer's reported cpu_pct unchecked
+CAUGHT   RGC   eligibility  [semantic] expected FAIL RS3; seen FAIL [RS3]; eligibility_acceptance: 24/25 OK; FAILED: RS3 (76 s) - gate 12 casts a peer's reported resource unchecked
+CAUGHT   LSD   eligibility  [semantic] expected FAIL LS1; seen FAIL [LS1]; eligibility_acceptance: 24/25 OK; FAILED: LS1 (76 s) - the lease default is applied after the bounds again (least/greatest skip the null: 600 s instead of 120 s)
+CAUGHT   VTY   eligibility  [semantic] expected FAIL Y4; seen FAIL [Y4]; eligibility_acceptance: 24/25 OK; FAILED: Y4 (76 s) - authoring work orders are matched against the listed types INCLUDING the reserved one
+
+v1_mutation_proof: 31 of 31 mutants killed

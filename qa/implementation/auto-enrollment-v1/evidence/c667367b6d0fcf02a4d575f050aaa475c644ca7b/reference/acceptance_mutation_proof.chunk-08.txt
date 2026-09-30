@@ -1,0 +1,19 @@
+suite acceptance_mutation_proof chunk 8 (N8H N20a N20b N20c)
+command node qa/factory/acceptance_mutation_proof.mjs N8H N20a N20b N20c
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c667367b6d0fcf02a4d575f050aaa475c644ca7b
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-N4YzEI\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-N4YzEI\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-N4YzEI\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-09-30T19:30:55.922Z
+seconds 56
+exit 0
+summary acceptance_mutation_proof: 4 of 4 mutants killed on c667367b6d0fcf02a4d575f050aaa475c644ca7b
+
+acceptance mutation proof on c667367b6d0fcf02a4d575f050aaa475c644ca7b (4 mutants)
+KILLED   N8H (health says "can claim work" while the supervisor is in backoff) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N20a (composer row 3 counts done runs at any commit) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N20b (composer row 4 counts a verification whose verifying run never completed) - node_truth_acceptance: 0 passed, 1 failed
+KILLED   N20c (composer row 1 counts a machine whose node runs the commit with uncommitted changes) - node_truth_acceptance: 0 passed, 1 failed
+
+acceptance_mutation_proof: 4 of 4 mutants killed on c667367b6d0fcf02a4d575f050aaa475c644ca7b

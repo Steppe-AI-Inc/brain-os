@@ -1,0 +1,16 @@
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-cSZhVg\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-cSZhVg\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-cSZhVg\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+v1_mutation_proof: 10 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ c667367b6d0fcf02a4d575f050aaa475c644ca7b
+CONTROL  recovery    passed - runtime_recovery_acceptance: 11/11 OK (76 s)
+CAUGHT   RKS   recovery     [semantic] expected FAIL RC1; seen FAIL [RC1 RC2 RC6 RC7]; runtime_recovery_acceptance: 7/11 OK; FAILED: RC1, RC2, RC6, RC7 (309 s) - the rotation's new key is not stored before the request (only a reply that arrives stores it)
+CAUGHT   ENL   recovery     [semantic] expected FAIL RC5; seen FAIL [RC5]; runtime_recovery_acceptance: 10/11 OK; FAILED: RC5 (75 s) - setup ignores the enrollment in progress on a re-run
+CAUGHT   ENR   recovery     [semantic] expected FAIL RC5; seen FAIL [RC3 RC5]; runtime_recovery_acceptance: 9/11 OK; FAILED: RC3, RC5 (76 s) - an enroll/complete answer that proves nothing (a 429) clears the enrollment in progress
+CAUGHT   SCI   recovery     [semantic] expected FAIL RC1; seen FAIL [RC1 RC7 RC3 RC4]; runtime_recovery_acceptance: 7/11 OK; FAILED: RC1, RC7, RC3, RC4 (75 s) - a session no longer names its credential (a lost rotation cannot learn which credential the new key holds)
+CAUGHT   VKD   recovery     [semantic] expected FAIL RL1|RL2; seen FAIL [RL1 RL2]; runtime_recovery_acceptance: 9/11 OK; FAILED: RL1, RL2 (116 s) - the claim door no longer offers verification work (only the verification door does)
+CAUGHT   CKI   recovery     [semantic] expected FAIL CK1; seen FAIL [CK1]; runtime_recovery_acceptance: 10/11 OK; FAILED: CK1 (75 s) - a probe step's checkpoint carries no id (a repeat after a lost answer writes a second row)
+CAUGHT   WRS   recovery     [semantic] expected FAIL RC7; seen FAIL [RC7]; runtime_recovery_acceptance: 10/11 OK; FAILED: RC7 (132 s) - the worker no longer resolves a pending rotation at its start (it starts on the superseded key)
+CAUGHT   WRT   recovery     [semantic] expected FAIL RC6; seen FAIL [RC6]; runtime_recovery_acceptance: 10/11 OK; FAILED: RC6 (75 s) - a credential_superseded refusal is final even while a rotation of this node is pending (no settle, no exit 7)
+CAUGHT   SRS   recovery     [semantic] expected FAIL RC3; seen FAIL [RC3]; runtime_recovery_acceptance: 10/11 OK; FAILED: RC3 (74 s) - setup no longer continues an enrollment in progress: it starts a new one (a new key, a code asked for)
+CAUGHT   RNS   recovery     [semantic] expected FAIL RN1; seen FAIL [RN1]; runtime_recovery_acceptance: 10/11 OK; FAILED: RN1 (75 s) - the renew answer no longer states the clock of the plane (server_time)
+
+v1_mutation_proof: 10 of 10 mutants killed

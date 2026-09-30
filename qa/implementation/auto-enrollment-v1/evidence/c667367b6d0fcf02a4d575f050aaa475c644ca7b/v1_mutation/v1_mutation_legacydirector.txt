@@ -1,0 +1,12 @@
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-U6elLg\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-U6elLg\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-U6elLg\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+v1_mutation_proof: 6 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ c667367b6d0fcf02a4d575f050aaa475c644ca7b
+CONTROL  legacydirectorpassed - legacy_director_acceptance [direct]: 8/8 OK (35 s)
+CAUGHT   DW    legacydirector [semantic] expected FAIL LD7; seen FAIL [LD7]; legacy_director_acceptance [direct]: 7/8 OK; FAILED: LD7 (94 s) - new-model dispatch waits on the legacy lease (the claim locks director_lease)
+CAUGHT   DWv   legacydirector [semantic] expected FAIL LD7; seen FAIL [LD7]; legacy_director_acceptance [direct]: 7/8 OK; FAILED: LD7 (64 s) - new-model dispatch waits on the legacy lease only once a VERIFICATION work order is picked (a verification claim that claims nothing never reaches it)
+CAUGHT   LDP   legacydirector [semantic] expected FAIL LD6; seen FAIL [LD6]; legacy_director_acceptance [direct]: 7/8 OK; FAILED: LD6 (33 s) - a legacy update of a new-model row goes through (the legacy director changes new-model dispatcher state)
+CAUGHT   LGD   legacydirector [semantic] expected FAIL LD5; seen FAIL [LD1 LD2 LD3 LD4 LD5 LD6]; legacy_director_acceptance [direct]: 2/8 OK; FAILED: LD1, LD2, LD3, LD4, LD5, LD6 (44 s) - a legacy update of a new-model row raises (the legacy director's transaction fails)
+CAUGHT   LDE   legacydirector [semantic] expected FAIL LD5; seen FAIL [LD0 LD1 LD2 LD3 LD4 LD5 LD6 X0]; legacy_director_acceptance [direct]: 0/8 OK; FAILED: LD0, LD1, LD2, LD3, LD4, LD5, LD6, X0 (73 s) - every legacy write of director_lease raises
+CAUGHT   LD2x  legacydirector [semantic] expected FAIL LD1|LD2; seen FAIL [LD0 LD1 LD2 LD3 LD5]; legacy_director_acceptance [direct]: 3/8 OK; FAILED: LD0, LD1, LD2, LD3, LD5 (47 s) - legacy writes of director_lease are silently skipped (every director believes it holds the lease)
+
+v1_mutation_proof: 6 of 6 mutants killed

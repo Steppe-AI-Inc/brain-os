@@ -1,0 +1,26 @@
+suite http_provider_acceptance
+command node qa/factory/http_provider_acceptance.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c667367b6d0fcf02a4d575f050aaa475c644ca7b
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-yzpjy2\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-yzpjy2\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-yzpjy2\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-09-30T19:33:44.332Z
+seconds 8
+exit 0
+summary http_provider_acceptance: 9 passed, 0 failed  (stub provider on 127.0.0.1:56037, disposable plane; nothing reached a real provider)
+
+OK   H1 without DEEPSEEK_API_KEY the call is BLOCKED_BY_CREDENTIAL and no request reaches the server
+OK   H2 with the key: one POST with the bearer header and the requested model; the answer, usage and a completion come back
+OK   H2b the result carries no credential
+OK   H3 the server answered with a different model: the result names it, the plane refuses completeRun without a fallbackReason and accepts it with one
+OK   H4 429 → PROVIDER_CAPACITY_BLOCKED (quota); 503 → PROVIDER_TRANSIENT_ERROR; a refused key → BLOCKED_BY_CREDENTIAL (auth_error); none thrown
+OK   H5 a response that never terminates → STREAM_NEVER_TERMINATED, recorded as failed/stream_never_terminated, not a completion
+OK   H6 HTTP 200 whose body stopped for length is NOT a completion (truncated)
+[claim] declining c9ed34be: verifier_round needs PROVEN or better and this model is FAILING — 1 attempt(s), none reaching a completion terminal condition
+[claim] declining c9ed34be: verifier_round needs PROVEN or better and this model is FAILING — 1 attempt(s), none reaching a completion terminal condition
+[claim] declining c9ed34be: verifier_round needs PROVEN or better and this model is HISTORICAL — only one recent completion — one is an anecdote, not a record
+OK   H8 with the key present, deepseek-chat is declined verifier work while below PROVEN (FAILING after the hang, HISTORICAL after one completion) and admitted after two completed HTTP runs (PROVEN)
+OK   H7 the credential appears in no row of any control-plane table after the runs (8 tables searched)
+
+http_provider_acceptance: 9 passed, 0 failed  (stub provider on 127.0.0.1:56037, disposable plane; nothing reached a real provider)

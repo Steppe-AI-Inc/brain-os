@@ -1,0 +1,35 @@
+PASS build dev channel                                17s  [build-sea] BUILT C:\Users\DELL\dev\brain-os-factory-enroll\dist\brain-factory\0.1.0\dev\BrainFactorySetup.exe sha256 54f2e84cc95ac9033ec334
+PASS build production channel                         16s  [build-sea] BUILT C:\Users\DELL\dev\brain-os-factory-enroll\dist\brain-factory\0.1.0\production\BrainFactorySetup.exe sha256 a9bd7ac897c8b11
+PASS verify-build dev (IDENTICAL)                     16s  IDENTICAL: 54f2e84cc95ac9033ec334e7d63c5b4ca9904404bad9ad7270bf4939bbf261e9 (unsigned image), and every build-info field but the signing one
+PASS verify-build production (IDENTICAL)              16s  IDENTICAL: a9bd7ac897c8b113ce67b8acc6358109b6d6da826bacabf6ee837c30386ad35f (unsigned image), and every build-info field but the signing one
+PASS provenance --check (the declared per-channel builds)   31s  dev: rebuilt digest 49e0917f0a7058970c613773d71625bb5faa141cb04538eab68a561bf44e6cb2 (declared 49e0917f0a7058970c613773d71625bb5faa141cb0453
+PASS static: factory_v1_static_contract                5s  factory_v1_static_contract: 72 passed, 0 failed
+PASS static: architecture_impact_registry_contract     0s  architecture_impact_registry_contract: 17 passed, 0 failed
+PASS static: secret scan self-test                     0s  secret_scan --selftest: 10/10 rules hit their sample
+PASS static: secret scan                               0s  secret_scan: clean (0 hits)
+PASS static: deno check (Edge functions)               2s  
+PASS static: web tsc                                   4s  
+PASS static: web eslint (changed files)               31s  
+PASS static: web next build                           12s  ✓ Generating static pages using 15 workers (45/45) in 511ms
+PASS schema_acceptance                                10s  schema_acceptance: 82/82 OK
+PASS manifest_rehearsal                                7s  manifest_rehearsal: 6/6 OK
+PASS takeover_acceptance --transport direct           27s  takeover_acceptance [direct]: 20/20 OK
+PASS takeover_acceptance --transport api              28s  takeover_acceptance [api]: 20/20 OK
+PASS compat_regressions --transport direct            33s  compat_regressions [direct]: 34/34 OK
+PASS compat_regressions --transport api               33s  compat_regressions [api]: 34/34 OK
+PASS transport_compatibility_contract                 67s  transport_compatibility_contract: 16/16 rows MIGRATED
+PASS enrollment_acceptance                            72s  enrollment_acceptance: 38/38 OK
+PASS admin_acceptance                                 36s  admin_acceptance: 46/46 OK
+PASS revocation_interleaving                          79s  revocation_interleaving: 30/30 OK
+PASS eligibility_acceptance                           75s  eligibility_acceptance: 25/25 OK
+PASS independence_acceptance                          29s  independence_acceptance: 25/25 OK
+PASS edge_db_tls_acceptance                            9s  edge_db_tls_acceptance: 7/7 OK
+PASS setup_manifest_locate                             1s  setup_manifest_locate: 7/7 OK
+PASS release_trust_unit                                0s  release_trust_unit: 7/7 OK
+PASS runtime_acceptance                              141s  runtime_acceptance: 13/13 OK
+PASS release_acceptance                              289s  release_acceptance: 41/41 OK
+PASS web_computers_acceptance                         22s  web_computers_acceptance: 7/7 OK
+PASS sea_package_regression                          223s  sea_package_regression: 28 passed, 0 failed
+
+final_pass: 32/32 steps exit 0
+final_pass exit=0

@@ -1,0 +1,5 @@
+batch-00 exit=0 2026-09-30T18:44:51Z -> 2026-09-30T19:11:10Z sea_package_mutation_proof: 8 of 8 mutants killed
+batch-01 exit=0 2026-09-30T19:11:10Z -> 2026-09-30T19:30:45Z sea_package_mutation_proof: 8 of 8 mutants killed
+batch-02 exit=0 2026-09-30T19:30:46Z -> 2026-09-30T19:56:48Z sea_package_mutation_proof: 7 of 7 mutants killed
+batch-03 exit=0 2026-09-30T19:56:48Z -> 2026-09-30T20:22:06Z sea_package_mutation_proof: 7 of 7 mutants killed
+STAGE 3 FINISHED 2026-09-30T20:22:06Z

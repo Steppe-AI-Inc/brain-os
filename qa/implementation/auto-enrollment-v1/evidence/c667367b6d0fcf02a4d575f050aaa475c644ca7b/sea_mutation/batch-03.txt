@@ -1,0 +1,11 @@
+sea_package_mutation_proof: 7 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ c667367b6d0fcf02a4d575f050aaa475c644ca7b - the 37 copied files are identical to HEAD
+CONTROL  passed - 28 passed, 0 failed (187 s)
+CAUGHT   R9   expected FAIL S4; seen FAIL [S4]; 27 passed, 1 failed (190 s) - review: the pe-strip CLI compares paths by spelling again (a junction or a hard link to the input is overwritten)
+CAUGHT   X1   expected FAIL S1|B20; seen FAIL [S1 B20]; 26 passed, 2 failed (186 s) - the SEA config lets NODE_OPTIONS extend the runtime again (execArgvExtension env): code from the environment runs inside the exe
+CAUGHT   X2   expected FAIL B21; seen FAIL [B21]; 27 passed, 1 failed (202 s) - a build without --channel silently becomes a dev-channel build (the trust set and mode chosen by default, not by the caller)
+CAUGHT   A1   expected FAIL B22; seen FAIL [B22]; 27 passed, 1 failed (188 s) - an argument with the form of a pairing code is no longer refused: a code given as an option value reaches setup
+CAUGHT   A2   expected FAIL S3|B22; seen FAIL [S3 B22]; 26 passed, 2 failed (187 s) - the unknown-command refusal shows the argument again
+CAUGHT   DK1  expected FAIL B23; seen FAIL [B23]; 27 passed, 1 failed (188 s) - the build accepts a production trust set that holds a dev key
+CAUGHT   DK2  expected FAIL B24; seen FAIL [B24]; 27 passed, 1 failed (188 s) - the build accepts a dev trust set that holds a key that is not a dev key
+
+sea_package_mutation_proof: 7 of 7 mutants killed

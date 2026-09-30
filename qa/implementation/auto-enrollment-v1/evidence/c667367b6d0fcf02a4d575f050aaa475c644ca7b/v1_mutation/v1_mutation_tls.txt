@@ -1,0 +1,8 @@
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-fDJLT5\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-fDJLT5\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-fDJLT5\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+v1_mutation_proof: 2 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ c667367b6d0fcf02a4d575f050aaa475c644ca7b
+CONTROL  tls         passed - edge_db_tls_acceptance: 7/7 OK (11 s)
+CAUGHT   TL    tls          [semantic] expected FAIL T2|T3b|T6; seen FAIL [T2 T3b]; edge_db_tls_acceptance: 5/7 OK; FAILED: T2, T3b (12 s) - the Edge connects with ssl: 'require' again (verifies nothing)
+CAUGHT   IP    tls          [semantic] expected FAIL T3a; seen FAIL [T3a]; edge_db_tls_acceptance: 6/7 OK; FAILED: T3a (11 s) - an IP-literal database host is accepted (the certificate's name goes unchecked)
+
+v1_mutation_proof: 2 of 2 mutants killed

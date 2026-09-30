@@ -1,0 +1,5 @@
+reference C:\Users\DELL\dev\brain-os-factory-enroll\dist\brain-factory\0.1.0\production
+  sha256 a9bd7ac897c8b113ce67b8acc6358109b6d6da826bacabf6ee837c30386ad35f
+  commit c667367b6d0fcf02a4d575f050aaa475c644ca7b, built_at 2026-09-30T11:01:12.000Z (git HEAD commit time)
+rebuilding into C:\Users\DELL\AppData\Local\Temp\brain-factory-verify-jJOsDQ ...
+IDENTICAL: a9bd7ac897c8b113ce67b8acc6358109b6d6da826bacabf6ee837c30386ad35f (unsigned image), and every build-info field but the signing ones

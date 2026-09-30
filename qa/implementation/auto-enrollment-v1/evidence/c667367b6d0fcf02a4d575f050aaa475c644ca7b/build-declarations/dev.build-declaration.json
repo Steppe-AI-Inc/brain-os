@@ -1,0 +1,35 @@
+{
+  "declaration": "brain-factory per-channel build declaration: the implementer's WO-10 release-provenance evidence, information only; not a WO-6 release manifest, and not presented as the candidate's release manifest of AC-5(h) / VERIFICATION_SPEC §3.8 unless the Director so decides (CR-019)",
+  "format": 1,
+  "channel": "dev",
+  "runtime_version": "0.1.0",
+  "source_sha": "c667367b6d0fcf02a4d575f050aaa475c644ca7b",
+  "dirty": false,
+  "built_at": "2026-09-30T11:01:12.000Z",
+  "built_at_source": "git HEAD commit time",
+  "digest": {
+    "algorithm": "SHA-256 PE Authenticode image hash",
+    "value": "49e0917f0a7058970c613773d71625bb5faa141cb04538eab68a561bf44e6cb2"
+  },
+  "exe_unsigned_sha256": "54f2e84cc95ac9033ec334e7d63c5b4ca9904404bad9ad7270bf4939bbf261e9",
+  "trust": {
+    "channel": "dev",
+    "mode": "dev",
+    "keys": [
+      {
+        "key_id": "ed25519:98601d6850ee07dee28b13e1dfd6de3f737b4e730c20fe3b8a620c9cc99536e6",
+        "public_key_sha256": "98601d6850ee07dee28b13e1dfd6de3f737b4e730c20fe3b8a620c9cc99536e6"
+      }
+    ]
+  },
+  "default_api": null,
+  "release_base": null,
+  "base_node": {
+    "version": "v24.19.0",
+    "sha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237"
+  },
+  "informational": {
+    "build_info_sha256": "59c1a007da4b00f08f59767d0c60a4ebc02405c17b93a70dc3efe206b9a12115",
+    "not_compared": "provenance.mjs --check does not compare this: it hashes the whole build-info, signing fields included, and a --check rebuild is never signed"
+  }
+}

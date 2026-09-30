@@ -1,0 +1,20 @@
+step setup_manifest_locate
+command C:\Program Files\nodejs\node.exe qa/factory/v1/setup_manifest_locate.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c667367b6d0fcf02a4d575f050aaa475c644ca7b
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-PulsWu\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-PulsWu\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-PulsWu\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-09-30T15:25:58.108Z
+seconds 1
+exit 0
+summary setup_manifest_locate: 7/7 OK
+
+OK   M1 a manifest beside the exe is used; nothing is fetched - {"from":"p\\beside\\BrainFactorySetup.manifest.json","hits":[]}
+OK   M2 none beside: exactly <base>/<version>/BrainFactorySetup.manifest.json is fetched, once, and used - {"hits":["/factory-releases/production/0.1.0/BrainFactorySetup.manifest.json"],"from":"http://127.0.0.1:58548/factory-releases/production/0.1.0/BrainFactorySetup.manifest.json"}
+OK   M3 an explicit --manifest that does not exist is never replaced by a download - {"hits":[],"tried":["C:\\Users\\DELL\\AppData\\Local\\Temp\\bf-manifest-V4dWGp\\nope.json"]}
+OK   M4 no release base (the dev channel): nothing is fetched and there is no manifest - {"hits":[]}
+OK   M5 the storage answers 404, or a body larger than a manifest: no manifest, and it says where it looked and why - {"a":"HTTP 404","b":"larger than a manifest can be"}
+OK   M6 a fetched manifest is verified exactly like a local one: for other bytes -> digest_mismatch; signed outside the pinned set -> key_outside_trust_set; the correct one verifies - {"ok":true,"other":"digest_mismatch","foreign":"key_outside_trust_set"}
+OK   M7 a fetched manifest changed in transit under the pinned key id (a signed field altered after signing; one signature bit flipped) is refused bad_signature - {"changed":"bad_signature","flipped":"bad_signature"}
+
+setup_manifest_locate: 7/7 OK

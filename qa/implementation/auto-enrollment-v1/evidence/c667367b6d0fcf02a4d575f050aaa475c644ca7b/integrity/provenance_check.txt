@@ -1,0 +1,3 @@
+production: rebuilt digest 29698cacc284e841a5d39dee749f12ae4383fea744a9c9b553362e73274f0264 (declared 29698cacc284e841a5d39dee749f12ae4383fea744a9c9b553362e73274f0264)
+dev: rebuilt digest 49e0917f0a7058970c613773d71625bb5faa141cb04538eab68a561bf44e6cb2 (declared 49e0917f0a7058970c613773d71625bb5faa141cb04538eab68a561bf44e6cb2)
+MATCH: both channels' rebuilds of c667367b6d0fcf02a4d575f050aaa475c644ca7b equal the declarations in D:\FactoryQA\implementer\c2-c667367\build-declarations

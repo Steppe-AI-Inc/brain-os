@@ -1,0 +1,11 @@
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-dhsjyK\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-dhsjyK\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-dhsjyK\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+v1_mutation_proof: 5 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ c667367b6d0fcf02a4d575f050aaa475c644ca7b
+CONTROL  edge        passed - edge_boundary_acceptance: 8/8 OK (0 s)
+CAUGHT   EBU   edge         [semantic] expected FAIL EB1; seen FAIL [EB1]; edge_boundary_acceptance: 7/8 OK; FAILED: EB1 (0 s) - a Brain OS error status is "not authenticated" again
+CAUGHT   EBJ   edge         [semantic] expected FAIL EB2; seen FAIL [EB2]; edge_boundary_acceptance: 7/8 OK; FAILED: EB2 (0 s) - a Brain OS body that is not JSON is "no user" again
+CAUGHT   EBP   edge         [semantic] expected FAIL EB3; seen FAIL [EB3]; edge_boundary_acceptance: 7/8 OK; FAILED: EB3 (0 s) - a profiles error status is "no live role" again (not_authorized)
+CAUGHT   EBC   edge         [semantic] expected FAIL EB6; seen FAIL [EB6]; edge_boundary_acceptance: 7/8 OK; FAILED: EB6 (0 s) - a WebCrypto failure is "the signature does not verify" again
+CAUGHT   EBS   edge         [semantic] expected FAIL EB7; seen FAIL [EB7]; edge_boundary_acceptance: 7/8 OK; FAILED: EB7 (0 s) - the request boundary reads any five-capital error code as the server's SQLSTATE again (a transport EPIPE becomes "nothing changed")
+
+v1_mutation_proof: 5 of 5 mutants killed

@@ -1,0 +1,21 @@
+suite dbtest_on_disposable_pg
+command node qa/factory/dbtest_on_disposable_pg.mjs C:\Users\DELL\dev\brain-os-factory-enroll
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c667367b6d0fcf02a4d575f050aaa475c644ca7b
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-aq1Crt\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-aq1Crt\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-aq1Crt\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-09-30T19:32:48.541Z
+seconds 11
+exit 0
+summary concurrency rc=0 :: concurrency: TWO_SUPERVISORS_CANNOT_DOUBLE_RESTART_RUN — VERIFIED under real concurrency (real PostgreSQL, two connections)
+
+engine: PostgreSQL 18.4 on x86_64-windows, compiled by msvc-19.44.35226, 64-bit
+database: dbtest, encoding UTF8, disposable server on port 55795 (data directory removed on exit)
+repo: C:\Users\DELL\dev\brain-os-factory-enroll
+logs: C:\Users\DELL\AppData\Local\Temp\brain-os-dbtest-20260930T193248
+apply-migrations rc=0 :: applied 82/82 (81 migration files + the bootstrap shim); 0 failed
+acceptance rc=0 :: acceptance: 36/36 passed
+personas rc=0 :: personas: 57/57 passed
+concurrency rc=0 :: concurrency: TWO_SUPERVISORS_CANNOT_DOUBLE_RESTART_RUN — VERIFIED under real concurrency (real PostgreSQL, two connections)
+ALL HARNESSES EXITED 0

@@ -1,0 +1,22 @@
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-us525j\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-us525j\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-us525j\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+v1_mutation_proof: 16 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ c667367b6d0fcf02a4d575f050aaa475c644ca7b
+CONTROL  installer   passed - installer_input_acceptance: 10/10 OK (4 s)
+CAUGHT   FPX   installer    [semantic] expected FAIL I10; seen FAIL [I10]; installer_input_acceptance: 9/10 OK; FAILED: I10 (4 s) - the fingerprint upper-cases the stored MachineGuid
+CAUGHT   FPL   installer    [semantic] expected FAIL I10; seen FAIL [I10]; installer_input_acceptance: 9/10 OK; FAILED: I10 (3 s) - the fingerprint lower-cases the stored MachineGuid again
+CAUGHT   FPS   installer    [semantic] expected FAIL I10; seen FAIL [I10]; installer_input_acceptance: 9/10 OK; FAILED: I10 (4 s) - the fingerprint accepts only a 36-character GUID shape again
+CAUGHT   CA    installer    [semantic] expected FAIL I1; seen FAIL [I1 I6]; installer_input_acceptance: 8/10 OK; FAILED: I1, I6 (4 s) - the command line takes a pairing code again (--code refused no more, and mapped as an option)
+CAUGHT   AG    installer    [semantic] expected FAIL I1; seen FAIL [I1]; installer_input_acceptance: 9/10 OK; FAILED: I1 (4 s) - an argument with the form of a pairing code is accepted as an option value (it names a home, a task, a manifest)
+CAUGHT   EC    installer    [semantic] expected FAIL I1; seen FAIL [I1]; installer_input_acceptance: 9/10 OK; FAILED: I1 (4 s) - the unknown-command refusal shows the argument
+CAUGHT   EO    installer    [semantic] expected FAIL I1; seen FAIL [I1]; installer_input_acceptance: 9/10 OK; FAILED: I1 (4 s) - the unknown-option refusal shows the argument
+CAUGHT   YN    installer    [semantic] expected FAIL I6|I7; seen FAIL [I6 I7]; installer_input_acceptance: 8/10 OK; FAILED: I6, I7 (33 s) - setup asks a second question (a confirmation) after the pairing code
+CAUGHT   ON    installer    [semantic] expected FAIL I1; seen FAIL [I1]; installer_input_acceptance: 9/10 OK; FAILED: I1 (4 s) - the argv guard stops reading O as 0 and I / L as 1: a code spelled that way, without dashes, passes as an option value
+CAUGHT   EM    installer    [semantic] expected FAIL I1; seen FAIL [I1]; installer_input_acceptance: 9/10 OK; FAILED: I1 (4 s) - the argv guard stops looking for a displayed code inside a longer argument (a path, a URL, a file name)
+CAUGHT   EP    installer    [semantic] expected FAIL I3; seen FAIL [I3]; installer_input_acceptance: 9/10 OK; FAILED: I3 (4 s) - the node client accepts any endpoint (a cleartext network address receives the code and the tokens)
+CAUGHT   KD    installer    [semantic] expected FAIL I4|I7; seen FAIL [I4 I7]; installer_input_acceptance: 8/10 OK; FAILED: I4, I7 (4 s) - the node key is stored without DPAPI when DPAPI is unavailable (acl_only)
+CAUGHT   TK    installer    [semantic] expected FAIL I5; seen FAIL [I5]; installer_input_acceptance: 9/10 OK; FAILED: I5 (4 s) - the build no longer compares its toolchain with package-lock.json
+CAUGHT   GS2   installer    [semantic] expected FAIL I6; seen FAIL [I6 I8]; installer_input_acceptance: 8/10 OK; FAILED: I6, I8 (4 s) - the same, read from the source
+CAUGHT   NR    installer    [semantic] expected FAIL I8; seen FAIL [I8]; installer_input_acceptance: 9/10 OK; FAILED: I8 (4 s) - verifyRelease reads an omitted revocation list as "nothing revoked" again
+CAUGHT   FSP   installer    [semantic] expected FAIL I9; seen FAIL [I9]; installer_input_acceptance: 9/10 OK; FAILED: I9 (3 s) - the founder's pepper tool prints the value it generates
+
+v1_mutation_proof: 16 of 16 mutants killed

@@ -1,0 +1,12 @@
+sea_package_mutation_proof: 8 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ c667367b6d0fcf02a4d575f050aaa475c644ca7b - the 37 copied files are identical to HEAD
+CONTROL  passed - 28 passed, 0 failed (192 s)
+CAUGHT   P1   expected FAIL B3|B19; seen FAIL [B3 B19]; 26 passed, 2 failed (192 s) - bundlePolicyViolations no longer judges the inputs: neither scripts/factory-runner/db.mjs nor a pg / postgres package is refused
+CAUGHT   P2   expected FAIL B19; seen FAIL [B19]; 27 passed, 1 failed (193 s) - the build ignores the policy verdict: bundleEntry no longer throws (exit 4) on a bundle with violations
+CAUGHT   P3   expected FAIL B19; seen FAIL [B19]; 27 passed, 1 failed (194 s) - bundlePolicyViolations no longer refuses a non-builtin run-time require (a SEA can only require builtins)
+CAUGHT   U1   expected FAIL B19; seen FAIL [B19]; 27 passed, 1 failed (190 s) - the build's database-URL refusal is removed: forbiddenStringHits finds nothing (bundle and exe gates both open)
+CAUGHT   U2   expected FAIL B1|B4; seen FAIL [B1 X0]; 4 passed, 2 failed (8 s) - the runtime source carries a database URL ("postgresql://..." in main.mjs), the build gate intact
+CAUGHT   U3   expected FAIL B4; seen FAIL [B19 B4]; 26 passed, 2 failed (190 s) - a database URL in main.mjs AND the build's refusal removed: only the regression's own scan of the exe stands
+CAUGHT   T1   expected FAIL B5|B7; seen FAIL [B5 B7 B13]; 25 passed, 3 failed (192 s) - built_at is the wall clock instead of HEAD's commit time (no SOURCE_DATE_EPOCH): two builds of one tree differ
+CAUGHT   N1   expected FAIL B10; seen FAIL [B10 B18]; 26 passed, 2 failed (225 s) - the sha256 pin check is skipped for --node-exe (any file under a pinned version's entry is accepted)
+
+sea_package_mutation_proof: 8 of 8 mutants killed

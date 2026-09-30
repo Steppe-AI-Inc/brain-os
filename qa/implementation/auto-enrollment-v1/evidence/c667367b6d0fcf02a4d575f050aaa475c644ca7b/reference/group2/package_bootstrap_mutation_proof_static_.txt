@@ -1,0 +1,29 @@
+suite package_bootstrap_mutation_proof (static)
+command node qa/factory/package_bootstrap_mutation_proof.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c667367b6d0fcf02a4d575f050aaa475c644ca7b
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-yzpjy2\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-yzpjy2\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-yzpjy2\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-09-30T19:33:59.489Z
+seconds 21
+exit 0
+summary package_bootstrap_mutation_proof: 15 of 15 (control green + mutants killed)  (static mutants only; --fresh adds the original defect and thirty-four fresh-clone mutants)
+
+GREEN    C0 control (HEAD, no mutation) must pass every static row; failed: none
+KILLED   M1 package-lock.json untracked and ignored -> expected red K1; failed rows: K1 (rc 1)
+KILLED   M2 pg declared only as a dev dependency (a --omit=dev node cannot load it) -> expected red K3; failed rows: K3 (rc 1)
+KILLED   M3 a runtime file imports an undeclared package -> expected red K3; failed rows: K3, K4 (rc 1)
+KILLED   M4 pg declared as a range instead of the measured exact version -> expected red K4; failed rows: K4 (rc 1)
+KILLED   M5 a locked package with an install script has no allowScripts decision -> expected red K5; failed rows: K5 (rc 1)
+KILLED   M6 pg-connection-string moved off the version the TLS modes were measured on -> expected red K4; failed rows: K4 (rc 1)
+KILLED   M7 a runtime package gains an install script -> expected red K6; failed rows: K5, K6 (rc 1)
+KILLED   M8 the manifest changed without regenerating the lock (npm ci would refuse) -> expected red K2; failed rows: K2 (rc 1)
+KILLED   M9 a runtime file loads an undeclared package through a createRequire alias -> expected red K3; failed rows: K3, K4 (rc 1)
+KILLED   M10 a runtime file loads a package whose name is only known at run time (cannot be checked) -> expected red K3; failed rows: K3 (rc 1)
+KILLED   M11 a script fetches supabase@latest at run time (unpinned, outside the lock) -> expected red K7; failed rows: K7 (rc 1)
+KILLED   M12 an undeclared load through a RENAMED createRequire import, an alias of the alias and .call -> expected red K3; failed rows: K3, K4 (rc 1)
+KILLED   M13 a quoted, unpinned npx fetch without --yes (non-TTY npx fetches anyway) -> expected red K7; failed rows: K7 (rc 1)
+KILLED   M14 a JS file spawns npx with an unpinned package -> expected red K7; failed rows: K7 (rc 1)
+
+package_bootstrap_mutation_proof: 15 of 15 (control green + mutants killed)  (static mutants only; --fresh adds the original defect and thirty-four fresh-clone mutants)

@@ -1,0 +1,10 @@
+static exit=0 2026-09-30T15:38:22Z -> 2026-09-30T15:45:02Z v1_mutation_proof: 73 of 73 mutants killed
+schema exit=0 2026-09-30T15:45:02Z -> 2026-09-30T15:54:35Z v1_mutation_proof: 59 of 59 mutants killed
+takeover exit=0 2026-09-30T15:54:36Z -> 2026-09-30T15:58:25Z v1_mutation_proof: 7 of 7 mutants killed
+revocation exit=0 2026-09-30T15:58:26Z -> 2026-09-30T16:17:47Z v1_mutation_proof: 12 of 12 mutants killed
+independence exit=0 2026-09-30T16:17:47Z -> 2026-09-30T16:30:05Z v1_mutation_proof: 25 of 25 mutants killed
+pairing exit=0 2026-09-30T16:30:06Z -> 2026-09-30T17:12:10Z v1_mutation_proof: 17 of 17 mutants killed
+enrollment exit=0 2026-09-30T17:12:11Z -> 2026-09-30T17:33:59Z v1_mutation_proof: 17 of 17 mutants killed
+admin exit=0 2026-09-30T17:34:00Z -> 2026-09-30T18:10:09Z v1_mutation_proof: 54 of 54 mutants killed
+eligibility exit=0 2026-09-30T18:10:10Z -> 2026-09-30T18:51:45Z v1_mutation_proof: 31 of 31 mutants killed
+LANE P FINISHED 2026-09-30T18:51:45Z

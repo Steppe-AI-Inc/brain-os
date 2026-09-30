@@ -1,0 +1,13 @@
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-AqqouM\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-AqqouM\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-AqqouM\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+v1_mutation_proof: 7 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ c667367b6d0fcf02a4d575f050aaa475c644ca7b
+CONTROL  takeover    passed - takeover_acceptance [direct]: 20/20 OK (28 s)
+CAUGHT   FN    takeover     [semantic] expected FAIL T6; seen FAIL [T6 T7 T12]; takeover_acceptance [direct]: 17/20 OK; FAILED: T6, T7, T12 (28 s) - a checkpoint no longer checks that the run is still this node's (stale-worker fence removed)
+CAUGHT   RQ    takeover     [semantic] expected FAIL T11; seen FAIL [T11]; takeover_acceptance [direct]: 19/20 OK; FAILED: T11 (28 s) - the takeover resets the work order's queue age
+CAUGHT   RS1   takeover     [semantic] expected FAIL T12; seen FAIL [T12]; takeover_acceptance [direct]: 19/20 OK; FAILED: T12 (29 s) - a run is not stamped with its node's release
+CAUGHT   RS2   takeover     [semantic] expected FAIL T12; seen FAIL [T12]; takeover_acceptance [direct]: 19/20 OK; FAILED: T12 (29 s) - a checkpoint is not stamped with its node's release
+CAUGHT   DWE   takeover     [semantic] expected FAIL T7; seen FAIL [T7]; takeover_acceptance [direct]: 19/20 OK; FAILED: T7 (28 s) - a completion records its evidence (verification.waiting) twice
+CAUGHT   DSN   takeover     [semantic] expected FAIL T7; seen FAIL [T7]; takeover_acceptance [direct]: 19/20 OK; FAILED: T7 (28 s) - a retried completion records one more successful side effect (an ok audit naming the run), outside the listed counts
+CAUGHT   LL    takeover     [semantic] expected FAIL T8|X4; seen FAIL [T8 X4]; takeover_acceptance [direct]: 18/20 OK; FAILED: T8, X4 (28 s) - the enrolled lock lapses with its run: the front door writes the run's lease on the lock (and the constraint no longer requires infinity)
+
+v1_mutation_proof: 7 of 7 mutants killed

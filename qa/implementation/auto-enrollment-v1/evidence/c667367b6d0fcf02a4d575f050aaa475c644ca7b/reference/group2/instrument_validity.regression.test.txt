@@ -1,0 +1,61 @@
+suite instrument_validity.regression.test
+command node qa/factory/instrument_validity.regression.test.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c667367b6d0fcf02a4d575f050aaa475c644ca7b
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-yzpjy2\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-yzpjy2\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-yzpjy2\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-09-30T19:33:52.496Z
+seconds 1
+exit 0
+summary instrument_validity.regression.test: 20 passed, 0 failed
+
+OK   E1 the broken instrument PARSES — so `node --check` alone would have accepted it
+OK   E2 EXECUTABLE_QA_INSTRUMENT_MUST_BE_EXECUTED: validation REJECTS a file that parses but throws a missing-reference error at runtime
+OK   E3 ...and it says WHICH level failed, so "it is broken" is not the whole report
+OK   J1 a suite that DIES MID-RUN fails level 4 — it printed rows but never reached its summary
+OK   J2 a RED-BY-DESIGN suite passes level 4 — it ran to the end, reported, and exited non-zero because a registered row is red
+OK   J3 and the two are told apart WITHOUT the caller declaring anything — neither call passes expectNonZeroExit, so the exit code is not what decided either answer
+OK   J4 the level-4 detail on a PASSING row is empty — the first version printed "this is a CRASH" either way, which is this file's own subject wider than its invariant
+OK   E4 a HEALTHY instrument passes all six levels, so the validator is not merely a rejecter
+OK   E5 NON-VACUOUS: an instrument that asserted NOTHING is rejected even though it exits 0
+OK   E6 NEGATIVE CONTROL: an instrument that passes on a deliberately broken input is rejected
+OK   G1 the DEFECT reproduces: measured with a suite-only pattern, a manifest that executed 4 175 rows is called vacuous
+OK   G2 ...and the class-aware level 5 reads its OWN evidence contract: 4 175 assertion rows executed
+OK   G3 an output carrying BOTH a suite count and a mutation report is classified by its most specific claim, so a proof is never measured as a suite
+OK   G4 a mutation proof that does not state its INEFFECTIVE count fails its contract — an unreported ineffective mutant is one that could never have failed
+OK   H1 a halved escape changes WHAT IS MATCHED, not whether the file parses: `(\d+)` becomes `(d+)`, which matches the letter d
+OK   H2 a C0 byte injected by that transport is INVISIBLE in a diff and legal in the source — so the instrument must be scanned for control bytes, not just parsed
+OK   A COMMENTS_ARE_NOT_STATE: a row id named only in a comment is not an active entry
+OK   B STRING_CONTENT_IS_NOT_IDENTIFIER_REFERENCE: the letter of an escape sequence is not an identifier
+OK   C EXPECTED_FAILING_ROWS_MUST_BE_DERIVED: an expectation read from the table survives a defect being CLOSED; a remembered list does not
+OK   F EDIT_SCOPE_MUST_NOT_CROSS_STRUCTURAL_BOUNDARY: a range delete removes the closing brace and a declaration; a line-wise delete does not
+
+instrument_validity.regression.test: 20 passed, 0 failed
+
+QA_CHECK_SUBJECT_WIDER_THAN_INVARIANT is now a named class with a fixture per principle.
+SYNTAX VALID != INSTRUMENT VALID, and `node --check` is level 1 of six.
+
+--- stderr ---
+file:///C:/Users/DELL/AppData/Local/Temp/qaiv-lBb8f9/missing-symbol.mjs:3
+console.log(Object.keys(EXPECTED_FAILING_ROWS).length + " pass");
+                        ^
+
+ReferenceError: EXPECTED_FAILING_ROWS is not defined
+    at file:///C:/Users/DELL/AppData/Local/Temp/qaiv-lBb8f9/missing-symbol.mjs:3:25
+    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)
+    at async node:internal/modules/esm/loader:643:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.19.0
+file:///C:/Users/DELL/AppData/Local/Temp/qaiv-lBb8f9/crashes-midway.mjs:5
+console.log(x.property.that.does.not.exist);
+              ^
+
+TypeError: Cannot read properties of null (reading 'property')
+    at file:///C:/Users/DELL/AppData/Local/Temp/qaiv-lBb8f9/crashes-midway.mjs:5:15
+    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)
+    at async node:internal/modules/esm/loader:643:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.19.0

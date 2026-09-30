@@ -1,0 +1,42 @@
+suite scripts/factory-runner/scheduler.regression.test
+command node scripts/factory-runner/scheduler.regression.test.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c667367b6d0fcf02a4d575f050aaa475c644ca7b
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-4FyZyI\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-4FyZyI\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-4FyZyI\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-09-30T19:48:40.820Z
+seconds 0
+exit 0
+summary ℹ fail 0
+
+✔ isTaskReady: a task with no dependencies is always ready (1.0716ms)
+✔ isTaskReady: FACTORY_DEPENDENT_TASK_WAITS_FOR_PREREQUISITE - a task with an unfinished dependency is not ready (0.1443ms)
+✔ isTaskReady: a task becomes ready only once every dependency is genuinely done (0.1221ms)
+✔ isTaskReady: an archived dependency does NOT satisfy readiness (archived != done) (0.1138ms)
+✔ isTaskPermanentlyBlocked: a rejected dependency permanently blocks the dependent (0.1971ms)
+✔ selectAgentForTask: FACTORY_CAPABILITY_ROUTER_SELECTS_RELEVANT_AGENT - picks the agent whose capabilities actually match, never by name (0.2091ms)
+✔ selectAgentForTask: excludes an agent with zero capability overlap even if idle (0.1246ms)
+✔ selectAgentForTask: higher overlap wins over a partial match (0.1294ms)
+✔ selectAgentForTask: ties broken by least-loaded agent (do not pile onto a busy one) (0.1346ms)
+✔ selectAgentForTask: empty required_capabilities matches any active agent (tie-broken by load) (0.2176ms)
+✔ selectTasksToDispatch: FACTORY_INDEPENDENT_TASKS_EXECUTE_IN_PARALLEL - independent ready tasks are all selected together, not serialized (0.86ms)
+✔ selectTasksToDispatch: a dependent task is excluded until its prerequisite is done, independents still proceed (0.1608ms)
+✔ selectTasksToDispatch: respects the concurrency cap, earliest-created first (0.1489ms)
+✔ selectTasksToDispatch: zero available slots dispatches nothing (concurrency cap enforced) (0.11ms)
+✔ selectTasksToDispatch: FACTORY_DEPENDENT_TASK_WAITS_FOR_PREREQUISITE (real live bug, fixed) - a dependent task dispatches once its now-DONE prerequisites are included in the input, even though they are no longer themselves dispatch candidates (0.1263ms)
+✔ selectTasksToDispatch: a done/in_progress/archived task is never re-selected (0.1102ms)
+✔ FACTORY_PRODUCT_ARCHITECT_CAN_BE_DISPATCHED_WHEN_CAPABILITY_REQUIRED - a task requiring "architecture" routes to brain-os-product-architect, using the REAL registered capability list (sync-agents.mjs ALLOWLIST), not a synthetic mock (0.1748ms)
+✔ classifyQueuedTasks: ready / waiting / permanently blocked are three different answers (0.236ms)
+✔ classifyQueuedTasks: only QUEUED tasks are classified; terminal and running tasks are inputs, not outputs (0.1135ms)
+✔ selectTasksToDispatch derives from classifyQueuedTasks - a permanently blocked task is never dispatched and never counted as ready (0.1342ms)
+✔ idleReason: a dead chain reads as permanently_blocked, a busy one as waiting_on_dependencies - never the same word (0.1435ms)
+✔ ABLATION: with the rejected-dependency check disabled, the dead chain collapses into waiting - the row above depends on the detector (0.1324ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11.8971

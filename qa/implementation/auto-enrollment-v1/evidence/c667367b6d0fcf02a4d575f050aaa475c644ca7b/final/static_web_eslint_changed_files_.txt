@@ -1,0 +1,11 @@
+step static: web eslint (changed files)
+command npx.cmd eslint "app/(app)/software-factory/computers" "app/(app)/software-factory/workers" lib/factory lib/data/factory-computers.ts components/app-sidebar.tsx lib/i18n/dictionary.ts
+cwd C:\Users\DELL\dev\brain-os-factory-enroll\web
+commit c667367b6d0fcf02a4d575f050aaa475c644ca7b
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-PulsWu\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-PulsWu\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-PulsWu\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-09-30T15:16:51.200Z
+seconds 31
+exit 0
+summary 
+

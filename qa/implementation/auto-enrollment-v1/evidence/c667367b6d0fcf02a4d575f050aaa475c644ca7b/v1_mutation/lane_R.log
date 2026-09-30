@@ -1,0 +1,11 @@
+isolation exit=0 2026-09-30T15:38:22Z -> 2026-09-30T15:38:24Z v1_mutation_proof: 1 of 1 mutants killed
+tls exit=0 2026-09-30T15:38:24Z -> 2026-09-30T15:39:00Z v1_mutation_proof: 2 of 2 mutants killed
+releaseunit exit=0 2026-09-30T15:39:01Z -> 2026-09-30T15:39:11Z v1_mutation_proof: 14 of 14 mutants killed
+units exit=0 2026-09-30T15:39:12Z -> 2026-09-30T15:55:21Z v1_mutation_proof: 17 of 17 mutants killed
+gate exit=0 2026-09-30T15:55:21Z -> 2026-09-30T15:56:29Z v1_mutation_proof: 5 of 5 mutants killed
+edge exit=0 2026-09-30T15:56:29Z -> 2026-09-30T15:56:34Z v1_mutation_proof: 5 of 5 mutants killed
+legacydirector exit=0 2026-09-30T15:56:34Z -> 2026-09-30T16:03:07Z v1_mutation_proof: 6 of 6 mutants killed
+recovery exit=0 2026-09-30T16:03:08Z -> 2026-09-30T16:22:30Z v1_mutation_proof: 10 of 10 mutants killed
+installer exit=0 2026-09-30T16:22:30Z -> 2026-09-30T16:24:11Z v1_mutation_proof: 16 of 16 mutants killed
+release exit=0 2026-09-30T16:24:11Z -> 2026-09-30T18:44:21Z v1_mutation_proof: 26 of 26 mutants killed
+LANE R FINISHED 2026-09-30T18:44:21Z
