@@ -45,6 +45,7 @@ const VB = 'scripts/factory-build/verify-build.mjs';
 const PE = 'scripts/factory-build/pe-strip-signature.mjs';
 const TPL = 'scripts/factory-build/sea-config.template.json';
 const MAIN = 'scripts/factory-runner/sea/main.mjs';
+const GUARD = 'scripts/factory-runner/sea/argv-guard.mjs';
 const REG = 'qa/factory/sea_package_regression.mjs';
 // everything the regression reads from its checkout: the pipeline, its unit test, the entry, the database accessor B3 bundles
 // (db.mjs and the two modules it imports), package.json / package-lock.json (resolution, and the build's dirty set), and
@@ -56,9 +57,9 @@ const RUNTIME = [...listTree('scripts/factory-runner/enrolled'), 'scripts/factor
 const FILES = [
   '.gitignore', 'package.json', 'package-lock.json',
   BS, VB, PE, 'scripts/factory-build/pe-strip-signature.test.mjs', 'scripts/factory-build/node-exe-pins.json', TPL,
-  MAIN, 'scripts/factory-runner/sea/runtime-version.json', ...RUNTIME,
+  MAIN, GUARD, 'scripts/factory-runner/sea/runtime-version.json', ...RUNTIME,
   'scripts/factory-runner/db.mjs', 'scripts/factory-runner/runner-env.mjs', 'scripts/factory-runner/url-judge.mjs',
-  REG,
+  REG, 'qa/factory/v1/canary.mjs', // B22's canary pairing code
 ];
 const NODE_MODULES = path.join(ROOT, 'node_modules');
 const MODULES_USED = ['esbuild', 'postject', 'acorn', 'pg', 'postgres']; // must still be there after every run
@@ -160,6 +161,21 @@ const MUTANTS = [
   { id: 'X2', expect: ['B21'], what: 'a build without --channel silently becomes a dev-channel build (the trust set and mode chosen by default, not by the caller)', edits: [[BS,
     "  if (!o.channel) throw new BuildError(EXIT.USAGE, '--channel production|dev is required: the trust set and mode are fixed into the artifact per channel');",
     "  if (!o.channel) o.channel = 'dev';"]] },
+
+  // 4. S-12: no pairing code on the built exe's command line (B22), and no argument shown in a refusal (S3, B22)
+  { id: 'A1', expect: ['B22'], what: 'an argument with the form of a pairing code is no longer refused: a code given as an option value reaches setup', edits: [[GUARD,
+    '    if (pairingCodesIn(a).length) {',
+    '    if (false) { // (planted) the shape of a pairing code is no longer refused']] },
+  { id: 'A2', expect: ['S3', 'B22'], what: 'the unknown-command refusal shows the argument again', edits: [[MAIN,
+    "    process.stderr.write('REFUSED - the first argument is not a Brain Factory command (arguments are never shown). Commands: ' + COMMANDS.join(', ') + '\\n');",
+    "    process.stderr.write(String(cmd) + ': not a Brain Factory command (' + COMMANDS.join(', ') + ')\\n');"]] },
+  // 5. S-5: channel separation is the build's own rule (B23, B24), each half reverted alone
+  { id: 'DK1', expect: ['B23'], what: 'the build accepts a production trust set that holds a dev key', edits: [[BS,
+    "    if (hit) throw new BuildError(EXIT.POLICY, 'trust/production.json: ' + hit.key_id + ' is a dev key; a dev key is never a production trust root (S-5)');",
+    "    if (false) throw new BuildError(EXIT.POLICY, 'planted'); // (planted) a dev key in production accepted"]] },
+  { id: 'DK2', expect: ['B24'], what: 'the build accepts a dev trust set that holds a key that is not a dev key', edits: [[BS,
+    "    if (foreign) throw new BuildError(EXIT.POLICY, 'trust/dev.json: ' + foreign.key_id + ' is not a dev key; the dev channel holds only dev keys (S-5)');",
+    "    if (false) throw new BuildError(EXIT.POLICY, 'planted'); // (planted) a foreign key in dev accepted"]] },
 ];
 
 const say = (s) => console.log(s);

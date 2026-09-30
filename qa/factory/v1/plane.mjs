@@ -1,22 +1,25 @@
-// A DISPOSABLE FACTORY V1 PLANE for the implementer's suites: a fresh PostgreSQL, provisioned AS 69df2f52 provisions it, then the
-// candidate migration - the same order VERIFICATION_SPEC §3 (5) prescribes.
+// A DISPOSABLE FACTORY V1 PLANE for the implementer's suites, shaped like the r3 judging plane (VERIFICATION_SPEC §3.3, §3.5): the
+// migration is applied AS THE APPLYING LOGIN, never as a superuser.
 //
-//   1. qa/factory/local_pg.mjs starts a scratch server (its data directory is removed on stop).
-//   2. scripts/factory-runner/provision-control-plane.mjs --admin <superuser> - the 69df2f52 provisioning, applying 001-003 and
-//      granting factory_runner its 69df2f52 privileges, including the default-privilege grant. Both it and 001-003 are asserted
-//      byte-identical to 69df2f52 before they run.
-//   3. optionally, BASELINE_69df2f52_EVIDENCE_ROWS.json loaded unchanged (the verifier adds no row and fills no column).
-//   4. the candidate migration (scripts/factory-control-plane/migration.mjs), in one transaction.
-//   5. the founder's API-login step, emulated: LOGIN and a random password on factory_node_api / factory_admin_api.
+//   1. qa/factory/v1/applying_role_plane.mjs starts a scratch PostgreSQL whose bootstrap superuser is `supabase_admin`, aligns
+//      `postgres` to APPLYING_ROLE_OBSERVATION.json (NOSUPERUSER, CREATEROLE, ...; factory_runner held with ADMIN only), and
+//      provisions it as 69df2f52 AS `postgres` (the 69df2f52 files 001..003 read from git at 69df2f52, and the statements of the
+//      provisioner's dedicated-Supabase mode, including the default-privilege grant to factory_runner).
+//   2. optionally, BASELINE_69df2f52_EVIDENCE_ROWS.json loaded unchanged (the verifier adds no row and fills no column).
+//   3. the candidate migration, AS `postgres` (applyAsApplyingLogin: it refuses a superuser login), in one transaction: the Director
+//      instrument's live-migration step when the baseline rows are loaded, else the migration files verbatim.
+//   4. the founder's API-login step, emulated AS `postgres` (which administers the two API roles through the ADMIN grant PostgreSQL
+//      gives the creator of a role): LOGIN and a password sent as a SCRAM verifier computed client-side, as psql's \password does.
 //
-// It never touches the live plane, the live checkout, runner.env or the live task (S-15): every URL here is the scratch server's.
-import { execFileSync, spawnSync } from 'node:child_process';
+// superUrl is the bootstrap superuser, for read-backs and test fixtures only. adminUrl is the applying login. runnerUrl is the legacy
+// factory_runner login. It never touches the live plane, the live checkout, runner.env or the live task (S-15): every URL here is
+// the scratch server's.
+import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { startLocalPg } from '../local_pg.mjs';
-import { apply, compose, sha256 } from '../../../scripts/factory-control-plane/migration.mjs';
+import { compose, sha256 } from '../../../scripts/factory-control-plane/migration.mjs';
+import { startApplyingRolePlane, applyAsApplyingLogin, scramVerifier } from './applying_role_plane.mjs';
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 export const BASELINE = '69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6';
@@ -27,7 +30,7 @@ export const ROWS_FILE = 'qa/verification/auto-enrollment-v1/BASELINE_69df2f52_E
 
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8' }).trim();
 
-/** The 69df2f52 provisioning inputs in this tree are byte-identical to 69df2f52's (else the plane would not be "as 69df2f52"). */
+/** The 69df2f52 provisioning inputs in this tree are byte-identical to 69df2f52's (the plane itself reads them from git at 69df2f52). */
 export function assertBaselineProvisioning() {
   for (const f of BASELINE_FILES) {
     const want = git('rev-parse', BASELINE + ':' + f);
@@ -40,8 +43,8 @@ export function assertBaselineProvisioning() {
   if (top.join('|') !== base.join('|')) throw new Error('top-level control-plane SQL differs from 69df2f52: ' + top.join(', '));
 }
 
-const urlFor = (superUrl, user, password) => {
-  const u = new URL(superUrl);
+const urlFor = (baseUrl, user, password) => {
+  const u = new URL(baseUrl);
   u.username = user; u.password = password;
   return u.toString();
 };
@@ -53,48 +56,29 @@ export async function connect(url) {
   return c;
 }
 
-/** Load the Director's baseline rows unchanged, in their load order (VERIFICATION_SPEC §3 (3)). */
-export async function loadBaselineRows(superUrl) {
-  const rows = JSON.parse(readFileSync(join(ROOT, ROWS_FILE), 'utf8'));
-  const c = await connect(superUrl);
-  try {
-    await c.query('begin');
-    await c.query("set local time zone 'UTC'");
-    for (const t of rows.load_order) {
-      if (!rows[t].length) continue;
-      await c.query(`insert into factory.${t} select * from jsonb_populate_recordset(null::factory.${t}, $1::jsonb)`, [JSON.stringify(rows[t])]);
-    }
-    await c.query('commit');
-  } catch (e) { try { await c.query('rollback'); } catch { /* ended */ } throw e; } finally { await c.end(); }
-  return Object.fromEntries(rows.load_order.map((t) => [t, rows[t].length]));
-}
-
 export async function startV1Plane({ migrate = true, baselineRows = false, apiLogins = true, quiet = true } = {}) {
   assertBaselineProvisioning();
-  const pg = await startLocalPg({ quiet });
+  const plane = await startApplyingRolePlane({ baselineRows, quiet });
   try {
-    const r = spawnSync(process.execPath, [join(ROOT, PROVISION), '--admin', pg.superUrl], { encoding: 'utf8', cwd: ROOT, timeout: 120000 });
-    const m = /FACTORY_RUNNER_PG_URL=(\S+)/.exec(r.stdout || '');
-    if (r.status !== 0 || !m) throw new Error('69df2f52 provisioning failed: ' + (r.stdout || '') + (r.stderr || ''));
-    const plane = { ...pg, runnerUrl: m[1], migrated: false, loaded: null, migrationSha256: sha256(compose()) };
-    if (baselineRows) plane.loaded = await loadBaselineRows(pg.superUrl);
-    if (migrate) { await apply(pg.superUrl); plane.migrated = true; }
+    Object.assign(plane, { migrated: false, migrationSha256: sha256(compose()) });
+    if (migrate) { plane.applied = await applyAsApplyingLogin(plane); plane.migrated = true; }
     if (migrate && apiLogins) await enableApiLogins(plane);
     return plane;
   } catch (e) {
-    await pg.stop();
+    await plane.stop();
     throw e;
   }
 }
 
-/** The founder's API-login step, emulated on a disposable plane: LOGIN and a random password on the two API roles. */
+/** The founder's API-login step (FOUNDER_PREPARED_STEPS §2), emulated AS the applying login: LOGIN, and a password sent only as a
+ * SCRAM verifier computed here (psql's \password). PUBLIC holds CONNECT on the database, as on the live plane. */
 export async function enableApiLogins(plane) {
-  const c = await connect(plane.superUrl);
+  const c = await connect(plane.adminUrl);
   try {
     for (const role of ['factory_node_api', 'factory_admin_api']) {
       const pw = randomBytes(18).toString('base64url');
-      await c.query(`alter role ${role} with login password '${pw}'`);
-      await c.query(`grant connect on database factory_control_plane to ${role}`);
+      await c.query(`alter role ${role} with login`);
+      await c.query(`alter role ${role} with password '${scramVerifier(pw)}'`);
       plane[role === 'factory_node_api' ? 'nodeApiUrl' : 'adminApiUrl'] = urlFor(plane.superUrl, role, pw);
     }
   } finally { await c.end(); }

@@ -14,6 +14,8 @@
 //       an inactive profile -> /pending-activation
 //   W4  /software-factory/workers is retired: it redirects to /software-factory/computers
 //   W5  the sidebar marks only "Factory Computers" active on its page (longest-prefix; not "Agent Control Center" or "Software Specs")
+//   W6  contract §1 Derived: a computer with two principals shows the derived state, the liveness or runtime label beside ALIVE, and
+//       each principal's own state, as the Factory reports them
 // Developer verification, never independent; a stubbed Brain OS never counts for acceptance (VERIFICATION_SPEC §3 (2)). Server
 // actions are thin one-call wrappers; their authority is the Admin API's (admin_acceptance P1-P5), not exercised here by HTTP.
 // usage: node qa/factory/v1/web_computers_acceptance.mjs [--evidence <file>]
@@ -166,6 +168,28 @@ try {
   const act = (href) => /bg-sidebar-accent font-medium/.test(navClass(href));
   row('W5 on /software-factory/computers the sidebar marks "Factory Computers" active, and neither "Agent Control Center" (/software-factory) nor "Software Specs" (/software)',
     act('/software-factory/computers') && !act('/software-factory') && !act('/software'), JSON.stringify({ computers: act('/software-factory/computers'), acc: act('/software-factory'), specs: act('/software') }));
+
+  // ---- W6 (contract §1 "Derived"; AC-2 in R-2): WEB-alpha gets a second principal (the explicit admin action). Its row shows the derived
+  // state, beside ALIVE the liveness or runtime label, and EACH principal's own state - the labels of get-computer's answer - while the
+  // second principal holds only a code, and again after it enrolled and its credential was revoked (the computer stays ALIVE)
+  const rowOf = async () => {
+    const pg = await page('/software-factory/computers', founder);
+    const m = new RegExp('href="/software-factory/computers/' + A.computer_id + '"').exec(pg.html);
+    return m ? text(pg.html.slice(m.index, pg.html.indexOf('</tr>', m.index))) : '';
+  };
+  const labelsOf = (c) => [stateInfo(c.state).label, ...(c.state === 'ALIVE' ? [stateInfo(c.draining ? 'DRAINING' : c.liveness === 'FRESH' ? c.runtime_phase : c.liveness).label] : []),
+    ...c.principals.map((x) => stateInfo(x.state).label)];
+  const w6cp = await admin.call('create-principal', { computer_id: A.computer_id }, founder.token);
+  const w6a = (await admin.call('get-computer', { computer_id: A.computer_id }, founder.token)).computer;
+  const w6t1 = await rowOf();
+  const w6p2 = await W.pair({ ...w6cp, computer_id: A.computer_id }, { name: 'WEB-alpha P2' });
+  await admin.call('revoke-credential', { computer_id: A.computer_id, principal_id: w6p2.principal_id }, founder.token);
+  const w6b = (await admin.call('get-computer', { computer_id: A.computer_id }, founder.token)).computer;
+  const w6t2 = await rowOf();
+  const w6 = { first: w6a.principals.map((x) => x.state), then: w6b.principals.map((x) => x.state), shown1: labelsOf(w6a).map((l) => [l, w6t1.includes(l)]), shown2: labelsOf(w6b).map((l) => [l, w6t2.includes(l)]) };
+  row('W6 a computer with a second principal: its row shows ALIVE, the liveness or runtime label beside it, and each principal\'s own state (Alive, Pairing code issued), as get-computer reports them; after that principal enrolled and was revoked a fresh load shows ALIVE with Alive and Credential revoked',
+    w6cp.ok && w6a.state === 'ALIVE' && JSON.stringify(w6.first) === JSON.stringify(['ALIVE', 'PAIRING_CODE_ISSUED']) && w6.shown1.every(([, v]) => v)
+      && w6b.state === 'ALIVE' && JSON.stringify(w6.then) === JSON.stringify(['ALIVE', 'CREDENTIAL_REVOKED']) && w6.shown2.every(([, v]) => v), JSON.stringify(w6));
   void C; void foreign;
 } catch (e) {
   row('X0 web acceptance', false, (e && e.stack || String(e)) + '\n' + devLog.join('').slice(-1500));

@@ -9,6 +9,8 @@
 //   M5 the storage answers 404, or a body larger than a manifest: refused by name, with where it looked
 //   M6 a fetched manifest is verified exactly like a local one: a manifest for other bytes is refused (digest_mismatch), one signed
 //      by a key outside the pinned set is refused (key_outside_trust_set), and the correct one verifies
+//   M7 a fetched manifest changed in transit under the pinned key id - a signed field altered after signing, or one signature bit
+//      flipped - is refused bad_signature (the signature check, reached by a fetched manifest)
 // Plain node; no plane; a local HTTP server stands in for the public storage. usage: node qa/factory/v1/setup_manifest_locate.mjs
 import { createServer } from 'node:http';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -17,7 +19,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { generateKeyPairSync, sign } from 'node:crypto';
 import { locateManifest } from '../../../scripts/factory-runner/enrolled/setup.mjs';
-import { canonicalManifestBytes, keyIdOf, verifyRelease } from '../../../scripts/factory-runner/enrolled/release.mjs';
+import { canonicalManifestBytes, keyIdOf, NO_REVOCATIONS, verifyRelease } from '../../../scripts/factory-runner/enrolled/release.mjs';
 import { channelTrustFile, makeManifest, signDev } from '../../../scripts/factory-build/release-manifest.mjs';
 import { recorder } from './flows.mjs';
 
@@ -80,11 +82,22 @@ try {
   const raw = stranger.publicKey.export({ format: 'der', type: 'spki' }).subarray(12);
   const foreign = { ...makeManifest({ artifact: exePath, channel: 'dev', version, source_sha: 'a'.repeat(40), receipt_sha256: 'b'.repeat(64) }), key_id: keyIdOf(raw) };
   foreign.signature = sign(null, canonicalManifestBytes(foreign), stranger.privateKey).toString('base64url');
-  const vOk = verifyRelease({ manifest: m2.manifest, artifact, trust });
-  const vOther = verifyRelease({ manifest: other, artifact, trust });
-  const vForeign = verifyRelease({ manifest: foreign, artifact, trust });
+  const vOk = verifyRelease({ manifest: m2.manifest, artifact, trust, revocations: NO_REVOCATIONS });
+  const vOther = verifyRelease({ manifest: other, artifact, trust, revocations: NO_REVOCATIONS });
+  const vForeign = verifyRelease({ manifest: foreign, artifact, trust, revocations: NO_REVOCATIONS });
   row('M6 a fetched manifest is verified exactly like a local one: for other bytes -> digest_mismatch; signed outside the pinned set -> key_outside_trust_set; the correct one verifies',
     vOk.ok && vOther.refused === 'digest_mismatch' && vForeign.refused === 'key_outside_trust_set', JSON.stringify({ ok: vOk.ok || vOk.refused, other: vOther.refused, foreign: vForeign.refused }));
+
+  // M7: tampered in transit - the storage serves the correct manifest with a signed field changed, or its signature altered
+  const flipB64 = (s) => { const b = Buffer.from(s, 'base64url'); b[11] ^= 0x01; return b.toString('base64url'); };
+  served.set('/factory-releases/production/7.7.7/BrainFactorySetup.manifest.json', JSON.stringify({ ...good, version: '7.7.7' }));
+  served.set('/factory-releases/production/7.7.8/BrainFactorySetup.manifest.json', JSON.stringify({ ...good, signature: flipB64(good.signature) }));
+  const m7a = await locateManifest({ exe, releaseBase: base, version: '7.7.7' });
+  const m7b = await locateManifest({ exe, releaseBase: base, version: '7.7.8' });
+  const v7a = m7a.manifest ? verifyRelease({ manifest: m7a.manifest, artifact, trust, revocations: NO_REVOCATIONS }) : { refused: 'not fetched' };
+  const v7b = m7b.manifest ? verifyRelease({ manifest: m7b.manifest, artifact, trust, revocations: NO_REVOCATIONS }) : { refused: 'not fetched' };
+  row('M7 a fetched manifest changed in transit under the pinned key id (a signed field altered after signing; one signature bit flipped) is refused bad_signature',
+    v7a.refused === 'bad_signature' && v7b.refused === 'bad_signature', JSON.stringify({ changed: v7a.ok || v7a.refused, flipped: v7b.ok || v7b.refused }));
 } catch (e) {
   row('X0 setup manifest locate', false, e && e.stack || String(e));
 } finally {

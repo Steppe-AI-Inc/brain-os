@@ -15,8 +15,8 @@
 //   S2 main.mjs and every module it reaches in scripts/factory-runner have no top-level await (acorn AST); each import is a node:
 //      builtin or a module inside scripts/factory-runner/{sea,enrolled,lib} (bundled), never db.mjs
 //   S3 under plain node: importing main.mjs runs nothing; `version` prints null build info; `selftest` passes and says plain node;
-//      an unknown command is refused (exit 64, "not a Brain Factory command"); no command is setup, which refuses (exit 3) with no
-//      release manifest beside the program - nothing is enrolled or installed
+//      an unknown command is refused (exit 64, "not a Brain Factory command") WITHOUT being shown; no command is setup, which refuses
+//      (exit 3) with no release manifest beside the program - nothing is enrolled or installed
 //   S4 the pe-strip-signature unit test passes on a copy of the real node.exe
 // BUILD
 //   B1 build-sea.mjs --channel dev builds (exit 0) into dist/brain-factory/<version>/dev/: the exe, build-info.json, bundle.metafile.json and a
@@ -68,13 +68,23 @@
 //   B20 NODE_OPTIONS=--require=<file> does NOT run that file inside the exe (SEA config execArgvExtension "none", recorded in
 //      build-info): nothing in the environment adds code to the runtime
 //   B21 build-sea.mjs without --channel is refused (usage, exit 2) and writes nothing: the trust set and mode are per channel
+//   B22 the BUILT exe turns away every command line with a pairing code in it (S-12): `setup --code <c>`, `--code=<c>`, `<c>` as the
+//      command, `setup <c>`, a code as the value of --home / --task-name / --manifest / --api / --artifact, `version <c>`,
+//      `selftest --code <c>`; lower case, no dashes, O / l for 0 / 1, and O / I with no dashes (a code only in that reading); the
+//      displayed grouping inside a path or a URL; and `setup --yes` (there is no confirmation option). Each ends with exit 64 and a
+//      named REFUSED line holding no 5-character window of the code, and nothing is created
+//   B23 channel separation is the build's own rule (S-5): a copy of the pipeline whose trust/production.json holds the dev key is
+//      refused by build-sea --channel production - exit 4, REFUSED naming the dev key - before any build step: its --out directory is
+//      never created. The committed production set passes channelTrust (the control)
+//   B24 the same for a trust/dev.json that holds a key that is not a dev key (build-sea --channel dev): exit 4, REFUSED, no --out
 import { spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync, appendFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
-import { createHash } from 'node:crypto';
+import { createHash, generateKeyPairSync } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { assertNoCodeInArgv, canaryCode, leaksIn } from './v1/canary.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..', '..');
@@ -89,7 +99,9 @@ let pass = 0; const failures = [];
 const check = (label, ok, detail) => { if (ok) { pass++; console.log('OK   ' + label); } else { failures.push(label); console.log('FAIL ' + label + (detail ? '\n       ' + String(detail).slice(-1500) : '')); } };
 const sha256 = (b) => createHash('sha256').update(b).digest('hex');
 const readJson = (p) => JSON.parse(readFileSync(p, 'utf8'));
-const run = (cmd, args, opts = {}) => {
+// every child this suite starts has its argument list checked first: no pairing code, except a declared canary row's own canary
+const run = (cmd, args, { canary = false, ...opts } = {}) => {
+  assertNoCodeInArgv(args, { canary });
   const r = spawnSync(cmd, args, { cwd: ROOT, encoding: 'utf8', timeout: 900000, maxBuffer: 64 * 1024 * 1024, windowsHide: true, ...opts });
   return { rc: r.status, out: (r.stdout || '') + (r.stderr || ''), stdout: r.stdout || '', stderr: r.stderr || '', error: r.error };
 };
@@ -173,7 +185,7 @@ try {
         && ver.rc === 0 && verJson && JSON.stringify(verJson) === JSON.stringify({ runtime_version: null, source_commit: null, dirty: null, built_at: null, channel: null })
         && st.rc === 0 && stLines.every((l) => /^PASS |^selftest: PASS /.test(l)) && /plain node/.test(st.stdout) && !/FAIL/.test(st.stdout)
         && none.rc === 3 && /^REFUSED - no release manifest beside the installer/m.test(none.out) && !s3config
-        && bogus.rc === 64 && /^enroll: not a Brain Factory command/.test(bogus.out.trim()),
+        && bogus.rc === 64 && /^REFUSED - the first argument is not a Brain Factory command \(arguments are never shown\)/.test(bogus.out.trim()) && !/enroll/.test(bogus.out),
       [imp.out, ver.out, st.out, none.out, bogus.out].join('\n---\n'));
   }
   {
@@ -531,6 +543,54 @@ process.exit(0);
     const r = run(process.execPath, [BUILD, '--out', out], { env: buildEnv() });
     check('B21 build-sea.mjs without --channel: exit ' + r.rc + ', outputs left ' + outputsIn(out).length,
       r.rc === 2 && /--channel production\|dev is required/.test(r.out) && outputsIn(out).length === 0, r.out);
+  }
+  // B22: no command line with a code in it gets past the built exe, and no refusal shows the code (a canary: the form of a code, never issued)
+  {
+    const C = canaryCode();
+    const cwd = join(work, 'b22'); mkdirSync(cwd);
+    const home = join(cwd, 'home');
+    const cases = [['setup', '--code', C.display], ['setup', '--code=' + C.display], [C.display], ['setup', C.display], ['setup', '--home', C.display],
+      ['setup', '--task-name', C.lower], ['setup', '--manifest', C.nodash], ['setup', '--api', C.spelled], ['upgrade', '--artifact', C.display, '--home', home],
+      ['version', C.display], ['selftest', '--code', C.display], ['status', '--home', C.lower], ['setup', '--yes', '--home', home],
+      ['setup', '--home', C.spelledNodash], ['setup', '--task-name', C.spacedSpelled], ['setup', '--home', join(cwd, 'homes', C.display)],
+      ['setup', '--api', 'https://h.example/functions/v1/' + C.display + '/x'],
+      [C.code.slice(0, 12)], ['setup', '--home', home, C.code.slice(3, 15)]]; // a code typed in pieces: never shown either
+    const bad = [];
+    for (const args of cases) {
+      const r = run(join(DIST, EXE_NAME), args, { env: { ...minimalEnv(), BRAIN_FACTORY_HOME: home }, cwd, canary: true });
+      const leaks = leaksIn(r.out, C);
+      if (r.rc !== 64 || !/^REFUSED - /m.test(r.out) || leaks.length) bad.push({ args: args.map((a) => (leaksIn(a, C).length ? '<code>' : a)), rc: r.rc, leaks: leaks.length, first: leaks.length ? '(withheld)' : r.out.split(/\r?\n/)[0].slice(0, 90) });
+    }
+    const created = readdirSync(cwd);
+    check('B22 the built exe turns away ' + cases.length + ' command lines with a code in some position, spelling or embedding (and --yes): exit 64, a named REFUSED line, no fragment of the code, nothing created (' + created.length + ' entries)',
+      bad.length === 0 && created.length === 0, JSON.stringify({ bad, created: created.map((f) => (leaksIn(f, C).length ? '<code>' : f)) }));
+  }
+  // B23 / B24: the channel-separation refusal of build-sea itself, on a copy of the pipeline (the files build-sea loads before its
+  // first build step) whose trust file is planted; the committed trust files are never edited
+  {
+    const LAYOUT = ['scripts/factory-build/build-sea.mjs', 'scripts/factory-build/pe-strip-signature.mjs', 'scripts/factory-build/node-exe-pins.json',
+      'scripts/factory-build/sea-config.template.json', 'scripts/factory-runner/enrolled/pe-image.mjs', 'scripts/factory-runner/enrolled/release.mjs',
+      'scripts/factory-runner/enrolled/trust/dev.json', 'scripts/factory-runner/enrolled/trust/production.json', 'scripts/factory-runner/sea/runtime-version.json'];
+    const layout = (name, file, value) => {
+      const L = join(work, name);
+      for (const rel of LAYOUT) { mkdirSync(dirname(join(L, rel)), { recursive: true }); copyFileSync(join(ROOT, rel), join(L, rel)); }
+      writeFileSync(join(L, 'scripts/factory-runner/enrolled/trust', file), JSON.stringify(value, null, 2));
+      return L;
+    };
+    const devT = readJson(join(ROOT, 'scripts/factory-runner/enrolled/trust/dev.json'));
+    const prodT = readJson(join(ROOT, 'scripts/factory-runner/enrolled/trust/production.json'));
+    const L23 = layout('b23-layout', 'production.json', { ...prodT, keys: [...prodT.keys, ...devT.keys] });
+    const out23 = join(work, 'b23-out');
+    const r23 = run(process.execPath, [join(L23, 'scripts/factory-build/build-sea.mjs'), '--channel', 'production', '--out', out23], { env: buildEnv(), cwd: L23 });
+    let ctl23; try { ctl23 = policy.channelTrust('production'); } catch (e) { ctl23 = { error: e.message }; }
+    check('B23 a pipeline copy whose production trust set holds the dev key: build-sea --channel production exits ' + r23.rc + ' (4 = REFUSED, naming the dev key) and creates no --out; the committed production set passes (' + (ctl23.keys ? ctl23.keys.length + ' keys' : ctl23.error) + ')',
+      r23.rc === 4 && /REFUSED/.test(r23.out) && /is a dev key/.test(r23.out) && !existsSync(out23) && Array.isArray(ctl23.keys) && ctl23.keys.length === 0, r23.out);
+    const raw = generateKeyPairSync('ed25519').publicKey.export({ format: 'der', type: 'spki' }).subarray(-32);
+    const L24 = layout('b24-layout', 'dev.json', { ...devT, keys: [...devT.keys, { key_id: 'ed25519:' + sha256(raw), public_key: Buffer.from(raw).toString('base64url') }] });
+    const out24 = join(work, 'b24-out');
+    const r24 = run(process.execPath, [join(L24, 'scripts/factory-build/build-sea.mjs'), '--channel', 'dev', '--out', out24], { env: buildEnv(), cwd: L24 });
+    check('B24 a pipeline copy whose dev trust set holds a key that is not a dev key: build-sea --channel dev exits ' + r24.rc + ' (4 = REFUSED, only dev keys) and creates no --out',
+      r24.rc === 4 && /REFUSED/.test(r24.out) && /only dev keys/.test(r24.out) && !existsSync(out24), r24.out);
   }
 } catch (e) {
   check('X0 suite setup', false, e && e.stack || e);

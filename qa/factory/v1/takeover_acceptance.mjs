@@ -8,6 +8,8 @@
 //   T3 A's REAL lease expires            T8 surface-lock ownership stayed valid throughout
 //   T4 eligible B claims and receives P1 T9 independent certification: A and B (the whole authoring set) refused; C certifies
 //   T5 B resumes unfinished work only    T10 dependents released only at COMPLETE
+//   T11 a taken-over work order keeps its place in the queue (its queue age), as the 69df2f52 reaper did
+//   T12 every run and every checkpoint is stamped with the release its node runs (AC-5(g))
 // plus the mixed fleet (a legacy lock blocks an enrolled claim and the reverse; an enrolled node is refused legacy work) and the
 // enrollment walk to ALIVE.
 // usage: node qa/factory/v1/takeover_acceptance.mjs [--transport direct|api] [--evidence <file>]
@@ -60,7 +62,9 @@ try {
       join factory.enrollments e using (enrollment_id) where e.enrollment_id = $1 group by 1`, [A.enrollmentId])).rows[0];
   row('E1 enrollment walk from server rows: NODE_CREDENTIAL_ISSUED -> RUNTIME_INSTALLING -> REGISTERING -> ALIVE on a certified release; the runtime starts RECOVERING -> AVAILABLE',
     walk.every((w) => w.s && w.inst === 'RUNTIME_INSTALLING' && w.reg === 'ALIVE' && w.h === 'AVAILABLE')
-      && trans && trans.steps.join('>') === 'RUNTIME_INSTALLING>REGISTERING>ALIVE', trans && trans.steps.join('>'));
+      // (the transition log records every state change of an enrollment, its insert included - part 080 - so the fixture's own setup
+      // writes, PAIRING_STARTED to NODE_CREDENTIAL_ISSUED, head the walk the node then continues)
+      && trans && trans.steps.join('>') === 'PAIRING_STARTED>PAIRING_VERIFIED>NODE_ID_ISSUED>NODE_CREDENTIAL_ISSUED>RUNTIME_INSTALLING>REGISTERING>ALIVE', trans && trans.steps.join('>'));
 
   // ---- the work: W (requires verification) owning product/x, and D depending on W
   const W = await newModelWorkOrder(sup, { surface: ['product/x'], priority: 50, title: 'W: requires verification' });
@@ -103,16 +107,47 @@ try {
   await b.op('checkpoint', { run_id: RB, location: 'git://branch@c2', scenario: 'step-2', payload: { done: ['step-1', 'step-2'] } });
   const lockB = (await sup.query(`select run_id, lease_expires_at::text l, principal_id from factory.surface_locks where surface = 'product/x'`)).rows;
   const done = await b.op('complete', { run_id: RB, status: 'done', termination_reason: 'completed', head_commit: 'c'.repeat(40), candidate_tree: 'd'.repeat(40), summary: 'W done by B' });
-  const again = await b.op('complete', { run_id: RB, status: 'done', termination_reason: 'completed', head_commit: 'c'.repeat(40), candidate_tree: 'd'.repeat(40) });
-  const side = (await sup.query(`select
+  // AC-9 "no duplicate completed side effect of any kind": the side effects counted EXACTLY - runs, locks, the verification work
+  // order, the evidence record (the verification.waiting audit), certifications, checkpoints, the dependency, the dependent's runs -
+  // and, as a class, EVERY factory row that names W, B's run or the verification work order (audit rows: outcome ok only, since the
+  // retried completion legitimately writes its one refused audit), each compared whole after the completion and after its retry
+  const counts = async () => (await sup.query(`select
       (select count(*)::int from factory.agent_runs where work_order_id = $1 and status = 'done') done_runs,
+      (select count(*)::int from factory.agent_runs where work_order_id = $1) w_runs,
       (select count(*)::int from factory.surface_locks where surface = 'product/x') locks,
       (select count(*)::int from factory.work_orders where verifies_work_order_id = $1) verification_wos,
+      (select count(*)::int from factory.audit_events where action = 'verification.waiting' and target_kind = 'work_order' and target_id = $1::text and outcome = 'ok') evidence,
+      (select count(*)::int from factory.certifications where work_order_id = $1) certifications,
+      (select count(*)::int from factory.checkpoints where work_order_id = $1) checkpoints,
+      (select count(*)::int from factory.work_order_dependencies where depends_on = $1) dependencies,
+      (select count(*)::int from factory.agent_runs where work_order_id = $2) d_runs,
+      (select status from factory.work_orders where work_order_id = $2) d_status,
       (select status || '/' || verification_state from factory.work_orders where work_order_id = $1) w_state,
-      (select current_candidate_run_id from factory.work_orders where work_order_id = $1) cand`, [W])).rows[0];
-  row('T7 B completes exactly once: one done run, the lock released once, exactly one verification work order, W review / WAITING; a retried completion is told it landed and changes nothing',
-    done.ok && again.refused === 'superseded' && again.landed === true && side.done_runs === 1 && side.locks === 0 && side.verification_wos === 1
-      && side.w_state === 'review/WAITING_FOR_INDEPENDENT_VERIFICATION' && side.cand === RB, JSON.stringify(side));
+      (select current_candidate_run_id from factory.work_orders where work_order_id = $1) cand`, [W, D])).rows[0];
+  const factoryTables = (await sup.query(`select c.relname from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'factory' and c.relkind in ('r', 'p') order by 1`)).rows.map((x) => x.relname);
+  const snapshot = async () => {
+    const V0 = (await sup.query(`select work_order_id from factory.work_orders where verifies_work_order_id = $1`, [W])).rows.map((x) => x.work_order_id);
+    const ids = [W, RB, ...V0];
+    const out = {};
+    for (const t of factoryTables) {
+      const rows = (await sup.query('select to_jsonb(x)::text j from factory.' + t + ' x where to_jsonb(x)::text like any ($1)' + (t === 'audit_events' ? " and x.outcome = 'ok'" : '')
+        + ' order by 1', [ids.map((i) => '%' + i + '%')])).rows.map((x) => x.j);
+      if (rows.length) out[t] = rows;
+    }
+    return out;
+  };
+  const side = await counts();
+  const snapDone = await snapshot();
+  const again = await b.op('complete', { run_id: RB, status: 'done', termination_reason: 'completed', head_commit: 'c'.repeat(40), candidate_tree: 'd'.repeat(40) });
+  const side2 = await counts();
+  const snapAgain = await snapshot();
+  const exact = (x) => x.done_runs === 1 && x.w_runs === 2 && x.locks === 0 && x.verification_wos === 1 && x.evidence === 1 && x.certifications === 0
+    && x.checkpoints === 2 && x.dependencies === 1 && x.d_runs === 0 && x.d_status === 'queued' && x.w_state === 'review/WAITING_FOR_INDEPENDENT_VERIFICATION' && x.cand === RB;
+  const snapSame = JSON.stringify(snapDone) === JSON.stringify(snapAgain);
+  row('T7 B completes exactly once, counted exactly after the completion AND after its retry: 1 done run of 2 runs, 0 locks, 1 verification work order, 1 evidence record (verification.waiting), 0 certifications, 2 checkpoints, 1 dependency, 0 runs of the dependent; every factory row naming W, B\'s run or the verification work order (audit: outcome ok) is identical after the retry, which is told it landed',
+    done.ok && again.refused === 'superseded' && again.landed === true && exact(side) && exact(side2) && snapSame && Object.keys(snapDone).length >= 5,
+    JSON.stringify({ side, side2: JSON.stringify(side2) === JSON.stringify(side) ? 'same' : side2, tables: Object.fromEntries(Object.entries(snapDone).map(([k, v]) => [k, v.length])), snapSame }));
   row('T8 surface-lock ownership stayed valid: A\'s lock (enrolled: lease infinity), then B\'s, never both, and none after completion',
     lockA.length === 1 && lockA[0].run_id === RA && lockA[0].l === 'infinity' && lockB.length === 1 && lockB[0].run_id === RB && side.locks === 0);
   const dBlocked = await c.op('claim', { only_work_order_id: D });
@@ -133,13 +168,55 @@ try {
   const good = await c.op('certify', { run_id: VR, verdict: 'PASS', work_order_id: W, candidate_run_id: RB, candidate_tree: 'd'.repeat(40), candidate_commit: 'c'.repeat(40), reason: 'rows reproduced' });
   const cert = (await sup.query(`select verdict, certifying_principal_id, candidate_run_id, jsonb_array_length(authoring_set) aset, policies from factory.certifications where work_order_id = $1`, [W])).rows;
   const wFinal = (await sup.query(`select status, verification_state from factory.work_orders where work_order_id = $1`, [W])).rows[0];
-  row('T9c a certification naming another candidate is refused (provenance_mismatch); C certifies the exact candidate: one record, the authoring set of 2 recorded, W COMPLETE',
+  const certSide = (await sup.query(`select
+      (select count(*)::int from factory.audit_events where action = 'node.certify' and target_kind = 'work_order' and target_id = $1::text and outcome = 'ok') certify_ok,
+      (select count(*)::int from factory.agent_runs where work_order_id = $2 and status = 'done') v_done,
+      (select count(*)::int from factory.agent_runs where work_order_id = $2) v_runs`, [W, V])).rows[0];
+  row('T9c a certification naming another candidate is refused (provenance_mismatch); C certifies the exact candidate: one record, the authoring set of 2 recorded, W COMPLETE; exactly one node.certify ok audit for W, and the verification work order has exactly one run, done',
     bad.refused === 'certification_refused' && /provenance_mismatch/.test(bad.message) && good.ok && cert.length === 1 && cert[0].verdict === 'PASS'
       && cert[0].certifying_principal_id === C.principalId && cert[0].candidate_run_id === RB && cert[0].aset === 2
-      && wFinal.status === 'done' && wFinal.verification_state === 'COMPLETE', JSON.stringify(wFinal));
+      && wFinal.status === 'done' && wFinal.verification_state === 'COMPLETE' && certSide.certify_ok === 1 && certSide.v_done === 1 && certSide.v_runs === 1,
+    JSON.stringify({ wFinal, certSide }));
   const dNow = await c.op('claim', { only_work_order_id: D, resources: { cpu_cores: 8, cpu_pct: 10, ram_free_mb: 32000, disk_free_mb: 50000 } });
-  row('T10b D is claimable once W is COMPLETE (dependent released by the server, no founder step)', dNow.ok && dNow.claimed && dNow.claimed.work_order.work_order_id === D);
+  // one dependent release: D exists once, it is released once (exactly one run, its own), and no other node gets a second run of it
+  // (A reports little free RAM here, so it never out-ranks the claimers of the later rows)
+  const dAgain = await a.op('claim', { only_work_order_id: D, resources: { cpu_cores: 8, cpu_pct: 10, ram_free_mb: 1000, disk_free_mb: 50000 } });
+  const dSide = (await sup.query(`select (select count(*)::int from factory.work_orders where work_order_id = $1) d_rows,
+      (select count(*)::int from factory.agent_runs where work_order_id = $1) d_runs, (select status from factory.work_orders where work_order_id = $1) d_status,
+      (select count(*)::int from factory.work_order_dependencies where depends_on = $2) deps`, [D, W])).rows[0];
+  row('T10b D is claimable once W is COMPLETE (dependent released by the server, no founder step), and released exactly once: one D row, one run of D, claimed, and another node\'s claim of D gets nothing',
+    dNow.ok && dNow.claimed && dNow.claimed.work_order.work_order_id === D && dAgain.ok && dAgain.claimed === null
+      && dSide.d_rows === 1 && dSide.d_runs === 1 && dSide.d_status === 'claimed' && dSide.deps === 1, JSON.stringify({ dAgain: dAgain.claimed === null ? 'nothing' : dAgain, dSide }));
   if (dNow.claimed) await c.op('complete', { run_id: dNow.claimed.run_id, status: 'done', termination_reason: 'completed' });
+  // T12 (AC-5(g), contract §1 "stamped on the node, on every run and on every checkpoint"): every run of W - A's taken-over run,
+  // B's completing run and C's verification run - and every checkpoint of W carries the release its node runs, all three fields
+  const stamps = (await sup.query(`select 'run' k, r.release_id, r.runtime_version, r.runtime_digest from factory.agent_runs r join factory.work_orders w using (work_order_id)
+       where r.work_order_id = $1 or w.verifies_work_order_id = $1
+      union all select 'checkpoint', k.release_id, k.runtime_version, k.runtime_digest from factory.checkpoints k where k.work_order_id = $1
+      union all select 'node', n.release_id, n.runtime_version, n.runtime_digest from factory.nodes n where n.node_id = any ($2)`, [W, [A.nodeId, B.nodeId, C.nodeId]])).rows;
+  const stamped = (x) => x.release_id === rel.releaseId && x.runtime_version === '0.1.0' && x.runtime_digest === rel.digest;
+  row("T12 every run of W (A's taken-over run, B's completing run, C's verification run) and every checkpoint of W (P1, B's) carry the release their node runs - release id, runtime version and digest, none null - equal to the nodes' own stamps",
+    stamps.filter((x) => x.k === 'run').length === 3 && stamps.filter((x) => x.k === 'checkpoint').length === 2 && stamps.filter((x) => x.k === 'node').length === 3 && stamps.every(stamped),
+    JSON.stringify(stamps.map((x) => x.k + ':' + (stamped(x) ? 'stamped' : JSON.stringify([x.release_id, x.runtime_version, x.runtime_digest && x.runtime_digest.slice(0, 8)])))));
+  // T11 (P-2, AC-9, P-6 queue age): Q1, then Q2 and Q3 a second later, one priority. C claims Q1 and lets its lease lapse; B's
+  // next claim of that work type takes over Q1 first - the takeover kept Q1's queue age (claim.mjs:178 changed only status and time)
+  const Q1 = await newModelWorkOrder(sup, { surface: ['q/1'], priority: 30, title: 'Q1', requiresVerification: false, workType: 'takeover-order' });
+  await sleep(1100);
+  const Q2 = await newModelWorkOrder(sup, { surface: ['q/2'], priority: 30, title: 'Q2', requiresVerification: false, workType: 'takeover-order' });
+  const Q3 = await newModelWorkOrder(sup, { surface: ['q/3'], priority: 30, title: 'Q3', requiresVerification: false, workType: 'takeover-order' });
+  const queuedAt = async (id) => (await sup.query(`select queued_at::text q from factory.work_orders where work_order_id = $1`, [id])).rows[0].q;
+  const q1Before = await queuedAt(Q1);
+  // (C and B report less free RAM than A's later claims, so ranking never decides a later row)
+  await c.op('heartbeat', { phase: 'AVAILABLE' });
+  const cq = await c.op('claim', { only_work_order_id: Q1, lease_seconds: 5, resources: { cpu_cores: 8, cpu_pct: 10, ram_free_mb: 60000, disk_free_mb: 50000 } });
+  await sleep(6500);
+  await b.op('heartbeat', { phase: 'AVAILABLE' });
+  const bq = await b.op('claim', { work_types: ['takeover-order'], lease_seconds: 60, resources: { cpu_cores: 8, cpu_pct: 10, ram_free_mb: 63000, disk_free_mb: 50000 } });
+  const q1After = await queuedAt(Q1);
+  row("T11 a lapsed lease hands its work order to the next claim FIRST among equal-priority work queued after it: B receives Q1, not Q2 or Q3, and Q1's queue age (queued_at) is unchanged by the takeover",
+    cq.claimed && bq.claimed && bq.claimed.work_order.work_order_id === Q1 && q1Before === q1After,
+    JSON.stringify({ c: !!cq.claimed, b: bq.claimed ? ({ [Q1]: 'Q1', [Q2]: 'Q2', [Q3]: 'Q3' })[bq.claimed.work_order.work_order_id] || 'other' : bq, q1Before, q1After }).slice(0, 400));
+  if (bq.claimed) await b.op('complete', { run_id: bq.claimed.run_id, status: 'done', termination_reason: 'completed' });
 
   // ---- mixed fleet through the FROZEN claim.mjs
   process.env.FACTORY_RUNNER_PG_URL = plane.runnerUrl;
@@ -162,6 +239,33 @@ try {
   row('X2 ... and the reverse: an enrolled run holding s2 blocks the legacy claim of a work order owning s2', eHold.claimed && lBlocked === null);
   const eLegacy = await a.op('claim', { only_work_order_id: L2 });
   row('X3 an enrolled node is refused a legacy work order (no factory-enrolled-v1): not_enrolled_work', eLegacy.refused === 'not_enrolled_work');
+  // X4 (AC-9 mixed fleet; contract §1): the lock THE CLAIM FRONT DOOR WROTE for an enrolled run whose lease then lapses - not a fixture
+  // lock - never makes the frozen legacy claim fail or stall: with a legacy work order owning that surface at the head of the legacy
+  // queue and another behind it, the legacy claim takes the next one in one poll, no legacy run holds the surface, and the enrolled
+  // run, its work order and its lock are unchanged. No front-door claim (and so no reap) runs between the lapse and the legacy claim.
+  const X = await newModelWorkOrder(sup, { surface: ['x4/lapse'], priority: 90, title: 'X4 enrolled, lapsing', requiresVerification: false });
+  await c.op('heartbeat', { phase: 'AVAILABLE' });
+  const cx = await c.op('claim', { only_work_order_id: X, lease_seconds: 5, resources: { cpu_cores: 8, cpu_pct: 10, ram_free_mb: 64000, disk_free_mb: 50000 } });
+  // the legacy queue: L2 (whose surface A still holds) is set aside, so the pick order is exactly the two below
+  await sup.query(`update factory.work_orders set status = 'done' where work_order_id = $1`, [L2]);
+  const headWo = await legacyWorkOrder(run, { surface: ['x4/lapse'], title: 'X4 legacy head, owns x4/lapse', createdAt: '2000-01-01T00:00:00Z' });
+  const nextWo = await legacyWorkOrder(run, { surface: ['x4/next'], title: 'X4 legacy next', createdAt: '2000-01-02T00:00:00Z' });
+  await sleep(6500);
+  const xState = async () => (await sup.query(`select (select to_jsonb(r) from factory.agent_runs r where r.run_id = $1) run, (select to_jsonb(w) from factory.work_orders w where w.work_order_id = $2) wo,
+      (select coalesce(jsonb_agg(to_jsonb(l) order by l.surface), '[]') from factory.surface_locks l where l.run_id = $1) locks,
+      (select (r.lease_expires_at < now()) from factory.agent_runs r where r.run_id = $1) lapsed`, [cx.claimed && cx.claimed.run_id, X])).rows[0];
+  const x0 = await xState();
+  const legacyNode2 = 'legacy-x4-' + randomUUID().slice(0, 6);
+  await claim.registerNode({ nodeId: legacyNode2, capabilities: [], securityRole: 'generic', platform: 'test' });
+  let xClaimed = null, xErr = null;
+  const xLogs = []; const origLog = console.log; console.log = (...m) => xLogs.push(m.join(' '));
+  try { xClaimed = await claim.claimWork({ nodeId: legacyNode2 }); } catch (e) { xErr = e; } finally { console.log = origLog; }
+  const x1 = await xState();
+  const holders = (await sup.query(`select count(*)::int n from factory.surface_locks l join factory.agent_runs r on r.run_id = l.run_id where l.surface = 'x4/lapse' and r.principal_id is null`)).rows[0].n;
+  row('X4 the lock the claim front door wrote for an enrolled run whose lease has lapsed never fails or stalls the frozen legacy claim: with a legacy work order owning that surface at the head, the legacy claim takes the NEXT one in one poll with no "another node" / 23505; no legacy run holds the surface; the enrolled run, its work order and its lock are unchanged',
+    !!(cx.claimed && x0.lapsed === true && x0.locks.length === 1) && !xErr && xClaimed && xClaimed.work_order_id === nextWo && !xLogs.some((l) => /another node|23505/.test(l))
+      && holders === 0 && JSON.stringify(x0) === JSON.stringify(x1),
+    xErr ? String(xErr.message).slice(0, 200) : JSON.stringify({ enrolledClaimed: !!cx.claimed, lapsed: x0.lapsed, lock: x0.locks.map((l) => l.lease_expires_at), legacyClaimed: xClaimed ? (xClaimed.work_order_id === nextWo ? 'the one behind the head' : xClaimed.work_order_id === headWo ? 'the head' : 'another') : null, holders, unchanged: JSON.stringify(x0) === JSON.stringify(x1) }));
   await run.end();
 } catch (e) {
   // a crash is a named row, never a silent exit: the suite did not complete

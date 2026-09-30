@@ -69,11 +69,11 @@ export async function enrolledComputer(c, { roles = ['generic', 'verifier'], cap
 }
 
 /** A new-model work order (it holds factory-enrolled-v1). */
-export async function newModelWorkOrder(c, { surface = [], priority = 10, requiresVerification = true, status = 'queued', title = 'new-model fixture', caps = [] } = {}) {
+export async function newModelWorkOrder(c, { surface = [], priority = 10, requiresVerification = true, status = 'queued', title = 'new-model fixture', caps = [], workType = 'software_development' } = {}) {
   const id = randomUUID();
   await asEngine(c, () => c.query(`insert into factory.work_orders (work_order_id, title, requires_capabilities, owned_surface, priority_num,
-      requires_verification, queued_at, status)
-    values ($1, $2, $3, $4, $5, $6, now(), $7)`, [id, title, ['factory-enrolled-v1', ...caps], surface, priority, requiresVerification, status]));
+      requires_verification, queued_at, status, work_type)
+    values ($1, $2, $3, $4, $5, $6, now(), $7, $8)`, [id, title, ['factory-enrolled-v1', ...caps], surface, priority, requiresVerification, status, workType]));
   return id;
 }
 
