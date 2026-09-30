@@ -2,12 +2,16 @@
 // scripts/factory-build/build-sea.mjs per release channel (the trust set and mode fixed in it at build time; WO-6, S-5).
 //
 //   BrainFactorySetup.exe                     (double-click) setup: verify this release, enter the pairing code, enroll, install, start
-//   BrainFactorySetup.exe setup [--code C] [--api URL] [--yes] [--manifest F] [--home DIR] [--task-name N] [--no-tasks] [--no-start]
+//   BrainFactorySetup.exe setup [--api URL] [--manifest F] [--home DIR] [--task-name N] [--no-tasks] [--no-start]
+//                                               setup asks for the pairing code once and reads it from standard input; no option
+//                                               carries it (S-12), and argv-guard.mjs refuses a code anywhere on the command line
 //   BrainFactory.exe supervise [--home DIR]     the logon task's command: verify the installed release, keep one worker running
 //   BrainFactory.exe worker [--home DIR]        (internal) the runtime loop, started by the supervisor
 //   BrainFactory.exe status | verify | start | stop | uninstall | logs  [--home DIR] [--task-name N]
 //   BrainFactory.exe upgrade --artifact EXE --manifest F [--home DIR]   verify a release BEFORE anything of it runs; install; switch
 //   BrainFactory.exe trust                      the trust set fixed in this artifact: (key id, sha256 of the public key), channel, mode
+//   BrainFactory.exe channel                    the channel facts fixed in this artifact: channel, default Node API endpoint, release
+//                                               storage, trust mode (printed only; nothing is contacted)
 //   BrainFactory.exe version | selftest
 //
 // RULES for this file and everything it imports - build-sea.mjs enforces the first three and fails the build otherwise:
@@ -19,6 +23,7 @@ import { createPrivateKey, createPublicKey, generateKeyPairSync, randomBytes, si
 import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import * as sea from 'node:sea';
+import { refuseArgv } from './argv-guard.mjs';
 
 export const EXIT_OK = 0;
 export const EXIT_SELFTEST_FAILED = 1;
@@ -92,22 +97,23 @@ export function selftest(out = (line) => process.stdout.write(line + '\n')) {
   return failed === 0 ? EXIT_OK : EXIT_SELFTEST_FAILED;
 }
 
-function printable(cmd) {
-  const s = String(cmd);
-  return (s.length > 120 ? s.slice(0, 120) + '...' : s).replace(/[\u0000-\u001f\u007f]/g, '?');
-}
-
 // ---- the commands -------------------------------------------------------------------------------------------------------------------
+// A refusal of the command line NEVER shows an argument: one that is not an option could be a pairing code typed in the wrong place.
+export class UsageRefusal extends Error {}
+export const COMMANDS = ['setup', 'supervise', 'worker', 'status', 'verify', 'start', 'stop', 'uninstall', 'logs', 'upgrade', 'trust', 'channel', 'version', 'selftest'];
+const VALUE_OPTIONS = { '--api': 'api', '--manifest': 'manifest', '--home': 'home', '--task-name': 'taskName', '--artifact': 'artifact' };
+const FLAG_OPTIONS = { '--no-tasks': 'noTasks', '--no-start': 'noStart', '--once': 'once', '--standby': 'standby' };
+
 function opts(argv) {
   const o = {};
   for (let i = 1; i < argv.length; i++) {
     const a = argv[i];
-    const val = () => { const v = argv[++i]; if (v === undefined || v.startsWith('--')) throw new Error(a + ' needs a value'); return v; };
-    if (a === '--code') o.code = val(); else if (a === '--api') o.api = val(); else if (a === '--manifest') o.manifest = val();
-    else if (a === '--home') o.home = val(); else if (a === '--task-name') o.taskName = val(); else if (a === '--artifact') o.artifact = val();
-    else if (a === '--yes') o.yes = true; else if (a === '--no-tasks') o.noTasks = true; else if (a === '--no-start') o.noStart = true;
-    else if (a === '--once') o.once = true; else if (a === '--standby') o.standby = true;
-    else throw new Error('unknown option ' + printable(a));
+    if (Object.hasOwn(VALUE_OPTIONS, a)) {
+      const v = argv[i + 1];
+      if (v === undefined || v.startsWith('--')) throw new UsageRefusal(a + ' needs a value');
+      o[VALUE_OPTIONS[a]] = v; i++;
+    } else if (Object.hasOwn(FLAG_OPTIONS, a)) o[FLAG_OPTIONS[a]] = true;
+    else throw new UsageRefusal('argument ' + (i + 1) + ' is not an option (arguments are never shown). Options: ' + [...Object.keys(VALUE_OPTIONS), ...Object.keys(FLAG_OPTIONS)].join(' '));
   }
   return o;
 }
@@ -127,6 +133,10 @@ async function runtimeFacts() {
 
 export async function mainAsync(argv) {
   const cmd = argv[0] || 'setup';
+  if (!COMMANDS.includes(cmd)) {
+    process.stderr.write('REFUSED - the first argument is not a Brain Factory command (arguments are never shown). Commands: ' + COMMANDS.join(', ') + '\n');
+    return EXIT_NOT_AVAILABLE;
+  }
   const o = opts(argv);
   const { homeDir, paths, readJson, writeJson } = await import('../enrolled/home.mjs');
   const home = o.home || homeDir();
@@ -147,8 +157,10 @@ export async function mainAsync(argv) {
   }
   if (cmd === 'status') {
     const cfg = readJson(p.config);
+    const { askPipe } = await import('../enrolled/instance.mjs');
     const out = { home, enrolled: !!(cfg && cfg.credential_id), node_id: cfg && cfg.node_id, computer: cfg && cfg.computer, tenant: cfg && cfg.tenant,
-      api: cfg && cfg.api, key_protection: cfg && cfg.key_protection, status: readJson(p.status), current: readJson(p.current), build: buildInfo() };
+      api: cfg && cfg.api, key_protection: cfg && cfg.key_protection, status: readJson(p.status), current: readJson(p.current), build: buildInfo(),
+      supervisor: await askPipe(home, 'supervisor', 'whois', 3000), worker: await askPipe(home, 'worker', 'whois', 3000) };
     process.stdout.write(JSON.stringify(out, null, 2) + '\n');
     return EXIT_OK;
   }
@@ -159,10 +171,10 @@ export async function mainAsync(argv) {
     return v.ok ? EXIT_OK : 3;
   }
   if (cmd === 'stop') {
-    writeJson(p.stop, { at: new Date().toISOString() });
-    const lock = readJson(p.lock);
-    for (let i = 0; i < 60 && readJson(p.lock); i++) await new Promise((ok) => setTimeout(ok, 500));
-    process.stdout.write((readJson(p.lock) ? 'stop requested; the supervisor has not exited yet' : 'stopped') + (lock ? '' : ' (no supervisor was running)') + '\n');
+    // the stop file (the worker's loop and the supervisor's backoff read it) and "stop" on the supervisor's pipe; then wait until
+    // no supervisor and no worker answers on this home's pipes (a process id in a file is never what is waited on)
+    const r = await stopRuntime(home, p, writeJson);
+    process.stdout.write((r.running ? 'stop requested; the runtime has not exited yet' : 'stopped') + (r.wasRunning ? '' : ' (no supervisor was running)') + '\n');
     return EXIT_OK;
   }
   if (cmd === 'start') {
@@ -173,8 +185,7 @@ export async function mainAsync(argv) {
     process.stdout.write('supervisor started\n'); return EXIT_OK;
   }
   if (cmd === 'uninstall') {
-    writeJson(p.stop, { at: new Date().toISOString() });
-    for (let i = 0; i < 60 && readJson(p.lock); i++) await new Promise((ok) => setTimeout(ok, 500));
+    await stopRuntime(home, p, writeJson);
     if (!o.noTasks) { const { unregisterTasks, DEFAULT_TASK } = await import('../enrolled/tasks.mjs'); unregisterTasks(o.taskName || ((readJson(p.config) || {}).task || {}).name || DEFAULT_TASK); }
     const { rmSync } = await import('node:fs');
     rmSync(home, { recursive: true, force: true });
@@ -192,14 +203,33 @@ export async function mainAsync(argv) {
     process.stdout.write(JSON.stringify(trustReadback()) + '\n');
     return EXIT_OK;
   }
+  if (cmd === 'channel') {
+    // the channel, default endpoint, release storage and trust mode FIXED IN THIS ARTIFACT at build time (S-5): what a read-back of
+    // the endpoint compares (AC-5(n)); it reads no configuration, environment or answer, and contacts nothing
+    const { channelInfo } = await import('../enrolled/setup.mjs');
+    process.stdout.write(JSON.stringify(channelInfo()) + '\n');
+    return EXIT_OK;
+  }
   if (cmd === 'upgrade') {
     const { upgrade } = await import('../enrolled/upgrade.mjs');
     const r = await upgrade({ home, artifact: o.artifact, manifest: o.manifest });
     process.stdout.write(JSON.stringify(r) + '\n');
     return r.ok ? EXIT_OK : 3;
   }
-  process.stderr.write(printable(cmd) + ': not a Brain Factory command (setup, supervise, status, verify, start, stop, uninstall, logs, upgrade, trust, version, selftest)\n');
+  process.stderr.write('REFUSED - this command takes no action here (arguments are never shown)\n'); // version and selftest are main()'s
   return EXIT_NOT_AVAILABLE;
+}
+
+/** stop this home's runtime: the stop file, "stop" on the supervisor's and the worker's pipes, then wait (up to 30 s) until neither
+ *  pipe is held. -> { wasRunning, running } */
+async function stopRuntime(home, p, writeJson) {
+  const { askPipe } = await import('../enrolled/instance.mjs');
+  writeJson(p.stop, { at: new Date().toISOString() });
+  const held = async () => !!(await askPipe(home, 'supervisor', 'whois', 2000)) || !!(await askPipe(home, 'worker', 'whois', 2000));
+  const wasRunning = await held();
+  if (wasRunning) { await askPipe(home, 'supervisor', 'stop', 3000); await askPipe(home, 'worker', 'stop', 3000); }
+  for (let i = 0; i < 60 && (await held()); i++) await new Promise((ok) => setTimeout(ok, 500));
+  return { wasRunning, running: await held() };
 }
 
 // child_process through a function so the unbundled import of this file stays side-effect free
@@ -213,10 +243,19 @@ function spawnSupervisor(installedExe, home) {
 }
 
 export function main(argv = process.argv.slice(2), out = (line) => process.stdout.write(line + '\n')) {
+  // FIRST, for every command: no pairing code on the command line (S-12), and a refusal that shows no argument
+  const refused = refuseArgv(argv);
+  if (refused) { process.stderr.write('REFUSED - ' + refused + '\n'); return EXIT_NOT_AVAILABLE; }
   const cmd = argv[0];
-  if (cmd === 'version') { out(JSON.stringify(buildInfo())); return EXIT_OK; }
-  if (cmd === 'selftest') return selftest(out);
-  return mainAsync(argv).catch((e) => { process.stderr.write('error: ' + (e && e.message || e) + '\n'); return 1; });
+  if (cmd === 'version' || cmd === 'selftest') {
+    if (argv.length > 1) { process.stderr.write('REFUSED - version and selftest take no argument (arguments are never shown)\n'); return EXIT_NOT_AVAILABLE; }
+    if (cmd === 'version') { out(JSON.stringify(buildInfo())); return EXIT_OK; }
+    return selftest(out);
+  }
+  return mainAsync(argv).catch((e) => {
+    if (e instanceof UsageRefusal) { process.stderr.write('REFUSED - ' + e.message + '\n'); return EXIT_NOT_AVAILABLE; }
+    process.stderr.write('error: ' + (e && e.message || e) + '\n'); return 1;
+  });
 }
 
 // The CLI runs when this is the program: the packaged exe, the bundle run with `node main.cjs`, or this file run with `node`.

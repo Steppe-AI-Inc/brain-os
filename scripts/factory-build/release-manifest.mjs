@@ -21,12 +21,12 @@
 // safe because a production-channel artifact never trusts it (it refuses a dev-key signature by name).
 import { createHash, createPrivateKey, createPublicKey, sign } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { authenticodeImageHash } from '../factory-runner/enrolled/pe-image.mjs';
-import { canonicalManifestBytes, keyIdOf, verifyRelease } from '../factory-runner/enrolled/release.mjs';
+import { canonicalManifestBytes, keyIdOf, NO_REVOCATIONS, verifyRelease } from '../factory-runner/enrolled/release.mjs';
+import { channelTrust } from './build-sea.mjs';
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const DEV_SEED_TEXT = 'brain-factory dev release key v1 - PUBLIC seed; disposable planes only; never a live trust root';
 
 export function devKey() {
@@ -36,7 +36,9 @@ export function devKey() {
   return { privateKey, publicKey: Buffer.from(pub), keyId: keyIdOf(pub) };
 }
 
-export function channelTrustFile(channel) { return JSON.parse(readFileSync(join(ROOT, 'scripts/factory-runner/enrolled/trust', channel + '.json'), 'utf8')); }
+// the channel's trust set exactly as build-sea fixes it into that channel's artifact: validated (bound, unique key ids) and
+// channel-separated (no dev key in production, only dev keys in dev) - never the raw file
+export function channelTrustFile(channel) { return channelTrust(channel); }
 
 export function makeManifest({ artifact, channel, version, source_sha, receipt_sha256 }) {
   if (!['production', 'dev'].includes(channel)) throw new Error('--channel production|dev');
@@ -66,7 +68,7 @@ if (isMain) {
       if (!/^ed25519:[0-9a-f]{64}$/.test(a['key-id'] || '') || !/^[A-Za-z0-9_-]{86}$/.test(a.signature || '')) throw new Error('--key-id ed25519:<64 hex> --signature <86 base64url>');
       writeFileSync(a.manifest, JSON.stringify({ ...m, key_id: a['key-id'], signature: a.signature }, null, 2) + '\n'); console.log('signature attached (not verified here: verify it)');
     } else if (cmd === 'verify') {
-      const v = verifyRelease({ manifest: JSON.parse(readFileSync(a.manifest, 'utf8')), artifact: readFileSync(a.artifact), trust: channelTrustFile(a.channel) });
+      const v = verifyRelease({ manifest: JSON.parse(readFileSync(a.manifest, 'utf8')), artifact: readFileSync(a.artifact), trust: channelTrustFile(a.channel), revocations: NO_REVOCATIONS }); // a build tool: no plane, no revocations to read
       console.log(JSON.stringify(v)); process.exitCode = v.ok ? 0 : 3;
     } else { console.log('usage: release-manifest.mjs make | sign-dev | signing-input | attach-signature | verify  (see the header)'); process.exitCode = 2; }
   } catch (e) { console.log('FAILED - ' + e.message); process.exitCode = 1; }

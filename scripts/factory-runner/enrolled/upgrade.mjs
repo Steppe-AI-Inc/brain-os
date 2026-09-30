@@ -3,31 +3,104 @@
 //             in THIS installed runtime and the revocations the API delivered: unsigned, tampered, a revoked key, a revoked release, a
 //             key outside the pinned set, a dev key on a production-channel runtime - each refused by name, and the offered bytes are
 //             never executed. A version not newer than the running one is refused (a node never downgrades silently) unless it is the
-//             release a Factory admin ADOPTED for this computer (the plane says so on the node's heartbeat).
+//             release a Factory admin ADOPTED for this computer (the plane says so on the node's heartbeat). And a release that is
+//             neither the plane's PUBLISHED release of its channel nor the one ADOPTED for this computer - a superseded release, however
+//             new its version number - is refused (release_not_current; AC-5(m)): only an admin adopt moves a node to it.
 //   adopt     the worker switches to the adopted release when it is installed here (the previous release is kept for exactly this).
-import { copyFileSync, mkdirSync, readFileSync } from 'node:fs';
+// ONE GATE FOR EVERY RELEASE SWITCH (S-5; contract §2 Release, §6): gateOffer() is the only path by which an offered release becomes
+// current in this home - `upgrade` and `setup` (a first install, a retry, or a setup run on a home that is already enrolled) both go
+// through it BEFORE anything of the offered release is copied, recorded, registered or started. adoptIfInstalled below switches only
+// to a release that the plane's heartbeat names as adopted for this computer by a Factory admin.
+import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { paths, readJson, writeJson } from './home.mjs';
 import { authenticodeImageHash } from './pe-image.mjs';
 import { verifyRelease } from './release.mjs';
-import { NodeApi } from './api.mjs';
+import { NodeApi, TERMINAL } from './api.mjs';
 import { loadKey } from './keys.mjs';
 import { registerTasks } from './tasks.mjs';
+import { mergeRevocations } from './revocations.mjs';
+import { pendingRotation } from './credential.mjs';
 
-/** FRESH revocations from the plane, through this node's own credential (a heartbeat answers them): an upgrade never trusts a key
- * or a release on a stale list. When the plane cannot answer, the upgrade is refused - revocation state unknown. */
-async function freshRevocations(p) {
+const RUNTIME_PHASES = ['AVAILABLE', 'BUSY', 'DRAINING', 'RECOVERING'];
+
+/** THE PLANE'S FRESH STATE, through this node's own credential (a heartbeat answers it): the revocations, the release adopted for
+ * this computer and the published release of each channel. A release is never installed on a stale list: when the plane cannot
+ * answer, the offer is refused (revocation state unknown), and so it is when the answer does not state the published releases
+ * (release_state_unavailable). The revocations are MERGED into the node's list, which only grows (revocations.mjs). The heartbeat
+ * reports the phase the running runtime last recorded; with none recorded, `idlePhase`. While a credential rotation of this node is
+ * pending, nothing is decided here (rotation_pending): the runtime resolves it first (credential.mjs). */
+async function freshPlaneState(p, { retries = 1, idlePhase = 'AVAILABLE' } = {}) {
   const cfg = readJson(p.config);
   if (!cfg || !cfg.credential_id) return { ok: false, refused: 'not_enrolled', message: 'this computer is not enrolled' };
+  if (pendingRotation(p.home).any) return { ok: false, refused: 'rotation_pending', message: 'a credential rotation of this computer is pending; the runtime resolves it with the stored key (start the runtime and try again)' };
   const k = await loadKey(p.key, cfg.public_key);
   if (!k.ok) return { ok: false, refused: 'no_key', message: k.fix };
   const api = new NodeApi({ api: cfg.api, key: k.key });
   const st = readJson(p.status, {});
-  const phase = ['AVAILABLE', 'BUSY', 'DRAINING', 'RECOVERING'].includes(st.state) ? st.state : 'AVAILABLE';
-  const hb = await api.op('heartbeat', { phase }, { retries: 1 });
+  const phase = RUNTIME_PHASES.includes(st.state) ? st.state : idlePhase;
+  // a plane that does not answer is asked again (the session's opening included, which op() does not retry), with backoff
+  let hb;
+  for (let attempt = 0; ; attempt++) {
+    hb = await api.op('heartbeat', { phase }, { retries });
+    const transient = !hb.ok && (hb.refused === 'unreachable' || hb.refused === 'plane_unavailable' || hb.http === 502 || hb.http === 504);
+    if (!transient || attempt >= retries) break;
+    await new Promise((ok) => setTimeout(ok, 1000 * 2 ** attempt));
+  }
+  if (!hb.ok && TERMINAL.has(hb.refused)) return { ok: false, refused: hb.refused, message: (hb.message || 'this computer\'s credential is ' + hb.refused) + ' - a Factory admin re-pairs or restores it' };
+  if (!hb.ok && hb.refused === 'endpoint_refused') return { ok: false, refused: hb.refused, message: hb.message };
   if (!hb.ok || !hb.revocations) return { ok: false, refused: 'revocations_unavailable', message: 'the plane did not answer the current revocations (' + (hb.refused || hb.http) + '): nothing is installed on a stale list' };
-  writeJson(p.revocations, hb.revocations);
-  return { ok: true, revocations: hb.revocations };
+  const revocations = mergeRevocations(p.home, hb.revocations);
+  if (!Array.isArray(hb.published_releases)) return { ok: false, refused: 'release_state_unavailable', message: 'the plane did not state its published releases: nothing is installed without knowing whether the offered release is current' };
+  return { ok: true, revocations, adopted_release: hb.adopted_release || null, published_releases: hb.published_releases };
+}
+
+/**
+ * THE PLANE-STATE PART OF THE GATE (pure): may the verified release `v` become current here, given current.json `cur` and the plane's
+ * fresh `plane` ({ adopted_release, published_releases })? In order, each refused by name:
+ *   downgrade_refused    a version not newer than the installed one, unless the plane names exactly its digest as adopted here
+ *   release_not_current  neither the plane's published release of its channel nor the release adopted for this computer (a
+ *                        superseded release, whatever its version number: contract §2 Release, AC-5(m))
+ * The published and adopted state is used only to refuse: it never adds a key or changes the mode (S-5).
+ */
+export function releaseGate({ v, cur, plane }) {
+  const adopted = !!(plane.adopted_release && plane.adopted_release.digest === v.digest && plane.adopted_release.state !== 'revoked');
+  const published = (plane.published_releases || []).some((r) => r && r.channel === v.channel && r.digest === v.digest);
+  if (cur && semverCmp(v.version, cur.version) <= 0 && !adopted) {
+    return { ok: false, refused: 'downgrade_refused', message: 'the offered ' + v.version + ' is not newer than ' + cur.version + ' (installed here), and the plane has not recorded it as adopted for this node' };
+  }
+  if (!adopted && !published) {
+    return { ok: false, refused: 'release_not_current', message: 'the offered ' + v.version + ' is neither the published release of the ' + v.channel + ' channel nor the release a Factory admin adopted for this computer (a superseded release runs only after an admin adopt)' };
+  }
+  return { ok: true, adopted, published };
+}
+
+/**
+ * THE GATE: is this offered release (its manifest and its bytes) allowed to become current in this home? In order, each refused by
+ * name: the plane's fresh state (revocations_unavailable, release_state_unavailable, rotation_pending, or the credential's terminal
+ * state); the release against the trust set pinned in THIS runtime and the merged revocations (unsigned, key_outside_trust_set,
+ * bad_signature, key_revoked, digest_mismatch, release_revoked, ...); then releaseGate - no silent downgrade (downgrade_refused) and no
+ * superseded release without an admin adopt (release_not_current). status.json and every other local record are never consulted for
+ * the plane's state. The current release offered again is { same: true } (an idempotent reinstall, never a switch).
+ * Returns the verified release with `current` (the current.json it was judged against) or the refusal. Writes only revocations.json.
+ */
+export async function gateOffer({ home, manifest, bytes, retries = 1, idlePhase = 'AVAILABLE' }) {
+  const p = paths(home);
+  const fresh = await freshPlaneState(p, { retries, idlePhase });
+  if (!fresh.ok) return fresh;
+  const v = verifyRelease({ manifest, artifact: bytes, revocations: fresh.revocations });
+  if (!v.ok) return v;
+  const cur = readJson(p.current);
+  if (cur && cur.digest === v.digest) return { ...v, same: true, current: cur };
+  const g = releaseGate({ v, cur, plane: fresh });
+  if (!g.ok) return g;
+  return { ...v, same: false, current: cur };
+}
+
+/** current.json has not moved since the gate judged the offer against it (a concurrent upgrade or adopt would have moved it) */
+export function currentUnchanged(p, judged) {
+  const now = readJson(p.current);
+  return ((now && now.digest) || null) === ((judged && judged.digest) || null);
 }
 
 export function semverCmp(a, b) {
@@ -42,20 +115,22 @@ export async function upgrade({ home, artifact, manifest }) {
   const m = readJson(manifest);
   let bytes;
   try { bytes = readFileSync(artifact); } catch (e) { return { ok: false, refused: 'bad_request', message: 'the artifact cannot be read: ' + e.code }; }
-  const fresh = await freshRevocations(p);
-  if (!fresh.ok) return fresh;
-  const v = verifyRelease({ manifest: m, artifact: bytes, revocations: fresh.revocations });
+  const v = await gateOffer({ home, manifest: m, bytes });
   if (!v.ok) return v;
-  const cur = readJson(p.current);
-  const adopted = (readJson(p.status, {}).adopted_release || {}).digest;
-  if (cur && semverCmp(v.version, cur.version) <= 0 && v.digest !== adopted) {
-    return { ok: false, refused: 'downgrade_refused', message: 'release ' + v.version + ' is not newer than the running ' + cur.version + ' and no Factory admin adopted it for this computer' };
-  }
+  if (v.same) return { ok: true, already: true, version: v.version, digest: v.digest, message: 'release ' + v.version + ' is the one installed and current here: no change' };
   const dir = join(p.runtime, v.version + '-' + v.digest.slice(0, 12));
-  mkdirSync(dir, { recursive: true });
-  copyFileSync(artifact, join(dir, 'BrainFactory.exe'));
-  if (authenticodeImageHash(readFileSync(join(dir, 'BrainFactory.exe'))) !== v.digest) return { ok: false, refused: 'digest_mismatch', message: 'the installed copy changed' };
+  const target = join(dir, 'BrainFactory.exe');
+  // idempotent: a copy already carrying the verified image hash is kept (it may be the exe of a release this node runs right now - an
+  // adopted release offered again - which cannot be overwritten while it runs)
+  const present = existsSync(target) && (() => { try { return authenticodeImageHash(readFileSync(target)) === v.digest; } catch { return false; } })();
+  if (!present) {
+    mkdirSync(dir, { recursive: true });
+    copyFileSync(artifact, target);
+    if (authenticodeImageHash(readFileSync(target)) !== v.digest) return { ok: false, refused: 'digest_mismatch', message: 'the installed copy changed' };
+  }
   writeJson(join(dir, 'manifest.json'), m);
+  if (!currentUnchanged(p, v.current)) return { ok: false, refused: 'current_changed', message: 'current.json was rewritten by something else (an adopt or another upgrade) while this upgrade ran, so it switched nothing' };
+  const cur = v.current;
   if (cur && cur.dir !== dir) writeJson(p.previous, cur);
   writeJson(p.current, { dir, version: v.version, digest: v.digest, installed_at: new Date().toISOString(), via: 'upgrade' });
   // the logon task follows the current release at once (a reboot before the next worker start runs the new release, never the old one)

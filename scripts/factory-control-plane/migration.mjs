@@ -1,18 +1,23 @@
 #!/usr/bin/env node
 // THE FACTORY V1 CONTROL-PLANE MIGRATION: compose it, hash it, apply it to a DISPOSABLE plane.
 //
-//   node scripts/factory-control-plane/migration.mjs compose            print the migration (one transaction's statements)
-//   node scripts/factory-control-plane/migration.mjs sha256             print its sha256 and the parts it is made of
-//   node scripts/factory-control-plane/migration.mjs apply --admin <url>   BEGIN; <migration>; COMMIT; on that plane
+//   node scripts/factory-control-plane/migration.mjs compose     print the migration (the v1 files, one transaction's statements)
+//   node scripts/factory-control-plane/migration.mjs sha256      print its sha256 and the parts it is made of
+//   FACTORY_DISPOSABLE_ADMIN_URL=<url> node scripts/factory-control-plane/migration.mjs apply
+//                                                              BEGIN; <migration>; COMMIT; on that DISPOSABLE plane
 //
-// WHAT "THE MIGRATION" IS. The ordered concatenation of supabase/control-plane/v1/NNN_*.sql, each part preceded by one marker line.
-// It opens and closes no transaction itself: `apply` wraps it in exactly one, and the founder's prepared live step is these same
-// bytes inside the Director-specified wrapper (WO-1, AC-11). The composition is deterministic: the same tree gives the same bytes,
-// so the sha256 printed here is the one a receipt records.
+// WHAT "THE MIGRATION" IS (contract §1, WO-1 r3). Every .sql file under supabase/control-plane/v1/, in byte order of path. The
+// live-migration step is NOT built here: the verifier builds it from the committed bytes with the Director instrument
+// qa/verification/auto-enrollment-v1/tools/build_live_migration_step.mjs, and the founder applies exactly that file. `compose`
+// prints the parts, each preceded by one marker line, for reading; its sha256 is a developer label, not the step's.
 //
-// `apply` is a DEVELOPER tool for disposable planes. It refuses the Brain OS production project by name, as every Factory tool
-// does. It is not the founder's live path: applying to the live plane is a founder action (BLOCKED - FOUNDER), prepared
-// separately and never run by the candidate.
+// `apply` is a DEVELOPER tool for disposable planes, and it is not the founder's live path.
+//   * The admin URL is read ONLY from the environment variable FACTORY_DISPOSABLE_ADMIN_URL: a database credential is never taken
+//     from the command line (S-12). Any argument after the subcommand is a usage error, and it is never echoed.
+//   * It refuses, before connecting, a URL that names the Brain OS production project or the live Factory plane.
+//   * It refuses a superuser login after connecting: the live applying login is not a superuser, and a superuser skips every
+//     privilege check the live plane makes. The developer suites apply through qa/factory/v1/applying_role_plane.mjs instead,
+//     as a login aligned to the live applying login.
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, realpathSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -20,7 +25,8 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const MIGRATION_DIR = join(ROOT, 'supabase', 'control-plane', 'v1');
-const PRODUCTION_MARKS = ['pvphxgrtdfrudejjhzjk'];
+// refused by name before any connection: the Brain OS production project, and the live Factory control plane
+export const REFUSED_REFS = ['pvphxgrtdfrudejjhzjk', 'npvhuoozkbexddnvkqsj'];
 
 export function parts() {
   return readdirSync(MIGRATION_DIR).filter((f) => /^\d{3}_[a-z0-9_]+\.sql$/.test(f)).sort();
@@ -41,15 +47,26 @@ export function compose() {
 
 export const sha256 = (s) => createHash('sha256').update(s, 'utf8').digest('hex');
 
-/** Apply the migration in ONE transaction on the plane `adminUrl` names. Returns { sha256 }. */
+/** The refusal for a URL that names a refused project, or null. Pure; nothing is connected. */
+export function refusedRef(url) {
+  const raw = String(url || '');
+  const lenient = raw.replace(/%([0-9a-fA-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+  const text = (raw + '\n' + lenient).toLowerCase();
+  const hit = REFUSED_REFS.find((m) => text.includes(m));
+  return hit ? 'REFUSING - the URL names ' + (hit === REFUSED_REFS[0] ? 'the Brain OS PRODUCTION project' : 'the LIVE Factory control plane') + ' (' + hit + '); this tool applies to disposable planes only' : null;
+}
+
+/** Apply the migration in ONE transaction on the DISPOSABLE plane `adminUrl` names, as a non-superuser login. Returns { sha256 }. */
 export async function apply(adminUrl, { log = () => {} } = {}) {
-  const lower = String(adminUrl || '').toLowerCase();
-  for (const m of PRODUCTION_MARKS) if (lower.includes(m)) throw new Error('REFUSING - the URL names the Brain OS PRODUCTION project (' + m + ')');
+  const why = refusedRef(adminUrl);
+  if (why) throw new Error(why);
   const sql = compose();
   const { default: pg } = await import('pg');
   const client = new pg.Client({ connectionString: adminUrl });
   await client.connect();
   try {
+    const me = (await client.query('select r.rolsuper from pg_catalog.pg_roles r where r.rolname = current_user')).rows[0];
+    if (!me || me.rolsuper) throw new Error('REFUSING - the login is a superuser; the live applying login is not, and a superuser skips every privilege check (apply as a login aligned to APPLYING_ROLE_OBSERVATION.json)');
     await client.query('begin');
     try {
       await client.query(sql);
@@ -68,12 +85,14 @@ export async function apply(adminUrl, { log = () => {} } = {}) {
 const isEntry = () => { try { const a = realpathSync(resolve(process.argv[1] || '')), b = realpathSync(fileURLToPath(import.meta.url)); return process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b; } catch { return false; } };
 if (isEntry()) {
   const cmd = process.argv[2];
-  const arg = (n) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : null; };
+  const USAGE = 'usage: migration.mjs compose | sha256 | apply   (apply reads the DISPOSABLE plane\'s admin URL from FACTORY_DISPOSABLE_ADMIN_URL; never from the command line)';
+  // nothing after the subcommand: a URL or password given there is refused, and never echoed
+  if (process.argv.length > 3) { console.log(USAGE); console.log('refused: no argument is accepted after the subcommand (a database credential never goes on a command line)'); process.exit(2); }
   if (cmd === 'compose') process.stdout.write(compose());
   else if (cmd === 'sha256') { const s = compose(); console.log(sha256(s) + '  factory-v1-migration.sql'); for (const f of parts()) console.log('  part ' + f + '  ' + sha256(lf(readFileSync(join(MIGRATION_DIR, f), 'utf8')))); }
   else if (cmd === 'apply') {
-    const url = arg('--admin');
-    if (!url) { console.log('usage: migration.mjs apply --admin <postgresql url of a DISPOSABLE plane provisioned as 69df2f52>'); process.exit(2); }
+    const url = process.env.FACTORY_DISPOSABLE_ADMIN_URL;
+    if (!url) { console.log(USAGE); process.exit(2); }
     try { const r = await apply(url); console.log('applied; migration sha256 ' + r.sha256); } catch (e) { console.log('FAILED - ' + (e && e.message)); process.exit(1); }
-  } else { console.log('usage: migration.mjs compose | sha256 | apply --admin <url>'); process.exit(2); }
+  } else { console.log(USAGE); process.exit(2); }
 }

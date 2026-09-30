@@ -6,6 +6,9 @@
 // CHANNEL (S-5, WO-6). The release channel's TRUST SET and TRUST MODE (scripts/factory-runner/enrolled/trust/<channel>.json) and its
 // default Node API endpoint are FIXED INTO THE BUNDLE at build time (esbuild defines __TRUST__ and __CHANNEL__); nothing at runtime
 // changes them. The production channel's trust set is empty until C-3, so a production-channel build trusts no key at all.
+// CHANNEL SEPARATION is checked first (channelTrust, before the output directory, the base binary, git or the toolchain lock is
+// touched): a production trust set that holds a dev key, or a dev trust set that holds a key that is not a dev key, is refused
+// (exit 4) and nothing is written. A check added to build() later keeps this order, so the refusal stays the first answer.
 // build-info records the channel, every trust entry read back as (key_id, sha256 of the public key), and the artifact's digest - its
 // SHA-256 PE Authenticode image hash (scripts/factory-runner/enrolled/pe-image.mjs), the value a release manifest signs.
 //
@@ -31,8 +34,13 @@
 //      content (every such file HEAD has must hash, through the checkout's filters, to HEAD's blob: git status alone trusts an
 //      assume-unchanged / skip-worktree entry); the list is in build-info. git runs with --no-optional-locks and hash-object
 //      without -w: the build never writes the index or the object store.
-//   3. BUNDLE. esbuild (the locked node_modules copy) bundles scripts/factory-runner/sea/main.mjs into ONE CommonJS file (platform
-//      node, target node<major of the base>) with __BUILD_INFO__ = {runtime_version, source_commit, dirty, built_at} defined in.
+//   3. BUNDLE. esbuild bundles scripts/factory-runner/sea/main.mjs into ONE CommonJS file (platform node, target node<major of the
+//      base>) with __BUILD_INFO__ = {runtime_version, source_commit, dirty, built_at} defined in. Before esbuild is loaded, esbuild,
+//      @esbuild/win32-x64 and postject are compared with package-lock.json by METADATA: the version and the integrity string the
+//      lockfile names must equal npm's install record, node_modules/.package-lock.json; the installed package.json must name that
+//      version; each must resolve inside this checkout's node_modules; ESBUILD_BINARY_PATH must be unset. Any difference is
+//      toolchain_off_lock, exit 2. The installed bytes are not re-hashed against the lockfile's integrity (npm verified the tarball
+//      when it installed it); the esbuild binary's sha256 is recorded in build-info for comparison between builds.
 //      JS / JSON inputs are read with their line endings as LF, so a CRLF and an LF checkout of one commit give one metafile.
 //      Any esbuild warning fails the build. POLICY (exit 4): the inputs must not include pg, pg-*, pgpass, postgres, postgres-*,
 //      embedded-postgres or scripts/factory-runner/db.mjs; the bundle may require() only node builtins at run time (a SEA's
@@ -43,7 +51,7 @@
 //      in the work dir, with a minimal environment (no NODE_OPTIONS reaches it).
 //   5. STRIP. The base's Authenticode signature is removed in pure Node (pe-strip-signature.mjs: data directory 4 zeroed, the table
 //      truncated, the PE checksum recomputed) - the injection would invalidate it anyway.
-//   6. INJECT. postject (node_modules, locked) puts the blob in as the NODE_SEA_BLOB resource, sentinel fuse
+//   6. INJECT. postject (node_modules, checked against package-lock.json in step 3) puts the blob in as the NODE_SEA_BLOB resource, sentinel fuse
 //      NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2, overwrite on. After it: the fuse is flipped exactly once, the certificate
 //      directory is still empty, and the PE checksum is recomputed (postject does not maintain it).
 //   7. SMOKE. The exe runs `version` with a minimal environment and must print exactly the build info it was built with.
@@ -53,7 +61,7 @@
 //      and the signed exe must still pass the smoke (exit 5 otherwise). Without --sign, or with --sign and no command, nothing is
 //      signed and build-info records authenticode {signed:false, reason}. No certificate is ever required to build.
 //
-// EXIT: 0 built · 1 build failed · 2 usage / host · 3 base binary refused · 4 bundle policy refused · 5 signing failed
+// EXIT: 0 built · 1 build failed · 2 usage / host · 3 base binary refused · 4 bundle policy or channel separation refused · 5 signing failed
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -63,9 +71,11 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { certificateDirectory, readCertificateTable, stripSignature, updatePeChecksum } from './pe-strip-signature.mjs';
 import { authenticodeImageHash } from '../factory-runner/enrolled/pe-image.mjs';
+import { KNOWN_DEV_KEY_IDS } from '../factory-runner/enrolled/release.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const ROOT = resolve(HERE, '..', '..');
+export const TRUST_DIR = join(ROOT, 'scripts/factory-runner/enrolled/trust');
 export const ENTRY_REL = 'scripts/factory-runner/sea/main.mjs';
 export const RUNTIME_VERSION_FILE = 'scripts/factory-runner/sea/runtime-version.json';
 export const PINS_FILE = join(HERE, 'node-exe-pins.json');
@@ -91,6 +101,52 @@ export const RELEASE_BASE = { production: 'https://npvhuoozkbexddnvkqsj.supabase
 
 
 export class BuildError extends Error { constructor(code, message) { super(message); this.code = code; } }
+
+// THE TOOLCHAIN MATCHES THE LOCKFILE (WO-6 / S-5: tool versions pinned by lockfile). Checked before esbuild or postject is loaded,
+// for each of LOCKED_TOOLS, and by metadata only: package-lock.json's version and integrity string equal those of npm's install record
+// (node_modules/.package-lock.json); the installed package.json names that version; the package resolves under this checkout's own
+// node_modules, not a parent's. ESBUILD_BINARY_PATH, which points esbuild's JS API at a different binary, must not be set. A
+// mismatch throws toolchain_off_lock (exit 2) and nothing is bundled. The installed files are not hashed here; the result lists the
+// checked tools for build-info (toolchain.lock), plus the sha256 of the esbuild binary, which is recorded and not compared.
+export const LOCKED_TOOLS = ['esbuild', '@esbuild/win32-x64', 'postject'];
+export function checkToolchainLock({ lock, installedRecord, installedVersion, resolvedPath, root = ROOT, env = process.env, binarySha256 = null }) {
+  const off = (name, why) => new BuildError(EXIT.USAGE, 'toolchain_off_lock: ' + name + ' ' + why + ' - run `npm ci` in ' + root);
+  const envKey = Object.keys(env || {}).find((k) => k.toUpperCase() === 'ESBUILD_BINARY_PATH' && env[k]);
+  if (envKey) throw new BuildError(EXIT.USAGE, 'toolchain_off_lock: ESBUILD_BINARY_PATH is set, which would run another esbuild binary than the locked @esbuild/win32-x64 - unset it');
+  let modulesReal;
+  try { modulesReal = realpathSync(join(root, 'node_modules')); } catch { throw off('node_modules', 'is missing'); }
+  const out = [];
+  for (const name of LOCKED_TOOLS) {
+    const key = 'node_modules/' + name;
+    const want = lock && lock.packages && lock.packages[key];
+    if (!want || !want.version || !want.integrity) throw off(name, 'is not pinned (version and integrity) in package-lock.json');
+    const got = installedRecord && installedRecord.packages && installedRecord.packages[key];
+    if (!got) throw off(name, 'has no record in node_modules/.package-lock.json (npm ci writes it)');
+    if (got.version !== want.version || got.integrity !== want.integrity) throw off(name, 'was installed as ' + got.version + ' (' + String(got.integrity).slice(0, 20) + '...); package-lock.json pins ' + want.version + ' (' + want.integrity.slice(0, 20) + '...)');
+    let v;
+    try { v = installedVersion(name); } catch { v = null; }
+    if (v !== want.version) throw off(name, 'in node_modules is version ' + v + '; package-lock.json pins ' + want.version);
+    let resolved;
+    try { resolved = resolvedPath(name); } catch { resolved = null; }
+    const inside = resolved && (() => { try { const r = realpathSync(resolved); const base = join(modulesReal, ...name.split('/')); return (isWin ? r.toLowerCase() : r).startsWith((isWin ? base.toLowerCase() : base) + (isWin ? '\\' : '/')); } catch { return false; } })();
+    if (!inside) throw off(name, 'does not resolve inside this checkout\'s node_modules');
+    out.push({ name, version: want.version, integrity: want.integrity });
+  }
+  if (binarySha256) out.push({ name: '@esbuild/win32-x64/esbuild.exe', sha256: binarySha256 });
+  return out;
+}
+
+/** the lock check on this checkout, reading the real files */
+export function toolchainLockHere() {
+  const bin = join(ROOT, 'node_modules', '@esbuild', 'win32-x64', 'esbuild.exe');
+  return checkToolchainLock({
+    lock: readJson(join(ROOT, 'package-lock.json')),
+    installedRecord: (() => { try { return readJson(join(ROOT, 'node_modules', '.package-lock.json')); } catch { return null; } })(),
+    installedVersion: (name) => readJson(join(ROOT, 'node_modules', ...name.split('/'), 'package.json')).version,
+    resolvedPath: (name) => requireFromRoot.resolve(name + '/package.json'),
+    binarySha256: existsSync(bin) ? sha256(readFileSync(bin)) : null,
+  });
+}
 
 export const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
 const readJson = (p) => JSON.parse(readFileSync(p, 'utf8'));
@@ -236,10 +292,13 @@ function runtimeVersion() {
 
 export function defaultOutDir(channel = 'dev') { return join(ROOT, 'dist', 'brain-factory', runtimeVersion(), channel); }
 
-/** The channel's trust set, validated: each key id is "ed25519:" + sha256 of its 32-byte public key, and no key id repeats. */
-export function channelTrust(channel) {
+/** The channel's trust set, validated: each key id is "ed25519:" + sha256 of its 32-byte public key, and no key id repeats. CHANNEL
+ *  SEPARATION (S-5) is enforced here, not left to the data: the production set may hold no dev key (KNOWN_DEV_KEY_IDS, or any key
+ *  trust/dev.json holds), and the dev set holds only dev keys. Either is refused with EXIT.POLICY before any build step writes an
+ *  output. `trustDir` is for the developer suites (a planted copy of the trust files); build() passes none. */
+export function channelTrust(channel, { trustDir = TRUST_DIR } = {}) {
   if (!CHANNELS.includes(channel)) throw new BuildError(EXIT.USAGE, '--channel must be production or dev');
-  const t = readJson(join(ROOT, 'scripts/factory-runner/enrolled/trust', channel + '.json'));
+  const t = readJson(join(trustDir, channel + '.json'));
   if (t.channel !== channel || t.mode !== channel || !Array.isArray(t.keys)) throw new BuildError(EXIT.USAGE, 'trust/' + channel + '.json: channel and mode must be ' + channel + ', keys an array');
   const ids = new Set();
   const keys = t.keys.map((k) => {
@@ -249,6 +308,15 @@ export function channelTrust(channel) {
     ids.add(k.key_id);
     return { key_id: k.key_id, public_key: k.public_key };
   });
+  if (channel === 'production') {
+    const dev = readJson(join(trustDir, 'dev.json'));
+    const devIds = new Set([...KNOWN_DEV_KEY_IDS, ...(Array.isArray(dev.keys) ? dev.keys.map((x) => x && x.key_id) : [])]);
+    const hit = keys.find((x) => devIds.has(x.key_id));
+    if (hit) throw new BuildError(EXIT.POLICY, 'trust/production.json: ' + hit.key_id + ' is a dev key; a dev key is never a production trust root (S-5)');
+  } else {
+    const foreign = keys.find((x) => !KNOWN_DEV_KEY_IDS.includes(x.key_id));
+    if (foreign) throw new BuildError(EXIT.POLICY, 'trust/dev.json: ' + foreign.key_id + ' is not a dev key; the dev channel holds only dev keys (S-5)');
+  }
   return { channel, mode: t.mode, keys };
 }
 
@@ -364,8 +432,12 @@ export async function build({ out, nodeExe, channel, sign = false, keepWork = fa
     const { epoch, source: built_at_source } = sourceDateEpoch();
     const built_at = new Date(epoch * 1000).toISOString();
 
-    // 3. BUNDLE - pass 1 finds the inputs (dirty is judged over them), pass 2 is the bundle with the final build info
+    // 3. BUNDLE - pass 1 finds the inputs (dirty is judged over them), pass 2 is the bundle with the final build info. The toolchain
+    // is checked against package-lock.json BEFORE it is loaded.
+    const toolchainLock = toolchainLockHere();
     const esbuild = requireFromRoot('esbuild');
+    const esbuildLocked = toolchainLock.find((t) => t.name === 'esbuild').version;
+    if (esbuild.version !== esbuildLocked) throw new BuildError(EXIT.USAGE, 'toolchain_off_lock: the loaded esbuild reports ' + esbuild.version + '; package-lock.json pins ' + esbuildLocked + ' - run `npm ci`');
     const target = 'node' + pin.version.replace(/^v/, '').split('.')[0];
     const provisional = { runtime_version, source_commit, dirty: true, built_at, channel };
     const channelDefines = { __TRUST__: JSON.stringify(trust), __CHANNEL__: JSON.stringify({ channel, default_api: DEFAULT_API[channel], release_base: RELEASE_BASE[channel] }) };
@@ -461,6 +533,7 @@ export async function build({ out, nodeExe, channel, sign = false, keepWork = fa
       },
       toolchain: {
         esbuild: esbuild.version, postject: readJson(join(ROOT, 'node_modules', 'postject', 'package.json')).version, builder_node: process.version,
+        lock: toolchainLock,
       },
       bundle: {
         entry: ENTRY_REL, format: 'cjs', platform: 'node', target, sha256: sha256(pass2.code), bytes: pass2.code.length,

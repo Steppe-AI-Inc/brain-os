@@ -2,13 +2,16 @@
 //
 //   %LOCALAPPDATA%\BrainFactory\           (BRAIN_FACTORY_HOME overrides it - the developer suites' isolated homes)
 //     config.json        what enrollment gave this computer: api, channel, node id, principal id, computer id, credential id - no secret
-//     key\node.key       the node's Ed25519 private key, DPAPI-protected (CurrentUser) in an owner-only directory (lib/secure-store.mjs)
+//     key\node.key       the node's Ed25519 private key, DPAPI-protected (CurrentUser) in an owner-only directory (lib/secure-store.mjs);
+//                        key\node.pending.key: a rotation's new key, stored (DPAPI) before the plane is asked to swap
+//                        (config.json then carries pending_rotation; an enrollment in flight carries pending_enrollment - credential.mjs)
 //     runtime\<version>-<digest12>\BrainFactory.exe + manifest.json      the verified releases, the previous one kept (adopt / roll back)
 //     current.json       which runtime directory runs; previous.json the one before it
-//     state\             the supervisor's instance lock and heartbeat record, the worker's last status, revocations the API delivered
+//     state\             the supervisor's record for people to read (never trusted for exclusion: instance.mjs holds the named pipes),
+//                        the worker's last status, and the revocations the API delivered (a union that only grows: revocations.mjs)
 //     logs\              supervisor.log, worker.log - scrubbed of codes, tokens and keys, rotated at 2 MB
 // Nothing here is a database URL or a shared credential: the enrolled computer holds none (S-2, P-4).
-import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
+import { appendFileSync, closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, renameSync, statSync, writeFileSync, writeSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -18,7 +21,7 @@ export function homeDir() {
   return join(base, 'BrainFactory');
 }
 export const paths = (home = homeDir()) => ({
-  home, config: join(home, 'config.json'), keyDir: join(home, 'key'), key: join(home, 'key', 'node.key'),
+  home, config: join(home, 'config.json'), keyDir: join(home, 'key'), key: join(home, 'key', 'node.key'), pendingKey: join(home, 'key', 'node.pending.key'),
   runtime: join(home, 'runtime'), current: join(home, 'current.json'), previous: join(home, 'previous.json'),
   state: join(home, 'state'), logs: join(home, 'logs'),
   lock: join(home, 'state', 'supervisor.lock.json'), status: join(home, 'state', 'status.json'),
@@ -28,12 +31,33 @@ export const paths = (home = homeDir()) => ({
 export function readJson(file, fallback = null) {
   try { return JSON.parse(readFileSync(file, 'utf8')); } catch { return fallback; }
 }
+
+/** config.json read in order to REWRITE it: the object on disk, or an error (code config_unreadable) when it is absent or cannot be
+ *  read or parsed at this instant. A rewrite never starts from {} in place of a record it could not read: that would write back a
+ *  config.json without the api address and the node, principal, computer and credential ids, and the next start would find the
+ *  node not enrolled. The caller refuses, or keeps what it has and tries again later. */
+export function readConfigForRewrite(p) {
+  const cfg = readJson(p.config);
+  if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg)) throw Object.assign(new Error('config.json cannot be read now'), { code: 'config_unreadable' });
+  return cfg;
+}
 /** atomic: written beside, then renamed over */
 export function writeJson(file, value) {
   const dir = join(file, '..');
   mkdirSync(dir, { recursive: true });
   const tmp = file + '.' + process.pid + '.tmp';
   writeFileSync(tmp, JSON.stringify(value, null, 2) + '\n');
+  renameSync(tmp, file);
+}
+
+/** atomic AND durable: the bytes are flushed to the disk before the rename, so a record the node relies on after a crash or a power
+ *  loss (a pending rotation or enrollment: config.json) is either the old one or the new one, never lost after it was relied on */
+export function writeJsonDurable(file, value) {
+  const dir = join(file, '..');
+  mkdirSync(dir, { recursive: true });
+  const tmp = file + '.' + process.pid + '.tmp';
+  const fd = openSync(tmp, 'w');
+  try { writeSync(fd, JSON.stringify(value, null, 2) + '\n'); fsyncSync(fd); } finally { closeSync(fd); }
   renameSync(tmp, file);
 }
 

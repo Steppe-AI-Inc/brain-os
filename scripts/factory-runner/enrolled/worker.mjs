@@ -1,137 +1,293 @@
 // THE ENROLLED WORKER (WO-4 runtime): one process, started and restarted by the supervisor. It speaks ONLY to the Factory Node API.
 //
-// START (contract §2 Runtime: any -> RECOVERING -> AVAILABLE): register (the release it runs, its fingerprint, hostname, OS, resources),
-// heartbeat RECOVERING, then RECONCILE - every run this node still holds on the plane is given back (a restarted process holds no work;
-// the plane requeues it for the certified takeover), so no resumed work continues without a fresh claim - then heartbeat AVAILABLE.
+// ONE WORKER PER HOME: before anything else it holds the home's worker pipe (instance.mjs); a second worker finds it held and exits
+// ALREADY (6) before any call, and the supervisor's "stop" on that pipe ends the loop as the stop file does.
+// START (contract §2 Runtime: any -> RECOVERING -> AVAILABLE): a rotation an earlier run left pending is resolved first
+// (credential.mjs), then register (the release it runs, its fingerprint, hostname, OS, resources), heartbeat RECOVERING, then
+// RECONCILE - every run this node still holds on the plane is given back (a restarted process holds no work; the plane requeues it for
+// the certified takeover), so no resumed work continues without a fresh claim - then heartbeat AVAILABLE.
 // LOOP: heartbeat (liveness, phase, resources); an admin-requested rotation is honoured; while draining nothing is claimed; otherwise
-// claim authoring work of the types it has handlers for, and - when its envelope authorizes the verifier role - verification work.
-// A claimed run is worked under a LEASE GUARD on the monotonic clock: renewed well before expiry; a renewal the plane refuses
-// (lease_lost) or that cannot land before the lease ends ABORTS the work; the node never completes work it no longer holds.
+// ONE claim that names every type this runtime has a handler for, the reserved type 'verification' included. The SERVER ranks
+// authoring and verification work together (numeric priority, then queue age) under the credential's CURRENT envelope and picks the
+// assignment kind (contract §2 "chosen automatically by the scheduler"; P-7): the worker caches no role, so an envelope amendment
+// takes effect at the next claim with nobody touching the node (AC-6(e), P-10), and it dispatches on the kind the plane chose.
+// A claim is sent once: when its answer is lost, whatever it may have taken is given back at once and again before the next claim
+// (the worker holds no run between claims), so no orphaned run waits out its lease.
+// A claimed run is worked under a LEASE GUARD that uses DURATIONS ONLY, on the monotonic clock: the length of each grant is the
+// plane's lease_expires_at minus its server_time (both from the same answer), and each grant starts at the moment its request (the
+// claim, or that renewal) was SENT - never when its answer arrived. It is renewed with that same length well before it ends; a renewal
+// the plane refuses (lease_lost), or one that cannot land before the lease ends, ABORTS the work - the node never completes work it
+// no longer holds, whatever its wall clock says (P-2; 69df2f52 node.mjs:253).
 // TERMINAL refusals (credential revoked / superseded, computer archived) stop the worker with exit 2 "REFUSED" - the supervisor does not
-// restart it (no restart loop). A refused registration exits 3 (the supervisor retries it later with the same credential).
+// restart it (no restart loop) - unless a pending rotation of this node explains a superseded credential: then the rotation is
+// resolved with the stored key and the worker continues (or exits 7 so the supervisor restarts it on the new key at once).
+// A refused registration exits 3 (the supervisor retries it later with the same credential), except the S-14 refusal
+// (s16a_bound_fingerprint), which every retry meets again: it is REFUSED too.
 import { performance } from 'node:perf_hooks';
 import { NodeApi, TERMINAL } from './api.mjs';
 import { HANDLERS, AUTHORING_TYPES } from './handlers.mjs';
-import { hostname, machineFingerprint, osName, resources } from './identity.mjs';
+import { fingerprintProblem, hostname, machineFingerprintAsync, osName, resources } from './identity.mjs';
 import { loadKey, newKey, storeKey } from './keys.mjs';
 import { logger, paths, readJson, writeJson } from './home.mjs';
 import { adoptIfInstalled } from './upgrade.mjs';
+import { mergeRevocations } from './revocations.mjs';
+import { holdPipe } from './instance.mjs';
+import { beginRotation, pendingRotation, promotePending, resolvePendingRotation, unknownOutcome } from './credential.mjs';
 
-export const EXIT_WORKER = { STOPPED: 0, ERROR: 1, REFUSED: 2, REGISTRATION: 3, SWITCH_RELEASE: 4, RELEASE_REVOKED: 5 };
+export const EXIT_WORKER = { STOPPED: 0, ERROR: 1, REFUSED: 2, REGISTRATION: 3, SWITCH_RELEASE: 4, RELEASE_REVOKED: 5, ALREADY: 6, CREDENTIAL_ROTATED: 7 };
+/** what the claim names: every authoring type this runtime has a handler for, and the reserved type of verification work */
+export const CLAIM_TYPES = Object.freeze([...AUTHORING_TYPES, 'verification']);
+const ROTATION_PAUSE_MS = 10 * 60 * 1000;
+const PENDING_RETRY_MS = 30000;
 
-/** does a revocation the API just delivered hit the release this worker runs (its digest, or the key that signed it)? */
+/** does the revocation list hit the release this worker runs (its digest, or the key that signed it)? */
 function ownReleaseRevoked(p, runtime, rev) {
   const cur = readJson(p.current);
   const m = cur && cur.dir ? readJson(cur.dir + '\\manifest.json') : null;
-  return ((rev && rev.releases) || []).some((r) => r && r.digest === runtime.digest) || (m && ((rev && rev.key_ids) || []).includes(m.key_id));
+  return ((rev && rev.releases) || []).some((r) => r && r.digest === runtime.digest) || !!(m && ((rev && rev.key_ids) || []).includes(m.key_id));
 }
-const sleep = (ms) => new Promise((ok) => setTimeout(ok, ms));
+const sleep = (ms) => new Promise((ok) => setTimeout(ok, Math.max(0, ms)));
 
 class Terminal extends Error { constructor(r) { super('REFUSED: ' + r.refused + ' - ' + (r.message || '')); this.refusal = r; } }
 
-export async function runWorker({ home, runtime = {}, pollMs = 5000, once = false, fetchImpl, standbyOnly = false } = {}) {
-  const p = paths(home);
+/** the lease the plane granted, as a duration: its lease_expires_at minus its server_time (one transaction's clock); held to 5..600 s,
+ *  and 5 s (the shortest the plane grants) when the answer does not state both */
+export function grantedLeaseMs(expiresAt, serverTime) {
+  const g = Date.parse(expiresAt) - Date.parse(serverTime);
+  return Number.isFinite(g) && g > 0 ? Math.max(5000, Math.min(600000, g)) : 5000;
+}
+
+/** a claim answer that proves nothing about whether the claim committed (a SQLSTATE rollback and the named lock refusal do) */
+export const claimAnswerLost = (c) => unknownOutcome(c) && !['server_refused', 'claim_lock_busy'].includes(c && c.refused);
+
+// keyIo and rotationPauseMs are test seams (the developer suites make a key write fail once, and shorten the pause after it)
+export async function runWorker({ home, runtime = {}, pollMs = 5000, once = false, fetchImpl, standbyOnly = false, keyIo = { newKey, storeKey, loadKey }, rotationPauseMs = ROTATION_PAUSE_MS } = {}) {
   const log = logger('worker', home, { echo: !!process.env.BRAIN_FACTORY_ECHO });
-  const cfg = readJson(p.config);
+  const started = new Date().toISOString();
+  const ctl = { stop: false, state: 'STARTING', abort: null, wake: null };
+  const pipe = await holdPipe(home, 'worker', () => ({ role: 'worker', pid: process.pid, state: ctl.state, started }), (cmd) => {
+    if (cmd !== 'stop') return;
+    ctl.stop = true;
+    if (ctl.abort) ctl.abort.abort('the supervisor asked this worker to stop');
+    if (ctl.wake) ctl.wake();
+  });
+  if (!pipe.held) { log('another worker runs for this home (its pipe is held' + (pipe.error ? ': ' + pipe.error : '') + '): this one exits before any call'); return EXIT_WORKER.ALREADY; }
+  try { return await runHeld({ home, runtime, pollMs, once, fetchImpl, standbyOnly, keyIo, rotationPauseMs, log, ctl }); } finally { await pipe.close(); }
+}
+
+async function runHeld({ home, runtime, pollMs, once, fetchImpl, standbyOnly, keyIo, rotationPauseMs, log, ctl }) {
+  const p = paths(home);
+  let cfg = readJson(p.config);
   if (!cfg || !cfg.credential_id) { log('not enrolled: run setup with a pairing code first'); return EXIT_WORKER.ERROR; }
-  const k = await loadKey(p.key, cfg.public_key);
+  const k = await keyIo.loadKey(p.key, cfg.public_key);
   if (!k.ok) { log('the node key cannot be read: ' + k.fix); return EXIT_WORKER.ERROR; }
+  if (k.mismatch) log('config.json names another public key than the stored node key: the stored key is used');
   const api = new NodeApi({ api: cfg.api, key: k.key, fetchImpl, log });
   const status = (s) => writeJson(p.status, { ...readJson(p.status, {}), ...s, at: new Date().toISOString(), pid: process.pid });
-  const check = (r, what) => { if (r && TERMINAL.has(r.refused)) throw new Terminal(r); return r; };
+  const setState = (s) => { ctl.state = s.state || ctl.state; status(s); };
+  const check = (r) => { if (r && TERMINAL.has(r.refused)) throw new Terminal(r); return r; };
   const res = () => resources(home);
-  const fp = machineFingerprint();
+  let fpNamed = null;
+  // (read without blocking: the pipe keeps answering "whois" and "stop" while PowerShell runs; the request waits for the value)
+  const fp = async () => {
+    const f = await machineFingerprintAsync();
+    const why = f ? null : fingerprintProblem();
+    if (why !== fpNamed) { if (why) log(why + ': the machine fingerprint is not reported until it can be read'); status({ fingerprint_problem: why }); fpNamed = why; }
+    return f || undefined;
+  };
+  const stopFile = () => process.env.BRAIN_FACTORY_STOP_FILE_CHECK !== '0' && !!readJson(p.stop);
+  const nap = (ms) => new Promise((ok) => { const t = setTimeout(() => { ctl.wake = null; ok(); }, Math.max(0, ms)); ctl.wake = () => { clearTimeout(t); ctl.wake = null; ok(); }; });
+
+  // ---- the credential: a rotation whose answer was lost is resolved with the stored key (credential.mjs); the worker is its resolver
+  let rotationPausedUntil = 0, pendingRetryAt = 0;
+  const useKey = (key) => { api.key = key; api.token = null; cfg = readJson(p.config) || cfg; };
+  const settleRotation = async () => {
+    const out = await resolvePendingRotation({ home, api, fetchImpl, log, keyIo });
+    if (out.key && (out.state === 'promoted' || out.registered)) useKey(out.key);
+    if (out.state === 'promoted') status({ rotation: { state: 'ROTATED', at: new Date().toISOString() } });
+    else if (out.state === 'discarded') status({ rotation: { state: 'ROTATION_DISCARDED', why: out.why, at: new Date().toISOString() } });
+    else if (out.state === 'unknown') { pendingRetryAt = performance.now() + PENDING_RETRY_MS; status({ rotation: { state: 'ROTATION_PENDING', why: out.why, at: new Date().toISOString() } }); log('rotation outcome not known yet: ' + out.why); }
+    return out;
+  };
+  const rotateKey = async () => {
+    if (performance.now() < rotationPausedUntil) return;
+    if (pendingRotation(home).any) { await settleRotation(); return; }
+    // the new key and the record are durable before the request (credential.mjs beginRotation); nothing is sent otherwise
+    const b = await beginRotation({ home, keyIo, newKey: keyIo.newKey });
+    if (!b.sent) {
+      rotationPausedUntil = performance.now() + rotationPauseMs;
+      log('rotation postponed (' + b.refused + '): ' + b.why + '; nothing was sent and the current credential stays in use');
+      status({ rotation: { state: 'ROTATION_REFUSED', refused: b.refused, at: new Date().toISOString() } });
+      return;
+    }
+    const r = await api.rotate(b.nk);
+    if (!r.ok) { log('rotation answer: ' + (r.refused || r.http || 'none') + ' - resolved with the stored new key'); await settleRotation(); return; }
+    const nk = { privateKey: b.nk.privateKey, publicKey: b.nk.publicKey };
+    useKey(nk); // the plane swapped: the old credential is superseded from now on
+    try {
+      await promotePending({ home, pk: { privateKeyDer: b.nk.privateKeyDer, key: nk }, credentialId: r.credential_id, keyIo });
+      cfg = readJson(p.config) || cfg;
+      log('credential rotated: the new key is registered, the old credential is superseded');
+      status({ rotation: { state: 'ROTATED', at: new Date().toISOString() } });
+    } catch (e) {
+      log('credential rotated, but the new key could not be saved as the node key yet (' + ((e && e.code) || 'error') + '): the pending record stays and is resolved on the next pass');
+      status({ rotation: { state: 'ROTATION_PENDING', why: 'saving the new key failed', at: new Date().toISOString() } });
+    }
+  };
 
   try {
+    // a rotation an earlier run of this home left pending (its answer lost, or its promotion not finished) is resolved before the
+    // first request, with the stored key: the node starts on the credential the plane holds, not on one it superseded
+    const leftPending = pendingRotation(home).any;
+    if (leftPending) {
+      const out = await settleRotation();
+      if (out.state === 'unknown' && !out.registered) { setState({ state: 'ROTATION_PENDING', message: out.why }); return EXIT_WORKER.ERROR; }
+    }
     await api.time();
-    const s = check(await api.session(), 'session');
-    if (!s.ok) { log('no session: ' + s.refused + ' ' + (s.message || '')); status({ state: 'NO_SESSION', refused: s.refused }); return EXIT_WORKER.ERROR; }
+    const s = check(await api.session());
+    if (!s.ok) { log('no session: ' + s.refused + ' ' + (s.message || '')); setState({ state: 'NO_SESSION', refused: s.refused }); return EXIT_WORKER.ERROR; }
     const reg = check(await api.op('register', { runtime_version: runtime.version || '0.0.0', runtime_digest: runtime.digest || undefined,
-      fingerprint: fp || undefined, hostname: hostname(), os: osName(), resources: res() }), 'register');
+      fingerprint: await fp(), hostname: hostname(), os: osName(), resources: res() }));
     if (!reg.ok) {
       log('registration refused: ' + reg.refused + ' - ' + (reg.message || ''));
-      status({ state: reg.enrollment_state || 'REGISTRATION_FAILED', refused: reg.refused, reason: reg.reason || reg.message });
+      // S-14: this computer reported a fingerprint that a record carrying the S-16(a) binding reported. Every retry is refused the same
+      // way, so the worker ends with state REFUSED and the REFUSED exit, which the supervisor treats as final (no retry loop); only
+      // Add Computer with the binding enrolls this computer again during this milestone
+      if (reg.reason === 's16a_bound_fingerprint') {
+        setState({ state: 'REFUSED', refused: reg.refused, reason: reg.reason, enrollment_state: reg.enrollment_state || null, message: reg.message });
+        return EXIT_WORKER.REFUSED;
+      }
+      setState({ state: reg.enrollment_state || 'REGISTRATION_FAILED', refused: reg.refused, reason: reg.reason || reg.message });
       return EXIT_WORKER.REGISTRATION;
     }
-    const roles = (reg.envelope && reg.envelope.roles) || [];
     log('registered ' + reg.node_id + ' (' + reg.enrollment_state + ', release ' + (reg.release && reg.release.current ? 'current' : 'NOT current') + ', envelope v' + (reg.envelope && reg.envelope.version) + ')');
-    if (reg.revocations) writeJson(p.revocations, reg.revocations);
-    let standby = !!standbyOnly || (reg.revocations && ownReleaseRevoked(p, runtime, reg.revocations));
-    status({ state: 'RECOVERING', node_id: reg.node_id, enrollment_state: reg.enrollment_state, release_current: !!(reg.release && reg.release.current) });
-    check(await api.op('heartbeat', { phase: 'RECOVERING', resources: res() }), 'heartbeat');
-    const rec = check(await api.op('release', { keep_run_ids: [] }), 'reconcile');
+    // the revocation list only grows (revocations.mjs); the standby check reads the merged list
+    const rev0 = reg.revocations ? mergeRevocations(home, reg.revocations) : readJson(p.revocations, null);
+    let standby = !!standbyOnly || !!(rev0 && ownReleaseRevoked(p, runtime, rev0));
+    setState({ state: 'RECOVERING', node_id: reg.node_id, enrollment_state: reg.enrollment_state, release_current: !!(reg.release && reg.release.current) });
+    check(await api.op('heartbeat', { phase: 'RECOVERING', resources: res() }));
+    const rec = check(await api.op('release', { keep_run_ids: [] }));
     if (rec.ok && rec.released) log('reconciled: gave back ' + rec.released + ' run(s) this node held before its restart');
-    let hb = check(await api.op('heartbeat', { phase: 'AVAILABLE', resources: res() }), 'heartbeat');
-    status({ state: hb.ok ? hb.phase : 'ERROR', cycle_completed: false });
+    let hb = check(await api.op('heartbeat', { phase: 'AVAILABLE', resources: res() }));
+    setState({ state: hb.ok ? hb.phase : 'ERROR', cycle_completed: false });
 
+    let giveBack = 0; // lost claim answers whose possible run is still to be given back before the next claim
     for (;;) {
-      if (process.env.BRAIN_FACTORY_STOP_FILE_CHECK !== '0') { const stop = readJson(p.stop); if (stop) { log('stop requested'); break; } }
-      hb = check(await api.op('heartbeat', { phase: 'AVAILABLE', resources: res() }), 'heartbeat');
-      if (!hb.ok) { log('heartbeat refused: ' + hb.refused); await sleep(pollMs); continue; }
-      if (hb.revocations) writeJson(p.revocations, hb.revocations);
-      if (hb.revocations && ownReleaseRevoked(p, runtime, hb.revocations)) standby = true;
+      if (ctl.stop || stopFile()) { log('stop requested'); break; }
+      if (pendingRotation(home).any && performance.now() >= pendingRetryAt) await settleRotation();
+      hb = check(await api.op('heartbeat', { phase: 'AVAILABLE', resources: res() }));
+      if (!hb.ok) { log('heartbeat refused: ' + hb.refused); await nap(pollMs); continue; }
+      if (hb.revocations) { const rev = mergeRevocations(home, hb.revocations); if (ownReleaseRevoked(p, runtime, rev)) standby = true; }
       status({ adopted_release: hb.adopted_release || null });
       const sw = hb.adopted_release ? adoptIfInstalled(home, hb.adopted_release, runtime.digest) : null;
-      if (sw && !sw.missing) { log('a Factory admin adopted release ' + hb.adopted_release.version + ': switching to it (never a silent downgrade)'); status({ state: 'SWITCHING', message: 'adopting ' + hb.adopted_release.version }); return EXIT_WORKER.SWITCH_RELEASE; }
+      if (sw && !sw.missing) { log('a Factory admin adopted release ' + hb.adopted_release.version + ': switching to it (never a silent downgrade)'); setState({ state: 'SWITCHING', message: 'adopting ' + hb.adopted_release.version }); return EXIT_WORKER.SWITCH_RELEASE; }
       if (sw && sw.missing) log('a Factory admin adopted release ' + hb.adopted_release.version + ', which is not installed here: install it with `upgrade`');
       // STANDBY: the release this node runs is revoked (its digest or its signing key). It claims and runs nothing, says so, and never
       // downgrades on its own - it waits for a Factory admin to adopt a certified release (contract §6), then switches to it.
-      if (standby) { status({ state: 'RELEASE_REVOKED', message: 'the release this node runs is revoked: no work is claimed until a Factory admin adopts a certified release' }); await sleep(pollMs); if (once) break; continue; }
-      if (hb.rotate_required) await rotateKey({ api, p, cfg, log });
-      if (!hb.release_current) { status({ state: 'RELEASE_NOT_CURRENT', message: 'this node runs a release that is not current (revoked or superseded without an adopt): it claims nothing and waits for an adopted certified release' }); await sleep(pollMs); if (once) break; continue; }
-      if (hb.draining) { status({ state: 'DRAINING' }); await sleep(pollMs); if (once) break; continue; }
+      if (standby) { setState({ state: 'RELEASE_REVOKED', message: 'the release this node runs is revoked: no work is claimed until a Factory admin adopts a certified release' }); await nap(pollMs); if (once) break; continue; }
+      if (hb.rotate_required) await rotateKey();
+      if (!hb.release_current) { setState({ state: 'RELEASE_NOT_CURRENT', message: 'this node runs a release that is not current (revoked or superseded without an adopt): it claims nothing and waits for an adopted certified release' }); await nap(pollMs); if (once) break; continue; }
+      if (hb.draining) { setState({ state: 'DRAINING' }); await nap(pollMs); if (once) break; continue; }
+      if (giveBack > 0) { await api.op('release', { keep_run_ids: [] }, { retries: 0 }).catch(() => {}); giveBack--; }
+      const fpv = await fp();
+      if (ctl.stop) continue;
       let did = false;
-      const c = check(await api.op('claim', { work_types: AUTHORING_TYPES, resources: res(), fingerprint: fp || undefined, base_commit: runtime.source_commit || undefined }), 'claim');
-      if (c.ok && c.claimed) { did = true; await work({ api, claimed: c.claimed, kind: 'authoring', log, status, check }); }
-      else if (!c.ok && c.refused !== 'claim_lock_busy') log('claim refused: ' + c.refused + ' ' + (c.message || ''));
-      if (!did && roles.includes('verifier')) {
-        const v = check(await api.op('verification-claim', { resources: res(), fingerprint: fp || undefined }), 'verification-claim');
-        if (v.ok && v.claimed) { did = true; await work({ api, claimed: v.claimed, kind: 'verification', log, status, check }); }
-      }
-      status({ state: 'AVAILABLE', cycle_completed: true, last_cycle: new Date().toISOString() });
+      const sentAt = performance.now();
+      const c = check(await api.op('claim', { work_types: [...CLAIM_TYPES], resources: res(), fingerprint: fpv, base_commit: runtime.source_commit || undefined }, { retries: 0 }));
+      if (c.ok && c.claimed) {
+        did = true;
+        await workClaimed({ api, claimed: c.claimed, log, status: setState, check, sentAt, serverTime: c.server_time, onAbortable: (ac) => { ctl.abort = ac; } });
+        ctl.abort = null;
+      } else if (claimAnswerLost(c)) {
+        log('the claim\'s answer was lost (' + (c && (c.refused || c.http)) + '): whatever it may have taken is given back now and again before the next claim');
+        await api.op('release', { keep_run_ids: [] }, { retries: 0 }).catch(() => {});
+        giveBack = 1;
+      } else if (!c.ok && c.refused !== 'claim_lock_busy' && c.refused !== 'server_refused') log('claim refused: ' + c.refused + ' ' + (c.message || ''));
+      setState({ state: 'AVAILABLE', cycle_completed: true, last_cycle: new Date().toISOString() });
       if (once) break;
-      if (!did) await sleep(pollMs);
+      if (!did) await nap(pollMs);
     }
     await api.op('heartbeat', { phase: 'AVAILABLE' }).catch(() => {});
     return EXIT_WORKER.STOPPED;
   } catch (e) {
     if (e instanceof Terminal) {
+      // a superseded credential while a rotation of this node is pending (or after its new key was stored): the rotation committed
+      // and its answer was lost - resolve it with the stored key instead of stopping REFUSED
+      if (e.refusal.refused === 'credential_superseded') {
+        if (pendingRotation(home).any) {
+          const out = await settleRotation().catch((x) => ({ state: 'unknown', why: String(x && x.message || x) }));
+          if (out.state === 'promoted' || out.registered) { log('the superseded credential was this node\'s own rotation: restarting on the new key'); return EXIT_WORKER.CREDENTIAL_ROTATED; }
+          if (out.state === 'unknown') { setState({ state: 'ROTATION_PENDING', message: out.why }); return EXIT_WORKER.ERROR; }
+        }
+        const disk = await keyIo.loadKey(p.key).catch(() => ({ ok: false }));
+        if (disk.ok && !disk.key.publicKey.equals(api.key.publicKey)) { log('the node key on disk is newer than the one in use: restarting on it'); return EXIT_WORKER.CREDENTIAL_ROTATED; }
+      }
       log(e.message);
-      status({ state: 'REFUSED', refused: e.refusal.refused, message: e.refusal.message });
+      setState({ state: 'REFUSED', refused: e.refusal.refused, message: e.refusal.message });
       return EXIT_WORKER.REFUSED;
     }
     log('worker error: ' + (e && e.message || e));
-    status({ state: 'ERROR', message: String(e && e.message || e) });
+    setState({ state: 'ERROR', message: String(e && e.message || e) });
     return EXIT_WORKER.ERROR;
   }
 }
 
-/** one claimed run, under the lease guard; a lease that cannot be held aborts the work, which then never completes */
-async function work({ api, claimed, kind, log, status, check }) {
-  const leaseMs = Math.max(5000, Date.parse(claimed.lease_expires_at) - Date.now());
+/** a promise that settles with `value` after `ms` unless `p` settles first (the timer is cleared either way) */
+function within(p, ms, value) {
+  let t;
+  return Promise.race([p, new Promise((ok) => { t = setTimeout(() => ok(value), Math.max(0, ms)); })]).finally(() => clearTimeout(t));
+}
+
+/**
+ * ONE CLAIMED RUN, under the lease guard. sentAt: performance.now() taken just before the claim was sent; serverTime: the claim
+ * answer's server_time. A lease that cannot be held aborts the work, which then never completes. Exported for the unit rows.
+ */
+export async function workClaimed({ api, claimed, log = () => {}, status = () => {}, check = (r) => r, sentAt = performance.now(), serverTime, onAbortable = () => {} }) {
+  const kind = claimed.kind === 'verification' ? 'verification' : 'authoring';
+  const grantedMs = grantedLeaseMs(claimed.lease_expires_at, serverTime);
+  const leaseSeconds = Math.max(5, Math.min(600, Math.round(grantedMs / 1000)));
+  const margin = Math.min(5000, Math.floor(grantedMs / 3));
+  const renewEvery = Math.max(1000, Math.min(30000, Math.floor(grantedMs / 3)));
+  let leaseEnd = sentAt + grantedMs; // on the monotonic clock, from the moment the claim was sent
   const ac = new AbortController();
-  let leaseEnd = performance.now() + leaseMs;
-  let stopped = false;
+  onAbortable(ac);
+  let stopped = false, wake = null;
+  const nap = (ms) => new Promise((ok) => { const t = setTimeout(() => { wake = null; ok(); }, Math.max(0, ms)); wake = () => { clearTimeout(t); wake = null; ok(); }; });
+  const wt = claimed.work_order && claimed.work_order.work_type;
+  const handler = kind === 'verification' ? HANDLERS.verification : (AUTHORING_TYPES.includes(wt) ? HANDLERS[wt] : null);
   status({ state: 'BUSY', run_id: claimed.run_id, work_order_id: claimed.work_order.work_order_id, kind });
-  log('claimed ' + kind + ' ' + claimed.work_order.work_order_id.slice(0, 8) + ' run ' + claimed.run_id.slice(0, 8) + ' (lease ' + Math.round(leaseMs / 1000) + ' s)');
-  const renewEvery = Math.max(1000, Math.min(30000, Math.floor(leaseMs / 3)));
+  if (!handler) {
+    // never completed as failed: a work order this runtime has no handler for is given back for a node that has one
+    log('claimed ' + kind + ' work of type ' + wt + ', which this runtime has no handler for: the run is given back');
+    await api.op('release', { run_id: claimed.run_id }, { retries: 0 }).catch(() => {});
+    return;
+  }
+  log('claimed ' + kind + ' ' + claimed.work_order.work_order_id.slice(0, 8) + ' run ' + claimed.run_id.slice(0, 8) + ' (lease ' + leaseSeconds + ' s)');
   const guard = (async () => {
+    let lastFailed = false;
     while (!stopped) {
-      await sleep(Math.min(renewEvery, Math.max(250, leaseEnd - performance.now() - 2000)));
+      const left = leaseEnd - margin - performance.now();
+      if (left <= 0) { ac.abort('the lease could not be renewed before it ends'); break; }
+      await nap(Math.min(lastFailed ? 1000 : renewEvery, left));
       if (stopped) break;
-      if (performance.now() >= leaseEnd - 1000) { ac.abort('the lease could not be renewed before it ends'); break; }
-      const r = await api.op('renew', { run_id: claimed.run_id, lease_seconds: Math.round(leaseMs / 1000) }, { retries: 0 });
-      if (r.ok) leaseEnd = performance.now() + leaseMs;
-      else if (r.refused === 'lease_lost' || TERMINAL.has(r.refused)) { ac.abort(r.refused); break; }
+      const rs = performance.now();
+      if (rs >= leaseEnd - margin) { ac.abort('the lease could not be renewed before it ends'); break; }
+      const r = await within(api.op('renew', { run_id: claimed.run_id, lease_seconds: leaseSeconds }, { retries: 0 }), leaseEnd - margin - rs, { ok: false, refused: 'renew_timeout' });
+      if (stopped) break;
+      // (the renewed grant starts when the renewal was sent - rs - not when its answer arrived)
+      if (r && r.ok) { leaseEnd = rs + grantedLeaseMs(r.lease_expires_at, r.server_time); lastFailed = false; }
+      else if (r && (r.refused === 'lease_lost' || r.refused === 'renew_timeout' || TERMINAL.has(r.refused))) { ac.abort(r.refused); break; }
+      else lastFailed = true;
     }
   })();
   let outcome;
   try {
-    outcome = await HANDLERS[kind === 'verification' ? 'verification' : claimed.work_order.work_type]({ api, claimed, signal: ac.signal, log });
+    outcome = await handler({ api, claimed, signal: ac.signal, log });
   } catch (e) {
     outcome = { error: e };
   }
   stopped = true;
+  if (wake) wake();
   await guard.catch(() => {});
   if (ac.signal.aborted) {
     log('ABORTED run ' + claimed.run_id.slice(0, 8) + ': ' + ac.signal.reason + ' - the work is not completed by this node');
@@ -155,17 +311,3 @@ async function work({ api, claimed, kind, log, status, check }) {
   }
 }
 
-/** an admin-requested rotation: a new key made here, proved by signing, swapped atomically on the plane; the old credential superseded */
-async function rotateKey({ api, p, cfg, log }) {
-  const nk = await newKey();
-  const r = await api.rotate(nk);
-  if (!r.ok) { log('rotation refused: ' + r.refused); return; }
-  await storeKey(p.key, nk);
-  cfg.credential_id = r.credential_id;
-  cfg.public_key = nk.publicKey.toString('base64url');
-  cfg.rotated_at = new Date().toISOString();
-  writeJson(p.config, cfg);
-  api.key = { privateKey: nk.privateKey, publicKey: nk.publicKey };
-  api.token = null;
-  log('credential rotated: the new key is registered, the old credential is superseded');
-}

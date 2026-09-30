@@ -8,7 +8,7 @@
 //   verification   the independent verification of a probe candidate: it REPRODUCES the candidate's content from the verified work
 //                  order and certifies PASS only when the reproduction equals the candidate, FAIL otherwise.
 // A handler never decides authority: it runs only what the node was handed, and every write goes through the node's own session.
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 const sha1 = (s) => createHash('sha1').update(s).digest('hex');
 
@@ -45,7 +45,9 @@ export const HANDLERS = {
       if (done.has(step)) continue;
       await sleep(stepMs, ctx.signal);
       done.add(step);
-      const r = await ctx.api.op('checkpoint', { run_id: ctx.claimed.run_id, location: 'probe://' + wo.work_order_id + '/' + step, scenario: step,
+      // one checkpoint id per step, chosen before the call: a repeat after a lost answer writes no second row (part 120 checkpoint)
+      const checkpointId = randomUUID();
+      const r = await ctx.api.op('checkpoint', { run_id: ctx.claimed.run_id, checkpoint_id: checkpointId, location: 'probe://' + wo.work_order_id + '/' + step, scenario: step,
         payload: { done: [...done], content: c.parts[i - 1] } });
       if (!r.ok) throw Object.assign(new Error('checkpoint refused: ' + (r.refused || r.http)), { refusal: r });
     }
