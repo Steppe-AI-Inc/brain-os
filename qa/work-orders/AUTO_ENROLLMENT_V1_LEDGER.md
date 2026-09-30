@@ -282,6 +282,34 @@ the implementer namespace (rule 3).
 |---|---|---|
 | `412ac14e76f88fbd5e310d3e97dbf5acab2c1498` | **REJECTED** | `f94861a76699696e86160064090356eb823bc5627bba50af9f259fff4bb11b57` |
 
+## CR dispositions (2026-09-30)
+
+Founder-directed. CR-006..CR-026 filed by the IMPLEMENTER in `qa/implementation/auto-enrollment-v1/change-requests/` on `factory/auto-enrollment-v1-implementation` at `8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5`; the range is implementer-signed and changes no Director-owned file. Full text of each decision is in `change_requests` (JSON). Release is founder-gated; this is the designated Director commit for candidate #2.
+
+| CR | sha256 | disposition | affects |
+|---|---|---|---|
+| CR-006 | `d81488d95a3e0528…` | APPROVED (requested change). | S-10, WO-1, VERIFICATION_SPEC §3.5, AC-10 |
+| CR-007 | `bb07b787970ba2ce…` | APPROVED (option 1). | S-9, S-10 |
+| CR-008 | `b39fd0afcc9d9339…` | APPROVED (option 2). | S-10, WO-1, VERIFICATION_SPEC §3.4 |
+| CR-009 | `93e9e69175163f33…` | CLARIFIED (narrow reading recorded). | contract §1/§2/§4, WO-1, S-8 |
+| CR-010 | `4df767a54fe4cf93…` | RECORDED (r3 reading stands). | R-1, AC-1, S-5, S-7 |
+| CR-011 | `d2758da477951736…` | APPROVED (option 3), recorded as Director campaign policy. | S-16(b), AC-14(i) |
+| CR-012 | `9e303b74540cadb1…` | APPROVED (option 1). | AC-3, AC-9 |
+| CR-013 | `ae364732d647b2e0…` | APPROVED (option 2), recorded. | S-14, S-16(a), node state machine |
+| CR-014 | `eb32d7745045382c…` | APPROVED (option 4: none), recorded. | AC-3, AC-9, scheduler |
+| CR-015 | `7f73eed7416fe146…` | RECORDED (r3 reading stands). | S-6 |
+| CR-016 | `7cc009ed27109683…` | RECORDED (r3 literal reading stands). | S-6 |
+| CR-017 | `f2c1fea827c57a75…` | APPROVED (r3 rule stands). | S-15, certified reference suites |
+| CR-018 | `c8d30630504455dc…` | RECORDED (r3 behaviour stands). | AC-9, WO track |
+| CR-019 | `fff3deb923ec95ce…` | RECORDED (r3 reading stands). | S-5, AC-5, release manifest |
+| CR-020 | `652c7a845174db98…` | RECORDED (r3 behaviour stands). | S-5, AC-5(h) |
+| CR-021 | `759365d3b3ce1d24…` | APPROVED (Alternative 1). | S-10, VERIFICATION_SPEC §3.4, AC-10, AC-12 |
+| CR-022 | `96897e551a4b493a…` | APPROVED. | S-10, VERIFICATION_SPEC §3.4, AC-6, B-2 regression |
+| CR-023 | `8f70812811f5afac…` | APPROVED. | S-10, VERIFICATION_SPEC §3.4, AC-10 |
+| CR-024 | `7ef2b21d8f545d59…` | RECORDED (contract §9 reading confirmed). | contract §9, audit |
+| CR-025 | `cd03f052f2ef2248…` | APPROVED. | S-10, VERIFICATION_SPEC §3.4/§3.5, AC-10 |
+| CR-026 | `6b145aab6c9c172d…` | APPROVED (same basis as CR-022(b)). | S-10, VERIFICATION_SPEC §3.4, S-8, CR-001, CR-003 |
+
 ## Event log (append-only from the first commit)
 
 | UTC | Event | By |
@@ -305,3 +333,4 @@ the implementer namespace (rule 3).
 | 2026-09-28 | Founder rulings, 2026-09-28 (UTC; founder text II.17): for Director r4 the chosen option "Release + push now (Recommended)", with "Release r4 now exactly as reviewed." and the parent c7a845b61a3b0b419e8c9dfeff397547fdc75b03; for the scope of II.16 the chosen option "Confirm the reading (Recommended)": "Every public implementer record published before 2026-09-28 is judged by the same test. One that fails it becomes a founder item, and no history is rewritten. r5 records your confirmation." | FOUNDER |
 | 2026-09-28 | **Director r4** released by the founder (founder text II.17) and committed as `f707eba00bb9a13ff24cdc4beeb0531882873507` (parent `c7a845b6`, committer time 2026-09-28T11:43:10Z), signed with the Director key; exactly the reviewed bytes. Pushed to `origin/factory/auto-enrollment-v1-director` at 2026-09-28T11:43:26Z by explicit refspec under a one-time founder-authorized pre-push override; r4 changes no function. Remote refs read back: director `f707eba0`, factory `69df2f52`, master `55a15917`, implementation `6ba22e3e`; no local-only ref on the remote. Read at 2026-09-28T11:46:47Z: no GitHub Actions run and no production deployment (the newest Production deployment is still `55a15917`'s of 2026-09-08); the Vercel integration created a Preview deployment for `f707eba0` at 2026-09-28T11:43:58Z (not production), and the Supabase Preview check was skipped. The r4 SHA and a notice for the implementer went to the founder for private relay. The next candidate notice, if it names r3, is still judged against r3 (the r3 release entry); the r4 release does not extend this, and a later notice follows rule 9's default. | DIRECTOR |
 | 2026-09-29 | Director r5. It closes the lows r4 carried as r5 work (founder text II.17: "Remaining lows go to r5"), except the record of the Director applying II.16's test to the other earlier records, which moves to r6; the operator tenant row's content (ICC-R2-10) stays carried. Founder text II.17 transcribes the r4 release authorization and the founder's confirmation of II.16's scope, and the founder entry and the r4 release entry before this one record them. Ledger rule 3 now states that II.16's test applies to every other public implementer record published before 2026-09-28 (the founder confirmed, founder text II.17) and, as a Director reading surfaced for the founder's confirmation, to those published on 2026-09-28 before the ruling; one that fails it becomes a founder item, and no history is rewritten. It also states that a candidate notice carries its spec §2 fields other than its test output itself, and that what the spec does with a field the notice leaves out is unchanged. In rule 3 the founder's words are the quoted sentences (and founder text II.16); everything else, the restated lists included, is Director text. The r4 release entry bounds the r3 designation to the next notice. The release commit names the review of these bytes. | DIRECTOR |
+| 2026-09-30 | Director CR-disposition record (2026-09-30), founder-directed and founder-authorized for release. It records the disposition of CR-006..CR-026, filed by the IMPLEMENTER in qa/implementation/auto-enrollment-v1/change-requests/ on factory/auto-enrollment-v1-implementation at 8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5 (the range 6ba22e3e..8f740ccc is Good-signed by the confirmed implementer_signing_key; no Director-owned file is changed; the Director documents on the branch are byte-identical to r3 c7a845b6). This is a NARROW CR-disposition record, NOT a new product-semantic revision: Candidate #2 product semantics remain governed by r3 c7a845b61a3b0b419e8c9dfeff397547fdc75b03, and the Candidate #2 notice names BOTH r3 c7a845b6 (product contract) and this commit (the canonical CR-disposition record required by P3p). Each disposition is in change_requests with the CR blob's sha256 and the requirement IDs it affects. The four the founder named: CR-006 approves the post-V1 factory_runner rotation runbook (psql \password, provisioner not re-run; Director text, the frozen 69df2f52 provisioner byte-identical); CR-021 approves that a fail-closed check that can only refuse is classable under VERIFICATION_SPEC §3.4 (in-migration catalog checks = same-on-every-plane; Edge self-configuration validation = own-plane addressing), construction named in the verifier receipt; CR-022 classes the release-channel domain validation as the call's input and the factory_owner owner-name authority-guard engine test (created by the migration on every plane) as the S-10 authority mechanism; CR-026 classes founder step 3's guard reads on the same basis as CR-022(b). CR-007..CR-020 and CR-023..CR-025 are recorded as their r3-conforming reading; the candidate relies on none of them. No spec text is edited: the §3.4 dispositions are Director readings the verifier applies and records per hit. |

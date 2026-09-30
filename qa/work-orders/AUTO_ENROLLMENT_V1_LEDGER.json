@@ -699,6 +699,300 @@
       "decision": "RATIFIED: recorded as implementer_signing_key, CONFIRMED by founder ruling 2026-09-26 (founder text II.13); valid where it was filed (founder text II.12)",
       "decided_by": "DIRECTOR",
       "decided_utc": "2026-09-26"
+    },
+    {
+      "id": "CR-006",
+      "title": "post v1 runner rotation",
+      "path": "qa/implementation/auto-enrollment-v1/change-requests/CR-006-post-v1-runner-rotation.md",
+      "branch": "factory/auto-enrollment-v1-implementation",
+      "commits": [
+        "8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5"
+      ],
+      "sha256": "d81488d95a3e052807d24efd3959463e06e489ae9301256eeaad04f35934ff69",
+      "decision": "APPROVED (requested change). For a plane that has the V1 migration, the three provisioner-rerun rotation rows (TWO_MACHINE_CONTROL_PLANE.md:68 and :175, FACTORY_V1_CHECKPOINT.md:147) are superseded: the plane’s applying login rotates the factory_runner password with psql \\password factory_runner (SCRAM computed client-side; the password never appears in a statement, log or command line), runner.env is then updated on each legacy node and the node restarted, and the 69df2f52 provisioner is never re-run on such a plane. Director-owned runbook text (qa/work-orders/); the frozen provisioner stays byte-identical to 69df2f52. Prepared step FOUNDER_PREPARED_STEPS.md step R.",
+      "affects": "S-10, WO-1, VERIFICATION_SPEC §3.5, AC-10",
+      "decided_by": "DIRECTOR",
+      "decided_utc": "2026-09-30"
+    },
+    {
+      "id": "CR-007",
+      "title": "plane identity tenant id",
+      "path": "qa/implementation/auto-enrollment-v1/change-requests/CR-007-plane-identity-tenant-id.md",
+      "branch": "factory/auto-enrollment-v1-implementation",
+      "commits": [
+        "8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5"
+      ],
+      "sha256": "bb07b787970ba2ce26af96bba41a69cb9b7e37d9084e7c9454c57a653b7cab23",
+      "decision": "APPROVED (option 1). S-9 binds the Factory data model’s own tables. factory.plane_identity is a 69df2f52 provisioning artifact (0 or 1 row, plane-dependent), not a Factory data row, and is outside S-9; the V1 migration adds no tenant_id to it and no reference to it. The exclusion is recorded (schema acceptance already prints the INFO). No candidate change.",
+      "affects": "S-9, S-10",
+      "decided_by": "DIRECTOR",
+      "decided_utc": "2026-09-30"
+    },
+    {
+      "id": "CR-008",
+      "title": "canonical rpc search path",
+      "path": "qa/implementation/auto-enrollment-v1/change-requests/CR-008-canonical-rpc-search-path.md",
+      "branch": "factory/auto-enrollment-v1-implementation",
+      "commits": [
+        "8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5"
+      ],
+      "sha256": "b39fd0afcc9d93396746aea782c4e02af9c9cb41018d68fba2d35dc3f13b3fc3",
+      "decision": "APPROVED (option 2). The Factory V1 form set search_path = pg_catalog, pg_temp (pg_catalog first, pg_temp last) is an accepted, scoped divergence from the general canonical-RPC recipe (set search_path = '') in governance/CANONICAL_WORK_CONTRACT.md; both are pinned and satisfy S-10/WO-1. No governance text change now; governance stays byte-identical on the implementation branch.",
+      "affects": "S-10, WO-1, VERIFICATION_SPEC §3.4",
+      "decided_by": "DIRECTOR",
+      "decided_utc": "2026-09-30"
+    },
+    {
+      "id": "CR-009",
+      "title": "release broker founder only scope",
+      "path": "qa/implementation/auto-enrollment-v1/change-requests/CR-009-release-broker-founder-only-scope.md",
+      "branch": "factory/auto-enrollment-v1-implementation",
+      "commits": [
+        "8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5"
+      ],
+      "sha256": "93e9e69175163f336f5186bf61ab45813b0487305785b63d381bf5b4643917d9",
+      "decision": "CLARIFIED (narrow reading recorded). “Founder-only for release_broker” covers exactly (S-8) granting release_broker in an envelope and publishing, superseding or revoking a release; every other envelope amendment is a Factory-admin action, audited. The candidate’s narrow implementation stands. No candidate change.",
+      "affects": "contract §1/§2/§4, WO-1, S-8",
+      "decided_by": "DIRECTOR",
+      "decided_utc": "2026-09-30"
+    },
+    {
+      "id": "CR-010",
+      "title": "r1 dev channel endpoint",
+      "path": "qa/implementation/auto-enrollment-v1/change-requests/CR-010-r1-dev-channel-endpoint.md",
+      "branch": "factory/auto-enrollment-v1-implementation",
+      "commits": [
+        "8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5"
+      ],
+      "sha256": "4df767a54fe4cf93e1571117ec5add3f07c71a8da8bd21f0c542212886b35c43",
+      "decision": "RECORDED (r3 reading stands). In the R-1 rehearsal the dev-channel BrainFactorySetup.exe takes its Factory Node API endpoint and signed manifest from the disposable rehearsal plane’s own dev-channel configuration, never a live or production endpoint. The candidate relies on no answer; no candidate change.",
+      "affects": "R-1, AC-1, S-5, S-7",
+      "decided_by": "DIRECTOR",
+      "decided_utc": "2026-09-30"
+    },
+    {
+      "id": "CR-011",
+      "title": "milestone candidate identification",
+      "path": "qa/implementation/auto-enrollment-v1/change-requests/CR-011-milestone-candidate-identification.md",
+      "branch": "factory/auto-enrollment-v1-implementation",
+      "commits": [
+        "8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5"
+      ],
+      "sha256": "d2758da47795173691373d01015cf2b6f4615ea221ba1d774d308a83ea006625",
+      "decision": "APPROVED (option 3), recorded as Director campaign policy. Milestone-candidate membership is what the submitter names: a work order carrying the campaign’s key is a milestone candidate, and the campaign’s physical-separation rule (S-16(b), AC-14(i)) applies to it. No fail-closed default is added. No candidate change.",
+      "affects": "S-16(b), AC-14(i)",
+      "decided_by": "DIRECTOR",
+      "decided_utc": "2026-09-30"
+    },
+    {
+      "id": "CR-012",
+      "title": "ac3 done run count",
+      "path": "qa/implementation/auto-enrollment-v1/change-requests/CR-012-ac3-done-run-count.md",
+      "branch": "factory/auto-enrollment-v1-implementation",
+      "commits": [
+        "8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5"
+      ],
+      "sha256": "9e303b74540cadb13f9c47c7f71d8440b272fb4a0c0d648c269dc1bf257c563d",
+      "decision": "APPROVED (option 1). AC-3 “exactly one done run per work order” counts the certified current candidate: per work order, the authoring runs with status done that no FAIL certification supersedes. A repaired work order does not double-count.",
+      "affects": "AC-3, AC-9",
+      "decided_by": "DIRECTOR",
+      "decided_utc": "2026-09-30"
+    },
+    {
+      "id": "CR-013",
+      "title": "alive record reporting bound fingerprint",
+      "path": "qa/implementation/auto-enrollment-v1/change-requests/CR-013-alive-record-reporting-bound-fingerprint.md",
+      "branch": "factory/auto-enrollment-v1-implementation",
+      "commits": [
+        "8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5"
+      ],
+      "sha256": "ae364732d647b2e08f759e48fc7636d073e92644280888ca798b71be682c4dd4",
+      "decision": "APPROVED (option 2), recorded. S-14’s “enter REGISTRATION_FAILED” applies to a record still in its enrollment walk; an already-ALIVE unbound record that reports a fingerprint a bound record has is refused by name, is given no work, and keeps its ALIVE enrollment. No new state-machine edge is added.",
+      "affects": "S-14, S-16(a), node state machine",
+      "decided_by": "DIRECTOR",
+      "decided_utc": "2026-09-30"
+    },
+    {
+      "id": "CR-014",
+      "title": "repair dispatch limit",
+      "path": "qa/implementation/auto-enrollment-v1/change-requests/CR-014-repair-dispatch-limit.md",
+      "branch": "factory/auto-enrollment-v1-implementation",
+      "commits": [
+        "8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5"
+      ],
+      "sha256": "eb32d7745045382c7b7cd2ae2aa9592b80f548a36549e277442bc0a707d32476",
+      "decision": "APPROVED (option 4: none), recorded. r3 dispatch stands: after a refused resubmission the work order returns to the queue at once, with nothing withholding it, and every refusal is named. No hold or cap is added.",
+      "affects": "AC-3, AC-9, scheduler",
+      "decided_by": "DIRECTOR",
+      "decided_utc": "2026-09-30"
+    },
+    {
+      "id": "CR-015",
+      "title": "s6 peer address hosted runtime",
+      "path": "qa/implementation/auto-enrollment-v1/change-requests/CR-015-s6-peer-address-hosted-runtime.md",
+      "branch": "factory/auto-enrollment-v1-implementation",
+      "commits": [
+        "8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5"
+      ],
+      "sha256": "7f73eed7416fe14669be50913917a43f5d3e4afb3cdf7af52bf9d2088af0ab3d",
+      "decision": "RECORDED (r3 reading stands). S-6’s per-address pairing limit keys on the peer address the hosted Edge runtime hands the handler. No candidate change.",
+      "affects": "S-6",
+      "decided_by": "DIRECTOR",
+      "decided_utc": "2026-09-30"
+    },
+    {
+      "id": "CR-016",
+      "title": "s6 tenant cap availability",
+      "path": "qa/implementation/auto-enrollment-v1/change-requests/CR-016-s6-tenant-cap-availability.md",
+      "branch": "factory/auto-enrollment-v1-implementation",
+      "commits": [
+        "8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5"
+      ],
+      "sha256": "7cc009ed271096836b0891d4e22a7d495670db1d0aec233d381d1e2988b816fd",
+      "decision": "RECORDED (r3 literal reading stands). The recorded requests that count toward S-6’s per-tenant pairing cap are those the candidate counts under the literal r3 text. No candidate change.",
+      "affects": "S-6",
+      "decided_by": "DIRECTOR",
+      "decided_utc": "2026-09-30"
+    },
+    {
+      "id": "CR-017",
+      "title": "frozen bootstrap suite env file",
+      "path": "qa/implementation/auto-enrollment-v1/change-requests/CR-017-frozen-bootstrap-suite-env-file.md",
+      "branch": "factory/auto-enrollment-v1-implementation",
+      "commits": [
+        "8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5"
+      ],
+      "sha256": "f2c1fea827c57a75293a7556218d859ca6289aaaeb4884dc7ca224619dc9924b",
+      "decision": "APPROVED (r3 rule stands). The certified reference suite qa/factory/package_bootstrap_regression.mjs stays byte-identical to its 69df2f52 bytes; a successor is possible only through a ratified change request (contract). The implementer’s fresh-clone/env-file observation is noted; no change to the frozen file.",
+      "affects": "S-15, certified reference suites",
+      "decided_by": "DIRECTOR",
+      "decided_utc": "2026-09-30"
+    },
+    {
+      "id": "CR-018",
+      "title": "reserved verification work type",
+      "path": "qa/implementation/auto-enrollment-v1/change-requests/CR-018-reserved-verification-work-type.md",
+      "branch": "factory/auto-enrollment-v1-implementation",
+      "commits": [
+        "8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5"
+      ],
+      "sha256": "c8d30630504455dca7d4b4a0d82701f8aecfe689bb3f9e659298bd123b8a6484",
+      "decision": "RECORDED (r3 behaviour stands). submit-work-order accepts any work type, including verification; a verification work order is never claimable by an enrolled node. No candidate change.",
+      "affects": "AC-9, WO track",
+      "decided_by": "DIRECTOR",
+      "decided_utc": "2026-09-30"
+    },
+    {
+      "id": "CR-019",
+      "title": "candidate release manifest",
+      "path": "qa/implementation/auto-enrollment-v1/change-requests/CR-019-candidate-release-manifest.md",
+      "branch": "factory/auto-enrollment-v1-implementation",
+      "commits": [
+        "8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5"
+      ],
+      "sha256": "fff3deb923ec95ceed98b816dadf9206129de6ec5c107ab4b368305039180f13",
+      "decision": "RECORDED (r3 reading stands). At candidate time, before any certifying receipt exists, the candidate’s release-manifest identity is as the candidate report tabulates it. No candidate change.",
+      "affects": "S-5, AC-5, release manifest",
+      "decided_by": "DIRECTOR",
+      "decided_utc": "2026-09-30"
+    },
+    {
+      "id": "CR-020",
+      "title": "live plane no dev channel",
+      "path": "qa/implementation/auto-enrollment-v1/change-requests/CR-020-live-plane-no-dev-channel.md",
+      "branch": "factory/auto-enrollment-v1-implementation",
+      "commits": [
+        "8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5"
+      ],
+      "sha256": "652c7a845174db984d28c45224c71e7cc54415986896b738d6397b93fd17215c",
+      "decision": "RECORDED (r3 behaviour stands). “Test/dev keys exist only on disposable planes; the live plane has no dev channel” (S-5, AC-5(h)) is enforced by the existing model; no new refusal is added. No candidate change.",
+      "affects": "S-5, AC-5(h)",
+      "decided_by": "DIRECTOR",
+      "decided_utc": "2026-09-30"
+    },
+    {
+      "id": "CR-021",
+      "title": "fail closed checks plane scan class",
+      "path": "qa/implementation/auto-enrollment-v1/change-requests/CR-021-fail-closed-checks-plane-scan-class.md",
+      "branch": "factory/auto-enrollment-v1-implementation",
+      "commits": [
+        "8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5"
+      ],
+      "sha256": "759365d3b3ce1d241cc7ae21ba1f116981680a59aed0116f69b58db97a828cc0",
+      "decision": "APPROVED (Alternative 1). Under VERIFICATION_SPEC §3.4, a check whose only effect is to refuse is classable: an in-migration catalog check over objects and grants the same transaction created is classed same-on-every-plane; an Edge handler’s validation of its own configuration values (_shared/db.ts dbRefusal on the database URL and CA; _shared/pairing.ts importPepper; and the refused/misconfigured/pepper_unavailable values derived from them in the two entry points and handlers) is classed own-plane addressing. Each such check aborts the migration’s transaction, or answers a whole-request 5xx that names the misconfiguration, over only the plane’s own objects or configuration; no branch selects product behaviour by plane. The verifier names each hit’s construction in its receipt. This is a reading of §3.4, not a spec edit; the production-project refusal remains the §3.4 exception, not part of this class.",
+      "affects": "S-10, VERIFICATION_SPEC §3.4, AC-10, AC-12",
+      "decided_by": "DIRECTOR",
+      "decided_utc": "2026-09-30"
+    },
+    {
+      "id": "CR-022",
+      "title": "plane scan literals and engine test",
+      "path": "qa/implementation/auto-enrollment-v1/change-requests/CR-022-plane-scan-literals-and-engine-test.md",
+      "branch": "factory/auto-enrollment-v1-implementation",
+      "commits": [
+        "8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5"
+      ],
+      "sha256": "96897e551a4b493a0c6e9843fd082df6ba541029f67dadb986d0fbd2406c39f0",
+      "decision": "APPROVED. (a) The release-channel names (‘production’, ‘dev’) in 060_releases.sql’s CHECK and in admin_publish_release’s parameter validation are the fixed S-5 domain, validated against the request’s channel parameter and the column’s domain; class the call’s input / a fixed domain constraint, not a plane marker. (b) The owner-name engine test current_user vs ‘factory_owner’ in the SECURITY INVOKER guards _authority_guard (:66) and _legacy_guard (:388) is the S-10 authority mechanism: it distinguishes a SECURITY DEFINER front-door write (current_user = the owner factory_owner) from a direct legacy write. factory_owner is created by the V1 migration, with that name, on every plane, so the read is identical on every plane and is classable (it does not mark the verifier’s run or a plane); the typed comparison the B-2 regression requires stands. The verifier names the construction in its receipt.",
+      "affects": "S-10, VERIFICATION_SPEC §3.4, AC-6, B-2 regression",
+      "decided_by": "DIRECTOR",
+      "decided_utc": "2026-09-30"
+    },
+    {
+      "id": "CR-023",
+      "title": "observer role name in founder step",
+      "path": "qa/implementation/auto-enrollment-v1/change-requests/CR-023-observer-role-name-in-founder-step.md",
+      "branch": "factory/auto-enrollment-v1-implementation",
+      "commits": [
+        "8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5"
+      ],
+      "sha256": "8f70812811f5afac6126c2b95d52fdf28dd2e5180f9ad612ed265aef9ae823a2",
+      "decision": "APPROVED. The observer role’s name in prepared founder step 1b is a founder-supplied identifier of the founder’s own SELECT-only observer provisioning; class own-plane addressing (a founder-provided configuration name used the same way wherever the step runs), not a plane-conditioned branch. Consistent with the observer being a founder-approved live change a disposable plane does not carry. No candidate change.",
+      "affects": "S-10, VERIFICATION_SPEC §3.4, AC-10",
+      "decided_by": "DIRECTOR",
+      "decided_utc": "2026-09-30"
+    },
+    {
+      "id": "CR-024",
+      "title": "session exchange refusal audit",
+      "path": "qa/implementation/auto-enrollment-v1/change-requests/CR-024-session-exchange-refusal-audit.md",
+      "branch": "factory/auto-enrollment-v1-implementation",
+      "commits": [
+        "8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5"
+      ],
+      "sha256": "7ef2b21d8f545d59ce34226a7ea3b0769dc65a0cc762562a14e9b9d5ea283beb",
+      "decision": "RECORDED (contract §9 reading confirmed). The session-exchange (POST /v1/session) refusals that leave an audit row are those within the exchange logic, as the candidate implements and its report states; a pre-authentication or malformed-envelope refusal that never reaches the exchange logic need not. Conforms to contract §9. No candidate change.",
+      "affects": "contract §9, audit",
+      "decided_by": "DIRECTOR",
+      "decided_utc": "2026-09-30"
+    },
+    {
+      "id": "CR-025",
+      "title": "observer storage buckets outside prepared steps",
+      "path": "qa/implementation/auto-enrollment-v1/change-requests/CR-025-observer-storage-buckets-outside-prepared-steps.md",
+      "branch": "factory/auto-enrollment-v1-implementation",
+      "commits": [
+        "8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5"
+      ],
+      "sha256": "cd03f052f2ef22487d8a9a35be7ab401b413ed283d93fbb191dcd9883c85bb4b",
+      "decision": "APPROVED. The observer’s SELECT on storage.buckets is provisioned by the founder’s observer provisioning and its first read, not by a prepared step; prepared step 1b covers the factory relations only. This is consistent with AC-10 comparing storage_buckets from the observer read. No candidate change.",
+      "affects": "S-10, VERIFICATION_SPEC §3.4/§3.5, AC-10",
+      "decided_by": "DIRECTOR",
+      "decided_utc": "2026-09-30"
+    },
+    {
+      "id": "CR-026",
+      "title": "founder step 3 guard identity reads",
+      "path": "qa/implementation/auto-enrollment-v1/change-requests/CR-026-founder-step-3-guard-identity-reads.md",
+      "branch": "factory/auto-enrollment-v1-implementation",
+      "commits": [
+        "8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5"
+      ],
+      "sha256": "6b145aab6c9c172dc4654c5249ab0a14c3e28f3a3e4c213dd0c2891c40dac7a0",
+      "decision": "APPROVED (same basis as CR-022(b)). Founder step 3 inserts into factory.tenant_admins under set local role factory_owner, which fires _authority_guard (current_user = factory_owner, the role the step set and the owner of every migration object; the test is false and the write proceeds) and _tenant_admins_guard via _via_api (session_user is the applying login, never an API login; the test is false and the write proceeds). Both reads are the S-10 authority mechanism and have the same outcome on every plane; classable, not a plane or verifier-run marker. Through an API the same guard refuses every write to factory.tenant_admins (S-8; CR-001, CR-003). No candidate change.",
+      "affects": "S-10, VERIFICATION_SPEC §3.4, S-8, CR-001, CR-003",
+      "decided_by": "DIRECTOR",
+      "decided_utc": "2026-09-30"
     }
   ],
   "amendment_requests": [],
@@ -806,6 +1100,11 @@
     {
       "utc": "2026-09-29",
       "event": "Director r5. It closes the lows r4 carried as r5 work (founder text II.17: \"Remaining lows go to r5\"), except the record of the Director applying II.16's test to the other earlier records, which moves to r6; the operator tenant row's content (ICC-R2-10) stays carried. Founder text II.17 transcribes the r4 release authorization and the founder's confirmation of II.16's scope, and the founder entry and the r4 release entry before this one record them. Ledger rule 3 now states that II.16's test applies to every other public implementer record published before 2026-09-28 (the founder confirmed, founder text II.17) and, as a Director reading surfaced for the founder's confirmation, to those published on 2026-09-28 before the ruling; one that fails it becomes a founder item, and no history is rewritten. It also states that a candidate notice carries its spec §2 fields other than its test output itself, and that what the spec does with a field the notice leaves out is unchanged. In rule 3 the founder's words are the quoted sentences (and founder text II.16); everything else, the restated lists included, is Director text. The r4 release entry bounds the r3 designation to the next notice. The release commit names the review of these bytes.",
+      "by": "DIRECTOR"
+    },
+    {
+      "utc": "2026-09-30",
+      "event": "Director CR-disposition record (2026-09-30), founder-directed and founder-authorized for release. It records the disposition of CR-006..CR-026, filed by the IMPLEMENTER in qa/implementation/auto-enrollment-v1/change-requests/ on factory/auto-enrollment-v1-implementation at 8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5 (the range 6ba22e3e..8f740ccc is Good-signed by the confirmed implementer_signing_key; no Director-owned file is changed; the Director documents on the branch are byte-identical to r3 c7a845b6). This is a NARROW CR-disposition record, NOT a new product-semantic revision: Candidate #2 product semantics remain governed by r3 c7a845b61a3b0b419e8c9dfeff397547fdc75b03, and the Candidate #2 notice names BOTH r3 c7a845b6 (product contract) and this commit (the canonical CR-disposition record required by P3p). Each disposition is in change_requests with the CR blob's sha256 and the requirement IDs it affects. The four the founder named: CR-006 approves the post-V1 factory_runner rotation runbook (psql \\password, provisioner not re-run; Director text, the frozen 69df2f52 provisioner byte-identical); CR-021 approves that a fail-closed check that can only refuse is classable under VERIFICATION_SPEC §3.4 (in-migration catalog checks = same-on-every-plane; Edge self-configuration validation = own-plane addressing), construction named in the verifier receipt; CR-022 classes the release-channel domain validation as the call's input and the factory_owner owner-name authority-guard engine test (created by the migration on every plane) as the S-10 authority mechanism; CR-026 classes founder step 3's guard reads on the same basis as CR-022(b). CR-007..CR-020 and CR-023..CR-025 are recorded as their r3-conforming reading; the candidate relies on none of them. No spec text is edited: the §3.4 dispositions are Director readings the verifier applies and records per hit.",
       "by": "DIRECTOR"
     }
   ]
