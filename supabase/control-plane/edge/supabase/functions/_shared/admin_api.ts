@@ -10,6 +10,13 @@
 //
 // CODE-ISSUING ACTIONS (Add Computer, issue code, re-pair, restore, create an agent principal) draw the pairing code HERE from the
 // CSPRNG, send the plane only its locator and HMAC-SHA256(FACTORY_PAIRING_PEPPER, code), and return the code to the admin ONCE.
+//
+// ERRORS. An error is never turned into an answer about the caller: Brain OS refusing the token (401 / 403) is "not authenticated";
+// any other answer from Brain OS - an error status, a body that is not the JSON it documents - is Brain OS not answering, and fails the
+// call as an error (503 unavailable), never as "not authenticated" or "not authorized". The only catches are the parse of the caller's
+// own bytes (its token's payload, its JSON body) and the one request boundary at the end of createAdminApi, which answers every other
+// error as an error, naming only its class, and changes nothing.
+import { serverSqlState } from './db.ts';
 import { codeMac, generateCode } from './pairing.ts';
 import { routePath } from './route.ts';
 
@@ -44,6 +51,9 @@ export const ADMIN_OPS: Record<string, { fn: string; code: boolean; fields: stri
   'revoke-release': { fn: 'admin_revoke_release', code: false, fields: ['release_id', 'reason', 'tenant_id'] },
   'revoke-key': { fn: 'admin_revoke_key', code: false, fields: ['key_id', 'reason', 'tenant_id'] },
   'list-releases': { fn: 'admin_list_releases', code: false, fields: ['tenant_id'] },
+  // list-policies answers the policy rows and every RECORDED version. The migration writes no version row (contract §1): a version row
+  // is recorded when a change replaces that version, so a policy never changed has none yet, and the recorded_at of a seeded policy's
+  // version 1 is the time of its replacement, not the time it took effect (it took effect with the migration).
   'list-policies': { fn: 'admin_list_policies', code: false, fields: ['tenant_id'] },
   'update-policy': { fn: 'admin_update_policy', code: false, fields: ['policy_id', 'expected_version', 'changes', 'tenant_id'] },
   'list-waiting-verifications': { fn: 'admin_list_waiting_verifications', code: false, fields: ['tenant_id'] },
@@ -57,15 +67,19 @@ const json = (status: number, body: Record<string, unknown>): Response =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 const refuse = (status: number, refused: string, message: string): Response => json(status, { ok: false, refused, message });
 const hex = (b: Uint8Array): string => Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+/** Brain OS did not give the answer it documents: the call fails as an error (the request boundary answers 503 unavailable) */
+const brainOsUnavailable = (what: string): Error => Object.assign(new Error('Brain OS did not answer as documented: ' + what), { name: 'BrainOsUnavailable' });
 
 // the token's issuer must be this Brain OS project (a cheap early refusal of a foreign-project token; /auth/v1/user decides)
 function issuerOk(token: string, brainOsUrl: string): boolean {
   const parts = token.split('.');
-  if (parts.length !== 3) return false;
-  try {
-    const p = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((parts[1].length + 3) % 4)));
-    return typeof p.iss === 'string' && p.iss.replace(/\/+$/, '') === brainOsUrl.replace(/\/+$/, '') + '/auth/v1';
-  } catch { return false; }
+  // the caller's token: three base64url parts (the Bearer pattern admits no other character); a payload length base64 cannot have is
+  // not a token
+  if (parts.length !== 3 || !/^[A-Za-z0-9_-]+$/.test(parts[1]) || parts[1].length % 4 === 1) return false;
+  let p: { iss?: unknown } | null;
+  try { p = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((parts[1].length + 3) % 4))); }
+  catch (e) { if (e instanceof SyntaxError) return false; throw e; }   // a payload that is not JSON is not a token; nothing else is caught
+  return !!p && typeof p.iss === 'string' && p.iss.replace(/\/+$/, '') === brainOsUrl.replace(/\/+$/, '') + '/auth/v1';
 }
 
 /** S-8 (a): the caller's auth user id and LIVE role, from the caller's own token, on this call. */
@@ -73,14 +87,16 @@ export async function liveIdentity(deps: AdminDeps, token: string): Promise<{ us
   if (!issuerOk(token, deps.brainOs.url)) return null;
   const headers = { apikey: deps.brainOs.anonKey, authorization: 'Bearer ' + token };
   const u = await deps.fetch(deps.brainOs.url.replace(/\/+$/, '') + '/auth/v1/user', { headers });
-  if (u.status !== 200) return null;
-  const user = await u.json().catch(() => null);
-  const id = user && typeof user.id === 'string' && /^[0-9a-f-]{36}$/.test(user.id) ? user.id : null;
-  if (!id) return null;
+  if (u.status === 401 || u.status === 403) return null;   // Brain OS refused this token
+  if (u.status !== 200) throw brainOsUnavailable('/auth/v1/user ' + u.status);
+  const user = await u.json();   // not JSON: the error goes to the request boundary
+  const id = user && typeof user.id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(user.id) ? user.id : null;
+  if (!id) throw brainOsUnavailable('/auth/v1/user without a user id');
   const p = await deps.fetch(deps.brainOs.url.replace(/\/+$/, '') + '/rest/v1/profiles?select=role,active&auth_user_id=eq.' + id, { headers });
-  if (p.status !== 200) return { userId: id, role: null };
-  const rows = await p.json().catch(() => []);
-  const row = Array.isArray(rows) && rows.length === 1 ? rows[0] : null;
+  if (p.status !== 200) throw brainOsUnavailable('/rest/v1/profiles ' + p.status);
+  const rows = await p.json();
+  if (!Array.isArray(rows)) throw brainOsUnavailable('/rest/v1/profiles not a list');
+  const row = rows.length === 1 ? rows[0] : null;   // no profile row: no live role (the front door refuses, audited)
   return { userId: id, role: row && row.active !== false && typeof row.role === 'string' ? row.role : null };
 }
 
@@ -88,7 +104,8 @@ export function createAdminApi(deps: AdminDeps): (req: Request) => Promise<Respo
   return async (req: Request): Promise<Response> => {
     const url = new URL(req.url);
     const m = /^\/v1\/admin\/([a-z-]{3,40})$/.exec(routePath(url.pathname, deps.basePath));
-    const op = m && req.method === 'POST' ? ADMIN_OPS[m[1]] : undefined;
+    // an OWN entry of the op table only: a name inherited from Object.prototype ('constructor') is no op (S-7, AC-7)
+    const op = m && req.method === 'POST' && Object.hasOwn(ADMIN_OPS, m[1]) ? ADMIN_OPS[m[1]] : undefined;
     if (!op) return refuse(404, 'no_such_route', 'the Factory Admin API has no ' + req.method + ' ' + url.pathname.slice(0, 80));
     const auth = /^Bearer ([A-Za-z0-9._-]{20,4096})$/.exec(req.headers.get('authorization') || '');
     if (!auth) return refuse(401, 'not_authenticated', 'a Brain OS session (Authorization: Bearer) is required');
@@ -103,25 +120,31 @@ export function createAdminApi(deps: AdminDeps): (req: Request) => Promise<Respo
       for (const k of Object.keys(body)) if (!op.fields.includes(k)) return refuse(400, 'bad_request', 'unknown field ' + JSON.stringify(k).slice(0, 80));
       const who = await liveIdentity(deps, auth[1]);
       if (!who) return refuse(401, 'not_authenticated', 'the Brain OS session is not valid for this Factory');
-      let code: { display: string } | null = null;
+      let code: { display: string; locator: string } | null = null;
       if (op.code) {
         const pepper = await deps.pepper();
         if (!pepper) return refuse(503, 'pepper_unavailable', 'pairing is unavailable: the pairing pepper is not configured');
         const g = generateCode(deps.randomBytes);
         body = { ...body, locator: g.locator, code_mac: hex(await codeMac(pepper.key, g.normalized)), pepper_version: pepper.version };
-        code = { display: g.display };
+        code = { display: g.display, locator: g.locator };
       }
       const rows = await deps.sql('select factory.' + op.fn + '($1::uuid, $2, $3::text::jsonb) as r', [who.userId, who.role, JSON.stringify(body)]);
       const r = (rows[0] && rows[0].r) as Record<string, unknown> | undefined;
       if (!r || typeof r !== 'object') return refuse(500, 'server_error', 'the front door returned nothing');
       if (r.ok !== true) return json(typeof r.http === 'number' ? r.http : 409, r);
-      // the code is shown ONCE, to the admin who issued it; the plane never had it
-      return json(200, code ? { ...r, pairing_code: code.display } : r);
+      // the code is shown ONCE, to the admin who issued it (the plane never had it). The SQL answer must prove it recorded the code
+      // drawn here - a new code id, an expiry, and the same locator - before the code is added. An "already" answer, or one lacking
+      // any of those, recorded no code, and the receipt carries none (contract §9; S-12).
+      const stored = code !== null && r.already !== true && typeof r.code_id === 'string' && /^[0-9a-f-]{36}$/.test(r.code_id) && typeof r.expires_at === 'string' && r.locator === code.locator;
+      return json(200, code && stored ? { ...r, pairing_code: code.display } : r);
     } catch (e) {
-      const c = (e as { code?: string })?.code;
-      deps.log?.({ event: 'admin_api_error', op: m && m[1], class: c || 'error' });
-      if (typeof c === 'string' && /^[0-9A-Z]{5}$/.test(c)) return refuse(500, 'server_refused', 'the control plane refused the call (' + c + '); nothing changed');
-      return refuse(503, 'unavailable', 'the control plane or Brain OS did not answer; the outcome is unknown - reload before retrying');
+      // THE REQUEST BOUNDARY: every error that reaches here is answered AS an error - its class named, nothing decided, nothing changed
+      const state = serverSqlState(e);
+      const cls = state ?? ((e as { name?: string })?.name || 'error').slice(0, 40);
+      deps.log?.({ event: 'admin_api_error', op: m && m[1], class: cls });
+      // only a SQLSTATE the SERVER sent says the call was answered and rolled back (db.ts serverSqlState); anything else: outcome unknown
+      if (state) return refuse(500, 'server_refused', 'the control plane refused the call (' + state + '); nothing changed');
+      return refuse(503, 'unavailable', 'the control plane or Brain OS did not answer (' + cls + '); the outcome is unknown - reload before retrying');
     }
   };
 }

@@ -8,6 +8,12 @@
 // derived from a counter or a clock.
 // VERIFIER. HMAC-SHA256(FACTORY_PAIRING_PEPPER, normalized_code), normalized_code = the 17 locator + secret characters, upper case.
 // The pepper lives only in the Edge secret store; the plane stores the locator and the MAC, never the code, never a plain hash.
+// PEPPER VERSION. Each code is stored with the version of the pepper that made its MAC, and enroll/start compares it with the
+// version the Node API presents. Both APIs take it from this one constant, never from their configuration, so the version a code is
+// issued with and the version it is verified with are the same on every plane. Rotating the pepper is a later work order's change
+// to this constant (S-6 names no rotation).
+
+export const PEPPER_VERSION = 1;
 
 export const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 export const LOCATOR_CHARS = 5;
@@ -42,8 +48,10 @@ export function normalizeCode(input: string): { locator: string; normalized: str
 /** The pepper, imported once as an HMAC key. FACTORY_PAIRING_PEPPER: base64 of at least 32 bytes. */
 export async function importPepper(b64: string | undefined): Promise<CryptoKey | null> {
   if (!b64) return null;
-  let raw: Uint8Array<ArrayBuffer>;
-  try { raw = Uint8Array.from(atob(b64.trim()), (c) => c.charCodeAt(0)); } catch { return null; }
+  // a value that is not base64 is no pepper (checked first: nothing throws, nothing is caught); pairing is then refused by name
+  const v = b64.trim();
+  if (v.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(v)) return null;
+  const raw: Uint8Array<ArrayBuffer> = Uint8Array.from(atob(v), (c) => c.charCodeAt(0));
   if (raw.length < 32) return null;
   return crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
 }

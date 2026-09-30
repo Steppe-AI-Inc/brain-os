@@ -13,6 +13,13 @@
 //
 // SECRETS (S-12): the session token is returned once, to the node that proved its key, and stored only as a hash; nothing here logs
 // a token, a code, a key or a body.
+//
+// ERRORS. An error is never turned into an answer about the request: no catch below decides a signature, a refusal or a success from
+// an exception. The only catches are (a) the parse of the caller's own bytes (its JSON body, its assertion's JSON, its base64url
+// values - a malformed value is the caller's input, refused by name) and (b) the one request boundary at the end of createNodeApi,
+// which answers every other error as an error (500 server_refused when the plane's server raised a SQLSTATE and rolled the call back -
+// db.ts serverSqlState; 503 plane_unavailable otherwise, the outcome unknown), naming only the error's class, and changes nothing.
+import { serverSqlState } from './db.ts';
 import { enroll } from './enroll.ts';
 import { routePath } from './route.ts';
 
@@ -30,8 +37,8 @@ export type Peer = { address: string };
 export const FRONT_DOORS: Record<string, string> = {
   'GET /v1/time': 'select factory.node_time() as r',
   'POST /v1/session': 'select factory.node_session_open($1, $2, to_timestamp($3), to_timestamp($4), $5, decode($6, \'hex\')) as r',
-  'POST /v1/enroll/start': 'select factory.node_enroll_start($1, decode($2, \'hex\'), $3::integer, decode($4, \'hex\'), $5::inet, $6::text::jsonb) as r',
-  'POST /v1/enroll/complete': 'select factory.node_enroll_complete($1::uuid, $2, decode($3, \'hex\'), $4::inet) as r',
+  'POST /v1/enroll/start': 'select factory.node_enroll_start($1, decode($2, \'hex\'), $3::integer, decode($4, \'hex\'), $5::inet, $6::text::jsonb, $7) as r',
+  'POST /v1/enroll/complete': 'select factory.node_enroll_complete($1::uuid, $2, decode($3, \'hex\'), $4::inet, $5) as r',
   'POST /v1/node/register': 'select factory.node_register(decode($1, \'hex\'), $2::text::jsonb) as r',
   'POST /v1/node/heartbeat': 'select factory.node_heartbeat(decode($1, \'hex\'), $2::text::jsonb) as r',
   'POST /v1/node/claim': 'select factory.node_claim(decode($1, \'hex\'), $2::text::jsonb) as r',
@@ -46,16 +53,16 @@ export const FRONT_DOORS: Record<string, string> = {
 };
 
 // ---- request bodies: exactly these fields, these types -------------------------------------------------------------------------
-type Field = 'str64' | 'str200' | 'str255' | 'str1000' | 'str4000' | 'hex64' | 'uuid' | 'num' | 'obj' | 'strs' | 'uuids' | 'b64u32' | 'b64u64'
+type Field = 'str64' | 'str200' | 'str255' | 'str1000' | 'str4000' | 'hex64' | 'uuid' | 'num' | 'obj' | 'res' | 'strs' | 'uuids' | 'b64u32' | 'b64u64'
   | 'assertion' | 'commit' | 'tree' | 'code';
 const COMMON_CLAIM: Record<string, Field> = { lease_seconds: 'num', work_types: 'strs', only_work_order_id: 'uuid', requested_provider: 'str64',
-  requested_model: 'str200', reasoning_effort: 'str64', base_commit: 'str64', resources: 'obj', fingerprint: 'hex64' };
+  requested_model: 'str200', reasoning_effort: 'str64', base_commit: 'str64', resources: 'res', fingerprint: 'hex64' };
 export const BODIES: Record<string, Record<string, Field>> = {
   'POST /v1/session': { assertion: 'assertion' },
   'POST /v1/enroll/start': { code: 'code', public_key: 'b64u32', fingerprint: 'hex64', hostname: 'str255' },
   'POST /v1/enroll/complete': { enrollment_id: 'uuid', public_key: 'b64u32', challenge: 'hex64', proof: 'b64u64' },
-  'POST /v1/node/register': { runtime_version: 'str64', runtime_digest: 'hex64', fingerprint: 'hex64', hostname: 'str255', os: 'str255', resources: 'obj' },
-  'POST /v1/node/heartbeat': { phase: 'str64', resources: 'obj', fingerprint: 'hex64' },
+  'POST /v1/node/register': { runtime_version: 'str64', runtime_digest: 'hex64', fingerprint: 'hex64', hostname: 'str255', os: 'str255', resources: 'res' },
+  'POST /v1/node/heartbeat': { phase: 'str64', resources: 'res', fingerprint: 'hex64' },
   'POST /v1/node/claim': COMMON_CLAIM,
   'POST /v1/node/verification-claim': COMMON_CLAIM,
   'POST /v1/node/renew': { run_id: 'uuid', lease_seconds: 'num' },
@@ -71,6 +78,12 @@ export const BODIES: Record<string, Record<string, Field>> = {
 const IDENTITY_FIELDS = new Set(['node_id', 'tenant_id', 'principal_id', 'computer_id', 'credential_id', 'security_role', 'role', 'roles',
   'capabilities', 'envelope', 'envelope_version', 'authorized_roles', 'authorized_capabilities', 'company_ids', 'max_concurrent_runs',
   'max_heavy', 'agent', 'agent_id', 'identity', 'tenant', 'may_verify']);
+
+// THE RESOURCE REPORT (register, heartbeat, claim): an object of at most 8 KiB whose values the gates and the ranking read are finite
+// numbers, or null (not known). The front doors check the same rule (factory._resources_problem), so a direct call is held to it too.
+const RESOURCE_NUMBERS = ['cpu_cores', 'cpu_pct', 'disk_free_mb', 'ram_free_mb', 'ram_total_mb'];
+const resourcesOk = (v: unknown): boolean => !!v && typeof v === 'object' && !Array.isArray(v) && JSON.stringify(v).length <= 8192
+  && RESOURCE_NUMBERS.every((k) => { const x = (v as Record<string, unknown>)[k]; return x === undefined || x === null || (typeof x === 'number' && Number.isFinite(x)); });
 
 const MAX_BODY = 65536;
 const enc = new TextEncoder();
@@ -88,11 +101,13 @@ const own = (b: Uint8Array): Uint8Array<ArrayBuffer> => new Uint8Array(b);
 export const hex = (b: Uint8Array): string => Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
 export async function sha256(b: Uint8Array): Promise<Uint8Array> { return new Uint8Array(await crypto.subtle.digest('SHA-256', own(b))); }
 
+// A key or signature of the wrong length is the caller's input: false. Every other outcome is WebCrypto's own: its answer, or its
+// error, which is not caught here (a platform whose WebCrypto cannot verify Ed25519 fails the call as an error, never as a signature
+// that does not verify; the self-test below then fails every request).
 export async function ed25519Verify(publicKey: Uint8Array, signature: Uint8Array, message: Uint8Array): Promise<boolean> {
-  try {
-    const key = await crypto.subtle.importKey('raw', own(publicKey), { name: 'Ed25519' }, false, ['verify']);
-    return await crypto.subtle.verify({ name: 'Ed25519' }, key, own(signature), own(message));
-  } catch { return false; }
+  if (publicKey.length !== 32 || signature.length !== 64) return false;
+  const key = await crypto.subtle.importKey('raw', own(publicKey), { name: 'Ed25519' }, false, ['verify']);
+  return await crypto.subtle.verify({ name: 'Ed25519' }, key, own(signature), own(message));
 }
 
 // RFC 8032 §7.1 TEST 1: the runtime's Ed25519 must verify a known-good signature and refuse a one-bit change, or this API serves
@@ -116,15 +131,20 @@ export function ed25519SelfTest(): Promise<boolean> {
 const json = (status: number, body: Record<string, unknown>): Response =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 const refuse = (status: number, refused: string, message: string): Response => json(status, { ok: false, refused, message });
+/** a refusal the Edge decided, before it is answered (the enrollment routes first record it through their front door) */
+export type Refusal = { status: number; refused: string; message: string };
+const why = (status: number, refused: string, message: string): Refusal => ({ status, refused, message });
+const answer = (w: Refusal): Response => refuse(w.status, w.refused, w.message);
 
-function check(route: string, body: unknown): { ok: true; body: Record<string, unknown> } | { ok: false; res: Response } {
-  const schema = BODIES[route];
-  if (!body || typeof body !== 'object' || Array.isArray(body)) return { ok: false, res: refuse(400, 'bad_request', 'the body is a JSON object') };
+function check(route: string, body: unknown): { ok: true; body: Record<string, unknown> } | { ok: false; why: Refusal } {
+  // own entries only: a key inherited from Object.prototype ('constructor', '__proto__', 'toString', ...) is no field (P-9)
+  const schema: Record<string, Field> = Object.hasOwn(BODIES, route) ? BODIES[route] : {};
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return { ok: false, why: why(400, 'bad_request', 'the body is a JSON object') };
   const b = body as Record<string, unknown>;
   for (const k of Object.keys(b)) {
-    if (IDENTITY_FIELDS.has(k)) return { ok: false, res: refuse(400, 'identity_from_body_refused', 'the body may not name ' + k + ': identity, tenant and authority come from the credential (S-4)') };
-    const t = schema[k];
-    if (!t) return { ok: false, res: refuse(400, 'bad_request', 'unknown field ' + JSON.stringify(k).slice(0, 80)) };
+    if (IDENTITY_FIELDS.has(k)) return { ok: false, why: why(400, 'identity_from_body_refused', 'the body may not name ' + k + ': identity, tenant and authority come from the credential (S-4)') };
+    const t = Object.hasOwn(schema, k) ? schema[k] : undefined;
+    if (!t) return { ok: false, why: why(400, 'bad_request', 'unknown field ' + JSON.stringify(k).slice(0, 80)) };
     const v = b[k];
     const str = (n: number) => typeof v === 'string' && v.length <= n;
     const ok = t === 'str64' ? str(64) : t === 'str200' ? str(200) : t === 'str255' ? str(255) : t === 'str1000' ? str(1000) : t === 'str4000' ? str(4000)
@@ -134,6 +154,7 @@ function check(route: string, body: unknown): { ok: true; body: Record<string, u
       : t === 'uuid' ? typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v)
       : t === 'num' ? typeof v === 'number' && Number.isFinite(v)
       : t === 'obj' ? !!v && typeof v === 'object' && !Array.isArray(v) && JSON.stringify(v).length <= 8192
+      : t === 'res' ? resourcesOk(v)
       : t === 'strs' ? Array.isArray(v) && v.length <= 32 && v.every((x) => typeof x === 'string' && x.length <= 64)
       : t === 'uuids' ? Array.isArray(v) && v.length <= 64 && v.every((x) => typeof x === 'string' && /^[0-9a-f-]{36}$/.test(x))
       : t === 'b64u32' ? typeof v === 'string' && (b64u.dec(v)?.length === 32)
@@ -141,7 +162,8 @@ function check(route: string, body: unknown): { ok: true; body: Record<string, u
       : t === 'assertion' ? typeof v === 'string' && v.length <= 2048 && /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(v)
       : t === 'code' ? typeof v === 'string' && v.length <= 40
       : false;
-    if (!ok) return { ok: false, res: refuse(400, 'bad_request', 'field ' + k + ' is not a valid ' + t) };
+    if (!ok) return { ok: false, why: why(400, 'bad_request', t === 'res' ? 'field resources is an object of at most 8 KiB whose ' + RESOURCE_NUMBERS.join(', ') + ' are numbers'
+      : 'field ' + k + ' is not a valid ' + t) };
   }
   return { ok: true, body: b };
 }
@@ -160,24 +182,35 @@ async function bearerHash(req: Request): Promise<string | null> {
   return m ? hex(await sha256(enc.encode(m[1]))) : null;
 }
 
+// the body of a request, read and checked; a problem is the named refusal (not yet answered: the enrollment routes record it first)
+async function readBody(req: Request, route: string): Promise<{ body: Record<string, unknown>; problem: Refusal | null }> {
+  const len = Number(req.headers.get('content-length') || '0');
+  if (len > MAX_BODY) return { body: {}, problem: why(413, 'body_too_large', 'the body is larger than ' + MAX_BODY + ' bytes') };
+  const raw = new Uint8Array(await req.arrayBuffer());
+  if (raw.length > MAX_BODY) return { body: {}, problem: why(413, 'body_too_large', 'the body is larger than ' + MAX_BODY + ' bytes') };
+  if (!/^application\/json\b/.test(req.headers.get('content-type') || '')) return { body: {}, problem: why(415, 'bad_request', 'the body is application/json') };
+  let parsed: unknown;
+  try { parsed = JSON.parse(dec.decode(raw)); } catch { return { body: {}, problem: why(400, 'bad_request', 'the body is not JSON') }; }   // the caller's bytes
+  const c = check(route, parsed);
+  if (!c.ok) return { body: parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {}, problem: c.why };
+  return { body: c.body, problem: null };
+}
+
 export function createNodeApi(deps: Deps): (req: Request, peer: Peer) => Promise<Response> {
   return async (req: Request, peer: Peer): Promise<Response> => {
     const url = new URL(req.url);
     const route = req.method + ' ' + routePath(url.pathname, deps.basePath);
-    if (!(route in FRONT_DOORS)) return refuse(404, 'no_such_route', 'the Factory Node API has no ' + req.method + ' ' + url.pathname.slice(0, 80));
-    if (!(await ed25519SelfTest())) return refuse(503, 'crypto_unavailable', 'Ed25519 self-test failed: this API serves nothing (fail closed)');
+    if (!Object.hasOwn(FRONT_DOORS, route)) return refuse(404, 'no_such_route', 'the Factory Node API has no ' + req.method + ' ' + url.pathname.slice(0, 80));
     try {
+      if (!(await ed25519SelfTest())) return refuse(503, 'crypto_unavailable', 'Ed25519 self-test failed: this API serves nothing (fail closed)');
       if (route === 'GET /v1/time') return await frontDoor(deps, route, []);
-      const len = Number(req.headers.get('content-length') || '0');
-      if (len > MAX_BODY) return refuse(413, 'body_too_large', 'the body is larger than ' + MAX_BODY + ' bytes');
-      const raw = new Uint8Array(await req.arrayBuffer());
-      if (raw.length > MAX_BODY) return refuse(413, 'body_too_large', 'the body is larger than ' + MAX_BODY + ' bytes');
-      if (!/^application\/json\b/.test(req.headers.get('content-type') || '')) return refuse(415, 'bad_request', 'the body is application/json');
-      let parsed: unknown;
-      try { parsed = JSON.parse(dec.decode(raw)); } catch { return refuse(400, 'bad_request', 'the body is not JSON'); }
-      const c = check(route, parsed);
-      if (!c.ok) return c.res;
-      const body = c.body;
+      const { body, problem } = await readBody(req, route);
+      // EVERY request to the two enrollment routes reaches its front door, which records it as one pairing attempt counted by the S-6
+      // caps - with the refusal found here, if any, and with no peer address when the platform reported none (peer.ts)
+      if (route === 'POST /v1/enroll/start' || route === 'POST /v1/enroll/complete') {
+        return await enroll(deps, route, body, problem, peer, frontDoor, answer);
+      }
+      if (problem) return answer(problem);
 
       if (route === 'POST /v1/session') {
         const [p64, s64] = String(body.assertion).split('.');
@@ -200,24 +233,25 @@ export function createNodeApi(deps: Deps): (req: Request, peer: Peer) => Promise
       if (route === 'POST /v1/node/credential-rotate') {
         const th = await bearerHash(req);
         if (!th) return refuse(401, 'session_invalid', 'a node session token (Authorization: Bearer) is required');
-        const pk = b64u.dec(String(body.new_public_key))!, proof = b64u.dec(String(body.proof))!;
+        const pk = b64u.dec(String(body.new_public_key ?? '')), proof = b64u.dec(String(body.proof ?? ''));
+        if (!pk || pk.length !== 32 || !proof || proof.length !== 64) return refuse(400, 'bad_request', 'new_public_key and proof are required');
         const newThumb = hex(await sha256(pk));
         const msg = enc.encode('brain-factory-rotate-v1|' + th + '|' + newThumb);
         if (!(await ed25519Verify(pk, proof, msg))) return refuse(401, 'bad_proof', 'the new key did not sign the rotate message');
         return await frontDoor(deps, route, [th, newThumb, hex(pk)]);
       }
-      if (route === 'POST /v1/enroll/start' || route === 'POST /v1/enroll/complete') {
-        return await enroll(deps, route, body, peer, frontDoor, refuse);
-      }
       const th = await bearerHash(req);
       if (!th) return refuse(401, 'session_invalid', 'a node session token (Authorization: Bearer) is required');
       return await frontDoor(deps, route, [th, JSON.stringify(body)]);
     } catch (e) {
-      const code = (e as { code?: string })?.code;
-      deps.log?.({ event: 'node_api_error', route, class: code || 'error' });
-      // a SQLSTATE means the server answered and rolled the call back: nothing changed. Anything else: the outcome is unknown.
-      if (typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code)) return refuse(500, 'server_refused', 'the control plane refused the call (' + code + '); nothing changed');
-      return refuse(503, 'plane_unavailable', 'the control plane did not answer; the outcome is unknown - retry (every operation is safe to retry)');
+      // THE REQUEST BOUNDARY: every error that reaches here is answered AS an error - its class named, nothing decided, nothing changed
+      const state = serverSqlState(e);
+      const cls = state ?? ((e as { name?: string })?.name || 'error').slice(0, 40);
+      deps.log?.({ event: 'node_api_error', route, class: cls });
+      // a SQLSTATE the SERVER sent means it answered and rolled the call back: nothing changed. Anything else - a driver or transport
+      // error included, whatever code it carries - leaves the outcome unknown.
+      if (state) return refuse(500, 'server_refused', 'the control plane refused the call (' + state + '); nothing changed');
+      return refuse(503, 'plane_unavailable', 'the call did not complete (' + cls + '); the outcome is unknown - retry (every operation is safe to retry)');
     }
   };
 }
