@@ -120,11 +120,12 @@ with no relay at all.
 ## The proofs
 
 ```
-RELAY_TEST_MODULES=<a node_modules that holds embedded-postgres and pg> node test/all.mjs --mutation
+RELAY_TEST_MODULES=<a node_modules that holds embedded-postgres and pg> node test/all.mjs --mutation --frozen
 ```
 
 | proof | what it runs on |
 |---|---|
+| `harness_proof` | the proofs' own harness: how a mutation proof judges a mutant, and that every script parses |
 | `sql_acceptance` | the install, as the function calls it, on a disposable PostgreSQL dressed like the project, with a decoy schema ahead of `pg_catalog` |
 | `bundle_acceptance` | the verifier's checks, against every bundle they must refuse |
 | `boundary_proof` | the function's authentication: every request that must be refused, with a spy on the function's only way out |

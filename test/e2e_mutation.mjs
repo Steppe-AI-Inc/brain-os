@@ -2,7 +2,7 @@
 // relay/; the end-to-end run (the function inside Node) must go red for it. A mutant that cannot be applied, that breaks the code
 // outright, or that the run does not notice fails this proof.
 //   RELAY_TEST_MODULES=<node_modules> node test/e2e_mutation.mjs [F01 C05 ...]
-import { spawnSync } from 'node:child_process';
+import { applySwaps, mutationProof, runNode } from './classify.mjs';
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -46,45 +46,27 @@ const MUTANTS = [
   ['C12', 'relay/lib/client.mjs', 'a node\'s key can be made again over the old one', `if (existsSync(keyPath()) || existsSync(configPath())) throw new RelayError(`, `if (false) throw new RelayError(`, `{ mode: 0o600, flag: 'wx' }`, `{ mode: 0o600 }`],
 ];
 
-const only = process.argv.slice(2).filter((a) => /^[FC]\d+$/.test(a));
 const tmp = mkdtempSync(join(tmpdir(), 'relay-mut-'));
-const e2e = (env) => {
-  const r = spawnSync(process.execPath, [join(ROOT, 'test', 'e2e.mjs'), '--no-deno'], { env: { ...process.env, ...env }, encoding: 'utf8', timeout: 400000 });
-  const out = r.stdout ?? '';
-  const red = [...out.matchAll(/^FAIL (E\d+)/gm)].map((m) => m[1]);
-  const summed = /artifact relay end to end \(WITHOUT the Deno rows\): \d+\/\d+ OK/.test(out);
-  // judged: the run reached its summary, or it judged rows (some OK, at least one red) before the mutant stopped it
-  return { judged: summed || (red.length > 0 && /^OK   E\d+/m.test(out)), stopped: !summed, red,
-    err: (out + (r.stderr ?? '')).split('\n').find((l) => /crashed|SyntaxError|TypeError|ReferenceError/.test(l)) ?? '' };
-};
-
-let killed = 0, bad = 0;
+let code = 1;
 try {
-  const control = e2e({});
-  const controlOk = control.judged && control.red.length === 0;
-  console.log((controlOk ? 'OK   ' : 'FAIL ') + 'control: the unmutated code passes' + (controlOk ? '' : ' - ' + control.red.join(' ') + ' ' + control.err));
-  if (!controlOk) bad++;
-  for (const [id, file, what, ...swaps] of MUTANTS) {
-    if (only.length && !only.includes(id)) continue;
-    let text = read(file), applied = true;
-    for (let i = 0; i < swaps.length; i += 2) {
-      if (text.split(swaps[i]).length !== 2) { applied = false; console.log('FAIL ' + id + ' NOT APPLIED - ' + what + ' - expected exactly one "' + swaps[i].slice(0, 60).replace(/\n/g, ' ') + '"'); break; }
-      text = text.replace(swaps[i], () => swaps[i + 1]);
-    }
-    if (!applied) { bad++; continue; }
-    let env;
-    if (file === FUNCTION) {
-      const f = join(tmp, id + '-relay.ts'); writeFileSync(f, text); env = { RELAY_FUNCTION_FILE: f };
-    } else {
-      const dir = join(tmp, id + '-relay'); cpSync(join(ROOT, 'relay'), dir, { recursive: true });
-      writeFileSync(join(dir, file.replace(/^relay\//, '')), text); env = { RELAY_CLI_DIR: dir };
-    }
-    const r = e2e(env);
-    if (!r.judged) { bad++; console.log('FAIL ' + id + ' BROKE THE RUN (not a judgement) - ' + what + ' - ' + r.err.slice(0, 160)); continue; }
-    if (r.red.length) { killed++; console.log('OK   ' + id + ' killed - ' + what + ' - by ' + r.red.join(' ') + (r.stopped ? ' (the run then stopped)' : '')); }
-    else { bad++; console.log('FAIL ' + id + ' SURVIVED - ' + what); }
-  }
+  code = mutationProof({
+    name: 'artifact relay end-to-end mutation proof',
+    only: process.argv.slice(2).filter((a) => /^[FC]\d+$/.test(a)),
+    mutants: MUTANTS,
+    describe: ([id, , what]) => [id, what],
+    // a mutated copy of the function, or a copy of relay/ with one file mutated
+    mutate: ([id, file, , ...swaps]) => {
+      const { text, missing } = applySwaps(read(file), swaps);
+      if (text === null) return { verdict: 'NOT APPLIED', reason: 'expected exactly one "' + missing.slice(0, 60).replace(/\n/g, ' ') + '"' };
+      if (file === FUNCTION) { const f = join(tmp, id + '-relay.ts'); writeFileSync(f, text); return { file: f, env: { RELAY_FUNCTION_FILE: f } }; }
+      const dir = join(tmp, id + '-relay');
+      cpSync(join(ROOT, 'relay'), dir, { recursive: true });
+      const f = join(dir, file.replace(/^relay\//, ''));
+      writeFileSync(f, text);
+      return { file: f, env: { RELAY_CLI_DIR: dir } };
+    },
+    accept: (env) => runNode(join(ROOT, 'test', 'e2e.mjs'), ['--no-deno'], env, 400000),
+    shape: { rowId: 'E\\d+', summary: /^artifact relay end to end \(WITHOUT the Deno rows\): \d+\/\d+ OK/m },
+  });
 } finally { rmSync(tmp, { recursive: true, force: true }); }
-const total = only.length ? only.length : MUTANTS.length;
-console.log('\nartifact relay end-to-end mutation proof: ' + killed + '/' + total + ' killed' + (bad ? '; ' + bad + ' NOT KILLED, NOT APPLIED OR BROKEN' : ''));
-process.exit(bad ? 1 : 0);
+process.exit(code);

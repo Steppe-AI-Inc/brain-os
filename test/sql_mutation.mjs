@@ -124,28 +124,42 @@ const MUTANTS = [
 
 const only = process.argv.slice(2).filter((a) => /^M\d+$/.test(a));
 const plane = await startPlane({ bucket: 'none' });
-let killed = 0, bad = 0;
+const tally = { KILLED: 0, SURVIVED: 0, BROKEN: 0, AMBIGUOUS: 0, 'NOT APPLIED': 0 };
+let controlOk = false, judged = 0;
+/** a mutated install that the database cannot even read is not a judgement */
+const UNREADABLE = /^(42601|42P01|42703|42883|42704|42804|42P02) /;
+const verdictOf = (rows) => {
+  const red = rows.filter((r) => !r.ok);
+  if (red.length === 0) return rows.length ? { verdict: 'SURVIVED', reason: 'every row stayed OK' } : { verdict: 'AMBIGUOUS', reason: 'the suite judged no row' };
+  if (red.some((r) => r.id === 'S01') && UNREADABLE.test(red.find((r) => r.id === 'S01').detail)) return { verdict: 'BROKEN', reason: 'the mutated install is not SQL the database can read: ' + red.find((r) => r.id === 'S01').detail.slice(0, 160) };
+  const by = [...new Set(red.map((r) => r.id))];
+  return { verdict: 'KILLED', reason: 'by ' + by.slice(0, 4).join(' ') + (by.length > 4 ? ' +' + (by.length - 4) : '') };
+};
 try {
-  const control = await runSuite(plane, { install: SQL });
-  const red = control.filter((r) => !r.ok);
-  console.log((red.length ? 'FAIL ' : 'OK   ') + 'control: the unmutated install is ' + (control.length - red.length) + '/' + control.length + (red.length ? ' - ' + red.map((r) => r.id).join(' ') : ''));
-  if (red.length) bad++;
+  try {
+    const control = await runSuite(plane, { install: SQL });
+    const red = control.filter((r) => !r.ok);
+    controlOk = control.length > 0 && red.length === 0;
+    console.log((controlOk ? 'OK   ' : 'FAIL ') + 'control: the unmutated install is ' + (control.length - red.length) + '/' + control.length + (red.length ? ' - ' + red.map((r) => r.id).join(' ') : ''));
+  } catch (e) { console.log('FAIL control: the suite itself stopped - ' + e.message); }
   for (const [id, what, edit] of MUTANTS) {
     if (only.length && !only.includes(id)) continue;
-    let mutated;
-    try { mutated = edit(SQL); } catch (e) {
-      if (!(e instanceof NotApplied)) throw e;
-      console.log('FAIL ' + id + ' NOT APPLIED - ' + what + ' - ' + e.message); bad++; continue;
-    }
-    let rows;
-    try { rows = await runSuite(plane, { install: mutated }); } catch (e) { rows = [{ id: 'CRASH', ok: false, detail: e.message }]; }
+    judged++;
+    let v;
+    try {
+      let mutated = null;
+      try { mutated = edit(SQL); } catch (e) { if (!(e instanceof NotApplied)) throw e; v = { verdict: 'NOT APPLIED', reason: e.message }; }
+      if (mutated !== null) {
+        try { v = verdictOf(await runSuite(plane, { install: mutated })); }
+        catch (e) { v = { verdict: 'AMBIGUOUS', reason: 'the suite itself stopped, with no row to judge by: ' + e.message }; }
+      }
+    } catch (e) { v = { verdict: 'AMBIGUOUS', reason: 'the runner itself failed on this mutant: ' + (e?.message ?? e) }; }
     try { await plane.owner.query('rollback'); } catch { /* no transaction */ }
-    await resetPlane(plane);
-    const by = rows.filter((r) => !r.ok).map((r) => r.id);
-    if (by.length) { killed++; console.log('OK   ' + id + ' killed - ' + what + ' - by ' + by.slice(0, 4).join(' ') + (by.length > 4 ? ' +' + (by.length - 4) : '')); }
-    else { bad++; console.log('FAIL ' + id + ' SURVIVED - ' + what); }
+    try { await resetPlane(plane); } catch (e) { console.log('FAIL the plane could not be reset after ' + id + ' - ' + e.message); controlOk = false; }
+    tally[v.verdict]++;
+    console.log(v.verdict === 'KILLED' ? `OK   ${id} killed - ${what} - ${v.reason}` : `FAIL ${id} ${v.verdict} - ${what} - ${v.reason}`);
   }
 } finally { await plane.stop(); }
-const total = only.length ? only.length : MUTANTS.length;
-console.log('\nartifact relay sql mutation proof: ' + killed + '/' + total + ' killed' + (bad ? '; ' + bad + ' NOT KILLED OR NOT APPLIED' : ''));
+const bad = judged - tally.KILLED + (controlOk ? 0 : 1);
+console.log(`\nartifact relay sql mutation proof: ${tally.KILLED}/${judged} killed` + (bad ? `; NOT KILLED: survived ${tally.SURVIVED}, broken ${tally.BROKEN}, ambiguous ${tally.AMBIGUOUS}, not applied ${tally['NOT APPLIED']}` + (controlOk ? '' : ', and the control did not pass') : ''));
 process.exit(bad ? 1 : 0);

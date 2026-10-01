@@ -1,7 +1,7 @@
 // MUTATION PROOF for the recipient's checks: each mutant removes one rule from a copy of relay/lib; the bundle acceptance must go
 // red for it. A mutant that cannot be applied, that breaks the code outright, or that the acceptance does not notice fails this proof.
 //   node test/bundle_mutation.mjs [V01 V02 ...]
-import { spawnSync } from 'node:child_process';
+import { applySwaps, mutationProof, runNode } from './classify.mjs';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -72,37 +72,23 @@ const MUTANTS = [
   ['V58', 'zipsafe.mjs', 'a disk number is accepted', `if (disk !== 0 || cdDisk !== 0 || onDisk !== count) refuse('a multi-disk archive');`, ``],
 ];
 
-const only = process.argv.slice(2).filter((a) => /^V\d+$/.test(a));
 const tmp = mkdtempSync(join(tmpdir(), 'relay-lib-'));
-const write = (over = {}) => { for (const f of FILES) writeFileSync(join(tmp, f), over[f] ?? SRC[f]); };
-const acceptance = () => {
-  const r = spawnSync(process.execPath, [join(ROOT, 'test', 'bundle_acceptance.mjs')], { env: { ...process.env, RELAY_LIB_DIR: tmp }, encoding: 'utf8', timeout: 180000 });
-  const out = r.stdout ?? '';
-  return { judged: /artifact relay bundle acceptance: \d+\/\d+ OK/.test(out), red: [...out.matchAll(/^FAIL (\S+)/gm)].map((m) => m[1]), status: r.status, err: (r.stderr ?? '').split('\n').find((l) => /Error/.test(l)) ?? '' };
-};
-
-let killed = 0, bad = 0;
+let code = 1;
 try {
-  write();
-  const control = acceptance();
-  const controlOk = control.judged && control.red.length === 0 && control.status === 0;
-  console.log((controlOk ? 'OK   ' : 'FAIL ') + 'control: the unmutated copy passes' + (controlOk ? '' : ' - ' + control.red.join(' ') + ' ' + control.err));
-  if (!controlOk) bad++;
-  for (const [id, file, what, ...swaps] of MUTANTS) {
-    if (only.length && !only.includes(id)) continue;
-    let text = SRC[file], applied = true;
-    for (let i = 0; i < swaps.length; i += 2) {
-      if (text.split(swaps[i]).length !== 2) { applied = false; console.log('FAIL ' + id + ' NOT APPLIED - ' + what + ' - expected exactly one "' + swaps[i].slice(0, 50) + '"'); break; }
-      text = text.replace(swaps[i], () => swaps[i + 1]);
-    }
-    if (!applied) { bad++; continue; }
-    write({ [file]: text });
-    const r = acceptance();
-    if (!r.judged) { bad++; console.log('FAIL ' + id + ' BROKE THE CODE (not a judgement) - ' + what + ' - ' + r.err); continue; }
-    if (r.red.length) { killed++; console.log('OK   ' + id + ' killed - ' + what + ' - by ' + r.red.join(' ')); }
-    else { bad++; console.log('FAIL ' + id + ' SURVIVED - ' + what); }
-  }
+  code = mutationProof({
+    name: 'artifact relay bundle mutation proof',
+    only: process.argv.slice(2).filter((a) => /^V\d+$/.test(a)),
+    mutants: MUTANTS,
+    describe: ([id, , what]) => [id, what],
+    // a copy of relay/lib with one file mutated
+    mutate: ([, file, , ...swaps]) => {
+      const { text, missing } = applySwaps(SRC[file], swaps);
+      if (text === null) return { verdict: 'NOT APPLIED', reason: 'expected exactly one "' + missing.slice(0, 60).replace(/\n/g, ' ') + '"' };
+      for (const f of FILES) writeFileSync(join(tmp, f), f === file ? text : SRC[f]);
+      return { file: join(tmp, file), env: { RELAY_LIB_DIR: tmp } };
+    },
+    accept: (env) => { if (!env.RELAY_LIB_DIR) for (const f of FILES) writeFileSync(join(tmp, f), SRC[f]); return runNode(join(ROOT, 'test', 'bundle_acceptance.mjs'), [], { RELAY_LIB_DIR: tmp, ...env }, 180000); },
+    shape: { rowId: 'B\\d+', summary: /^artifact relay bundle acceptance: \d+\/\d+ OK/m },
+  });
 } finally { rmSync(tmp, { recursive: true, force: true }); }
-const total = only.length ? only.length : MUTANTS.length;
-console.log('\nartifact relay bundle mutation proof: ' + killed + '/' + total + ' killed' + (bad ? '; ' + bad + ' NOT KILLED, NOT APPLIED OR BROKEN' : ''));
-process.exit(bad ? 1 : 0);
+process.exit(code);

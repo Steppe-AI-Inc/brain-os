@@ -1,7 +1,7 @@
 // MUTATION PROOF for the installer: each mutant removes one of its checks from a copy of relay/install.mjs; the installer
 // acceptance must go red for it.
 //   RELAY_TEST_MODULES=<node_modules> node test/install_mutation.mjs [K01 K07 ...]
-import { spawnSync } from 'node:child_process';
+import { applySwaps, mutationProof, runNode } from './classify.mjs';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -41,38 +41,22 @@ const MUTANTS = [
     `    const state = await readState();\n    // 4 pre-check`, `    const state = await readState();\n    try { await api('GET', \`/v1/projects/\${S.project}/api-keys\`); } catch { /* ignored */ }\n    // 4 pre-check`],
 ];
 
-const only = process.argv.slice(2).filter((a) => /^K\d+$/.test(a));
 const tmp = mkdtempSync(join(tmpdir(), 'relay-instmut-'));
-const acceptance = (file) => {
-  const r = spawnSync(process.execPath, [join(ROOT, 'test', 'install_acceptance.mjs')], { env: { ...process.env, ...(file ? { RELAY_INSTALLER_FILE: file } : {}) }, encoding: 'utf8', timeout: 560000 });
-  const out = r.stdout ?? '';
-  const red = [...out.matchAll(/^FAIL (I\d+\w?)/gm)].map((m) => m[1]);
-  const summed = /artifact relay install acceptance: \d+\/\d+ OK/.test(out);
-  return { judged: summed || (red.length > 0 && /^OK   I\d+/m.test(out)), stopped: !summed, red, err: (out + (r.stderr ?? '')).split('\n').find((l) => /crashed|SyntaxError|TypeError|ReferenceError/.test(l)) ?? '' };
-};
-
-let killed = 0, bad = 0;
+let code = 1;
 try {
-  const control = acceptance(null);
-  const controlOk = control.judged && !control.stopped && control.red.length === 0;
-  console.log((controlOk ? 'OK   ' : 'FAIL ') + 'control: the unmutated installer passes' + (controlOk ? '' : ' - ' + control.red.join(' ') + ' ' + control.err));
-  if (!controlOk) bad++;
-  for (const [id, what, ...swaps] of MUTANTS) {
-    if (only.length && !only.includes(id)) continue;
-    let text = SRC, applied = true;
-    for (let i = 0; i < swaps.length; i += 2) {
-      if (text.split(swaps[i]).length !== 2) { applied = false; console.log('FAIL ' + id + ' NOT APPLIED - ' + what + ' - expected exactly one "' + swaps[i].slice(0, 60).replace(/\n/g, ' ') + '"'); break; }
-      text = text.replace(swaps[i], () => swaps[i + 1]);
-    }
-    if (!applied) { bad++; continue; }
-    const file = join(tmp, id + '-install.mjs');
-    writeFileSync(file, text);
-    const r = acceptance(file);
-    if (!r.judged) { bad++; console.log('FAIL ' + id + ' BROKE THE RUN (not a judgement) - ' + what + ' - ' + r.err.slice(0, 160)); continue; }
-    if (r.red.length) { killed++; console.log('OK   ' + id + ' killed - ' + what + ' - by ' + r.red.join(' ') + (r.stopped ? ' (the run then stopped)' : '')); }
-    else { bad++; console.log('FAIL ' + id + ' SURVIVED - ' + what); }
-  }
+  code = mutationProof({
+    name: 'artifact relay install mutation proof',
+    only: process.argv.slice(2).filter((a) => /^K\d+$/.test(a)),
+    mutants: MUTANTS,
+    mutate: ([id, , ...swaps]) => {
+      const { text, missing } = applySwaps(SRC, swaps);
+      if (text === null) return { verdict: 'NOT APPLIED', reason: 'expected exactly one "' + missing.slice(0, 60).replace(/\n/g, ' ') + '"' };
+      const file = join(tmp, id + '-install.mjs');
+      writeFileSync(file, text);
+      return { file, env: { RELAY_INSTALLER_FILE: file } };
+    },
+    accept: (env) => runNode(join(ROOT, 'test', 'install_acceptance.mjs'), [], env, 560000),
+    shape: { rowId: 'I\\d+\\w?', summary: /^artifact relay install acceptance: \d+\/\d+ OK/m },
+  });
 } finally { rmSync(tmp, { recursive: true, force: true }); }
-const total = only.length ? only.length : MUTANTS.length;
-console.log('\nartifact relay install mutation proof: ' + killed + '/' + total + ' killed' + (bad ? '; ' + bad + ' NOT KILLED, NOT APPLIED OR BROKEN' : ''));
-process.exit(bad ? 1 : 0);
+process.exit(code);

@@ -128,6 +128,6 @@ At rest the bytes are in a private bucket that no node credential can read.
 ## 8. Proofs
 
 ```
-RELAY_TEST_MODULES=<a node_modules with embedded-postgres and pg> node test/all.mjs             # the six acceptance proofs
+RELAY_TEST_MODULES=<a node_modules with embedded-postgres and pg> node test/all.mjs             # the acceptance proofs
 RELAY_TEST_MODULES=...                                             node test/all.mjs --mutation  # and the five mutation proofs
 ```
