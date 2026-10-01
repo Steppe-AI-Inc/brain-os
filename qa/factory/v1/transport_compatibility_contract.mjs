@@ -71,7 +71,7 @@ for (const r of m.rows) {
 }
 // the required rows are all there
 for (const need of ['register', 'heartbeat', 'discover / claim', 'lease renewal', 'checkpoint', 'complete', 'surface-lock acquire', 'surface-lock release',
-  'takeover / recovery', 'verification claim', 'certification']) if (!rows.some((r) => r.row === need)) problems.push('the required row "' + need + '" is missing');
+  'takeover / recovery', 'worker failure (a thrown handler)', 'verification claim', 'certification']) if (!rows.some((r) => r.row === need)) problems.push('the required row "' + need + '" is missing');
 // P-2: no new table holds lease, lock or completion state
 const newTables = [...migration.matchAll(/create table factory\.([a-z_]+) \(([\s\S]*?)\n\);/g)];
 for (const [, t, body] of newTables) if (/^\s+(lease_expires_at|lease_until|surface|finished_at|completed_at)\s/m.test(body)) problems.push('new table factory.' + t + ' holds lease / lock / completion state');

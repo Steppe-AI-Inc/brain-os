@@ -33,6 +33,13 @@
 //   RN1  a run longer than its renewal interval on the real plane (the claim asks a 15 s lease): every renewal is granted 15 s by the
 //        plane's own clock (lease_expires_at - server_time), agent_runs.lease_expires_at moves forward with each, and the run
 //        completes as the one run of its work order
+//   TR1  (C2-P1) every answer of one checkpoint lost, through the client's own retries: the run is NOT failed - the node sends nothing
+//        more for it and goes on with other work; the run stays in progress until its lease lapses; a SECOND node then takes the work
+//        over from the last checkpoint and completes it; the first owner's renewal, checkpoint and completion (done or failed) are
+//        refused; one run is done, none failed, and every step has exactly one checkpoint row
+//   TR2  (C2-P1) a checkpoint the plane's server itself refuses - a real lock wait past the front door's lock_timeout, SQLSTATE 55P03,
+//        answered 500 server_refused - does not fail the run either: the lease lapses and the same node, the only eligible one, takes
+//        the work back as a NEW run resumed from the checkpoint, and completes it once
 // usage: node qa/factory/v1/runtime_recovery_acceptance.mjs [--evidence <file>]
 import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -42,7 +49,7 @@ import { dirname, join } from 'node:path';
 import { PassThrough } from 'node:stream';
 import { pathToFileURL } from 'node:url';
 import { compose, sha256 } from '../../../scripts/factory-control-plane/migration.mjs';
-import { ROOT } from './plane.mjs';
+import { ROOT, connect } from './plane.mjs';
 import { asEngine } from './fixtures.mjs';
 import { world, recorder, RES } from './flows.mjs';
 
@@ -449,6 +456,143 @@ try {
         && renewedOnRow && leases.length >= 3 && forward,
       JSON.stringify({ done: !!doneAt, runs: runs.map((r) => r.status + ':' + r.attempt_count), renews: renews.length, granted, leaseSteps: leases.map((l, i) => (i ? l - leases[i - 1] : 0)), renewedOnRow }));
     await stopWorker(w);
+  }
+
+  // what a node's link carries: the path under /v1/ and the parsed body
+  const sentOf = (url, init) => {
+    let body = null; try { body = init && init.body ? JSON.parse(init.body) : null; } catch { body = null; }
+    return { path: new URL(url).pathname.replace(/^.*\/v1\//, '/v1/'), body };
+  };
+  const withLease = (init, body, seconds) => ({ ...init, body: JSON.stringify({ ...body, lease_seconds: seconds }) });
+  const runsOf = async (wo) => (await sup.query(`select r.run_id, r.status, r.attempt_count, r.computer_id, r.termination_reason, r.started_at, r.finished_at, r.resumed_from_checkpoint_id,
+      (select count(*)::int from factory.surface_locks l where l.run_id = r.run_id) locks from factory.agent_runs r where r.work_order_id = $1 order by r.started_at`, [wo])).rows;
+  const checkpointsOf = async (wo) => (await sup.query(`select k.checkpoint_id, k.run_id, k.scenario from factory.checkpoints k where k.work_order_id = $1 order by k.scenario, k.created_at`, [wo])).rows;
+  const woOf = async (wo) => (await sup.query(`select status, completed_at from factory.work_orders where work_order_id = $1`, [wo])).rows[0];
+
+  // ================================================================ TR1: a checkpoint whose every answer is lost; a second node takes over
+  {
+    await archiveUsed();
+    // A may hold two runs (its second keeps it busy while the first one's lease lapses, so the node that takes the work over is B)
+    const A = await install('TR1-A', { ...ENV, max_concurrent_runs: 2 }); await installing(A);
+    const B = await install('TR1-B', ENV); await installing(B);
+    const handoff = JSON.stringify({ steps: 3, step_ms: 1500, salt: 'tr1' });
+    const P = await W.submit({ title: 'TR1 probe', work_type: 'probe', priority: 90, owned_surface: ['tr1/p'], handoff });
+    const Q = await W.submit({ title: 'TR1 other work of the first node', work_type: 'probe', priority: 80, owned_surface: ['tr1/q'], handoff: JSON.stringify({ steps: 6, step_ms: 4000, salt: 'tr1q' }) });
+    // A's link: every claim asks a 15 s lease; each answer to the step-2 checkpoint of A's run of P is withheld AFTER the plane committed
+    // it - the first attempt and the client's three retries (api.mjs: 1 s, 2 s and 4 s apart). Once the last one is withheld the handler
+    // has nothing left to try: from then on, everything A sends that names that run is recorded
+    const a = { run: null, lost: 0, ended: 0, after: [] };
+    const linkA = async (url, init) => {
+      const { path, body } = sentOf(url, init);
+      if (path === '/v1/node/claim' && body) init = withLease(init, body, 15);
+      if (a.ended && body && body.run_id === a.run) a.after.push(path.replace('/v1/node/', ''));
+      if (a.ended && path === '/v1/node/release' && body && Array.isArray(body.keep_run_ids) && !body.keep_run_ids.includes(a.run)) a.after.push('release(every run but ' + JSON.stringify(body.keep_run_ids) + ')');
+      const res = await fetch(url, init);
+      if (path === '/v1/node/claim' && !a.run) { const j = await res.clone().json().catch(() => null); if (j && j.claimed && j.claimed.work_order.work_order_id === P) a.run = j.claimed.run_id; }
+      if (path === '/v1/node/checkpoint' && body && body.run_id === a.run && body.scenario === 'step-2') {
+        await res.arrayBuffer();
+        if (++a.lost === 4) a.ended = Date.now();
+        throw new TypeError('fetch failed (the answer was withheld by the test)');
+      }
+      return res;
+    };
+    const wA = startWorker(A, { fetchImpl: linkA });
+    const ended = await waitFor(() => a.ended, 60000, 100);
+    // two seconds after the handler ended: the run as the plane holds it
+    await sleep(2000);
+    const held = (await sup.query(`select r.status, r.lease_expires_at > now() live, r.lease_expires_at, w.status ws from factory.agent_runs r join factory.work_orders w using (work_order_id) where r.run_id = $1`, [a.run])).rows[0] || {};
+    // B starts once A is busy on its other work (so B cannot have taken that), and waits for nothing but the lease
+    const busy = await waitFor(async () => (await sup.query(`select count(*)::int n from factory.agent_runs where work_order_id = $1 and status = 'in_progress' and computer_id = $2`, [Q, A.add.computer_id])).rows[0].n === 1, 20000, 100);
+    const wB = startWorker(B);
+    const taken = await waitFor(async () => (await runsOf(P)).find((r) => r.computer_id === B.add.computer_id), 60000, 100);
+    // the first owner, with its own credential, after the takeover
+    const kA = await loadKey(paths(A.home).key);
+    const first = new NodeApi({ api: W.node.baseUrl, key: kA.key });
+    await first.time();
+    const pc = probeContent({ work_order_id: P, handoff });
+    const stale = {
+      renew: await first.op('renew', { run_id: a.run, lease_seconds: 15 }),
+      checkpoint: await first.op('checkpoint', { run_id: a.run, location: 'probe://' + P + '/stale', scenario: 'stale' }),
+      done: await first.op('complete', { run_id: a.run, status: 'done', termination_reason: 'completed', head_commit: pc.commit, candidate_tree: pc.tree }),
+      failed: await first.op('complete', { run_id: a.run, status: 'failed', termination_reason: 'handler_error' }),
+    };
+    const doneP = await waitFor(async () => (await woOf(P)).status === 'done', 60000, 200);
+    const doneQ = await waitFor(async () => (await woOf(Q)).status === 'done', 90000, 200);
+    const runs = await runsOf(P), cps = await checkpointsOf(P), wo = await woOf(P), runsQ = await runsOf(Q);
+    const rA = runs.find((r) => r.run_id === a.run) || {}, rB = runs.find((r) => r.computer_id === B.add.computer_id) || {};
+    const step = (s) => cps.filter((k) => k.scenario === s);
+    const refusedAudit = (await sup.query(`select count(*)::int n from factory.audit_events where action = 'node.complete' and target_id = $1 and outcome = 'refused' and reason = 'superseded'`, [a.run])).rows[0].n;
+    row('TR1 every answer of a run\'s step-2 checkpoint lost (the first attempt and the client\'s three retries, each committed by the plane): the run is NOT failed - after the last one the node sends nothing that names the run (no completion, no release, no renewal, no checkpoint) and goes on to other work, which it completes; 2 s later the plane still holds the run in progress under its lease and the work order claimed; once that lease has lapsed the SECOND node takes the work over as a new run resumed from the step-2 checkpoint, does step 3 only and completes it; the first owner\'s renewal, checkpoint and completion (done and failed) are refused lease_lost / lease_lost / superseded / superseded; in the end ONE run of the work order is done and none failed, the first run is queued with attempt 2, no lock is left, and steps 1, 2 and 3 have exactly one checkpoint row each',
+      !!ended && a.lost === 4 && a.after.length === 0
+        && held.status === 'in_progress' && held.live === true && held.ws === 'claimed'
+        && !!busy && !!taken && taken.started_at >= held.lease_expires_at
+        && stale.renew.refused === 'lease_lost' && stale.checkpoint.refused === 'lease_lost' && stale.done.refused === 'superseded' && stale.done.landed === false
+        && stale.failed.refused === 'superseded' && refusedAudit === 2
+        && !!doneP && runs.length === 2 && rA.status === 'queued' && rA.attempt_count === 2 && rA.finished_at === null && rA.computer_id === A.add.computer_id
+        && rB.status === 'done' && rB.termination_reason === 'completed' && rB.finished_at !== null
+        && runs.filter((r) => r.status === 'done').length === 1 && !runs.some((r) => r.status === 'failed') && runs.every((r) => r.locks === 0)
+        && wo.status === 'done' && wo.completed_at !== null
+        && cps.length === 3 && step('step-1').length === 1 && step('step-1')[0].run_id === a.run && step('step-2').length === 1 && step('step-2')[0].run_id === a.run
+        && step('step-3').length === 1 && step('step-3')[0].run_id === rB.run_id && rB.resumed_from_checkpoint_id === step('step-2')[0].checkpoint_id
+        && !!doneQ && runsQ.length === 1 && runsQ[0].status === 'done' && runsQ[0].computer_id === A.add.computer_id,
+      JSON.stringify({ lost: a.lost, sentAfter: a.after, held: { status: held.status, live: held.live, wo: held.ws }, tookOverAfterLeaseMs: taken && held.lease_expires_at ? taken.started_at - held.lease_expires_at : null,
+        stale: Object.fromEntries(Object.entries(stale).map(([k, v]) => [k, v.ok ? 'ok' : v.refused])), refusedAudit,
+        runs: runs.map((r) => (r.computer_id === A.add.computer_id ? 'A' : 'B') + ':' + r.status + ':' + r.attempt_count + ':' + (r.termination_reason || '-')), wo: wo.status,
+        checkpoints: cps.map((k) => k.scenario + '@' + (k.run_id === a.run ? 'A' : 'B')), other: runsQ.map((r) => r.status) }));
+    await stopWorker(wA); await stopWorker(wB);
+  }
+
+  // ================================================================ TR2: a real lock wait refuses a checkpoint (55P03); the node takes the work back
+  {
+    await archiveUsed();
+    const S = await install('TR2', ENV); await installing(S);
+    const P = await W.submit({ title: 'TR2 probe', work_type: 'probe', priority: 90, owned_surface: ['tr2/p'], handoff: JSON.stringify({ steps: 3, step_ms: 2000, salt: 'tr2' }) });
+    // another session holds the run's row once its first checkpoint has landed, until the second checkpoint has been refused: that
+    // checkpoint waits out the front door's lock_timeout (15 s) and the plane's server raises 55P03. The claim asks a 30 s lease.
+    const holder = await connect(W.plane.superUrl);
+    const s = { run: null, refusal: null, after: [], locked: false };
+    const unlock = async () => { if (s.locked) { s.locked = false; await holder.query('rollback'); } };
+    try {
+      const link = async (url, init) => {
+        const { path, body } = sentOf(url, init);
+        if (path === '/v1/node/claim' && body) init = withLease(init, body, 30);
+        if (s.refusal && body && body.run_id === s.run) s.after.push(path.replace('/v1/node/', ''));
+        if (s.refusal && path === '/v1/node/release' && body && Array.isArray(body.keep_run_ids) && !body.keep_run_ids.includes(s.run)) s.after.push('release(every run but ' + JSON.stringify(body.keep_run_ids) + ')');
+        const res = await fetch(url, init);
+        if (path === '/v1/node/claim' && !s.run) { const j = await res.clone().json().catch(() => null); if (j && j.claimed) s.run = j.claimed.run_id; }
+        if (path === '/v1/node/checkpoint' && body && body.run_id === s.run && !s.refusal) {
+          const j = await res.clone().json().catch(() => null);
+          if (j && j.ok === false) { s.refusal = { ...j, http: res.status }; await unlock(); }
+        }
+        return res;
+      };
+      const w = startWorker(S, { fetchImpl: link });
+      const landed = await waitFor(async () => !!s.run && (await sup.query(`select count(*)::int n from factory.checkpoints where run_id = $1`, [s.run])).rows[0].n === 1, 30000, 100);
+      if (landed) { await holder.query('begin'); await holder.query('select 1 from factory.agent_runs where run_id = $1 for update', [s.run]); s.locked = true; }
+      const refusedAt = await waitFor(() => (s.refusal ? Date.now() : 0), 40000, 100);
+      await sleep(3000);
+      const held = (await sup.query(`select r.status, r.lease_expires_at > now() live, r.lease_expires_at, w.status ws from factory.agent_runs r join factory.work_orders w using (work_order_id) where r.run_id = $1`, [s.run])).rows[0] || {};
+      const done = await waitFor(async () => (await woOf(P)).status === 'done', 90000, 200);
+      const runs = await runsOf(P), cps = await checkpointsOf(P), wo = await woOf(P);
+      const r1 = runs.find((r) => r.run_id === s.run) || {}, r2 = runs.find((r) => r.run_id !== s.run) || {};
+      const step = (n) => cps.filter((k) => k.scenario === n);
+      const r = s.refusal || {};
+      row('TR2 a checkpoint the plane\'s server refuses - the run\'s row held by another session past the front door\'s 15 s lock_timeout, so the answer is 500 server_refused with sqlstate 55P03 ("nothing changed") - does not fail the run: after it the node sends nothing that names the run, 3 s later the plane still holds it in progress under its lease, and once the lease has lapsed the same node (the only eligible one) takes the work back as a NEW run resumed from the step-1 checkpoint and completes it: one run done, none failed, the first run queued with attempt 2, one checkpoint row per step',
+        !!landed && !!refusedAt && r.http === 500 && r.refused === 'server_refused' && r.sqlstate === '55P03' && /55P03/.test(String(r.message)) && s.after.length === 0
+          && held.status === 'in_progress' && held.live === true && held.ws === 'claimed'
+          && !!done && runs.length === 2 && r1.status === 'queued' && r1.attempt_count === 2 && r1.finished_at === null
+          && r2.status === 'done' && r2.computer_id === S.add.computer_id && r2.started_at >= held.lease_expires_at
+          && runs.filter((x) => x.status === 'done').length === 1 && !runs.some((x) => x.status === 'failed') && runs.every((x) => x.locks === 0) && wo.status === 'done'
+          && cps.length === 3 && step('step-1').length === 1 && step('step-1')[0].run_id === s.run && step('step-2').length === 1 && step('step-2')[0].run_id === r2.run_id
+          && step('step-3').length === 1 && step('step-3')[0].run_id === r2.run_id && r2.resumed_from_checkpoint_id === step('step-1')[0].checkpoint_id,
+        JSON.stringify({ refusal: { http: r.http, refused: r.refused, sqlstate: r.sqlstate, message: r.message }, sentAfter: s.after, held: { status: held.status, live: held.live, wo: held.ws },
+          tookBackAfterLeaseMs: r2.started_at && held.lease_expires_at ? r2.started_at - held.lease_expires_at : null,
+          runs: runs.map((x) => x.status + ':' + x.attempt_count + ':' + (x.termination_reason || '-')), wo: wo.status, checkpoints: cps.map((k) => k.scenario + '@' + (k.run_id === s.run ? 'run1' : 'run2')) }));
+      await stopWorker(w);
+    } finally {
+      await unlock().catch(() => {});
+      await holder.end().catch(() => {});
+    }
   }
 } catch (e) {
   row('X0 runtime_recovery_acceptance did not complete', false, (e && e.stack) || String(e));

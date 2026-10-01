@@ -73,7 +73,7 @@ export const INVENTORY = [
   { file: STEPS, construct: 'privilege_probe', fn: '-', count: 4, cls: 'carried', why: 'the same read-backs (has_table_privilege / aclexplode): displayed only' },
   { file: STEPS, construct: 'role_attribute', fn: '-', count: 1, cls: 'carried', why: 'step 2\'s read-back of rolcanlogin of the two API roles by their fixed names (neither the applying login nor an object owner): displayed only' },
   // ---------------------------------------------------------------- the Edge
-  { file: EDGE + '_shared/db.ts', construct: 'production_ref_refusal', fn: '-', value: 'FACTORY_ADMIN_DB_URL+FACTORY_NODE_DB_URL', count: 1, cls: 'production-ref', why: 'the database URL naming the Brain OS production project is refused: the one exception (§3.4 r3)' },
+  { file: EDGE + '_shared/db.ts', construct: 'production_ref_refusal', fn: '-', value: 'FACTORY_ADMIN_DB_URL+FACTORY_NODE_DB_URL', count: 2, cls: 'production-ref', why: 'the database URL naming the Brain OS production project is refused: the one exception (§3.4 r3). Judged twice by dbTarget: on the text of the URL, and on what was read from it - the host, user, database and password the driver is given (C2-S1)' },
   { file: EDGE + '_shared/db.ts', construct: 'project_ref_literal', fn: '-', value: 'pvphxgrtdfrudejjhzjk', count: 1, cls: 'production-ref', why: 'PRODUCTION_REF, used only by that refusal' },
   { file: EDGE + '_shared/peer.ts', construct: 'peer_address', fn: '-', count: 2, cls: 'call-input', why: 'the peer address the Edge platform reports (S-6): the per-address pairing key, one rule whatever its value' },
   ...[['factory-node-api', 'FACTORY_NODE_DB_URL'], ['factory-admin-api', 'FACTORY_ADMIN_DB_URL']].flatMap(([fn, dbVar]) => [
@@ -84,10 +84,11 @@ export const INVENTORY = [
   ]),
   { file: EDGE + 'factory-admin-api/index.ts', construct: 'env:BRAIN_OS_URL', fn: '-', count: 1, cls: 'own-plane', why: 'the issuer a caller\'s token is verified against, and where it is verified' },
   { file: EDGE + 'factory-admin-api/index.ts', construct: 'env:BRAIN_OS_ANON_KEY', fn: '-', count: 1, cls: 'own-plane', why: 'the key the token check is sent with' },
-  // the Edge handlers' fail-closed validation of their own configuration (unset; not a postgresql:// URL; an IP-literal host; no PEM
-  // certificate; a pepper that is not base64 of 32 bytes): 503 misconfigured / pepper_unavailable, never another behaviour
-  { file: EDGE + '_shared/db.ts', construct: 'env-branch', fn: '-', value: 'FACTORY_ADMIN_DB_URL+FACTORY_NODE_DB_URL', count: 6, cls: 'own-plane', ruling: CR021_EDGE,
-    why: 'dbRefusal: the database URL unset, not postgresql://, not parseable, or naming an IP address (TLS verify-full needs the host name): the API answers 503 misconfigured' },
+  // the Edge handlers' fail-closed validation of their own configuration (unset; not the one postgresql://user:password@host:port/database
+  // form the file reads; an IP-literal host; no PEM certificate; a pepper that is not base64 of 32 bytes): 503 misconfigured /
+  // pepper_unavailable, never another behaviour. Every test only refuses: nothing is defaulted, and no test chooses between two targets
+  { file: EDGE + '_shared/db.ts', construct: 'env-branch', fn: '-', value: 'FACTORY_ADMIN_DB_URL+FACTORY_NODE_DB_URL', count: 17, cls: 'own-plane', ruling: CR021_EDGE,
+    why: 'dbRefusal, through dbTarget (the one reading of the URL; C2-S1): the database URL unset; not printable ASCII on one line; not postgresql://; not the form user:password@host:port/database (a query, a fragment, a missing part); no user or password; no port, or one outside 1..65535; an IP address (TLS verify-full needs the host name); a host that is not a plain DNS name; a malformed escape; a user, password or database name outside its characters - the API answers 503 misconfigured. dbOptions throws for a URL dbTarget refuses, so the driver is given a read target or nothing' },
   { file: EDGE + '_shared/db.ts', construct: 'env-branch', fn: '-', value: 'FACTORY_DB_CA_PEM', count: 1, cls: 'own-plane', ruling: CR021_EDGE, why: 'dbRefusal: no PEM certificate' },
   { file: EDGE + '_shared/pairing.ts', construct: 'env-branch', fn: '-', value: 'FACTORY_PAIRING_PEPPER', count: 3, cls: 'own-plane', ruling: CR021_EDGE, why: 'importPepper: an unset pepper, one that is not base64, or shorter than 32 bytes is no key: pairing answers pepper_unavailable' },
   { file: EDGE + 'factory-node-api/index.ts', construct: 'env-branch', fn: '-', value: 'FACTORY_DB_CA_PEM+FACTORY_NODE_DB_URL', count: 4, cls: 'own-plane', ruling: CR021_EDGE, why: 'the entry point serves 503 misconfigured when dbRefusal refused, and opens no pool then' },

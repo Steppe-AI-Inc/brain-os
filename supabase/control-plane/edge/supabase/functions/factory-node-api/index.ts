@@ -20,7 +20,7 @@ const dbUrl = Deno.env.get('FACTORY_NODE_DB_URL') || '';
 const caPem = Deno.env.get('FACTORY_DB_CA_PEM') || '';
 const refusal = dbRefusal(dbUrl, caPem);
 const refused = refusal !== null;
-const db = refused ? null : postgres(dbUrl, dbOptions(caPem));
+const db = refused ? null : postgres(dbOptions(dbUrl, caPem));
 const pepperKey = importPepper(Deno.env.get('FACTORY_PAIRING_PEPPER'));
 
 const handler = createNodeApi({

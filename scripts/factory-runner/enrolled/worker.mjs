@@ -11,8 +11,12 @@
 // authoring and verification work together (numeric priority, then queue age) under the credential's CURRENT envelope and picks the
 // assignment kind (contract §2 "chosen automatically by the scheduler"; P-7): the worker caches no role, so an envelope amendment
 // takes effect at the next claim with nobody touching the node (AC-6(e), P-10), and it dispatches on the kind the plane chose.
-// A claim is sent once: when its answer is lost, whatever it may have taken is given back at once and again before the next claim
-// (the worker holds no run between claims), so no orphaned run waits out its lease.
+// A claim is sent once: when its answer is lost, whatever it may have taken is given back at once and again before the next claim,
+// so no orphaned run waits out its lease. The give-back names the runs this process itself claimed and may have left to their lease
+// (below), which are not orphans (69df2f52 node.mjs:402).
+// A HANDLER THAT THROWS does not fail its run (69df2f52 node.mjs:522): nothing more is sent for it, its renewals have stopped, and its
+// lease lapses - any eligible node then resumes the work from the last checkpoint. Only a failure the same input meets on every attempt
+// (a data exception the plane's server raised, a request the API refused as malformed) fails the run, by name (terminalFailure).
 // A claimed run is worked under a LEASE GUARD that uses DURATIONS ONLY, on the monotonic clock: the length of each grant is the
 // plane's lease_expires_at minus its server_time (both from the same answer), and each grant starts at the moment its request (the
 // claim, or that renewal) was SENT - never when its answer arrived. It is renewed with that same length well before it ends; a renewal
@@ -59,6 +63,30 @@ export function grantedLeaseMs(expiresAt, serverTime) {
 
 /** a claim answer that proves nothing about whether the claim committed (a SQLSTATE rollback and the named lock refusal do) */
 export const claimAnswerLost = (c) => unknownOutcome(c) && !['server_refused', 'claim_lock_busy'].includes(c && c.refused);
+
+// refusals of the REQUEST ITSELF, whoever sends it and whenever: the API's reading of the caller's own bytes, and a body naming an identity
+const REQUEST_REFUSALS = new Set(['bad_request', 'identity_from_body_refused', 'body_too_large']);
+
+/**
+ * WHAT A HANDLER'S ERROR MEANS FOR ITS AUTHORING RUN (P-2 restart / recovery): the certified rule of 69df2f52, node.mjs:522-540.
+ * A thrown worker does NOT mark its run failed: the error may be transient, and the lease is the arbiter. Nothing more is sent for
+ * the run - no completion, no release - and its renewals have stopped, so its lease lapses and any eligible node resumes the work
+ * from the last checkpoint (the next claim's reaper), the first owner fenced in renew, checkpoint and complete.
+ * EXCEPT a failure the same input meets on every attempt, which would be claimed and thrown again every lease period, holding its
+ * dependents forever (node.mjs:525). That run fails, by name, and its work order with it:
+ *   data_exception_<SQLSTATE>   the plane's SERVER raised a data exception (class 22) and rolled the call back: 500 server_refused,
+ *                               its sqlstate stated by the API;
+ *   request_refused_<name>      the API ANSWERED that the request itself is malformed (bad_request, identity_from_body_refused,
+ *                               body_too_large). At 69df2f52 such a value reached the database and raised that data exception; the
+ *                               API reads the request first and names it.
+ * Returns the termination reason of a terminal failure, or null: the run is left to its lease.
+ */
+export function terminalFailure(error) {
+  const r = error && error.refusal;
+  if (!r || typeof r !== 'object') return null;
+  if (r.refused === 'server_refused') return typeof r.sqlstate === 'string' && /^22[0-9A-Z]{3}$/.test(r.sqlstate) ? 'data_exception_' + r.sqlstate : null;
+  return !unknownOutcome(r) && REQUEST_REFUSALS.has(r.refused) ? 'request_refused_' + r.refused : null;
+}
 
 // keyIo and rotationPauseMs are test seams (the developer suites make a key write fail once, and shorten the pause after it)
 export async function runWorker({ home, runtime = {}, pollMs = 5000, once = false, fetchImpl, standbyOnly = false, keyIo = { newKey, storeKey, loadKey }, rotationPauseMs = ROTATION_PAUSE_MS } = {}) {
@@ -172,6 +200,12 @@ async function runHeld({ home, runtime, pollMs, once, fetchImpl, standbyOnly, ke
     setState({ state: hb.ok ? hb.phase : 'ERROR', cycle_completed: false });
 
     let giveBack = 0; // lost claim answers whose possible run is still to be given back before the next claim
+    // THE RUNS THIS PROCESS CLAIMED, each until three of its leases after it stopped working on it (69df2f52 node.mjs:402 `mine`). A run
+    // it left to its lease - a thrown handler, a completion that did not land - is not an orphan: the give-back after a lost claim
+    // answer keeps it, and gives back only what the lost claim may have taken. A finished or released run is not in progress, so
+    // naming it changes nothing; only a run within a few leases can still be in progress, so older entries are dropped.
+    const mine = new Map();
+    const kept = () => { for (const [run, until] of mine) if (performance.now() > until) mine.delete(run); return [...mine.keys()]; };
     for (;;) {
       if (ctl.stop || stopFile()) { log('stop requested'); break; }
       if (pendingRotation(home).any && performance.now() >= pendingRetryAt) await settleRotation();
@@ -188,7 +222,7 @@ async function runHeld({ home, runtime, pollMs, once, fetchImpl, standbyOnly, ke
       if (hb.rotate_required) await rotateKey();
       if (!hb.release_current) { setState({ state: 'RELEASE_NOT_CURRENT', message: 'this node runs a release that is not current (revoked or superseded without an adopt): it claims nothing and waits for an adopted certified release' }); await nap(pollMs); if (once) break; continue; }
       if (hb.draining) { setState({ state: 'DRAINING' }); await nap(pollMs); if (once) break; continue; }
-      if (giveBack > 0) { await api.op('release', { keep_run_ids: [] }, { retries: 0 }).catch(() => {}); giveBack--; }
+      if (giveBack > 0) { await api.op('release', { keep_run_ids: kept() }, { retries: 0 }).catch(() => {}); giveBack--; }
       const fpv = await fp();
       if (ctl.stop) continue;
       let did = false;
@@ -198,9 +232,10 @@ async function runHeld({ home, runtime, pollMs, once, fetchImpl, standbyOnly, ke
         did = true;
         await workClaimed({ api, claimed: c.claimed, log, status: setState, check, sentAt, serverTime: c.server_time, onAbortable: (ac) => { ctl.abort = ac; } });
         ctl.abort = null;
+        mine.set(c.claimed.run_id, performance.now() + 3 * grantedLeaseMs(c.claimed.lease_expires_at, c.server_time));
       } else if (claimAnswerLost(c)) {
         log('the claim\'s answer was lost (' + (c && (c.refused || c.http)) + '): whatever it may have taken is given back now and again before the next claim');
-        await api.op('release', { keep_run_ids: [] }, { retries: 0 }).catch(() => {});
+        await api.op('release', { keep_run_ids: kept() }, { retries: 0 }).catch(() => {});
         giveBack = 1;
       } else if (!c.ok && c.refused !== 'claim_lock_busy' && c.refused !== 'server_refused') log('claim refused: ' + c.refused + ' ' + (c.message || ''));
       setState({ state: 'AVAILABLE', cycle_completed: true, last_cycle: new Date().toISOString() });
@@ -297,9 +332,23 @@ export async function workClaimed({ api, claimed, log = () => {}, status = () =>
   if (outcome.error) {
     const refusal = outcome.error.refusal;
     if (refusal) check(refusal);
-    log('run ' + claimed.run_id.slice(0, 8) + ' failed: ' + outcome.error.message);
-    if (kind === 'authoring') await api.op('complete', { run_id: claimed.run_id, status: 'failed', termination_reason: 'handler_error', summary: String(outcome.error.message).slice(0, 500) });
-    else await api.op('release', { run_id: claimed.run_id });
+    const short = claimed.run_id.slice(0, 8), said = String(outcome.error.message).slice(0, 500);
+    if (kind === 'verification') {
+      log('verification run ' + short + ' threw: ' + said + ' - its claim is given back');
+      await api.op('release', { run_id: claimed.run_id });
+      return;
+    }
+    // a thrown handler does not fail its run, except a failure the same input meets on every attempt (terminalFailure above)
+    const reason = terminalFailure(outcome.error);
+    if (reason) {
+      const r = await api.op('complete', { run_id: claimed.run_id, status: 'failed', termination_reason: reason, summary: said });
+      if (r && r.ok) log('FAILED run ' + short + ' (' + reason + ': ' + said.slice(0, 120) + ') - the same input fails every time; its work order is failed');
+      else log('run ' + short + ' met ' + reason + ' and could not be recorded failed (' + ((r && (r.refused || r.http)) || 'no answer') + '): its lease is left to expire');
+      return;
+    }
+    if (refusal && refusal.refused === 'lease_lost') { log('run ' + short + ' is no longer this node\'s (lease_lost): nothing is completed - the node that holds the work completes it'); return; }
+    log('run ' + short + ' threw: ' + said.slice(0, 120));
+    log('leaving the lease to expire so the work is recoverable rather than lost');
     return;
   }
   if (kind === 'verification') {

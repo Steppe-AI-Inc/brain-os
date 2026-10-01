@@ -19,6 +19,8 @@
 // values - a malformed value is the caller's input, refused by name) and (b) the one request boundary at the end of createNodeApi,
 // which answers every other error as an error (500 server_refused when the plane's server raised a SQLSTATE and rolled the call back -
 // db.ts serverSqlState; 503 plane_unavailable otherwise, the outcome unknown), naming only the error's class, and changes nothing.
+// A server_refused answer states that SQLSTATE as a field too (sqlstate), so a node can tell a failure the same input meets on every
+// attempt (class 22, a data exception) from one that depends on load (worker.mjs terminalFailure); it says nothing else of the error.
 import { serverSqlState } from './db.ts';
 import { enroll } from './enroll.ts';
 import { routePath } from './route.ts';
@@ -130,7 +132,7 @@ export function ed25519SelfTest(): Promise<boolean> {
 
 const json = (status: number, body: Record<string, unknown>): Response =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
-const refuse = (status: number, refused: string, message: string): Response => json(status, { ok: false, refused, message });
+const refuse = (status: number, refused: string, message: string, more: Record<string, unknown> = {}): Response => json(status, { ok: false, refused, message, ...more });
 /** a refusal the Edge decided, before it is answered (the enrollment routes first record it through their front door) */
 export type Refusal = { status: number; refused: string; message: string };
 const why = (status: number, refused: string, message: string): Refusal => ({ status, refused, message });
@@ -250,7 +252,7 @@ export function createNodeApi(deps: Deps): (req: Request, peer: Peer) => Promise
       deps.log?.({ event: 'node_api_error', route, class: cls });
       // a SQLSTATE the SERVER sent means it answered and rolled the call back: nothing changed. Anything else - a driver or transport
       // error included, whatever code it carries - leaves the outcome unknown.
-      if (state) return refuse(500, 'server_refused', 'the control plane refused the call (' + state + '); nothing changed');
+      if (state) return refuse(500, 'server_refused', 'the control plane refused the call (' + state + '); nothing changed', { sqlstate: state });
       return refuse(503, 'plane_unavailable', 'the call did not complete (' + cls + '); the outcome is unknown - retry (every operation is safe to retry)');
     }
   };

@@ -25,7 +25,7 @@ const brainOsUrl = Deno.env.get('BRAIN_OS_URL') || '';
 const anonKey = Deno.env.get('BRAIN_OS_ANON_KEY') || '';
 const refusal = dbRefusal(dbUrl, caPem);
 const refused = refusal !== null;
-const db = refused ? null : postgres(dbUrl, dbOptions(caPem));
+const db = refused ? null : postgres(dbOptions(dbUrl, caPem));
 const pepperKey = importPepper(Deno.env.get('FACTORY_PAIRING_PEPPER'));
 
 const handler = createAdminApi({

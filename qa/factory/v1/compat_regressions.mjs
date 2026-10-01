@@ -8,9 +8,11 @@
 // asserts the contract's rule instead. Developer verification, never independent.
 // usage: node qa/factory/v1/compat_regressions.mjs [--transport api|direct] [--json <file>] [--evidence <file>]
 import { randomUUID } from 'node:crypto';
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { compose, sha256 } from '../../../scripts/factory-control-plane/migration.mjs';
-import { connect } from './plane.mjs';
+import { ROOT, connect } from './plane.mjs';
 import { directNode, apiNode } from './nodeclient.mjs';
 import { asEngine } from './fixtures.mjs';
 import { world, RES } from './flows.mjs';
@@ -22,6 +24,10 @@ const port = (id, label, ok, detail) => { results.push({ id, label, ok: !!ok, de
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let ram = 200000;
 const best = () => RES((ram += 1000));
+// the enrolled runtime's own run loop (worker.mjs workClaimed), which the thrown-worker rows drive over the transport under test.
+// Unbundled, the runtime's release module reads the trust set a build pins: the dev channel's committed set, before it is evaluated
+globalThis.__TRUST__ = JSON.parse(readFileSync(join(ROOT, 'scripts', 'factory-runner', 'enrolled', 'trust', 'dev.json'), 'utf8'));
+const { workClaimed } = await import(pathToFileURL(join(ROOT, 'scripts', 'factory-runner', 'enrolled', 'worker.mjs')).href);
 
 const W = await world();
 const direct = [];
@@ -131,6 +137,47 @@ try {
   const wTstate = (await sup.query(`select status from factory.work_orders where work_order_id = $1`, [wT])).rows[0].status;
   port('acceptance.mjs:515 M', 'a run whose lease was taken over cannot complete the work order: its checkpoint and completion (and renewal) are refused; the work order stays with the new owner',
     mCp.refused === 'lease_lost' && mFin.refused === 'superseded' && mRen.refused === 'lease_lost' && wTstate === 'claimed');
+  // ---- a worker that throws (node.mjs:522-540): the enrolled runtime's own run loop, worker.mjs workClaimed, over this transport.
+  // The work is a probe of three steps; `second` is the transport as the loop sees it, with ONE change to its second checkpoint
+  const probe = (salt) => JSON.stringify({ steps: 3, step_ms: 50, salt });
+  const second = (t, change) => { let n = 0; return { op: (name, body) => (name === 'checkpoint' && ++n === 2 ? change(body) : t.op(name, body)) }; };
+  const runOf = async (run) => (await sup.query(`select r.status, r.attempt_count, r.termination_reason, r.lease_expires_at > now() live, w.status ws
+      from factory.agent_runs r join factory.work_orders w using (work_order_id) where r.run_id = $1`, [run])).rows[0];
+  // (a) the second checkpoint is answered "the plane is unavailable" in place of the plane: a transient failure of the call
+  const wX = await W.submit({ title: 'thrown worker', work_type: 'probe', owned_surface: ['c/x'], handoff: probe('cx') });
+  const cX = await claim(A, wX, { lease_seconds: 5 });
+  const xAt = Date.now();
+  await workClaimed({ api: second(A.t, async () => ({ ok: false, refused: 'plane_unavailable', http: 503 })), claimed: cX.claimed, serverTime: cX.server_time });
+  const xHeld = await runOf(cX.claimed.run_id);
+  const xEarly = await claim(B, wX);
+  await sleep(Math.max(0, 6500 - (Date.now() - xAt)));
+  const cX2 = await claim(B, wX);
+  const xStale = !cX2.claimed ? { cp: {}, ren: {}, fin: {}, fail: {} } : { cp: await A.t.op('checkpoint', { run_id: cX.claimed.run_id, location: 'git://stale' }), ren: await A.t.op('renew', { run_id: cX.claimed.run_id }),
+    fin: await done(A, cX.claimed.run_id), fail: await A.t.op('complete', { run_id: cX.claimed.run_id, status: 'failed', termination_reason: 'handler_error' }) };
+  if (cX2.claimed) await workClaimed({ api: B.t, claimed: cX2.claimed, serverTime: cX2.server_time });
+  const xRuns = (await sup.query(`select run_id, status, attempt_count, node_id from factory.agent_runs where work_order_id = $1 order by started_at`, [wX])).rows;
+  const xCps = (await sup.query(`select scenario, run_id from factory.checkpoints where work_order_id = $1 order by scenario`, [wX])).rows;
+  const xWo = (await sup.query(`select status from factory.work_orders where work_order_id = $1`, [wX])).rows[0].status;
+  const xOf = (s) => xCps.filter((k) => k.scenario === s).map((k) => (k.run_id === cX.claimed.run_id ? 'first' : 'second')).join();
+  port('node.mjs:539 (thrown worker) / acceptance.mjs:112 E/G', 'a worker that throws on a transient failure does not fail its run: the run stays in progress under its lease and no other node can take the work before the lease lapses; then another node takes it over from the last checkpoint, the first owner\'s checkpoint, renewal and completion (done or failed) are refused, and the work completes once',
+    xHeld.status === 'in_progress' && xHeld.live === true && xHeld.ws === 'claimed' && !xEarly.claimed
+      && !!cX2.claimed && cX2.claimed.resume_from && cX2.claimed.resume_from.scenario === 'step-1'
+      && xStale.cp.refused === 'lease_lost' && xStale.ren.refused === 'lease_lost' && xStale.fin.refused === 'superseded' && xStale.fail.refused === 'superseded'
+      && xRuns.length === 2 && xRuns[0].status === 'queued' && xRuns[0].attempt_count === 2 && xRuns[0].node_id === A.node_id && xRuns[1].status === 'done' && xRuns[1].node_id === B.node_id
+      && xWo === 'done' && xCps.length === 3 && xOf('step-1') === 'first' && xOf('step-2') === 'second' && xOf('step-3') === 'second',
+    JSON.stringify({ held: xHeld.status + '/' + xHeld.ws, early: xEarly.refused || (xEarly.claimed ? 'claimed' : 'nothing'), runs: xRuns.map((r) => r.status + ':' + r.attempt_count), wo: xWo, checkpoints: xCps.map((k) => k.scenario + '@' + xOf(k.scenario)) }));
+  // (b) the second checkpoint carries a value the database cannot store (a NUL inside a text value): the plane's SERVER raises a data
+  // exception, which the same input meets on every attempt
+  const wD = await W.submit({ title: 'data exception', work_type: 'probe', owned_surface: ['c/d'], handoff: probe('cd') });
+  const cD = await claim(A, wD);
+  let dAnswer = null;
+  await workClaimed({ api: second(A.t, async (body) => (dAnswer = await A.t.op('checkpoint', { ...body, payload: { ...body.payload, note: 'a\u0000b' } }))), claimed: cD.claimed, serverTime: cD.server_time });
+  const dRun = await runOf(cD.claimed.run_id);
+  const dAgain = await claim(B, wD);
+  port('node_truth_acceptance.mjs:443 N10 / node.mjs:534', 'a data exception inside a run is terminal: the run fails by name (data_exception_<SQLSTATE>) and its work order with it, so it is not claimed and thrown again every lease',
+    !!dAnswer && dAnswer.refused === 'server_refused' && /^22[0-9A-Z]{3}$/.test(String(dAnswer.sqlstate)) && dRun.status === 'failed' && dRun.termination_reason === 'data_exception_' + dAnswer.sqlstate
+      && dRun.ws === 'failed' && !dAgain.claimed,
+    JSON.stringify({ answer: dAnswer && [dAnswer.http, dAnswer.refused, dAnswer.sqlstate || null], run: dRun.status + ':' + dRun.termination_reason, wo: dRun.ws }));
   // ---- give-back
   const wG = await W.submit({ title: 'abort', owned_surface: ['c/g'] });
   const cG = await claim(A, wG, { lease_seconds: 600 });

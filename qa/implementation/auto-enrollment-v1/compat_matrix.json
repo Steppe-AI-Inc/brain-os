@@ -173,6 +173,18 @@
       "regressions": ["node.mjs:514 (landed check) / node_truth_acceptance.mjs:628 N26"]
     },
     {
+      "row": "worker failure (a thrown handler)",
+      "old_call": { "cite": "scripts/factory-runner/node.mjs:539", "expect": "leaving the lease to expire so the work is recoverable rather than lost" },
+      "old_db_primitive": "none: a thrown worker sends no statement for its run (node.mjs:522). EXCEPT a data exception (SQLSTATE class 22): completeRun status failed, terminationReason data_exception_<code> (node.mjs:534)",
+      "old_transaction_boundary": "none; the exception: completeRun's one statement",
+      "old_authority_check": "none; the exception: node_id self-asserted",
+      "old_lease_fencing_rule": "the lease is the arbiter: the renewals stop, the lease lapses, the next claim's reaper requeues the run and any eligible node resumes from the last checkpoint; the first owner is fenced by renew / checkpoint / complete; a run this process claimed is not given back as an orphan (node.mjs:402)",
+      "new_api_endpoint": "none after the failure (worker.mjs workClaimed sends nothing more for the run); then POST /v1/node/claim of any eligible node (the reaper). The exception: POST /v1/node/complete",
+      "new_server_primitive": { "front_door": "factory._reap + factory._claim; factory.node_complete", "writes": ["nothing until the lease lapses; then as takeover / recovery", "the exception (a data exception the plane's server raised, stated by the API as sqlstate; or a request the API refused as malformed): as complete with status failed - the work order fails in the same statement"] },
+      "new_authority_check": "as claim; the exception: as complete (fenced on the run's live ownership)",
+      "regressions": ["node.mjs:539 (thrown worker) / acceptance.mjs:112 E/G", "node_truth_acceptance.mjs:443 N10 / node.mjs:534"]
+    },
+    {
       "row": "run setup",
       "old_call": { "cite": "scripts/factory-runner/node.mjs:461", "expect": "const woRow" },
       "old_db_primitive": "read the work order's type, title, handoff, surface, required role; update the run's worktree, branch, base_commit",

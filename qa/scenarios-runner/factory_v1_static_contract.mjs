@@ -30,7 +30,8 @@
 //      function pins `search_path = pg_catalog, pg_temp` and the identity tests compare with pg_catalog.name constants, in exactly
 //      that shape
 //   X4 migration.mjs apply accepts no database URL as an argument, and stops at the production ref and the live Factory ref before
-//      it opens a connection
+//      it opens a connection; X4b it judges that on what pg's own parser reads from the URL, not only on its text (the class of
+//      C2-S1), refuses a URL that leaves the host, user or database to the environment, and connects with what it judged
 //   H1 the v1 suites send migration text to a database only through applyAsApplyingLogin, which refuses a superuser login
 //   A  admin authority (S-8, S-9; B-4): each Admin API front door calls factory._admin before its first factory table access; the
 //      envelope amendment takes its founder-only decision after its tenant-filtered row lock, on the envelope read under it; the Edge
@@ -251,14 +252,22 @@ const candidateMigration = () => [...new Set([...(gitOut('diff', '--name-only', 
     cls.pending.length === 0 && untracedPending.length === 0 && ledger !== null && descends && rulingBad.length === 0,
     [...[...pendingBy.entries()].map(([cr, l]) => 'PENDING ' + cr + ': ' + l.join('; ')), ...(ledger ? [] : ['the Director ledger at ' + CR_DISPOSITION_COMMIT + ' cannot be read here (fetch the Director branch)']), ...(descends ? [] : ['the CR-disposition record does not descend from r3 ' + DIRECTOR_COMMIT]), ...rulingBad].join(' || '));
   for (const [cr, l] of pendingBy) console.log('     PENDING ' + cr + ' - ' + l.length + ' groups: ' + l.join('; '));
-  // P4 the production ref: only as the refusal in _shared/db.ts; both entry points connect only through it
+  // P4 the production ref: only as the refusal in _shared/db.ts, judged on the URL's text AND on the target read from it; both entry
+  // points connect only through it and hand the driver that target, never the URL (C2-S1). Each entry point names its URL three times -
+  // where the environment gives it, and as the argument of dbRefusal and of dbOptions - and constructs the driver once; _shared/db.ts
+  // reads the URL with its own form only (no URL parser), and its options carry the five parts it read
   const scanned = [...mig, ...edgeTs];
   const refs = scanned.filter((p) => /pvphxgrtdfrudejjhzjk/.test(read(join(ROOT, p)))).sort();
   const dbTs = join(FN, '_shared', 'db.ts');
-  check('P4 the production ref appears only as the refusal in _shared/db.ts, and both entry points connect only through it',
+  const tsCode = (f) => read(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/[^\n]*$/gm, '');
+  const entryUse = [NODE_FN, ADMIN_FN].map((f) => ({ refusal: /const refusal = dbRefusal\(dbUrl, caPem\);/.test(read(f)), driver: /const db = refused \? null : postgres\(dbOptions\(dbUrl, caPem\)\);/.test(read(f)),
+    url: (tsCode(f).match(/\bdbUrl\b/g) || []).length, drivers: (tsCode(f).match(/\bpostgres\(/g) || []).length }));
+  check('P4 the production ref appears only as the refusal in _shared/db.ts - judged on the URL\'s text and on the target read from it (the host, user, database and password the driver is given) - and both entry points connect only through it, handing the driver that target and never the URL; _shared/db.ts reads the URL with no URL parser',
     refs.length === 1 && refs[0] === 'supabase/control-plane/edge/supabase/functions/_shared/db.ts' && /url\.toLowerCase\(\)\.includes\(PRODUCTION_REF\)/.test(read(dbTs))
-      && [NODE_FN, ADMIN_FN].every((f) => /dbRefusal\(dbUrl, caPem\)/.test(read(f)) && /postgres\(dbUrl, dbOptions\(caPem\)\)/.test(read(f)))
-      && edgeRes.hits.some((h) => h.construct === 'production_ref_refusal'), refs.join(','));
+      && /const effective = \[host, user, database, password\]\.join\('\\n'\);\s+if \(effective\.toLowerCase\(\)\.includes\(PRODUCTION_REF\)\) return no\(PRODUCTION\);/.test(read(dbTs))
+      && /return \{ host, port, user, password, database, prepare: false,/.test(read(dbTs)) && !/\bnew URL\b|\bURL\.(canParse|parse)\b|decodeURI/.test(tsCode(dbTs))
+      && entryUse.every((e) => e.refusal && e.driver && e.url === 3 && e.drivers === 1)
+      && edgeRes.hits.filter((h) => h.construct === 'production_ref_refusal').length === 2, refs.join(',') + ' ' + JSON.stringify(entryUse));
   // P5 / P6 the two inventories (§3.4 r3): each listed statement must serve a contract rule; none is expected
   const pk = (x) => x.file + '|' + x.text;
   const platUnlisted = sqlRes.platformWrites.filter((w) => !PLATFORM_WRITES.some((e) => pk(e) === pk(w) && e.rule));
@@ -296,10 +305,10 @@ const GATES = [
   ['rate_limited_ip', 'node', 'S-6 ABUSE LIMIT (SQL, 429)', '20 attempts per peer address per rolling hour, serialized per peer (part 150 _pairing_serialize), every recorded attempt of the address counted. The cap keys on the peer address the hosted runtime hands the handler (CR-015, RECORDED: the r3 reading stands; analysis sent privately)'],
   ['rate_limited_tenant', 'node', 'S-6 ABUSE LIMIT (SQL, 429)', '60 attempts per tenant per rolling hour, serialized per tenant (part 150). The recorded requests that count toward this cap are those the r3 literal text counts (CR-016, RECORDED; analysis sent privately)'],
   ['claim_lock_busy', 'node', 'DETERMINISTIC REFUSAL (SQL, 503, retry)', 'the plane-wide claim lock stayed busy for its fixed bound of 150 tries 0.1 s apart (part 120): nothing claimed this time; the runtime retries'],
-  ['server_refused', 'both', 'DETERMINISTIC REFUSAL; LOAD-DEPENDENT for 55P03 / 57014 (retryable)', 'the PostgreSQL server raised a SQLSTATE (db.ts serverSqlState: only a server error, never a transport error\'s code): the transaction rolled back, nothing changed. Most are deterministic. A lock wait longer than a front door\'s lock_timeout (15 s: SQLSTATE 55P03) or a cancelled statement (57014) depends on load and is retryable; on the enrollment routes it rolls back with its attempt row, so that request is not recorded (load behaviour: UNMEASURED below)'],
+  ['server_refused', 'both', 'DETERMINISTIC REFUSAL; LOAD-DEPENDENT for 55P03 / 57014 (retryable)', 'the PostgreSQL server raised a SQLSTATE (db.ts serverSqlState: only a server error, never a transport error\'s code): the transaction rolled back, nothing changed; the Node API states the SQLSTATE in the answer (sqlstate), and the enrolled worker fails a run only on class 22, a data exception the same input meets on every attempt (worker.mjs terminalFailure; runtime_units HF1 / HF2). Most are deterministic. A lock wait longer than a front door\'s lock_timeout (15 s: SQLSTATE 55P03) or a cancelled statement (57014) depends on load and is retryable; on the enrollment routes it rolls back with its attempt row, so that request is not recorded (load behaviour: UNMEASURED below)'],
   ['unavailable', 'both', 'DETERMINISTIC REFUSAL (outcome unknown)', 'the plane or Brain OS did not answer: the caller reloads / retries idempotently (with BRAIN_OS_URL unset, a token issued by the bare path /auth/v1 ends here: G7)'],
   ['server_error', 'admin', 'DETERMINISTIC REFUSAL', 'a front door returned nothing'],
-  ['misconfigured', 'both', 'DETERMINISTIC REFUSAL', 'the database URL or its CA is unset, or the URL names production (_shared/db.ts): 503 on every request until the founder sets them'],
+  ['misconfigured', 'both', 'DETERMINISTIC REFUSAL', 'the database URL or its CA is unset, the URL is not the one form _shared/db.ts reads (postgresql://user:password@host:port/database, a DNS host name), or the URL or the target read from it names production: 503 on every request until the founder sets them (edge_db_tls T5, T7-T9)'],
 ];
 // whole-request conditions with no refusal name of their own: [condition, where, classification, how it surfaces and what proves it]
 const UNNAMED_CONDITIONS = [
@@ -966,6 +975,36 @@ const bodyCode = (body) => lexSql(body + ';').map((s) => s.code + ' ' + s.dos.ma
   });
   check('X4 migration.mjs apply rejects a database URL given as an argument (a usage error that does not print the value), and stops at the Brain OS production ref and at the live Factory ref without opening a connection',
     a1.status === 2 && !o1.includes(SENT) && refRuns.every((r) => r.status === 1 && r.refused && !r.connected), JSON.stringify({ argv: a1.status, echoed: o1.includes(SENT), refs: refRuns }));
+  // X4b (the class of C2-S1): the tool's refusal is judged on what pg's own parser reads from the URL, not only on its text. Each
+  // form below reaches a refused project through that parser - a tab or a line break it drops from inside a name, an escape, a query
+  // setting that names the target - without spelling the project ref in the text; the control is that parser's reading of the same URL
+  {
+    const { pathToFileURL } = await import('node:url');
+    const { refusedRef, driverReading, REFUSED_REFS } = await import(pathToFileURL(tool).href);
+    const cut = (s, x) => s.slice(0, 9) + x + s.slice(9);
+    const esc = (s, i) => s.slice(0, i) + '%' + s.charCodeAt(i).toString(16) + s.slice(i + 1);
+    const pooler = 'pooler.example.net';
+    const forms = REFUSED_REFS.flatMap((ref) => [
+      ['a tab inside the host', 'postgresql://u:p@db.' + cut(ref, '\t') + '.supabase.co:5432/postgres'],
+      ['a line feed inside the host', 'postgresql://u:p@db.' + cut(ref, '\n') + '.supabase.co:5432/postgres'],
+      ['a carriage return and line feed inside the user', 'postgresql://postgres.' + cut(ref, '\r\n') + ':p@' + pooler + ':6543/postgres'],
+      ['a tab inside ?host=', 'postgresql://u:p@' + pooler + ':6543/postgres?host=db.' + cut(ref, '\t') + '.supabase.co'],
+      ['a tab inside ?options=reference', 'postgresql://u:p@' + pooler + ':6543/postgres?options=reference%3D' + cut(ref, '\t')],
+      ['a tab inside ?user=', 'postgresql://u:p@' + pooler + ':6543/postgres?user=postgres.' + cut(ref, '\t')],
+      ['an escaped letter in the user', 'postgresql://postgres.' + esc(ref, 17) + ':p@' + pooler + ':6543/postgres'],
+      ['an escaped letter in ?options=reference', 'postgresql://u:p@' + pooler + ':6543/postgres?options=reference%3D' + esc(ref, 3)],
+    ].map(([what, url]) => ({ ref, what, refusal: refusedRef(url), spelled: url.toLowerCase().includes(ref), read: JSON.stringify(driverReading(url) || {}).toLowerCase().includes(ref) })));
+    const open = forms.filter((x) => !/^REFUSING/.test(x.refusal || ''));
+    const reach = forms.filter((x) => x.read && !x.spelled);
+    const env = [['no user', 'postgresql://db.example.net:5432/postgres'], ['no host', 'postgresql:///postgres'], ['no database', 'postgresql://u:p@db.example.net:5432'], ['an empty URL', '']]
+      .map(([what, url]) => ({ what, refusal: refusedRef(url) }));
+    const plain = refusedRef('postgresql://app:pw@127.0.0.1:5432/postgres');
+    const toolSrc = read(tool);
+    check('X4b the developer migration tool judges its target on what pg\'s own parser reads (the class of C2-S1): ' + forms.length + ' URLs that reach the Brain OS production project or the live Factory plane without spelling the ref in their text - a tab or a line break inside the host, the user, ?host=, ?options= or ?user=, an escaped letter - are all refused (the control: that parser reads ' + reach.length + ' of them as the refused project); a URL that names no user, no host or no database, and an empty one, are refused (the driver would take the missing part from its environment); a plain disposable URL is not; and apply connects with the configuration that was judged, never with the text',
+      forms.length === 16 && open.length === 0 && reach.length >= 12 && env.every((x) => /^REFUSING/.test(x.refusal || '')) && plain === null
+        && /new pg\.Client\(driverReading\(adminUrl\)\)/.test(toolSrc) && !/connectionString:\s*adminUrl/.test(toolSrc),
+      JSON.stringify({ notRefused: open.map((x) => x.ref.slice(0, 6) + ' ' + x.what), reach: reach.length, env: env.filter((x) => !/^REFUSING/.test(x.refusal || '')).map((x) => x.what), plain }));
+  }
   const V1S = join(ROOT, 'qa', 'factory', 'v1');
   const suites = readdirSync(V1S).filter((f) => f.endsWith('.mjs'));
   const superApply = suites.filter((f) => { const t = read(join(V1S, f)); return /^import\s*\{[^}]*\bapply\b[^}]*\}\s*from\s*'[^']*migration\.mjs'/m.test(t) || /\bapply\(\s*[a-zA-Z_.]*superUrl/.test(t); });
@@ -1329,7 +1368,8 @@ const bodyCode = (body) => lexSql(body + ';').map((s) => s.code + ' ' + s.dos.ma
 // A citation is a 7-40 character hex token, standing alone, that this repository resolves to a commit object; a token that names no
 // object here (or an ambiguous one) cannot be judged by this row.
 {
-  const PUBLISHED = process.env.FACTORY_PUBLISHED_BASE || '6ba22e3e66eb729f8b7687e3a2ba916ae50cf12c';
+  // (baf4e4b5 is the Candidate #2 notice commit, this branch's head on the remote when Candidate #3 was built)
+  const PUBLISHED = process.env.FACTORY_PUBLISHED_BASE || 'baf4e4b53e9b3deb03fc0d4e540bdd23ae0d034c';
   const DIRECTOR_OWNED = /^(CLAUDE\.md$|governance\/|qa\/work-orders\/|qa\/verification\/auto-enrollment-v1\/|docs\/architecture\/(features|adr)\/|docs\/architecture\/FEATURE_COMPLETENESS_CONTRACT\.md$)/;
   const paths = [...new Set([...(gitOut('diff', '--name-only', '--diff-filter=AM', PUBLISHED) || '').trim().split('\n'),
     ...(gitOut('ls-files', '--others', '--exclude-standard', '--', 'qa', 'supabase', 'scripts', 'web', 'docs') || '').trim().split('\n')])]

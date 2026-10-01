@@ -14,12 +14,14 @@
 // `apply` is a DEVELOPER tool for disposable planes, and it is not the founder's live path.
 //   * The admin URL is read ONLY from the environment variable FACTORY_DISPOSABLE_ADMIN_URL: a database credential is never taken
 //     from the command line (S-12). Any argument after the subcommand is a usage error, and it is never echoed.
-//   * It refuses, before connecting, a URL that names the Brain OS production project or the live Factory plane.
+//   * It refuses, before connecting, a URL that names the Brain OS production project or the live Factory plane - in its text, or
+//     in what the driver's own parser reads from it (refusedRef) - and connects with that reading, never with the text.
 //   * It refuses a superuser login after connecting: the live applying login is not a superuser, and a superuser skips every
 //     privilege check the live plane makes. The developer suites apply through qa/factory/v1/applying_role_plane.mjs instead,
 //     as a login aligned to the live applying login.
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, realpathSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -47,13 +49,39 @@ export function compose() {
 
 export const sha256 = (s) => createHash('sha256').update(s, 'utf8').digest('hex');
 
-/** The refusal for a URL that names a refused project, or null. Pure; nothing is connected. */
+/** What pg would connect with for `url`: the configuration its OWN parser reads from it (pg-connection-string, the copy pg.Client
+ *  uses), or null when that parser cannot read it. Nothing is connected. */
+export function driverReading(url) {
+  const require = createRequire(import.meta.url);
+  const { parse } = createRequire(require.resolve('pg'))('pg-connection-string');
+  try { return parse(String(url || '')); } catch { return null; }
+}
+
+/**
+ * The refusal for a URL this tool must not connect to, or null. Nothing is connected.
+ * JUDGED ON WHAT THE DRIVER READS, as well as on the text (the class of C2-S1: a refusal that reads the text while the driver reads it
+ * again by its own rules judges one target and connects to another). pg's parser drops a tab or a line break from inside a name,
+ * decodes each part, and lets ?host=, ?user= and ?options= name the target, so:
+ *   - the text is searched, as written and with every percent-escape decoded;
+ *   - a URL that is not printable ASCII on one line is refused outright;
+ *   - the configuration pg's own parser returns is searched, every value of it, and that configuration is what apply connects with;
+ *   - a URL that names no host, user or database is refused: pg would take the missing one from PGHOST / PGUSER / PGDATABASE.
+ */
 export function refusedRef(url) {
   const raw = String(url || '');
+  const only = '; this tool applies to disposable planes only';
+  const named = (text) => REFUSED_REFS.find((m) => text.toLowerCase().includes(m));
+  const says = (hit) => 'REFUSING - the URL names ' + (hit === REFUSED_REFS[0] ? 'the Brain OS PRODUCTION project' : 'the LIVE Factory control plane') + ' (' + hit + ')' + only;
   const lenient = raw.replace(/%([0-9a-fA-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
-  const text = (raw + '\n' + lenient).toLowerCase();
-  const hit = REFUSED_REFS.find((m) => text.includes(m));
-  return hit ? 'REFUSING - the URL names ' + (hit === REFUSED_REFS[0] ? 'the Brain OS PRODUCTION project' : 'the LIVE Factory control plane') + ' (' + hit + '); this tool applies to disposable planes only' : null;
+  const inText = named(raw + '\n' + lenient);
+  if (inText) return says(inText);
+  if (!/^[\x21-\x7e]+$/.test(raw)) return 'REFUSING - the URL is empty, or has a space, a tab, a line break, a control character or a character outside ASCII in it (a URL parser drops some of them from inside a name)' + only;
+  const read = driverReading(raw);
+  if (!read) return 'REFUSING - the URL cannot be read as a connection string' + only;
+  const inTarget = named(JSON.stringify(read));
+  if (inTarget) return says(inTarget);
+  if (!read.host || !read.user || !read.database) return 'REFUSING - the URL names no host, no user or no database: the driver would take the missing one from its environment' + only;
+  return null;
 }
 
 /** Apply the migration in ONE transaction on the DISPOSABLE plane `adminUrl` names, as a non-superuser login. Returns { sha256 }. */
@@ -62,7 +90,8 @@ export async function apply(adminUrl, { log = () => {} } = {}) {
   if (why) throw new Error(why);
   const sql = compose();
   const { default: pg } = await import('pg');
-  const client = new pg.Client({ connectionString: adminUrl });
+  // the configuration that was judged, not the text: the driver does not read the URL a second time
+  const client = new pg.Client(driverReading(adminUrl));
   await client.connect();
   try {
     const me = (await client.query('select r.rolsuper from pg_catalog.pg_roles r where r.rolname = current_user')).rows[0];

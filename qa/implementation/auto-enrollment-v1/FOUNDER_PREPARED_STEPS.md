@@ -149,6 +149,12 @@ secret store and nowhere else. Two ways in, one per kind of value:
    The URLs must name the pooler **host name**, never an IP address. `_shared/db.ts` refuses an IP literal, because the
    certificate's name can only be checked against a name.
 
+   Each URL is written in exactly the form shown, on one line: user, password, host, port and database, and nothing else. No
+   query string, no spaces, no quotes around it. `_shared/db.ts` reads the URL once and gives the driver only the five parts it
+   read; any other form is refused, and both functions then answer 503 `misconfigured` with the reason. If a password has a
+   character other than letters, digits, `-`, `.`, `_` and `~`, write that character as its percent-escape (`@` is `%40`, `/` is
+   `%2F`, `:` is `%3A`, `%` is `%25`, `#` is `%23`, `?` is `%3F`).
+
 2. **Generated straight into an owner-only file**, read by the secret-store command, then shredded: `FACTORY_PAIRING_PEPPER` (32
    random bytes, base64). The pepper's version is not a secret and is not set here: it is a constant of the function source
    (`PEPPER_VERSION` in `_shared/pairing.ts`), the same for both functions. Pick a directory that does not exist yet, outside every

@@ -13,6 +13,12 @@
 //            whose answer arrives late extends the lease from the moment it was sent, never from its answer
 //   CL1-CL2  a claim answer that proves nothing gives back what the claim may have taken (a SQLSTATE rollback and the named lock
 //            refusal do prove it); a claimed work type without a handler is given back, never completed as failed
+//   HF1-HF8  what a handler's failure means for its run (C2-P1; contract P-2 restart / recovery; 69df2f52 node.mjs:522-540): a thrown
+//            handler does NOT fail its run - nothing more is sent for it and its lease is left to lapse, so any eligible node resumes
+//            the work - except a failure the same input meets on every attempt (a data exception the plane's server raised, a
+//            request the API refused as malformed), which fails the run by name; a lost lease completes nothing; a terminal
+//            credential refusal still stops the worker REFUSED; a verification handler's error still gives its claim back; and a
+//            claim answer lost while such a run waits out its lease gives back every OTHER run of the node, keeping that one
 //   SI1-SI3  one supervisor and one worker per home by named pipe (L4-F3): a lock record naming a foreign or unrelated live pid never
 //            blocks a start; two supervisors started at once start exactly one worker; a second worker exits ALREADY before any call;
 //            an orphaned worker is asked to stop and does; a pipe holder that ignores "stop" and names another process's pid is left
@@ -46,11 +52,12 @@ const children = [];
 globalThis.__TRUST__ = JSON.parse(readFileSync(R('scripts/factory-runner/enrolled/trust/dev.json'), 'utf8'));
 const id = await imp('scripts/factory-runner/enrolled/identity.mjs');
 const { mergeRevocations } = await imp('scripts/factory-runner/enrolled/revocations.mjs');
-const { runWorker, workClaimed, claimAnswerLost, EXIT_WORKER } = await imp('scripts/factory-runner/enrolled/worker.mjs');
+const { runWorker, workClaimed, claimAnswerLost, terminalFailure, EXIT_WORKER } = await imp('scripts/factory-runner/enrolled/worker.mjs');
+const { HANDLERS } = await imp('scripts/factory-runner/enrolled/handlers.mjs');
 const { runSupervisor, verifyInstalled } = await imp('scripts/factory-runner/enrolled/supervisor.mjs');
 const inst = await imp('scripts/factory-runner/enrolled/instance.mjs');
 const { promotePending, resolvePendingRotation } = await imp('scripts/factory-runner/enrolled/credential.mjs');
-const { NodeApi } = await imp('scripts/factory-runner/enrolled/api.mjs');
+const { NodeApi, TERMINAL } = await imp('scripts/factory-runner/enrolled/api.mjs');
 const { newKey, publicKeyOf } = await imp('scripts/factory-runner/enrolled/keys.mjs');
 const { paths, readJson, writeJson } = await imp('scripts/factory-runner/enrolled/home.mjs');
 const { verifyRelease, keyIdOf, canonicalManifestBytes } = await imp('scripts/factory-runner/enrolled/release.mjs');
@@ -270,6 +277,140 @@ try {
     }
     row('CL2 an authoring claim of a work type this runtime has no handler for (one named "verification", or an unknown one) is given back, never completed as failed',
       ops.filter((o) => o.name === 'release').length === 2 && !ops.some((o) => o.name === 'complete'), JSON.stringify(ops.map((o) => o.name)));
+  }
+
+  // ================================================================ HF: what a handler's failure means for its run
+  {
+    const RUN = '00000000-0000-4000-8000-0000000000f1', WO = '00000000-0000-4000-8000-0000000000f2';
+    // the worker's own check (worker.mjs runHeld): a terminal credential refusal is thrown, everything else is returned
+    const stops = (r) => { if (r && TERMINAL.has(r.refused)) throw new Error('REFUSED: ' + r.refused); return r; };
+    // ONE claimed run under a 60 s lease - a probe of three 10 ms steps - whose SECOND checkpoint, and every one after it, is answered
+    // `refusal`. Returns what the worker sent to the plane, in order, and what workClaimed threw (if it did)
+    const worked = async (refusal, { kind = 'authoring' } = {}) => {
+      const sent = []; let cps = 0;
+      const api = { op: async (name, body) => {
+        sent.push(name === 'complete' ? 'complete:' + body.status + ':' + body.termination_reason : name);
+        if (name === 'checkpoint' && ++cps >= 2) return refusal;
+        return { ok: true };
+      } };
+      const s0 = Date.now();
+      const claimed = { run_id: RUN, kind, lease_expires_at: new Date(s0 + 60000).toISOString(),
+        work_order: { work_order_id: WO, work_type: kind === 'verification' ? 'verification' : 'probe', handoff: JSON.stringify({ steps: 3, step_ms: 10 }) } };
+      let threw = null;
+      try { await workClaimed({ api, claimed, serverTime: new Date(s0).toISOString(), check: stops }); } catch (e) { threw = (e && e.message) || String(e); }
+      return { sent: sent.join(' '), threw };
+    };
+    const reasonOf = (refusal) => (typeof terminalFailure === 'function' ? terminalFailure({ refusal }) : 'terminalFailure is not exported');
+    const LEFT = 'checkpoint checkpoint'; // the two checkpoints and nothing after them: no completion, no release
+    const refused = (name, http, extra = {}) => ({ ok: false, refused: name, http, ...extra });
+
+    const transient = [
+      ['a lock wait past the front door\'s lock_timeout (500 server_refused, 55P03)', refused('server_refused', 500, { sqlstate: '55P03' })],
+      ['a cancelled statement (57014)', refused('server_refused', 500, { sqlstate: '57014' })],
+      ['a deadlock (40P01)', refused('server_refused', 500, { sqlstate: '40P01' })],
+      ['a constraint violation (23505: not a data exception)', refused('server_refused', 500, { sqlstate: '23505' })],
+      ['a server refusal that states no SQLSTATE', refused('server_refused', 500)],
+      ['a server refusal whose sqlstate is not five characters ("22")', refused('server_refused', 500, { sqlstate: '22' })],
+      ['a server refusal whose sqlstate is not a string (22012)', refused('server_refused', 500, { sqlstate: 22012 })],
+      ['the plane unavailable (503 plane_unavailable)', refused('plane_unavailable', 503)],
+      ['no answer (unreachable)', refused('unreachable', 0)],
+      ['an answer that is not JSON (502 bad_response)', refused('bad_response', 502)],
+      ['a gateway\'s 429 that carries no refusal name', { http: 429 }],
+      ['a front door that returned nothing (500 server_error)', refused('server_error', 500)],
+      ['an API that serves nothing (503 crypto_unavailable)', refused('crypto_unavailable', 503)],
+      ['an API without its database (503 misconfigured)', refused('misconfigured', 503)],
+      ['a session that could not be opened again (401 session_invalid)', refused('session_invalid', 401)],
+      ['a route the API does not have (404 no_such_route)', refused('no_such_route', 404)],
+      ['a refusal this runtime does not know (409)', refused('a_later_refusal', 409)],
+      ['a request refusal\'s name on a gateway status (502 bad_request)', refused('bad_request', 502)],
+    ];
+    const t = []; for (const [what, r] of transient) t.push({ what, ...(await worked(r)), reason: reasonOf(r) });
+    row('HF1 a checkpoint refusal that is transient or of unknown cause does NOT fail its authoring run (' + t.length + ' kinds): after it the worker sends nothing more for the run - no completion, no release, no further checkpoint - so the lease is left to lapse and any eligible node resumes the work (69df2f52 node.mjs:522-540: "leaving the lease to expire so the work is recoverable rather than lost")',
+      t.every((x) => x.sent === LEFT && x.threw === null && x.reason === null), JSON.stringify(t.filter((x) => x.sent !== LEFT || x.threw !== null || x.reason !== null).map((x) => [x.what, x.sent, x.threw, x.reason])));
+
+    const deterministic = [
+      ['a malformed request (400 bad_request)', refused('bad_request', 400), 'request_refused_bad_request'],
+      ['a body that is not application/json (415 bad_request)', refused('bad_request', 415), 'request_refused_bad_request'],
+      ['a body naming an identity (400 identity_from_body_refused)', refused('identity_from_body_refused', 400), 'request_refused_identity_from_body_refused'],
+      ['a body past the size cap (413 body_too_large)', refused('body_too_large', 413), 'request_refused_body_too_large'],
+      ['a data exception the plane\'s server raised (500 server_refused, 22P05)', refused('server_refused', 500, { sqlstate: '22P05' }), 'data_exception_22P05'],
+      ['a data exception (22001)', refused('server_refused', 500, { sqlstate: '22001' }), 'data_exception_22001'],
+    ];
+    const d = []; for (const [what, r, want] of deterministic) d.push({ what, want, ...(await worked(r)), reason: reasonOf(r) });
+    row('HF2 a failure the same input meets on every attempt still FAILS its run, by name (' + d.length + ' kinds): a data exception the plane\'s server raised (SQLSTATE class 22: data_exception_<code>, node.mjs:525 at 69df2f52) and a request the API refused as malformed (request_refused_<name>) are completed failed with that termination reason, never left to be claimed and thrown again every lease',
+      d.every((x) => x.sent === LEFT + ' complete:failed:' + x.want && x.threw === null && x.reason === x.want), JSON.stringify(d.map((x) => [x.what, x.sent, x.threw, x.reason])));
+
+    const lost = await worked(refused('lease_lost', 409));
+    row('HF3 a checkpoint refused lease_lost (the run is no longer this node\'s) completes nothing and gives nothing back: the node that holds the work completes it',
+      lost.sent === LEFT && lost.threw === null && reasonOf(refused('lease_lost', 409)) === null, JSON.stringify(lost));
+
+    const term = []; for (const name of ['credential_revoked', 'credential_superseded', 'computer_archived']) term.push({ name, ...(await worked(refused(name, name === 'computer_archived' ? 403 : 401))) });
+    row('HF4 a terminal credential refusal met by a checkpoint (credential_revoked, credential_superseded, computer_archived) still stops the worker: it is thrown out of the run, and nothing is completed or given back with a credential that is no longer the node\'s',
+      term.every((x) => x.sent === LEFT && /^REFUSED: /.test(String(x.threw))), JSON.stringify(term));
+
+    const realProbe = HANDLERS.probe;
+    let own = null, named = null;
+    try {
+      HANDLERS.probe = async () => { throw new Error('the handler broke'); };
+      own = await worked(null);
+      HANDLERS.probe = async () => ({ status: 'failed', termination_reason: 'probe_input_refused', summary: 'the handler names its own terminal condition' });
+      named = await worked(null);
+    } finally { HANDLERS.probe = realProbe; }
+    row('HF5 a handler that throws an error of its own (no refusal of the plane behind it) does not fail its run either - nothing is sent and the lease is left to lapse; a failure the handler RETURNS, with the terminal condition it observed, is completed failed by that name (the terminal condition comes from the handler)',
+      own.sent === '' && own.threw === null && named.sent === 'complete:failed:probe_input_refused' && named.threw === null, JSON.stringify({ own, named }));
+
+    const ver = await worked(null, { kind: 'verification' });
+    row('HF6 a verification handler\'s error still gives its claim back at once (release), never completing or certifying anything: the verification returns to WAITING for another verifier',
+      ver.sent === 'release' && ver.threw === null, JSON.stringify(ver));
+
+    // ---- the whole worker against a scripted Node API: its first claim is the run above (three 10 ms steps, a 60 s lease)
+    const scripted = async (name, { checkpoint2, claims }) => {
+      const h = newHome(name);
+      const key = await newKey(); const io = fileKeyIo(); await io.storeKey(paths(h).key, key);
+      writeJson(paths(h).config, { api: API, channel: 'dev', credential_id: 'cred-' + name, node_id: 'node-' + name, public_key: key.publicKey.toString('base64url') });
+      const calls = []; let cps = 0, claimN = 0;
+      const fetchImpl = async (url, init) => {
+        const path = new URL(url).pathname.replace(/^.*\/v1\//, '/v1/');
+        let body = {}; try { body = init && init.body ? JSON.parse(init.body) : {}; } catch { body = {}; }
+        calls.push({ path, body, claims: claimN });
+        const now = new Date().toISOString();
+        if (path === '/v1/time') return json(200, { ok: true, server_time: now });
+        if (path === '/v1/session') return json(200, { ok: true, session_token: 'T'.repeat(43) });
+        if (path === '/v1/node/register') return json(200, { ok: true, node_id: 'node-' + name, enrollment_state: 'ALIVE', release: { current: true }, envelope: { version: 1 }, revocations: { key_ids: [], releases: [] } });
+        if (path === '/v1/node/heartbeat') return json(200, { ok: true, phase: 'AVAILABLE', release_current: true, revocations: { key_ids: [], releases: [] }, published_releases: [] });
+        if (path === '/v1/node/release') return json(200, { ok: true, released: 0 });
+        if (path === '/v1/node/complete') return json(200, { ok: true });
+        if (path === '/v1/node/checkpoint') return ++cps >= 2 ? checkpoint2() : json(200, { ok: true, written: true });
+        if (path === '/v1/node/claim') {
+          const answer = claims[Math.min(claimN, claims.length - 1)]; claimN++;
+          if (claimN >= claims.length) writeFileSync(paths(h).stop, '{}'); // the script is over: the worker stops at its next cycle
+          return answer(now);
+        }
+        return json(404, { ok: false, refused: 'no_such_route' });
+      };
+      const exit = await Promise.race([runWorker({ home: h, runtime: { version: '0.1.0', digest: 'd'.repeat(64) }, pollMs: 50, fetchImpl, keyIo: io }), sleep(60000).then(() => 'timeout')]);
+      return { exit, calls, state: readJson(paths(h).status, {}).state };
+    };
+    const theRun = (now) => json(200, { ok: true, server_time: now, claimed: { run_id: RUN, kind: 'authoring', lease_expires_at: new Date(Date.parse(now) + 60000).toISOString(), resume_from: null,
+      work_order: { work_order_id: WO, work_type: 'probe', handoff: JSON.stringify({ steps: 3, step_ms: 10 }) } } });
+    const nothing = (now) => json(200, { ok: true, server_time: now, claimed: null, considered: [] });
+
+    // HF7: the second checkpoint is refused 55P03; the NEXT claim's answer is lost (a 502 that is not JSON); then nothing is queued
+    const k = await scripted('hf7', { checkpoint2: () => json(500, { ok: false, refused: 'server_refused', sqlstate: '55P03', message: 'the control plane refused the call (55P03); nothing changed' }),
+      claims: [theRun, () => new Response('<html>bad gateway</html>', { status: 502 }), nothing] });
+    const afterClaim = k.calls.filter((c) => c.claims >= 1);
+    const giveBacks = afterClaim.filter((c) => c.path === '/v1/node/release' && Array.isArray(c.body.keep_run_ids));
+    row('HF7 a claim answer lost while a run this worker claimed waits out its lease: both give-backs (at once, and again before the next claim) keep that run (keep_run_ids names it) and give back only what the lost claim may have taken; the run is never completed and never released by name (69df2f52 node.mjs:402: the runs this process claimed are not orphans)',
+      k.exit === EXIT_WORKER.STOPPED && giveBacks.length === 2 && giveBacks.every((c) => c.body.keep_run_ids.length === 1 && c.body.keep_run_ids[0] === RUN)
+        && !afterClaim.some((c) => c.path === '/v1/node/complete') && !afterClaim.some((c) => c.path === '/v1/node/release' && c.body.run_id),
+      JSON.stringify({ exit: k.exit, giveBacks: giveBacks.map((c) => c.body.keep_run_ids), sent: afterClaim.map((c) => c.path.replace('/v1/node/', '')).join(' ') }));
+
+    // HF8: the second checkpoint is refused credential_revoked
+    const x = await scripted('hf8', { checkpoint2: () => json(401, { ok: false, refused: 'credential_revoked', message: 'the credential is revoked' }), claims: [theRun, nothing] });
+    const afterX = x.calls.filter((c) => c.claims >= 1);
+    row('HF8 the whole worker, its checkpoint refused credential_revoked: it stops REFUSED (exit 2, state REFUSED) without completing or giving back anything, and makes no further claim',
+      x.exit === EXIT_WORKER.REFUSED && x.state === 'REFUSED' && !afterX.some((c) => c.path === '/v1/node/complete' || c.path === '/v1/node/release') && x.calls.filter((c) => c.path === '/v1/node/claim').length === 1,
+      JSON.stringify({ exit: x.exit, state: x.state, sent: afterX.map((c) => c.path.replace('/v1/node/', '')).join(' ') }));
   }
 
   // ================================================================ SI: one supervisor and one worker per home
