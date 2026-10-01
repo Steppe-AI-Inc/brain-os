@@ -1,0 +1,47 @@
+// C2-S1 reproduction against the Candidate #2 Edge database module (no repository file is changed, nothing is connected).
+//   node c2s1_repro.mjs <checkout>
+// For each URL: what dbRefusal says, and - when it accepts - the target postgres.js 3.4.9 (the driver both entry points construct with
+// that same URL) would connect to: its parsed hosts, user, database and startup parameters. A URL that is accepted while the driver's
+// effective target names the production project is the finding.
+import { createRequire } from 'node:module';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+const root = process.argv[2];
+const require = createRequire(join(root, 'package.json'));
+const postgres = require('postgres');
+const { dbRefusal, dbOptions, PRODUCTION_REF: REF } = await import(pathToFileURL(join(root, 'supabase/control-plane/edge/supabase/functions/_shared/db.ts')).href);
+const CA = '-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----';
+const enc = (s, i) => s.slice(0, i) + '%' + s.charCodeAt(i).toString(16) + s.slice(i + 1);   // one character of s percent-encoded
+const POOL = 'aws-0-ap-southeast-1.pooler.supabase.com';
+const cases = [
+  ['control: the production host in clear text', `postgresql://u:p@db.${REF}.supabase.co:5432/postgres`],
+  ['control: the pooler user in clear text', `postgresql://postgres.${REF}:p@${POOL}:6543/postgres`],
+  ['percent-encoded user (pooler tenant)', `postgresql://postgres.${enc(REF, 17)}:p@${POOL}:6543/postgres`],
+  ['percent-encoded dot and letter in the user', `postgresql://postgres%2E${enc(REF, 0)}:p@${POOL}:6543/postgres`],
+  ['percent-encoded options=reference', `postgresql://u:p@${POOL}:6543/postgres?options=reference%3D${enc(REF, 5)}`],
+  ['query user= overrides the startup user', `postgresql://u:p@${POOL}:6543/postgres?user=postgres.${enc(REF, 3)}`],
+  ['percent-encoded host in a multi-host list', `postgresql://u:p@db.${enc(REF, 17)}.supabase.co,standby.example.net:5432/postgres`],
+  ['a tab inside the host', `postgresql://u:p@db.${REF.slice(0, 9)}\t${REF.slice(9)}.supabase.co:5432/postgres`],
+  ['a newline inside the host (a wrapped secret)', `postgresql://u:p@db.${REF.slice(0, 9)}\n${REF.slice(9)}.supabase.co:5432/postgres`],
+  ['a tab inside the user', `postgresql://postgres.${REF.slice(0, 4)}\t${REF.slice(4)}:p@${POOL}:6543/postgres`],
+  ['a carriage return and newline inside the user', `postgresql://postgres.${REF.slice(0, 4)}\r\n${REF.slice(4)}:p@${POOL}:6543/postgres`],
+];
+let defects = 0;
+for (const [what, url] of cases) {
+  const refusal = dbRefusal(url, CA);
+  let line;
+  if (refusal) line = 'refused   ' + what + ' -> ' + refusal;
+  else {
+    let o; try { o = postgres(url, dbOptions(CA)).options; } catch (e) { o = null; line = 'accepted  ' + what + ' -> the driver throws: ' + String(e.message).slice(0, 80); }
+    if (o) {
+      const target = { hosts: o.host, user: o.user, database: o.database, startup: Object.fromEntries(Object.entries(o.connection).filter(([k]) => k !== 'application_name')) };
+      const names = JSON.stringify(target).toLowerCase().includes(REF);
+      if (names) defects++;
+      line = (names ? 'DEFECT    ' : 'accepted  ') + what + ' -> accepted; the driver\'s target: ' + JSON.stringify(target);
+    }
+  }
+  console.log(line);
+}
+console.log('\n' + defects + ' URL(s) accepted by dbRefusal whose effective target names the production project');
+process.exit(0);

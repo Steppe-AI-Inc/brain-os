@@ -1,0 +1,38 @@
+suite scripts/factory-runner/provider.regression.test
+command node scripts/factory-runner/provider.regression.test.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 95fdb85acf755f8d28fa2393165cac7fb9ca77b7
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-FtAyZv\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-FtAyZv\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-FtAyZv\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-01T11:43:38.968Z
+seconds 0
+exit 0
+summary ℹ fail 0
+
+✔ parseProviderRunId: parses the exact live-observed ANSI-wrapped byte sequence (1.188ms)
+✔ parseProviderRunId: reproduces the pre-fix failure mode if ANSI stripping regresses (0.1675ms)
+✔ parseProviderRunId: parses plain output with no ANSI codes (no regression on the common case) (0.1164ms)
+✔ parseProviderRunId: parses the pipe-delimited alternate separator form (0.1132ms)
+✔ parseProviderRunId: throws with the raw output included when nothing matches (0.4928ms)
+✔ parseProviderRunId: strips cursor-control and clear-line ANSI sequences too, not just color codes (0.1201ms)
+✔ classifyProviderOutput: the EXACT live 2026-09-02 shape classifies PROVIDER_CAPACITY_BLOCKED (0.3946ms)
+✔ classifyProviderOutput: ANSI-wrapped and usage-limit variants classify too (0.5549ms)
+✔ classifyProviderOutput: ordinary successful dispatch output does NOT classify (0.4744ms)
+✔ classifyProviderOutput: the EXACT live 2026-09-09 model-limit shape classifies PROVIDER_CAPACITY_BLOCKED (0.195ms)
+✔ isModelScopedCapacity: the model-limit shape is model-scoped, a session limit is not (0.1641ms)
+✔ isModelScopedCapacity: prose about switching models is not a refusal shape we act on blindly (0.1043ms)
+✔ classifyProviderOutput: an agent DISCUSSING limits in prose is not a provider refusal (0.0856ms)
+✔ startRun contract: capacity output raises a TYPED error, never a generic parse failure (0.1107ms)
+✔ PROVIDER_TRANSIENT_ERROR: an API 500 mid-run classifies as transient (retryable), not capacity, not a verdict (0.1322ms)
+✔ PROVIDER_TRANSIENT_ERROR: backoff is bounded — never immediate, never unbounded (0.1588ms)
+✔ EXECUTION_MODE_BLOCKED: plan-mode / approval text classifies as an execution-mode block and wins over other text (0.2341ms)
+✔ BACKGROUND_AGENT_EXECUTION_MODE_MUST_NOT_INHERIT_UNACTIONABLE_PLAN_GATE: an isolated verifier dispatch is -p, explicit non-plan permission mode, never --bg (0.809ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12.5172

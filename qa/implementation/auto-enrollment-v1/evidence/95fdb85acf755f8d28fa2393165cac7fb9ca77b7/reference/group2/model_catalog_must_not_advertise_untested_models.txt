@@ -1,0 +1,31 @@
+suite model_catalog_must_not_advertise_untested_models
+command node qa/factory/model_catalog_must_not_advertise_untested_models.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 95fdb85acf755f8d28fa2393165cac7fb9ca77b7
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-uxOzat\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-uxOzat\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-uxOzat\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-01T11:28:49.839Z
+seconds 0
+exit 0
+summary 15 pass, 0 fail
+
+OK   D1 every standing is DERIVED from its evidence shape (6 of 6)
+OK   D2 UNVERIFIED and FAILING are different standings — never tried is not the same as tried and never finished
+OK   D3 a run marked done whose TERMINAL CONDITION is not a completion counts for nothing — status is not evidence, the terminal condition is
+OK   D4 a single recent completion is HISTORICAL, not PROVEN — one is an anecdote
+OK   R1 a VERIFIER ROUND is REFUSED on an unverified model — it is the production-deployment gate and its evidence is what a release is certified on
+OK   R2 ...and allowed on a proven one
+OK   R3 ...and refused on a merely HISTORICAL one, because "it worked a fortnight ago" is not evidence that it works now
+OK   R4 cheap retryable work IS allowed on an unverified model — that is what the tiers are for, and a policy that refuses everything saves nothing
+OK   R5 even the cheapest class is refused on a model with no credential — it cannot be tried at all, and calling it unverified would invite a scheduler to try it
+OK   R6 an UNDECLARED task class fails closed rather than inheriting the cheapest floor — adding a class must not silently grant it the right to run on an unproven model
+OK   R7 every refusal states WHY, naming the floor and the standing — a refusal whose reason is not recorded is indistinguishable from a scheduler with nothing to do
+OK   N1 NEGATIVE CONTROL: with the floors flattened to zero, a verifier round on an UNVERIFIED model would be permitted — so R1 and R3 are measuring the floors
+OK   N2 the declared floors are not all identical (3 distinct of 6 classes) — a table with one value in it is not a policy
+OK   Q1 the gathering query reads coalesce(actual_model, requested_model) — the model that SERVED, falling back to the one requested, so a substitution is attributed to the model that did the work
+OK   Q2 ...and selects termination_reason, without which none of the standings above are derivable
+
+15 pass, 0 fail
+MODEL_CATALOG_MUST_NOT_ADVERTISE_UNTESTED_MODELS: standing is derived from run evidence, not
+from configuration. No credential is needed to measure any of this, which is why it is done now.

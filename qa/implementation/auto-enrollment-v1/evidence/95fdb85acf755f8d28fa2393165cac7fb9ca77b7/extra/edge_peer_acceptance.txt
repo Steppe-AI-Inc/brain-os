@@ -1,0 +1,27 @@
+step edge_peer_acceptance (Deno 2.5.6, the committed entry points)
+command node qa/factory/v1/edge_peer_acceptance.mjs
+cwd C:/Users/DELL/dev/brain-os-factory-enroll
+commit 95fdb85acf755f8d28fa2393165cac7fb9ca77b7
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-shAFMH\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-shAFMH\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-shAFMH\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-01T10:47:04.871Z
+seconds 20
+exit 0
+summary edge_peer_acceptance: 8/8 OK
+
+OK   EP1 factory-node-api/index.ts as committed, served by Deno 2.5.6: GET /factory-node-api/v1/time is 200 JSON (Deno.serve -> withPeer -> the handler -> TLS verify-full to the plane as factory_node_api -> node_time) - {"time":{"ok":true,"protocol":1,"server_time":"2026-10-01T18:47:21.356719+08:00","http":200},"listen":"Listening on http://127.0.0.1:58348/"}
+OK   EP2 a start from 127.0.0.2 and one from 127.0.0.3 are recorded under those two addresses - the address Deno.serve reports for a direct TCP peer - [{"ip":"127.0.0.2","n":1,"o":["unknown_locator"]},{"ip":"127.0.0.3","n":1,"o":["unknown_locator"]}]
+OK   EP3 with 20 attempts of 127.0.0.2 in the hour, its next start is rate_limited_ip; a start from 127.0.0.3 is still judged (invalid_code) - ["invalid_code","rate_limited_ip","invalid_code"]
+OK   EP4 a start sent from 127.0.0.4 with five client-address request headers set to 203.0.113.x values is recorded under 127.0.0.4, and no 203.0.113.x value appears in pairing_attempts - [{"ip":"127.0.0.2","n":21,"o":["rate_limited_ip","unknown_locator"]},{"ip":"127.0.0.3","n":2,"o":["unknown_locator"]},{"ip":"127.0.0.4","n":1,"o":["unknown_locator"]}]
+OK   EP5 Deno.serve hands a direct TCP handler { transport: "tcp", hostname: <the client address>, port }: IPv4 127.0.0.7 -> peer 127.0.0.7; IPv6 ::1 -> peer ::1; a unix-socket listener gives no hostname -> no usable peer (or, where this platform's Deno cannot serve one, NOT MEASURABLE HERE - the harness rows PE2 stand in) - {"ipv4":{"remoteAddr":{"transport":"tcp","hostname":"127.0.0.7","port":58357},"peer":{"address":"127.0.0.7"},"http":200},"ipv6":{"remoteAddr":{"transport":"tcp","hostname":"::1","port":58358},"peer":{"address":"::1"},"http":200},"unix":{"measurable":false,"error":"Error: Operation `\"op_net_listen_unix\"` not supported on non-unix platforms."}}
+OK   EP6 factory-admin-api/index.ts as committed, served by Deno 2.5.6 with BRAIN_OS_URL unset: a Brain OS token is refused 401 not_authenticated, a token issued by the bare path "/auth/v1" fails as an error at the relative check address (503 unavailable), and no front door runs (no factory_admin_api session on the plane) - {"ready":true,"token":[401,"not_authenticated"],"bare":[503,"unavailable","the control plane or Brain OS did not answer (TypeError); the outcome is unknown - reload before retrying"],"adminSessions":0}
+OK   EP7 the same entry point with BRAIN_OS_ANON_KEY unset: Brain OS refuses the token check sent without its key, the answer is 401 not_authenticated, and no front door runs - {"ready":true,"token":[401,"not_authenticated"],"adminSessions":0}
+OK   EP8 the control for EP6 and EP7: with both set, the same request passes the token check and reaches the front door (an answer from the plane, not a token refusal; a factory_admin_api session is open on the plane afterwards) - {"ready":true,"answer":[403,false,"not_authorized"],"adminSessions":1}
+
+MEASURED {"runtime":"Deno CLI 2.5.6 Deno.serve, direct TCP peer (DENO_SERVE_ADDRESS on loopback); NOT the hosted Supabase Edge runtime behind its gateway","deno":"deno 2.5.6 (stable, release, x86_64-pc-windows-msvc)","listen":"Listening on http://127.0.0.1:58348/","ipv4":{"remoteAddr":{"transport":"tcp","hostname":"127.0.0.7","port":58357},"peer":{"address":"127.0.0.7"},"http":200},"ipv6":{"remoteAddr":{"transport":"tcp","hostname":"::1","port":58358},"peer":{"address":"::1"},"http":200},"unix":{"measurable":false,"error":"Error: Operation `\"op_net_listen_unix\"` not supported on non-unix platforms."}}
+
+edge_peer_acceptance: 8/8 OK
+
+--- stderr ---
+(node:21352) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)

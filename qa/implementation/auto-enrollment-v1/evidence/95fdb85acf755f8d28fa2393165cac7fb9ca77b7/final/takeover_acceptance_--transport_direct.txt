@@ -1,0 +1,33 @@
+step takeover_acceptance --transport direct
+command C:\Program Files\nodejs\node.exe qa/factory/v1/takeover_acceptance.mjs --transport direct
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 95fdb85acf755f8d28fa2393165cac7fb9ca77b7
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-w7o7C3\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-w7o7C3\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-w7o7C3\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-01T06:42:44.354Z
+seconds 27
+exit 0
+summary takeover_acceptance [direct]: 20/20 OK
+
+OK   E1 enrollment walk from server rows: NODE_CREDENTIAL_ISSUED -> RUNTIME_INSTALLING -> REGISTERING -> ALIVE on a certified release; the runtime starts RECOVERING -> AVAILABLE - PAIRING_STARTED>PAIRING_VERIFIED>NODE_ID_ISSUED>NODE_CREDENTIAL_ISSUED>RUNTIME_INSTALLING>REGISTERING>ALIVE
+OK   T1 A (best-ranked: most free RAM) claims W and holds a lease; D, which depends on W, is not what it gets - run 498f179f lease 2026-10-01T14:42:54.588448+08:00
+OK   T2 A checkpoints P1 (a retry with the same checkpoint id writes one row)
+OK   T3 A's real lease expired (no renewal for longer than the lease; nothing edited it)
+OK   T4 eligible B claims W after the real expiry and receives P1 - resume {"done":["step-1"],"remaining":["step-2"]}
+OK   T5 B resumes unfinished work only: B's run records the consumed P1; A's run is requeued (attempt counted), never restarted as B
+OK   T6 stale A: renew, checkpoint and completion are each REJECTED inside the front door, and wrote nothing - lease_lost,lease_lost,superseded
+OK   T7 B completes exactly once, counted exactly after the completion AND after its retry: 1 done run of 2 runs, 0 locks, 1 verification work order, 1 evidence record (verification.waiting), 0 certifications, 2 checkpoints, 1 dependency, 0 runs of the dependent; every factory row naming W, B's run or the verification work order (audit: outcome ok) is identical after the retry, which is told it landed - {"side":{"done_runs":1,"w_runs":2,"locks":0,"verification_wos":1,"evidence":1,"certifications":0,"checkpoints":2,"dependencies":1,"d_runs":0,"d_status":"queued","w_state":"review/WAITING_FOR_INDEPENDENT_VERIFICATION","cand":"528e6a95-de39-450a-b9af-b7ffe40e7671"},"side2":"same","tables":{"agent_runs":2,"audit_events":1,"checkpoints":2,"work_order_dependencies":1,"work_orders":2},"snapSame":true}
+OK   T8 surface-lock ownership stayed valid: A's lock (enrolled: lease infinity), then B's, never both, and none after completion
+OK   T10a D (depends on W) is not claimable while W awaits verification
+OK   T9a after the takeover NEITHER A NOR B (the authoring set) can take the verification: gate 7 independence, by name - not eligible: gate 7 independence - S-13: this identity is in the authoring set
+OK   T9b C (an identity outside the authoring set, with verifier authority) claims the verification: VERIFICATION_CLAIMED
+OK   T9c a certification naming another candidate is refused (provenance_mismatch); C certifies the exact candidate: one record, the authoring set of 2 recorded, W COMPLETE; exactly one node.certify ok audit for W, and the verification work order has exactly one run, done - {"wFinal":{"status":"done","verification_state":"COMPLETE"},"certSide":{"certify_ok":1,"v_done":1,"v_runs":1}}
+OK   T10b D is claimable once W is COMPLETE (dependent released by the server, no founder step), and released exactly once: one D row, one run of D, claimed, and another node's claim of D gets nothing - {"dAgain":"nothing","dSide":{"d_rows":1,"d_runs":1,"d_status":"claimed","deps":1}}
+OK   T12 every run of W (A's taken-over run, B's completing run, C's verification run) and every checkpoint of W (P1, B's) carry the release their node runs - release id, runtime version and digest, none null - equal to the nodes' own stamps - ["run:stamped","run:stamped","run:stamped","checkpoint:stamped","checkpoint:stamped","node:stamped","node:stamped","node:stamped"]
+OK   T11 a lapsed lease hands its work order to the next claim FIRST among equal-priority work queued after it: B receives Q1, not Q2 or Q3, and Q1's queue age (queued_at) is unchanged by the takeover - {"c":true,"b":"Q1","q1Before":"2026-10-01 14:42:56.258672+08","q1After":"2026-10-01 14:42:56.258672+08"}
+OK   X1 a legacy run on the unmodified 69df2f52 claim path holding surface s1 blocks an enrolled claim of a work order owning s1 (gate 8) - not eligible: gate 8 surface_locks - a surface this work order owns is held
+OK   X2 ... and the reverse: an enrolled run holding s2 blocks the legacy claim of a work order owning s2
+OK   X3 an enrolled node is refused a legacy work order (no factory-enrolled-v1): not_enrolled_work
+OK   X4 the lock the claim front door wrote for an enrolled run whose lease has lapsed never fails or stalls the frozen legacy claim: with a legacy work order owning that surface at the head, the legacy claim takes the NEXT one in one poll with no "another node" / 23505; no legacy run holds the surface; the enrolled run, its work order and its lock are unchanged - {"enrolledClaimed":true,"lapsed":true,"lock":["infinity"],"legacyClaimed":"the one behind the head","holders":0,"unchanged":true}
+
+takeover_acceptance [direct]: 20/20 OK

@@ -1,0 +1,11 @@
+step static: web tsc
+command npx.cmd tsc --noEmit -p tsconfig.json
+cwd C:\Users\DELL\dev\brain-os-factory-enroll\web
+commit 95fdb85acf755f8d28fa2393165cac7fb9ca77b7
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-w7o7C3\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-w7o7C3\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-w7o7C3\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-01T06:41:28.996Z
+seconds 4
+exit 0
+summary 
+

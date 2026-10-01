@@ -1,0 +1,22 @@
+suite waiting_costs_no_cpu
+command node qa/factory/waiting_costs_no_cpu.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 95fdb85acf755f8d28fa2393165cac7fb9ca77b7
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-uxOzat\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-uxOzat\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-uxOzat\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-01T11:29:40.984Z
+seconds 2
+exit 0
+summary waiting_costs_no_cpu: 5 passed, 0 failed
+
+OK   W1 a POLITE wait costs almost no CPU: 0 ms of CPU over 715 ms of wall time (0.0%)
+OK   W2 NEGATIVE CONTROL: the spin-wait is caught — 687 ms of CPU over 700 ms of wall time (98.2%)
+OK   W3 the two are separated by an order of magnitude, so the threshold is not a coin toss
+OK   W4 no factory-runner script waits by spinning — every wait in this repository yields
+OK   W5 the scan reads CODE, not prose: a spin shown inside a comment is not an offender
+
+waiting_costs_no_cpu: 5 passed, 0 failed
+
+A waiting verifier must not peg a core. A spin-wait has a healthy pid, a held lease, a quiet
+log and the right exit code — CPU time is the only thing that tells it apart from a real wait.

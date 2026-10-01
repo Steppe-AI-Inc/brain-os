@@ -1,0 +1,21 @@
+step legacy_director_acceptance --transport api
+command node qa/factory/v1/legacy_director_acceptance.mjs --transport api
+cwd C:/Users/DELL/dev/brain-os-factory-enroll
+commit 95fdb85acf755f8d28fa2393165cac7fb9ca77b7
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-Iasi1e\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-Iasi1e\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-Iasi1e\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-01T10:47:25.366Z
+seconds 33
+exit 0
+summary legacy_director_acceptance [api]: 8/8 OK
+
+OK   LD0 the frozen 69df2f52 director (6 files byte-identical to 69df2f52) runs on the migrated plane as factory_runner: it holds director_lease and records the legacy work order under its own node id - {"frozenOk":true,"legacyRecorded":true,"lease":[{"node_id":"ld-director-1","age":0.384895,"lease_seconds":3}]}
+OK   LD1 HOLD: while a legacy director holds director_lease, a new-model work order that requires verification is claimed, lapses, is taken over from its checkpoint, completes and is sent to verification, with no admin or founder action - {"claimed":true,"checkpoint":true,"takeover":true,"resumed":true,"completed":true,"verification":"WAITING_FOR_INDEPENDENT_VERIFICATION","verificationWorkOrders":1,"adminOrFounderActions":0} lease [{"node_id":"ld-director-1","age":0.457531,"lease_seconds":3}]
+OK   LD2 one legacy director at a time: a second director started during the hold logs "another director holds the lease" on each of its 3 iterations, records no transition and exits 0; the lease still names the first - {"exit":{"code":0,"signal":null},"waits":3,"transitions":0,"rowsByD2":0}
+OK   LD3 LAPSE: the first director is killed; its lease row still names it and has lapsed; the same sequence holds - {"claimed":true,"checkpoint":true,"takeover":true,"resumed":true,"completed":true,"verification":"WAITING_FOR_INDEPENDENT_VERIFICATION","verificationWorkOrders":1,"adminOrFounderActions":0} lease [{"node_id":"ld-director-1","age":3.109466,"lease_seconds":3}]
+OK   LD4 RELEASE: a third director takes the lapsed lease over, ticks, stops cleanly and releases it (director_lease empty); the same sequence holds - {"claimed":true,"checkpoint":true,"takeover":true,"resumed":true,"completed":true,"verification":"WAITING_FOR_INDEPENDENT_VERIFICATION","verificationWorkOrders":1,"adminOrFounderActions":0} exit {"code":0,"signal":null} lease []
+OK   LD5 no legacy lease statement raises: no director log (47 lines) shows an error, and the frozen acquireLease / releaseLease resolve on an absent row, an own row and a lapsed foreign row, and release it - {"logErrors":[],"inproc":{"absent":true,"own":true,"lapsedForeign":true,"released":true,"empty":true}}
+OK   LD6 no new-model dispatcher state changed under the legacy role: every new-model work order (7: the three sequences', their verification work orders, an idle one) keeps its dispatcher columns as created, though the directors' logs name 5 of them; no founder notification names new-model work; no run, checkpoint or lock of new-model work lacks its principal; the legacy work order was dispatched - {"drift":[],"visited":5,"notes":0,"orphan":0,"legacy":{"d":"ld-director-1","s":"blocked_external"}}
+OK   LD7 new-model dispatch never waits on the legacy lease: while a factory_runner session holds (a) a row lock on director_lease and (b) an ACCESS EXCLUSIVE lock on it, claim, checkpoint, renew, complete and verification-claim each answer ok in under 3 s, and the verification claim - made by a verifier outside every authoring set while verification work is pending - claims a verification work order - row: pending verification 3; claim ok (claimed authoring) 24ms, checkpoint ok 8ms, renew ok 14ms, complete ok 15ms, verificationClaim ok (claimed verification) 21ms | table: pending verification 3; claim ok (claimed authoring) 12ms, checkpoint ok 4ms, renew ok 8ms, complete ok 17ms, verificationClaim ok (claimed verification) 12ms
+
+legacy_director_acceptance [api]: 8/8 OK

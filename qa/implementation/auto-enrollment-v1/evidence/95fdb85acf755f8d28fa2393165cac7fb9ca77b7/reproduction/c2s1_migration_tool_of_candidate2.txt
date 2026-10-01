@@ -1,0 +1,21 @@
+C2-S1 same-class probe: scripts/factory-control-plane/migration.mjs refusedRef vs pg-connection-string (HEAD baf4e4b53e9b3deb03fc0d4e540bdd23ae0d034c; nothing is connected)
+refused   pvphxg control: host in clear -> pg reads {"host":"db.pvphxgrtdfrudejjhzjk.supabase.co","user":"u","database":"postgres"}
+refused   pvphxg percent-encoded user -> pg reads {"host":"aws-0-ap-southeast-1.pooler.supabase.com","user":"postgres.pvphxgrtdfrudejjhzjk","database":"postgres"}
+accepted  pvphxg doubly percent-encoded user -> pg reads {"host":"aws-0-ap-southeast-1.pooler.supabase.com","user":"postgres.pvphxgrtdfrudejjh%7ajk","database":"postgres"}
+DEFECT    pvphxg a tab inside the host -> pg reads {"host":"db.pvphxgrtdfrudejjhzjk.supabase.co","user":"u","database":"postgres"}
+DEFECT    pvphxg a newline inside the host -> pg reads {"host":"db.pvphxgrtdfrudejjhzjk.supabase.co","user":"u","database":"postgres"}
+DEFECT    pvphxg a tab inside the user -> pg reads {"host":"aws-0-ap-southeast-1.pooler.supabase.com","user":"postgres.pvphxgrtdfrudejjhzjk","database":"postgres"}
+DEFECT    pvphxg a tab inside ?host= -> pg reads {"host":"db.pvphxgrtdfrudejjhzjk.supabase.co","user":"u","database":"postgres"}
+DEFECT    pvphxg a tab inside ?options= -> pg reads {"host":"aws-0-ap-southeast-1.pooler.supabase.com","user":"u","database":"postgres","options":"reference=pvphxgrtdfrudejjhzjk"}
+refused   pvphxg upper case -> pg reads {"host":"DB.PVPHXGRTDFRUDEJJHZJK.SUPABASE.CO","user":"u","database":"postgres"}
+refused   npvhuo control: host in clear -> pg reads {"host":"db.npvhuoozkbexddnvkqsj.supabase.co","user":"u","database":"postgres"}
+refused   npvhuo percent-encoded user -> pg reads {"host":"aws-0-ap-southeast-1.pooler.supabase.com","user":"postgres.npvhuoozkbexddnvkqsj","database":"postgres"}
+accepted  npvhuo doubly percent-encoded user -> pg reads {"host":"aws-0-ap-southeast-1.pooler.supabase.com","user":"postgres.npvhuoozkbexddnvk%71sj","database":"postgres"}
+DEFECT    npvhuo a tab inside the host -> pg reads {"host":"db.npvhuoozkbexddnvkqsj.supabase.co","user":"u","database":"postgres"}
+DEFECT    npvhuo a newline inside the host -> pg reads {"host":"db.npvhuoozkbexddnvkqsj.supabase.co","user":"u","database":"postgres"}
+DEFECT    npvhuo a tab inside the user -> pg reads {"host":"aws-0-ap-southeast-1.pooler.supabase.com","user":"postgres.npvhuoozkbexddnvkqsj","database":"postgres"}
+DEFECT    npvhuo a tab inside ?host= -> pg reads {"host":"db.npvhuoozkbexddnvkqsj.supabase.co","user":"u","database":"postgres"}
+DEFECT    npvhuo a tab inside ?options= -> pg reads {"host":"aws-0-ap-southeast-1.pooler.supabase.com","user":"u","database":"postgres","options":"reference=npvhuoozkbexddnvkqsj"}
+refused   npvhuo upper case -> pg reads {"host":"DB.NPVHUOOZKBEXDDNVKQSJ.SUPABASE.CO","user":"u","database":"postgres"}
+
+10 URL(s) accepted by refusedRef that pg reads as a refused project

@@ -1,0 +1,36 @@
+// The same class in the developer migration tool (scripts/factory-control-plane/migration.mjs refusedRef): what it says of a URL, and
+// what the pg driver's own parser (pg-connection-string, which pg.Client({ connectionString }) uses) reads from it. Nothing connects.
+//   node c2s1_sibling.mjs <checkout>
+import { createRequire } from 'node:module';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+const root = process.argv[2];
+const require = createRequire(join(root, 'package.json'));
+const { parse } = require('pg-connection-string');
+const { refusedRef, REFUSED_REFS } = await import(pathToFileURL(join(root, 'scripts/factory-control-plane/migration.mjs')).href);
+const enc = (s, i) => s.slice(0, i) + '%' + s.charCodeAt(i).toString(16) + s.slice(i + 1);
+const POOL = 'aws-0-ap-southeast-1.pooler.supabase.com';
+let defects = 0;
+for (const REF of REFUSED_REFS) {
+  const cases = [
+    ['control: host in clear', `postgresql://u:p@db.${REF}.supabase.co:5432/postgres`],
+    ['percent-encoded user', `postgresql://postgres.${enc(REF, 17)}:p@${POOL}:6543/postgres`],
+    ['doubly percent-encoded user', `postgresql://postgres.${enc(REF, 17).replace('%', '%25')}:p@${POOL}:6543/postgres`],
+    ['a tab inside the host', `postgresql://u:p@db.${REF.slice(0, 9)}\t${REF.slice(9)}.supabase.co:5432/postgres`],
+    ['a newline inside the host', `postgresql://u:p@db.${REF.slice(0, 9)}\n${REF.slice(9)}.supabase.co:5432/postgres`],
+    ['a tab inside the user', `postgresql://postgres.${REF.slice(0, 4)}\t${REF.slice(4)}:p@${POOL}:6543/postgres`],
+    ['a tab inside ?host=', `postgresql://u:p@${POOL}:6543/postgres?host=db.${REF.slice(0, 9)}\t${REF.slice(9)}.supabase.co`],
+    ['a tab inside ?options=', `postgresql://u:p@${POOL}:6543/postgres?options=reference%3D${REF.slice(0, 9)}\t${REF.slice(9)}`],
+    ['upper case', `postgresql://u:p@DB.${REF.toUpperCase()}.SUPABASE.CO:5432/postgres`],
+  ];
+  for (const [what, url] of cases) {
+    const refusal = refusedRef(url);
+    let cfg; try { cfg = parse(url); } catch (e) { cfg = { error: String(e.message).slice(0, 80) }; }
+    const target = { host: cfg.host, user: cfg.user, database: cfg.database, options: cfg.options, error: cfg.error };
+    const names = JSON.stringify(target).toLowerCase().includes(REF);
+    if (!refusal && names) defects++;
+    console.log((refusal ? 'refused   ' : names ? 'DEFECT    ' : 'accepted  ') + REF.slice(0, 6) + ' ' + what + ' -> pg reads ' + JSON.stringify(target));
+  }
+}
+console.log('\n' + defects + ' URL(s) accepted by refusedRef that pg reads as a refused project');

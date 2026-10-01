@@ -1,0 +1,11 @@
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-Wgo4w6\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-Wgo4w6\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-Wgo4w6\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+v1_mutation_proof: 5 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ 95fdb85acf755f8d28fa2393165cac7fb9ca77b7
+CONTROL  gate        passed - gate_acceptance: 6/6 OK (10 s)
+CAUGHT   GAS   gate         [semantic] expected FAIL GA1; seen FAIL [GA1]; gate_acceptance: 5/6 OK; FAILED: GA1 (10 s) - the gate also accepts a downgrade that only the local status.json names as adopted
+CAUGHT   GRT   gate         [semantic] expected FAIL GA2; seen FAIL [GA2]; gate_acceptance: 5/6 OK; FAILED: GA2 (7 s) - the gate gives up on the first failed session opening or heartbeat (no retry)
+CAUGHT   GCU   gate         [semantic] expected FAIL GA3; seen FAIL [GA3]; gate_acceptance: 5/6 OK; FAILED: GA3 (11 s) - upgrade switches although current.json moved after the gate
+CAUGHT   GCS   gate         [semantic] expected FAIL GA4; seen FAIL [GA4]; gate_acceptance: 5/6 OK; FAILED: GA4 (10 s) - setup switches although current.json moved after the gate
+CAUGHT   UPG   gate         [semantic] expected FAIL GA5; seen FAIL [GA5]; gate_acceptance: 5/6 OK; FAILED: GA5 (11 s) - the gate no longer refuses a release that is neither published in its channel nor adopted here
+
+v1_mutation_proof: 5 of 5 mutants killed

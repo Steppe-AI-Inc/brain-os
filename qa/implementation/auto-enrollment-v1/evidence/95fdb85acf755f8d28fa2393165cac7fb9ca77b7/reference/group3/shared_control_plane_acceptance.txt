@@ -1,0 +1,34 @@
+suite shared_control_plane_acceptance
+command node qa/factory/shared_control_plane_acceptance.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit 95fdb85acf755f8d28fa2393165cac7fb9ca77b7
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-2cRpx5\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-2cRpx5\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-2cRpx5\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-01T11:43:05.777Z
+seconds 32
+exit 0
+summary shared_control_plane_acceptance: 18 passed, 0 failed
+
+OK   CP-0 the control plane is a real PostgreSQL server in its own process on loopback (PostgreSQL 18.4 on x86_64-windows, 127.0.0.1:55439)
+OK   CP-1 a separate runner process reaches the shared plane (node.mjs health exit 0)
+OK   CP-2 the runner REFUSES the superuser URL of the same server (exit 1)
+OK   CP-3 two runner processes race for one work order: exactly one claims it and the other does not (claimed it 1, did not 1)
+OK   CP-4 the run, its checkpoint and both node registrations persist after the processes exit (runs 1 done, checkpoints 1, nodes 2)
+OK   CP-5 a worker that dies mid-run (exit 3) leaves the work order held until its lease expires, then another process claims it and sees the dead run's checkpoint (died true, held true, resumed true, prior checkpoints 1)
+OK   CP-6 the shared plane keeps rows across suite invocations (acceptance runs recorded so far: 40)
+OK   CP-7 the plane is stopped and restarted between a worker's death and the takeover: the restarted plane still holds the dead run's checkpoint, serves the SAME runner credential, and a fresh process claims and resumes the work order (died true, plane down true, up true, same credential true, resumed true, checkpoints on the restarted plane 2)
+OK   CP-8 three runner processes, two work orders on one surface: the conflicting pair never ran overlapped (serialized), the free work order was claimed (true), and every work order is done after a second wave (3 of 3)
+OK   CP-9 roles across processes: a generic process did not get the verifier work order (true), a verifier process got it (true), and the release_broker work order is still queued for both (true)
+OK   CP-10 a process that asserts release_broker capability in its claim while registered generic does not get the release_broker work order (got nothing)
+OK   CP-11 independence across processes: a different process and node verifies the authored run (true), a run cannot verify itself (true), and a new process on the AUTHORING node cannot verify it either (true); the plane records verifier node-verifier2-2091c7c8 for author node-author-2091c7c8
+OK   CP-12 monitor garbage collection: 0 garbage monitor(s) of 1 found, 0 process(es) terminated, 0 garbage left; the live monitor on a moving file survived (true)
+OK   CP-13 admission control across processes: a process below the memory floor refuses to claim and says why (true), the work order stays queued (true), and a process within limits claims it (true)
+OK   CP-14 heavy limits across processes: node A holds a heavy run and a second process on node A gets no heavy (got the light one); node B holds the second heavy; node C gets no heavy while the plane holds two (nothing); after a holder completes node C gets the third heavy (true)
+OK   CP-15 a process intending deepseek-chat with no DEEPSEEK_API_KEY is declined a verifier work order as BLOCKED_BY_CREDENTIAL (true) and the work order waits (true); it may take generic work and the run records requested deepseek/deepseek-chat (true)
+OK   CP-16 no silent model fallback across processes: a run that requested stub-model-a and reports stub-model-b without a reason is refused (true); the same model completes (true)
+OK   CP-17 evidence admits across processes: with no runs the model is declined verifier work as UNVERIFIED (true); after two completed runs on generic work (true) a process intending it claims a verifier work order (true)
+
+shared_control_plane_acceptance: 18 passed, 0 failed
+NOT PROVED HERE, BY CONSTRUCTION: two MACHINES sharing this plane. The server listens on loopback only; a hosted
+non-production PostgreSQL or an opened LAN port is the founder's boundary, and it is the only part of milestone 1 this machine cannot do alone.

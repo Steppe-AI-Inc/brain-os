@@ -1,0 +1,91 @@
+step static: web next build
+command npx.cmd next build
+cwd C:\Users\DELL\dev\brain-os-factory-enroll\web
+commit 95fdb85acf755f8d28fa2393165cac7fb9ca77b7
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-w7o7C3\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-w7o7C3\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-w7o7C3\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-01T06:42:07.061Z
+seconds 20
+exit 0
+summary ✓ Generating static pages using 15 workers (45/45) in 478ms
+
+▲ Next.js 16.3.2 (Turbopack)
+✓ Running next.config.ts took 122ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 7.1s
+  Running TypeScript ...
+  Finished TypeScript in 2.7s ...
+  Collecting page data using 15 workers ...
+  Generating static pages using 15 workers (0/45) ...
+  Generating static pages using 15 workers (11/45) 
+  Generating static pages using 15 workers (22/45) 
+  Generating static pages using 15 workers (33/45) 
+✓ Generating static pages using 15 workers (45/45) in 478ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /access
+├ ƒ /ai-assistants
+├ ƒ /approvals
+├ ƒ /auth/callback
+├ ƒ /billing
+├ ƒ /board
+├ ƒ /chat
+├ ƒ /chat/stream
+├ ƒ /companies
+├ ƒ /companies/archived
+├ ƒ /dashboard
+├ ƒ /departments
+├ ƒ /documents
+├ ƒ /documents/zip
+├ ƒ /engineering
+├ ƒ /finance
+├ ƒ /goals
+├ ƒ /goals/[id]
+├ ƒ /goals/archived
+├ ƒ /help
+├ ƒ /integrations
+├ ƒ /inventory
+├ ƒ /kpi
+├ ○ /login
+├ ƒ /memory
+├ ƒ /mindmap
+├ ƒ /models
+├ ƒ /pending-activation
+├ ƒ /people
+├ ƒ /products
+├ ƒ /projects
+├ ƒ /proposals
+├ ƒ /sales
+├ ƒ /settings
+├ ○ /signup
+├ ƒ /software
+├ ƒ /software-factory
+├ ƒ /software-factory/[id]
+├ ƒ /software-factory/computers
+├ ƒ /software-factory/computers/[computerId]
+├ ƒ /software-factory/plugins
+├ ƒ /software-factory/plugins/[id]
+├ ƒ /software-factory/workers
+├ ƒ /tasks
+├ ƒ /tasks/archived
+└ ƒ /workflows
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+
+--- stderr ---
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\DELL\dev\brain-os-factory-enroll\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\DELL\dev\brain-os-factory-enroll\web\package-lock.json
+

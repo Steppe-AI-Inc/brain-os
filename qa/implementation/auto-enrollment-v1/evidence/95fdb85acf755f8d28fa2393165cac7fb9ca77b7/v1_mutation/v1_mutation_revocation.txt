@@ -1,0 +1,18 @@
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-sMiWiv\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-sMiWiv\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-sMiWiv\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+v1_mutation_proof: 12 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ 95fdb85acf755f8d28fa2393165cac7fb9ca77b7
+CONTROL  revocation  passed - revocation_interleaving: 30/30 OK (79 s)
+CAUGHT   LK    revocation   [semantic] expected FAIL I1|I2|I3a|I3b|I4; seen FAIL [I1 I1 I1 I2 I2 I2 I2 I2 I2]; revocation_interleaving: 21/30 OK; FAILED: I1, I1, I1, I2, I2, I2, I2, I2, I2 (152 s) - no share lock on the credential row: a call and a revoke no longer serialize
+CAUGHT   PL    revocation   [semantic] expected FAIL I5a|I5c; seen FAIL [I5a I5a I5c]; revocation_interleaving: 27/30 OK; FAILED: I5a, I5a, I5c (86 s) - the amendment decides founder-only from an unlocked, untenanted read taken before the caller is authorized
+CAUGHT   VS    revocation   [semantic] expected FAIL I6; seen FAIL [I6]; revocation_interleaving: 29/30 OK; FAILED: I6 (78 s) - the returned claim is derived from the statement snapshot, not from the runs this revoke gave back (a claim a concurrent reaper passed on is flipped back)
+CAUGHT   LT    revocation   [semantic] expected FAIL I7a; seen FAIL [I7a I7e]; revocation_interleaving: 28/30 OK; FAILED: I7a, I7e (78 s) - Add Computer's S-16(a) check is not serialized per tenant
+CAUGHT   LTR   revocation   [semantic] expected FAIL I7e; seen FAIL [I7e]; revocation_interleaving: 29/30 OK; FAILED: I7e (78 s) - Restore's S-16(a) check is not serialized per tenant
+CAUGHT   LP    revocation   [semantic] expected FAIL I7b; seen FAIL [I7b I7f]; revocation_interleaving: 28/30 OK; FAILED: I7b, I7f (87 s) - two publishes on one channel are not serialized
+CAUGHT   LA    revocation   [semantic] expected FAIL I7c|I7d; seen FAIL [I7c I7d]; revocation_interleaving: 28/30 OK; FAILED: I7c, I7d (87 s) - an adoption reads its release without a share lock
+CAUGHT   LKK   revocation   [semantic] expected FAIL I7d; seen FAIL [I7d]; revocation_interleaving: 29/30 OK; FAILED: I7d (87 s) - a key revoke does not lock the key's releases first
+CAUGHT   LKP   revocation   [semantic] expected FAIL I7f|I7g; seen FAIL [I7f I7g]; revocation_interleaving: 28/30 OK; FAILED: I7f, I7g (87 s) - a key revoke does not queue on the tenant row: a publish of that key goes through while the revoke is uncommitted, and a second revoke of an unused key fails on the unique index
+CAUGHT   LTF   revocation   [semantic] expected FAIL I7h; seen FAIL [I7h]; revocation_interleaving: 29/30 OK; FAILED: I7h (85 s) - the tenant serialization lock is FOR UPDATE: every foreign-key insert of the tenant (FOR KEY SHARE) waits behind an open publish
+CAUGHT   SWL   revocation   [semantic] expected FAIL I8c; seen FAIL [I8c]; revocation_interleaving: 29/30 OK; FAILED: I8c (80 s) - the locator sweep locks the enrollments of the elapsed codes before it expires those codes
+CAUGHT   CEL   revocation   [semantic] expected FAIL I8d; seen FAIL [I8d]; revocation_interleaving: 29/30 OK; FAILED: I8d (79 s) - enroll/complete locks its enrollment before the pairing code
+
+v1_mutation_proof: 12 of 12 mutants killed

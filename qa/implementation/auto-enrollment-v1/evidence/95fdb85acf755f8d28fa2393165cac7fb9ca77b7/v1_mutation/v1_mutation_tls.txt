@@ -1,0 +1,20 @@
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-5T624B\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-5T624B\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-5T624B\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+v1_mutation_proof: 14 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ 95fdb85acf755f8d28fa2393165cac7fb9ca77b7
+CONTROL  tls         passed - edge_db_tls_acceptance: 10/10 OK (12 s)
+CAUGHT   TL    tls          [semantic] expected FAIL T2|T3b|T6; seen FAIL [T2 T3b T7]; edge_db_tls_acceptance: 7/10 OK; FAILED: T2, T3b, T7 (10 s) - the Edge connects with ssl: 'require' again (verifies nothing)
+CAUGHT   IP    tls          [semantic] expected FAIL T3a; seen FAIL [T3a T9]; edge_db_tls_acceptance: 8/10 OK; FAILED: T3a, T9 (11 s) - an IP-literal database host is accepted (the certificate's name goes unchecked)
+CAUGHT   DTW   tls          [semantic] expected FAIL T6; seen FAIL [T6]; edge_db_tls_acceptance: 9/10 OK; FAILED: T6 (10 s) - the Node API entry point hands the database URL to the driver again (the driver reads it a second time, by its own rules)
+CAUGHT   DTE   tls          [semantic] expected FAIL T8; seen FAIL [T8 T9]; edge_db_tls_acceptance: 8/10 OK; FAILED: T8, T9 (11 s) - the production project is no longer refused on what was read (the decoded user, the host, the database), only on the text
+CAUGHT   DTX   tls          [semantic] expected FAIL T5; seen FAIL [T5]; edge_db_tls_acceptance: 9/10 OK; FAILED: T5 (10 s) - the production project is no longer refused on the text (a ref in a part the form does not read is refused only as a malformed URL)
+CAUGHT   DTQ   tls          [semantic] expected FAIL T8; seen FAIL [T8 T9]; edge_db_tls_acceptance: 8/10 OK; FAILED: T8, T9 (11 s) - a query string is read past instead of refused (?user= and ?options= are what a pooler picks the project from)
+CAUGHT   DTA   tls          [semantic] expected FAIL T9; seen FAIL [T9]; edge_db_tls_acceptance: 9/10 OK; FAILED: T9 (10 s) - a URL that is not printable ASCII on one line is no longer refused as such (a tab or a line break inside a name)
+CAUGHT   DTL   tls          [semantic] expected FAIL T7; seen FAIL [T7 T9]; edge_db_tls_acceptance: 8/10 OK; FAILED: T7, T9 (10 s) - the host is no longer taken in lower case
+CAUGHT   DTU   tls          [semantic] expected FAIL T7; seen FAIL [T7 T9]; edge_db_tls_acceptance: 8/10 OK; FAILED: T7, T9 (10 s) - the user name is no longer decoded before it is judged and handed to the driver
+CAUGHT   DTP   tls          [semantic] expected FAIL T7; seen FAIL [T7 T8 T9]; edge_db_tls_acceptance: 7/10 OK; FAILED: T7, T8, T9 (10 s) - the password is no longer decoded before it is handed to the driver
+CAUGHT   DTC   tls          [semantic] expected FAIL T8|T9; seen FAIL [T8 T9]; edge_db_tls_acceptance: 8/10 OK; FAILED: T8, T9 (10 s) - the decoded user name is no longer held to its characters (a user that still carries an escape after one decoding is accepted)
+CAUGHT   DTT   tls          [semantic] expected FAIL T8|T9; seen FAIL [T3a T8 T9]; edge_db_tls_acceptance: 7/10 OK; FAILED: T3a, T8, T9 (11 s) - dbOptions gives the driver options for a URL that was refused (without a target the driver takes one from its environment)
+CAUGHT   DTN   tls          [semantic] expected FAIL T9; seen FAIL [T9]; edge_db_tls_acceptance: 9/10 OK; FAILED: T9 (10 s) - only the dotted form of an IPv4 address is refused (one decimal number, hex and the short forms are read as names)
+CAUGHT   DTD   tls          [semantic] expected FAIL T9; seen FAIL [T9]; edge_db_tls_acceptance: 9/10 OK; FAILED: T9 (10 s) - a missing port is defaulted instead of refused
+
+v1_mutation_proof: 14 of 14 mutants killed

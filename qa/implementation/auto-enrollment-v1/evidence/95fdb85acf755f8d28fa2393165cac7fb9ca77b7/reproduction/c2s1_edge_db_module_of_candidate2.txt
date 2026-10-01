@@ -1,0 +1,15 @@
+C2-S1 reproduction: Candidate #2 _shared/db.ts dbRefusal vs the target postgres.js 3.4.9 derives from the same URL (HEAD baf4e4b53e9b3deb03fc0d4e540bdd23ae0d034c; nothing is connected)
+run 2026-10-01T05:41:01Z
+refused   control: the production host in clear text -> the database URL names the Brain OS production project
+refused   control: the pooler user in clear text -> the database URL names the Brain OS production project
+DEFECT    percent-encoded user (pooler tenant) -> accepted; the driver's target: {"hosts":["aws-0-ap-southeast-1.pooler.supabase.com"],"user":"postgres.pvphxgrtdfrudejjhzjk","database":"postgres","startup":{}}
+DEFECT    percent-encoded dot and letter in the user -> accepted; the driver's target: {"hosts":["aws-0-ap-southeast-1.pooler.supabase.com"],"user":"postgres.pvphxgrtdfrudejjhzjk","database":"postgres","startup":{}}
+DEFECT    percent-encoded options=reference -> accepted; the driver's target: {"hosts":["aws-0-ap-southeast-1.pooler.supabase.com"],"user":"u","database":"postgres","startup":{"options":"reference=pvphxgrtdfrudejjhzjk"}}
+DEFECT    query user= overrides the startup user -> accepted; the driver's target: {"hosts":["aws-0-ap-southeast-1.pooler.supabase.com"],"user":"u","database":"postgres","startup":{"user":"postgres.pvphxgrtdfrudejjhzjk"}}
+DEFECT    percent-encoded host in a multi-host list -> accepted; the driver's target: {"hosts":["db.pvphxgrtdfrudejjhzjk.supabase.co","standby.example.net"],"user":"u","database":"postgres","startup":{}}
+DEFECT    a tab inside the host -> accepted; the driver's target: {"hosts":["db.pvphxgrtdfrudejjhzjk.supabase.co"],"user":"u","database":"postgres","startup":{}}
+DEFECT    a newline inside the host (a wrapped secret) -> accepted; the driver's target: {"hosts":["db.pvphxgrtdfrudejjhzjk.supabase.co"],"user":"u","database":"postgres","startup":{}}
+DEFECT    a tab inside the user -> accepted; the driver's target: {"hosts":["aws-0-ap-southeast-1.pooler.supabase.com"],"user":"postgres.pvphxgrtdfrudejjhzjk","database":"postgres","startup":{}}
+DEFECT    a carriage return and newline inside the user -> accepted; the driver's target: {"hosts":["aws-0-ap-southeast-1.pooler.supabase.com"],"user":"postgres.pvphxgrtdfrudejjhzjk","database":"postgres","startup":{}}
+
+9 URL(s) accepted by dbRefusal whose effective target names the production project

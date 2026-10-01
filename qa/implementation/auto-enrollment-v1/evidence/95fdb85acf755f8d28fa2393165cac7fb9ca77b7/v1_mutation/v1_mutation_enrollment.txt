@@ -1,0 +1,23 @@
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-Ht51LD\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-Ht51LD\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-Ht51LD\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+v1_mutation_proof: 17 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ 95fdb85acf755f8d28fa2393165cac7fb9ca77b7
+CONTROL  enrollment  passed - enrollment_acceptance: 38/38 OK (72 s)
+CAUGHT   F3E   enrollment   [semantic] expected FAIL EN20; seen FAIL [EN20]; enrollment_acceptance: 37/38 OK; FAILED: EN20 (72 s) - enrollment completion adopts a node row under the principal's node id that is not the principal's
+CAUGHT   PH    enrollment   [semantic] expected FAIL EN9|EN19; seen FAIL [EN9 EN24 EN21]; enrollment_acceptance: 35/38 OK; FAILED: EN9, EN24, EN21 (72 s) - the code's HMAC is not compared: any secret with a live locator enrolls
+CAUGHT   PC    enrollment   [semantic] expected FAIL EN9; seen FAIL [EN9 EN24 PE4 EN21]; enrollment_acceptance: 34/38 OK; FAILED: EN9, EN24, PE4, EN21 (72 s) - the per-locator failure cap is 500 instead of 5
+CAUGHT   PD    enrollment   [semantic] expected FAIL EN15; seen FAIL [EN15]; enrollment_acceptance: 37/38 OK; FAILED: EN15 (72 s) - the pairing secret generated deterministically (a counter, not the CSPRNG)
+CAUGHT   AUA   enrollment   [semantic] expected FAIL EN23; seen FAIL [EN23]; enrollment_acceptance: 37/38 OK; FAILED: EN23 (72 s) - the complete-time refusals of server state (archived computer or changed envelope; an active credential) write no attempt row
+CAUGHT   PPA   enrollment   [semantic] expected FAIL PE1|PE2|PE3; seen FAIL [PE1 PE2 PE3]; enrollment_acceptance: 35/38 OK; FAILED: PE1, PE2, PE3 (72 s) - a request with no usable peer is refused without its attempt row
+CAUGHT   AEE   enrollment   [semantic] expected FAIL EN22; seen FAIL [EN22 PE1 PE2 PE3 PU1 EN12v]; enrollment_acceptance: 32/38 OK; FAILED: EN22, PE1, PE2, PE3, PU1, EN12v (72 s) - the Edge answers its own refusals of the enrollment routes without calling the front door (no attempt row)
+CAUGHT   ATR   enrollment   [semantic] expected FAIL EN24; seen FAIL [EN22 EN24 PU1 EN12]; enrollment_acceptance: 34/38 OK; FAILED: EN22, EN24, PU1, EN12 (72 s) - an attempt on a no-longer-live locator is no longer attributed to its code's tenant
+CAUGHT   TRG   enrollment   [semantic] expected FAIL EN21; seen FAIL [EN3 EN21]; enrollment_acceptance: 36/38 OK; FAILED: EN3, EN21 (72 s) - the enrollment transition log is not attached (the walk is written only where a statement writes it)
+CAUGHT   CEX   enrollment   [semantic] expected FAIL EN25; seen FAIL [EN25]; enrollment_acceptance: 37/38 OK; FAILED: EN25 (72 s) - an enrollment whose challenge window ended expires its code too (before the code's TTL)
+CAUGHT   SGV   enrollment   [semantic] expected FAIL SE1; seen FAIL [SE1]; enrollment_acceptance: 37/38 OK; FAILED: SE1 (72 s) - the session exchange does not verify the assertion's signature
+CAUGHT   SAD   enrollment   [semantic] expected FAIL SE3; seen FAIL [SE3]; enrollment_acceptance: 37/38 OK; FAILED: SE3 (72 s) - the session exchange does not check the audience
+CAUGHT   SXP   enrollment   [semantic] expected FAIL SE4; seen FAIL [SE4]; enrollment_acceptance: 37/38 OK; FAILED: SE4 (72 s) - the session exchange does not check the assertion's lifetime
+CAUGHT   SJT   enrollment   [semantic] expected FAIL SE5; seen FAIL [SE5]; enrollment_acceptance: 37/38 OK; FAILED: SE5 (72 s) - the session exchange accepts a replayed jti
+CAUGHT   PRP   enrollment   [semantic] expected FAIL PE1|PE3; seen FAIL [PE1 PE3 PE4]; enrollment_acceptance: 35/38 OK; FAILED: PE1, PE3, PE4 (72 s) - peerOf hands on the runtime's value unchecked
+CAUGHT   BTK   enrollment   [semantic] expected FAIL EN26; seen FAIL [EN3 EN4 EN5 EN6 EN26]; enrollment_acceptance: 33/38 OK; FAILED: EN3, EN4, EN5, EN6, EN26 (72 s) - the session token's raw bytes are stored instead of its SHA-256
+CAUGHT   PUC   enrollment   [semantic] expected FAIL PU1; seen FAIL [PU1]; enrollment_acceptance: 37/38 OK; FAILED: PU1 (72 s) - pepper_unavailable is judged after the caps (a 429 in place of the cause)
+
+v1_mutation_proof: 17 of 17 mutants killed

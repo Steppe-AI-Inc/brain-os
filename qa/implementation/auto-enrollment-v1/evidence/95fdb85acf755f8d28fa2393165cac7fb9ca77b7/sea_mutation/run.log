@@ -1,0 +1,9 @@
+2026-10-01T10:13:49Z commit headroom 5.24 GB (free physical, C: free: 3.65 19.11)
+batch-00 exit=0 2026-10-01T10:13:50Z -> 2026-10-01T10:41:02Z sea_package_mutation_proof: 8 of 8 mutants killed
+2026-10-01T10:41:02Z commit headroom 6.49 GB (free physical, C: free: 3.86 16.96)
+batch-01 exit=0 2026-10-01T10:41:02Z -> 2026-10-01T11:00:33Z sea_package_mutation_proof: 8 of 8 mutants killed
+2026-10-01T11:00:33Z commit headroom 6.33 GB (free physical, C: free: 5.79 19.14)
+batch-02 exit=0 2026-10-01T11:00:33Z -> 2026-10-01T11:26:49Z sea_package_mutation_proof: 7 of 7 mutants killed
+2026-10-01T11:26:49Z commit headroom 6.22 GB (free physical, C: free: 5.50 18.83)
+batch-03 exit=0 2026-10-01T11:26:50Z -> 2026-10-01T11:52:40Z sea_package_mutation_proof: 7 of 7 mutants killed
+STAGE 3 FINISHED 2026-10-01T11:52:40Z

@@ -1,0 +1,33 @@
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-Bo35uX\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-Bo35uX\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-Bo35uX\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+v1_mutation_proof: 27 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ 95fdb85acf755f8d28fa2393165cac7fb9ca77b7
+CONTROL  units       passed - runtime_units: 35/35 OK (52 s)
+CAUGHT   UFL   units        [semantic] expected FAIL FP1; seen FAIL [FP1]; runtime_units: 34/35 OK; FAILED: FP1 (52 s) - the fingerprint hashes the MachineGuid lower-cased (not exactly as stored)
+CAUGHT   UFE   units        [semantic] expected FAIL FP3; seen FAIL [FP3 FP6]; runtime_units: 33/35 OK; FAILED: FP3, FP6 (52 s) - the fingerprint hashes a value's Latin-1 bytes instead of its UTF-8 bytes
+CAUGHT   UFU   units        [semantic] expected FAIL FP4; seen FAIL [FP4]; runtime_units: 34/35 OK; FAILED: FP4 (52 s) - the registry reader sends the value's UTF-16 bytes instead of its UTF-8 bytes
+CAUGHT   UFC   units        [semantic] expected FAIL FP5; seen FAIL [FP5]; runtime_units: 34/35 OK; FAILED: FP5 (52 s) - a failed fingerprint read is kept for the life of the process (never read again)
+CAUGHT   RVW   units        [semantic] expected FAIL RV2; seen FAIL [RV2]; runtime_units: 34/35 OK; FAILED: RV2 (52 s) - the worker overwrites state\revocations.json with each heartbeat's list again (no union)
+CAUGHT   LCW   units        [semantic] expected FAIL LC1|LC2; seen FAIL [LC1 LC2]; runtime_units: 33/35 OK; FAILED: LC1, LC2 (83 s) - the lease guard sizes the lease from the server's expiry minus the node's wall clock again
+CAUGHT   SIP   units        [semantic] expected FAIL SI1; seen FAIL [SI1]; runtime_units: 34/35 OK; FAILED: SI1 (52 s) - the supervisor again treats a lock record naming a live (or EPERM) pid as a running supervisor
+CAUGHT   WKP   units        [semantic] expected FAIL SI3; seen FAIL [SI3]; runtime_units: 34/35 OK; FAILED: SI3 (52 s) - the worker goes on when another worker holds the home's worker pipe
+CAUGHT   CGB   units        [semantic] expected FAIL CL1; seen FAIL [CL1 HF7]; runtime_units: 33/35 OK; FAILED: CL1, HF7 (52 s) - a lost claim answer is never read as lost (nothing given back; the orphan waits out its lease)
+CAUGHT   RPA   units        [semantic] expected FAIL RR1; seen FAIL [RR1]; runtime_units: 34/35 OK; FAILED: RR1 (52 s) - the pending key is promoted on any probe answer other than unknown_key (a 404, a 400, a body without a refusal name)
+CAUGHT   RFP   units        [semantic] expected FAIL RR2; seen FAIL [RR2 RR3 X0]; runtime_units: 32/35 OK; FAILED: RR2, RR3, X0 (52 s) - a repeated rotation refused credential_superseded discards the pending key without the final probe
+CAUGHT   LCR   units        [semantic] expected FAIL LC3; seen FAIL [LC3]; runtime_units: 34/35 OK; FAILED: LC3 (54 s) - a renewed lease is counted from the answer to the renewal instead of from when it was sent
+CAUGHT   CFE   units        [semantic] expected FAIL CF1; seen FAIL [CF1]; runtime_units: 34/35 OK; FAILED: CF1 (52 s) - a rotation starts from {} when config.json cannot be read
+CAUGHT   SVR   units        [semantic] expected FAIL SV1; seen FAIL [SV1]; runtime_units: 34/35 OK; FAILED: SV1 (52 s) - a REFUSED record keeps the worker from starting even while a rotation of the home is pending
+CAUGHT   SV7   units        [semantic] expected FAIL SV2; seen FAIL [SV2]; runtime_units: 34/35 OK; FAILED: SV2 (57 s) - an exit 7 of the worker is treated as a crash (restarted only after the backoff)
+CAUGHT   SIK   units        [semantic] expected FAIL SI3; seen FAIL [SI3]; runtime_units: 34/35 OK; FAILED: SI3 (52 s) - a pipe holder that does not stop is ended by the pid it reports
+CAUGHT   UFS   units        [semantic] expected FAIL FP7; seen FAIL [FP7]; runtime_units: 34/35 OK; FAILED: FP7 (52 s) - the fingerprint read of the worker blocks the event loop again (the synchronous read)
+CAUGHT   HFT   units        [semantic] expected FAIL HF1|HF5; seen FAIL [HF1 HF3 HF5 HF7]; runtime_units: 31/35 OK; FAILED: HF1, HF3, HF5, HF7 (52 s) - every handler error fails its authoring run again (the Candidate #2 behaviour: a transient refusal is terminal)
+CAUGHT   HFG   units        [semantic] expected FAIL HF1; seen FAIL [HF1 HF5 HF7]; runtime_units: 32/35 OK; FAILED: HF1, HF5, HF7 (52 s) - a run whose handler threw is given back at once instead of being left to its lease
+CAUGHT   HFD   units        [semantic] expected FAIL HF2; seen FAIL [HF2]; runtime_units: 34/35 OK; FAILED: HF2 (52 s) - a data exception the plane's server raised no longer fails the run (it is claimed and thrown again every lease)
+CAUGHT   HFS   units        [semantic] expected FAIL HF1; seen FAIL [HF1 HF7]; runtime_units: 33/35 OK; FAILED: HF1, HF7 (52 s) - any SQLSTATE the server raised fails the run, not only a data exception (a lock wait is terminal again)
+CAUGHT   HFR   units        [semantic] expected FAIL HF2; seen FAIL [HF2]; runtime_units: 34/35 OK; FAILED: HF2 (52 s) - a request the API refused as malformed no longer fails the run
+CAUGHT   HFA   units        [semantic] expected FAIL HF1; seen FAIL [HF1]; runtime_units: 34/35 OK; FAILED: HF1 (52 s) - a request refusal's name is trusted on any status (a gateway's 502 carrying it fails the run)
+CAUGHT   HFL   units        [semantic] expected FAIL HF3; seen FAIL [HF3]; runtime_units: 34/35 OK; FAILED: HF3 (52 s) - a lost lease is treated as a request refusal: the node completes a run it no longer holds as failed
+CAUGHT   HFC   units        [semantic] expected FAIL HF4|HF8; seen FAIL [HF4 HF8]; runtime_units: 33/35 OK; FAILED: HF4, HF8 (52 s) - a terminal credential refusal met by a handler no longer stops the worker (it is read as a transient failure)
+CAUGHT   HFV   units        [semantic] expected FAIL HF6; seen FAIL [HF6]; runtime_units: 34/35 OK; FAILED: HF6 (52 s) - a verification handler's error no longer gives its claim back
+CAUGHT   HFK   units        [semantic] expected FAIL HF7; seen FAIL [HF7]; runtime_units: 34/35 OK; FAILED: HF7 (52 s) - the give-back after a lost claim answer names no run this process claimed (a run left to its lease is given back as an orphan)
+
+v1_mutation_proof: 27 of 27 mutants killed

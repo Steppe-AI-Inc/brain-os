@@ -1,0 +1,34 @@
+// C2-P1 reproduction at unit level, against whatever worker.mjs the given checkout holds (no repository file is changed).
+//   node c2p1_repro.mjs <checkout>
+// An authoring probe run whose step-2 checkpoint meets a TRANSIENT refusal. What the node then sends to the plane is the finding:
+// Candidate #2 sends complete{status:failed}; the certified baseline (node.mjs, the catch after runWork) sends nothing and leaves
+// the lease to expire.
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+const root = process.argv[2];
+const { workClaimed } = await import(pathToFileURL(join(root, 'scripts/factory-runner/enrolled/worker.mjs')).href);
+
+const transient = [
+  ['a SQLSTATE rollback (lock timeout)', { ok: false, refused: 'server_refused', http: 500, message: 'the control plane refused the call (55P03); nothing changed' }],
+  ['the plane unavailable, after the client\'s own retries', { ok: false, refused: 'plane_unavailable', http: 503 }],
+  ['no answer', { ok: false, refused: 'unreachable', http: 0 }],
+  ['an answer that is not JSON', { ok: false, refused: 'bad_response', http: 502 }],
+  ['a rate limit', { ok: false, refused: 'rate_limited', http: 429 }],
+];
+for (const [what, refusal] of transient) {
+  const ops = [];
+  let checkpoints = 0;
+  const api = { op: async (name, body) => {
+    ops.push(name + (name === 'complete' ? ':' + body.status + ':' + body.termination_reason : ''));
+    if (name === 'checkpoint' && ++checkpoints === 2) return refusal;
+    if (name === 'renew') return { ok: true, lease_expires_at: new Date(Date.now() + 60000).toISOString(), server_time: new Date().toISOString() };
+    return { ok: true };
+  } };
+  const s0 = Date.now();
+  const claimed = { run_id: '00000000-0000-4000-8000-0000000000a1', kind: 'authoring', lease_expires_at: new Date(s0 + 60000).toISOString(),
+    work_order: { work_order_id: '00000000-0000-4000-8000-0000000000b1', work_type: 'probe', handoff: JSON.stringify({ steps: 3, step_ms: 50 }) } };
+  await workClaimed({ api, claimed, serverTime: new Date(s0).toISOString() });
+  const terminal = ops.some((o) => o.startsWith('complete:failed'));
+  console.log((terminal ? 'DEFECT   ' : 'baseline ') + what + ' -> ' + ops.join(', '));
+}
