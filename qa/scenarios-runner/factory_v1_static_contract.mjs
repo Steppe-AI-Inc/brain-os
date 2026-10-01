@@ -1384,10 +1384,15 @@ const bodyCode = (body) => lexSql(body + ';').map((s) => s.code + ' ' + s.dos.ma
   const kinds = (bc.stdout || '').trim().split('\n');
   // a citation resolves when it is in HEAD's history, or in the Director's published history up to the designated CR-disposition record
   // (the Director branch, which every verifier of this candidate reads)
-  const history = new Set([...(gitOut('rev-list', 'HEAD') || '').trim().split('\n'), ...(gitOut('rev-list', CR_DISPOSITION_COMMIT) || '').trim().split('\n')].filter(Boolean));
+  // ONE more commit resolves: the commit at which CR-001..CR-004 were filed, on the first contract branch
+  // (factory/auto-enrollment-v1-contract, still on the remote). A candidate notice names every change request it relies on by path,
+  // commit and sha256 (VERIFICATION_SPEC §2), and a historical change request stays at the path and commit where it was filed and
+  // decided (CLAUDE.md §8); those four files are in no later tree. Reading them needs that branch as well
+  const HISTORICAL_CR_COMMIT = '33f14d6e55a41ee1a2a5acf463a000e3fe2975b9';
+  const history = new Set([...(gitOut('rev-list', 'HEAD') || '').trim().split('\n'), ...(gitOut('rev-list', CR_DISPOSITION_COMMIT) || '').trim().split('\n'), HISTORICAL_CR_COMMIT].filter(Boolean));
   let commits = 0; const dangling = [];
   toks.forEach((k, i) => { const [sha, type] = (kinds[i] || '').split(' '); if (type !== 'commit') return; commits++; if (!history.has(sha)) dangling.push(k + ' in ' + [...cited.get(k)].sort().join(', ')); });
-  check('H2 every commit the candidate\'s own files cite is in HEAD\'s history or in the Director\'s published history up to the CR-disposition record ' + CR_DISPOSITION_COMMIT.slice(0, 8) + ', so each citation resolves for anyone who receives this branch and the Director branch (' + commits + ' commit citations in ' + paths.length + ' files added or changed since ' + PUBLISHED.slice(0, 7) + ', the last published commit; the Director\'s documents aside)',
+  check('H2 every commit the candidate\'s own files cite is in HEAD\'s history or in the Director\'s published history up to the CR-disposition record ' + CR_DISPOSITION_COMMIT.slice(0, 8) + ', so each citation resolves for anyone who receives this branch and the Director branch; the one exception is ' + HISTORICAL_CR_COMMIT.slice(0, 8) + ', where CR-001..CR-004 were filed on the first contract branch (' + commits + ' commit citations in ' + paths.length + ' files added or changed since ' + PUBLISHED.slice(0, 7) + ', the last published commit; the Director\'s documents aside)',
     gitOut('merge-base', '--is-ancestor', PUBLISHED, 'HEAD') !== null && bc.status === 0 && kinds.length === toks.length && history.size > 100 && dangling.length === 0, dangling.join(' | '));
 }
 

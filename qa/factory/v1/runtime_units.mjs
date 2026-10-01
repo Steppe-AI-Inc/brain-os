@@ -13,12 +13,13 @@
 //            whose answer arrives late extends the lease from the moment it was sent, never from its answer
 //   CL1-CL2  a claim answer that proves nothing gives back what the claim may have taken (a SQLSTATE rollback and the named lock
 //            refusal do prove it); a claimed work type without a handler is given back, never completed as failed
-//   HF1-HF8  what a handler's failure means for its run (C2-P1; contract P-2 restart / recovery; 69df2f52 node.mjs:522-540): a thrown
+//   HF1-HF9  what a handler's failure means for its run (C2-P1; contract P-2 restart / recovery; 69df2f52 node.mjs:522-540): a thrown
 //            handler does NOT fail its run - nothing more is sent for it and its lease is left to lapse, so any eligible node resumes
 //            the work - except a failure the same input meets on every attempt (a data exception the plane's server raised, a
 //            request the API refused as malformed), which fails the run by name; a lost lease completes nothing; a terminal
 //            credential refusal still stops the worker REFUSED; a verification handler's error still gives its claim back; and a
-//            claim answer lost while such a run waits out its lease gives back every OTHER run of the node, keeping that one
+//            claim answer lost while such a run waits out its lease gives back every OTHER run of the node, keeping that one; a completion that
+//            meets a transient refusal is left to the lease the same way
 //   SI1-SI3  one supervisor and one worker per home by named pipe (L4-F3): a lock record naming a foreign or unrelated live pid never
 //            blocks a start; two supervisors started at once start exactly one worker; a second worker exits ALREADY before any call;
 //            an orphaned worker is asked to stop and does; a pipe holder that ignores "stop" and names another process's pid is left
@@ -358,6 +359,17 @@ try {
     } finally { HANDLERS.probe = realProbe; }
     row('HF5 a handler that throws an error of its own (no refusal of the plane behind it) does not fail its run either - nothing is sent and the lease is left to lapse; a failure the handler RETURNS, with the terminal condition it observed, is completed failed by that name (the terminal condition comes from the handler)',
       own.sent === '' && own.threw === null && named.sent === 'complete:failed:probe_input_refused' && named.threw === null, JSON.stringify({ own, named }));
+
+    // the handler succeeds and the COMPLETION meets a transient refusal: the same rule - nothing more is sent for the run
+    const done = [];
+    {
+      const api = { op: async (name, body) => { done.push(name === 'complete' ? 'complete:' + body.status + ':' + body.termination_reason : name); return name === 'complete' ? refused('plane_unavailable', 503) : { ok: true }; } };
+      const s0 = Date.now();
+      await workClaimed({ api, check: stops, serverTime: new Date(s0).toISOString(), claimed: { run_id: RUN, kind: 'authoring', lease_expires_at: new Date(s0 + 60000).toISOString(),
+        work_order: { work_order_id: WO, work_type: 'probe', handoff: JSON.stringify({ steps: 2, step_ms: 10 }) } } });
+    }
+    row('HF9 a completion that meets a transient refusal is not turned into a failure and the run is not given back: after the refused completion the worker sends nothing more for the run, which is left to its lease (the node that next holds the work resumes from the last checkpoint and completes it)',
+      done.join(' ') === 'checkpoint checkpoint complete:done:completed', done.join(' '));
 
     const ver = await worked(null, { kind: 'verification' });
     row('HF6 a verification handler\'s error still gives its claim back at once (release), never completing or certifying anything: the verification returns to WAITING for another verifier',

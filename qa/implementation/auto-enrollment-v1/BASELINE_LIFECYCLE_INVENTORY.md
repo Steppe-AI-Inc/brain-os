@@ -51,6 +51,7 @@ the Director's canonical contract and are filled in only after that contract is 
 | one worker per node identity; one supervisor per state directory, whatever the path spelling | N9, N9b, R6 |
 | crashes restart automatically with backoff (5 s → 5 min, monotonic); orphans killed only by instance token | R3, R5, N7, N38, N38u, N8 |
 | transient plane losses are retried inside the worker, not by the supervisor | N6, N26, N30, N32 |
+| a worker that throws does NOT fail its run: no statement is written for it, the heartbeat stops and the lease lapses, so any eligible node resumes from the last checkpoint (`node.mjs:522-540`); EXCEPT a data exception (SQLSTATE class 22), which fails the run by name (`node.mjs:534`); a run this process claimed is never given back as an orphan (`node.mjs:402`) | N10 (the data exception); the takeover after a lapsed lease: A-S3 E/G, G2, G3, M and CP-5. **No certified row throws a worker with any other error and reads the run left in progress**: that half of the rule is in the source only. This inventory listed calls, and a call that is deliberately not made had no row here until Candidate #3 (finding C2-P1) |
 | no credential in any log line | R8 |
 | a clean `--stop` | R7 |
 | the commit and handler version a node runs are recorded; evidence counts only at the commit under acceptance | N14, N15, N20 |
