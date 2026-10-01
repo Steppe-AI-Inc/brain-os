@@ -84,7 +84,7 @@ export const INVENTORY = [
   ]),
   { file: EDGE + 'factory-admin-api/index.ts', construct: 'env:BRAIN_OS_URL', fn: '-', count: 1, cls: 'own-plane', why: 'the issuer a caller\'s token is verified against, and where it is verified' },
   { file: EDGE + 'factory-admin-api/index.ts', construct: 'env:BRAIN_OS_ANON_KEY', fn: '-', count: 1, cls: 'own-plane', why: 'the key the token check is sent with' },
-  // the Edge handlers' fail-closed validation of their own configuration (unset; not the one postgresql://user:password@host:port/database
+  // the Edge handlers' fail-closed validation of their own configuration (unset; not the one postgresql://USER:PASS@HOST:PORT/DATABASE
   // form the file reads; an IP-literal host; no PEM certificate; a pepper that is not base64 of 32 bytes): 503 misconfigured /
   // pepper_unavailable, never another behaviour. Every test only refuses: nothing is defaulted, and no test chooses between two targets
   { file: EDGE + '_shared/db.ts', construct: 'env-branch', fn: '-', value: 'FACTORY_ADMIN_DB_URL+FACTORY_NODE_DB_URL', count: 17, cls: 'own-plane', ruling: CR021_EDGE,

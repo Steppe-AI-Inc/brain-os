@@ -8,7 +8,7 @@
 // pooler picks the project from either), reads a list of hosts, fills what the URL leaves out from its environment, and its URL
 // parser drops a tab or a line break from inside a name: each let a URL that did not spell the production project in its text
 // reach it (C2-S1; edge_db_tls_acceptance T8 holds the forms). So exactly ONE form is read -
-//     postgresql://user:password@host:port/database
+//     postgresql://USER:PASS@HOST:PORT/DATABASE
 // - every part present, nothing before or after it, no query and no fragment; the host a plain DNS name, taken in lower case; a
 // percent-escape only in the user name and the password, decoded once, here. Everything else is refused (fail closed), and the
 // production project is refused on what was read - the host, the user, the database and the password as the driver is given them -
@@ -34,10 +34,10 @@ const unescaped = (s: string): string => s.replace(/%([0-9A-Fa-f]{2})/g, (_, h: 
 export function dbTarget(url: string): DbRead {
   if (!url) return no('the database URL is unset');
   if (url.toLowerCase().includes(PRODUCTION_REF)) return no(PRODUCTION);
-  if (!/^[\x21-\x7e]+$/.test(url)) return no('the database URL has a space, a tab, a line break, a control character or a character outside ASCII in it: write it on one line, as postgresql://user:password@host:port/database');
+  if (!/^[\x21-\x7e]+$/.test(url)) return no('the database URL has a space, a tab, a line break, a control character or a character outside ASCII in it: write it on one line, as postgresql://USER:PASS@HOST:PORT/DATABASE');
   if (!/^postgres(ql)?:\/\//i.test(url)) return no('the database URL is not a postgresql:// URL');
   const parts = /^[a-z]+:\/\/([^@/?#]*)@([^@/?#]*)\/([^@/?#]*)$/i.exec(url);
-  if (!parts) return no('the database URL is not postgresql://user:password@host:port/database: it has a query, a fragment, more than one "@" or "/" after the scheme, or no user, host or database part');
+  if (!parts) return no('the database URL is not postgresql://USER:PASS@HOST:PORT/DATABASE: it has a query, a fragment, more than one "@" or "/" after the scheme, or no user, host or database part');
   const login = /^([^:]+):(.+)$/.exec(parts[1]);
   if (!login) return no('the database URL names no user or carries no password: both are written in the URL (the driver would take a missing one from its environment)');
   const address = /^(.*):([0-9]{1,5})$/.exec(parts[2]);

@@ -12,7 +12,7 @@
 //   T6 both entry points connect only through dbRefusal / dbOptions (the static wiring), name FACTORY_DB_CA_PEM, and hand the driver
 //      dbOptions(url, ca) as its ONLY argument - never the URL
 //   T7-T9 (C2-S1) THE TARGET: the refusal is judged on what the driver is given, and the driver is given only what was read.
-//      T7 the one form (postgresql://user:password@host:port/database) is read exactly - the host in lower case, the user and the
+//      T7 the one form (postgresql://USER:PASS@HOST:PORT/DATABASE) is read exactly - the host in lower case, the user and the
 //         password decoded once - and postgres.js constructed as the entry points construct it holds that same target, no startup
 //         parameter of the URL's, TLS verify-full with the pinned CA, and nothing from the environment (PGHOST / PGUSER / PGDATABASE /
 //         PGPORT / PGPASSWORD name the production project during these rows)
@@ -147,7 +147,7 @@ console.log(JSON.stringify(out));
   };
   const o = deno('main');
   // T7-T9 run with an environment that names the production project wherever the driver would look for a missing part
-  const t = deno('target', { PGHOST: 'db.' + REF + '.supabase.co', PGPORT: '6543', PGUSER: 'postgres.' + REF, PGUSERNAME: 'postgres.' + REF, PGDATABASE: REF, PGPASSWORD: 'from-the-environment' });
+  const t = deno('target', { PGHOST: 'db.' + REF + '.supabase.co', PGPORT: '6543', PGUSER: 'postgres.' + REF, PGUSERNAME: 'postgres.' + REF, PGDATABASE: REF, PGPASSWORD: 'env-pw' });
   const h = deno('handed').handed;
   // T3b: the same CA issues a certificate for another name; the server takes it on a reload
   ssl(['req', '-newkey', 'rsa:2048', '-nodes', '-keyout', f('wrong.key'), '-out', f('wrong.csr'), '-subj', '/CN=not-the-factory-db']);
@@ -174,7 +174,7 @@ console.log(JSON.stringify(out));
 
   // ---- T7-T9: the target (C2-S1)
   const bad7 = t.t7.filter((x) => !x.ok);
-  row('T7 the one form is read exactly and the driver is given exactly what was read: for ' + t.t7.length + ' URLs in the form postgresql://user:password@host:port/database (the pooler form of the founder\'s steps, postgres://, a host in upper case, escapes in the user and the password, a single-label host) dbRefusal is null, dbTarget reads the host in lower case, the port, the user and the password each decoded once, and the database; postgres.js constructed with dbOptions(url, ca) as its only argument holds that same target, no startup parameter but its application name, prepare off and TLS verify-full with the pinned CA - with PGHOST, PGUSER, PGDATABASE, PGPORT and PGPASSWORD naming the production project in its environment',
+  row('T7 the one form is read exactly and the driver is given exactly what was read: for ' + t.t7.length + ' URLs in the form postgresql://USER:PASS@HOST:PORT/DATABASE (the pooler form of the founder\'s steps, postgres://, a host in upper case, escapes in the user and the password, a single-label host) dbRefusal is null, dbTarget reads the host in lower case, the port, the user and the password each decoded once, and the database; postgres.js constructed with dbOptions(url, ca) as its only argument holds that same target, no startup parameter but its application name, prepare off and TLS verify-full with the pinned CA - with PGHOST, PGUSER, PGDATABASE, PGPORT and PGPASSWORD naming the production project in its environment',
     t.t7.length >= 7 && bad7.length === 0, JSON.stringify(bad7.length ? bad7 : t.t7.map((x) => x.what)));
   const kinds = [...new Set(t.t8.map((x) => x.kind))];
   const open8 = t.t8.filter((x) => !x.refused || !x.threw);
