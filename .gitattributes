@@ -1,0 +1,2 @@
+# One byte form everywhere: the sha256 of a working file equals the sha256 of its committed blob, on every machine.
+* text=auto eol=lf

@@ -1,0 +1,5 @@
+# ARTIFACT RELAY V0 - function configuration (read by `supabase functions deploy`).
+# The gateway's JWT check is off for this one function: a node holds no project key. The function authenticates every request
+# itself, against the node key the founder registered (supabase/functions/factory-artifact-relay/relay.ts).
+[functions.factory-artifact-relay]
+verify_jwt = false
