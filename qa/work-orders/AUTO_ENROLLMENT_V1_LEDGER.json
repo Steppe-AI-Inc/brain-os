@@ -1001,6 +1001,11 @@
       "candidate_sha": "412ac14e76f88fbd5e310d3e97dbf5acab2c1498",
       "verdict": "REJECTED",
       "receipt_sha256": "f94861a76699696e86160064090356eb823bc5627bba50af9f259fff4bb11b57"
+    },
+    {
+      "candidate_sha": "95fdb85acf755f8d28fa2393165cac7fb9ca77b7",
+      "verdict": "CERTIFIED",
+      "receipt_sha256": "0dce65a5d9416aaf2821e83999ead364e3869dcc6cf225352ca735537dfd18b6"
     }
   ],
   "receipts_rule": "one public line per candidate (founder rulings 2026-09-27 UTC, founder text II.14): its SHA, the receipt verdict and the receipt sha256, never findings; the receipt itself is on a local-only ref; a superseding receipt replaces the line and the event log records the superseded sha256; a line is not a state transition (rule 6); no public event-log entry carries a candidate's finding (a receipt's or an Edge observation record's), and an entry cites that record by sha256 (spec §3.11)",
@@ -1105,6 +1110,11 @@
     {
       "utc": "2026-09-30",
       "event": "Director CR-disposition record (2026-09-30), founder-directed and founder-authorized for release. It records the disposition of CR-006..CR-026, filed by the IMPLEMENTER in qa/implementation/auto-enrollment-v1/change-requests/ on factory/auto-enrollment-v1-implementation at 8f740cccd4ff772c34e3dcec3129e6a7dfd81ee5 (the range 6ba22e3e..8f740ccc is Good-signed by the confirmed implementer_signing_key; no Director-owned file is changed; the Director documents on the branch are byte-identical to r3 c7a845b6). This is a NARROW CR-disposition record, NOT a new product-semantic revision: Candidate #2 product semantics remain governed by r3 c7a845b61a3b0b419e8c9dfeff397547fdc75b03, and the Candidate #2 notice names BOTH r3 c7a845b6 (product contract) and this commit (the canonical CR-disposition record required by P3p). Each disposition is in change_requests with the CR blob's sha256 and the requirement IDs it affects. The four the founder named: CR-006 approves the post-V1 factory_runner rotation runbook (psql \\password, provisioner not re-run; Director text, the frozen 69df2f52 provisioner byte-identical); CR-021 approves that a fail-closed check that can only refuse is classable under VERIFICATION_SPEC §3.4 (in-migration catalog checks = same-on-every-plane; Edge self-configuration validation = own-plane addressing), construction named in the verifier receipt; CR-022 classes the release-channel domain validation as the call's input and the factory_owner owner-name authority-guard engine test (created by the migration on every plane) as the S-10 authority mechanism; CR-026 classes founder step 3's guard reads on the same basis as CR-022(b). CR-007..CR-020 and CR-023..CR-025 are recorded as their r3-conforming reading; the candidate relies on none of them. No spec text is edited: the §3.4 dispositions are Director readings the verifier applies and records per hit.",
+      "by": "DIRECTOR"
+    },
+    {
+      "utc": "2026-10-01",
+      "event": "Candidate 95fdb85acf755f8d28fa2393165cac7fb9ca77b7 CERTIFIED. A narrow remediation of candidate c667367b (REJECTED): the two findings that rejected it are independently verified fixed and guard-covered, with no regression. Authorship: 61 of 61 commits in c7a845b6..95fdb85 verify against the confirmed implementer key (implementer_signing_key); the certifier (DESKTOP-MDPE6FS) is a different machine from the author (DESKTOP-8P5HVAO, S-16b); the Director-issued verifier assignment held; the document-set and WO hashes recompute and the Director documents are byte-identical to r3; the reproducible build is REPRODUCED; the live-migration step builds and commits as the non-superuser applying login. WO-1, WO-2, WO-3, WO-4, WO-5, WO-6, WO-7, WO-8, WO-9, WO-10 are CERTIFIED, each with verifier evidence for every row it covers; AC-1..AC-4 and AC-13 remain for final acceptance on the clean laptop (rule 6), and WO-4 clean-machine rehearsal and every VM-only row stay BLOCKED - EXTERNAL until then. AC-10 Edge clause resolved by the Director observation record (sha256 cd4ab2b9cf1fb52d5f33fa0dc063f9246352a5fc51416bc6bc335f783e0bb685): the Factory Edge Functions are not deployed and production is untouched at master 55a15917. The receipt (verdict CERTIFIED) is on the local-only ref, sha256 0dce65a5d9416aaf2821e83999ead364e3869dcc6cf225352ca735537dfd18b6. This certification is not a production deployment, an Edge deployment, or the C-3 release-signing operation.",
       "by": "DIRECTOR"
     }
   ]
