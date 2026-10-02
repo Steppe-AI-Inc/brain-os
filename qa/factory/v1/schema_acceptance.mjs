@@ -260,7 +260,8 @@ try {
     S7_FNS.length === 15 && sameSet(nodeFns, S7_FNS), JSON.stringify({ extra: nodeFns.map((r) => r.n).filter((n) => !S7_FNS.includes(n)), missing: S7_FNS.filter((n) => !nodeFns.some((r) => r.n === n)),
       notDefinerOrOverloaded: nodeFns.filter((r) => !r.d || r.c !== 1).map((r) => r.n) }));
   row('C19 factory_admin_api can EXECUTE exactly the ' + ADMIN_FNS.length + ' Admin API operations named in admin_api.ts ADMIN_OPS (one function each, SECURITY DEFINER) and nothing else in schema factory',
-    ADMIN_FNS.length === 23 && sameSet(adminFns, ADMIN_FNS), JSON.stringify({ extra: adminFns.map((r) => r.n).filter((n) => !ADMIN_FNS.includes(n)), missing: ADMIN_FNS.filter((n) => !adminFns.some((r) => r.n === n)) }));
+    ADMIN_FNS.length === 24 && sameSet(adminFns, ADMIN_FNS), JSON.stringify({ extra: adminFns.map((r) => r.n).filter((n) => !ADMIN_FNS.includes(n)), missing: ADMIN_FNS.filter((n) => !adminFns.some((r) => r.n === n)),
+      notDefinerOrOverloaded: adminFns.filter((r) => !r.d || r.c !== 1).map((r) => r.n) }));
   // C20 (AC-10, S-10 "superusers are refused"): EVERY front door, called from the plane's superuser session with typed nulls, raises 42501
   // factory_superuser_refused - and nothing is written (each call in its own transaction, rolled back; the table counts are compared too)
   const doors = (await sup.query(`select p.proname n, array(select format_type(t, null) from unnest(p.proargtypes::oid[]) t) types

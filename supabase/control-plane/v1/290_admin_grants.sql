@@ -19,6 +19,7 @@ grant execute on function
   factory.admin_create_principal(uuid, text, jsonb),
   factory.admin_adopt_release(uuid, text, jsonb),
   factory.admin_publish_release(uuid, text, jsonb),
+  factory.admin_authorize_update(uuid, text, jsonb),
   factory.admin_revoke_release(uuid, text, jsonb),
   factory.admin_revoke_key(uuid, text, jsonb),
   factory.admin_list_releases(uuid, text, jsonb),
