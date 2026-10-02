@@ -4,17 +4,18 @@
 re-enters its password. WO-6 r2, S-5, S-8, S-16, the contract's Release table and the final-acceptance conditions still describe a
 founder-held key. (WO-6; S-5; S-8; S-12; S-16; AC-5; VERIFICATION_SPEC §3 and final acceptance)**
 
-- **Filed:** 2026-10-03 by the IMPLEMENTER capability, in the implementer namespace.
+- **Written:** 2026-10-03 by the IMPLEMENTER capability, in the implementer namespace. It is filed when
+  `factory/auto-enrollment-v1-implementation` carries it (VERIFICATION_SPEC §3.1).
 - **Built on:** the Director documents at the CR-disposition record `a0bb79856a7a82ea8277c7bbf3a23ad6cc0631a0` (WO-6 revision 2,
   text sha256 `53411b250db11c6b3098be8161c935b0b541cd95a12225c446d267eac4ffc4ef`). The Director's later record, CERTIFIED for
   candidate #3 (2026-10-01), changes the ledger only; WO-6 is the same text there.
 - **Kind:** a founder product decision that changes what must be true inside the only founder gate. The implementer proposes; no
   Director text is edited here.
 - **State of the implementation:** the founder directed it in the same message ("Then proceed unless another genuine founder product
-  decision is required"). It exists as a LOCAL preparation only: branch `local/c4-wo6-successor`, on top of the published
-  implementation head `047ba31`, every commit titled "Successor preparation (not frozen)". It is not a candidate, nothing of it is
-  applied to a live plane, nothing is deployed, and candidate #3 (`95fdb85a`, CERTIFIED) is untouched. It becomes a candidate only
-  against a Director revision that decides this request.
+  decision is required"). It exists as a preparation only: the commits titled "Successor preparation" on top of the published
+  implementation head `047ba31`, each marked not frozen. It is not a candidate, nothing of it is applied to a live plane, nothing
+  is deployed, and candidate #3 (`95fdb85a`, CERTIFIED) is untouched. It becomes a candidate only against a Director revision that
+  decides this request.
 
 ## The founder's decision (as received by the implementer session; the founder holds the originals)
 
