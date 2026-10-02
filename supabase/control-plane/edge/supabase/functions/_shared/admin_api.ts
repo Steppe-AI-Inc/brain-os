@@ -164,7 +164,7 @@ export function createAdminApi(deps: AdminDeps): (req: Request) => Promise<Respo
       if (r.ok !== true) return json(typeof r.http === 'number' ? r.http : 409, r);
       if (op.signs) {
         // the release is published (r is the record). Its signed manifest goes where the installer looks for it; when that did not
-        // happen the answer says so, and authorizing the same release again places it ("already": nothing is signed twice)
+        // happen the answer says so, and authorizing the same release again places it ("already": the signature on record, nothing new)
         const signed = r.manifest as Record<string, unknown> | undefined;
         const served = !!signed && typeof signed.version === 'string' && !!deps.storeManifest && await deps.storeManifest(signed.version, signed);
         return json(200, { ...r, manifest_served: served });

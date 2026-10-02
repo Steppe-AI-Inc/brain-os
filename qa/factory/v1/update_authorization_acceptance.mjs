@@ -27,7 +27,7 @@
 //     UA6 exactly what was named is signed, and a newer release supersedes the older one
 //     UA7 what is not an update is refused by name: another channel, a malformed value, a version or digest published before
 //     UA8 storage down: the release is published, manifest_served false; authorizing it again answers "already" and places the
-//         manifest - no second signature, no second release
+//         manifest - the signature on record, no second release
 //     UA9 a part of the seed replaced in the secret store: signer_unavailable, nothing published
 //     UA10 the signer's key revoked: key_revoked, nothing published
 //     UA11 the older publish action cannot go round it: a production release published with a signature made elsewhere needs the
@@ -257,7 +257,7 @@ try {
     admin.storage.ok = true;
     const h0 = await written(), p0 = admin.storage.puts.length;
     const again = await authz(REL('3.0.0'), brain.passwordToken(founder));
-    row('UA8 release storage down: the release is published and the answer says manifest_served false; authorizing it again answers "already" with the same manifest and places it - no second signature, no second release',
+    row('UA8 release storage down: the release is published and the answer says manifest_served false; authorizing it again answers "already" with the same manifest (the signature on record) and places it - no second release',
       down.ok === true && down.manifest_served === false && rowDown && rowDown.state === 'published' && again.ok === true && again.already === true && again.manifest_served === true
         && again.release_id === down.release_id && JSON.stringify(again.manifest) === JSON.stringify(down.manifest) && (await written()) === h0
         && admin.storage.puts.length === p0 + 1 && admin.storage.puts.at(-1).version === '3.0.0',

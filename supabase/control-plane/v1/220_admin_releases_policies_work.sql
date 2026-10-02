@@ -103,9 +103,9 @@ create function factory.admin_publish_release(p_actor uuid, p_live_role text, p_
 --   2. A FRESH PASSWORD ENTRY of that same account (factory._fresh_password above).
 --   3. ONE ENTRY, ONE RELEASE: a session that authorized a release authorizes no other (factory._entry_unused above).
 -- WHAT IS SIGNED is built by the signer from the four values below and its own key id: a production-channel manifest, nothing else.
--- The signature exists only in the published record this transaction writes. The same release authorized again answers "already"
--- with its manifest (a lost answer, or the manifest placed in release storage once more) and writes nothing - and only for a release
--- this plane's signer signed: the signer is asked again and must give the signature on record.
+-- A signature leaves this function only in the published record this transaction writes - or, for the same release authorized
+-- again, when it IS the one on record: that answers "already" with its manifest (a lost answer, or the manifest placed in release
+-- storage once more) and writes nothing. So "already" is answered only for a release this plane's signer signed.
 -- ---------------------------------------------------------------------------------------------------
 create function factory.admin_authorize_update(p_actor uuid, p_live_role text, p_body jsonb) returns jsonb
   language plpgsql volatile security definer set search_path = pg_catalog, pg_temp set lock_timeout = '15s'
@@ -132,7 +132,7 @@ create function factory.admin_authorize_update(p_actor uuid, p_live_role text, p
     select r.* into mine from factory.releases r where r.tenant_id = (a.ctx).tenant_id and r.channel = ch and r.version = v and r.digest = d;
     if mine.release_id is not null and mine.source_sha = src and mine.receipt_sha256 = rc and mine.state = 'published' and mine.authorized_session is not null then
       m := factory_signer.sign_release(v, src, d, rc);
-      if m is not null and mine.key_id = m ->> 'key_id' and mine.signature = m ->> 'signature' then
+      if mine.signature = m ->> 'signature' then   -- a signer that does not sign gives null: not answered
         return jsonb_build_object('ok', true, 'already', true, 'release_id', mine.release_id, 'manifest', m);
       end if;
     end if;
