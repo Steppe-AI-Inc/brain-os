@@ -31,7 +31,8 @@
 //     UA9 a part of the seed replaced in the secret store: signer_unavailable, nothing published
 //     UA10 the signer's key revoked: key_revoked, nothing published
 //     UA11 the older publish action cannot go round it: a production release published with a signature made elsewhere needs the
-//         same fresh entry (and uses it up, for both actions); a dev-channel release needs none
+//         same fresh entry (and uses it up, for both actions); a dev-channel release needs none; and authorize-update never answers
+//         "already" for a release recorded that way, so nothing a caller supplied is answered or placed in release storage
 //   UW  the page's part: web/lib/factory/reauth.ts (the password check) and update.ts (what is authorized, in which order) - the two
 //       files as the web app runs them. The server action that wires them (lib/data/factory-update.ts) needs next dev: not run here
 //     UW1 the password check is Brain OS's own password sign-in for the account's own email: a correct password opens a NEW session
@@ -380,11 +381,21 @@ try {
     const again = await admin.call('publish-release', ext('8.0.1'), tP);
     const across = await authz(REL('8.1.0'), tP);
     const dev = await admin.call('publish-release', ext('8.0.0', 'dev'), founder.token);
-    row('UA11 the older publish action cannot go round the password: a production release with a signature made elsewhere is refused 403 reauth_required for the founder\'s ordinary session token and for an entry five minutes old, and nothing is written; with a fresh entry it is published and the record names that entry; the same entry is then refused reauth_used for another production publish AND for authorize-update; a dev-channel release needs no entry',
+    // the release published with a signature made elsewhere is not one this plane signed: authorize-update does not answer "already" for it
+    const p0 = admin.storage.puts.length;
+    const same = (r) => ({ channel: r.channel, version: r.version, source_sha: r.source_sha, digest: r.digest, receipt_sha256: r.receipt_sha256 });
+    const notOurs = await authz(same(ext('8.0.0')), brain.passwordToken(founder));
+    // ... and neither is one that NAMES this plane's key with a signature the signer did not make
+    const forgedRelease = { ...ext('8.0.2'), key_id: signer.key_id };
+    const forged = await admin.call('publish-release', forgedRelease, brain.passwordToken(founder));
+    const notSigned = await authz(same(forgedRelease), brain.passwordToken(founder));
+    row('UA11 the older publish action cannot go round the password: a production release with a signature made elsewhere is refused 403 reauth_required for the founder\'s ordinary session token and for an entry five minutes old, and nothing is written; with a fresh entry it is published and the record names that entry; the same entry is then refused reauth_used for another production publish AND for authorize-update; a dev-channel release needs no entry; and authorize-update for a production release recorded that way - with another key, or naming this plane\'s key with a signature the signer did not make - answers already_published, never "already": nothing a caller supplied is answered or placed in release storage',
       stale.http === 403 && stale.refused === 'reauth_required' && old.http === 403 && old.refused === 'reauth_required' && unchanged
         && ok.ok === true && rowP && rowP.channel === 'production' && rowP.authorized_session === cP.session_id && Number(rowP.pw_epoch) === cP.amr[0].timestamp
-        && again.http === 403 && again.refused === 'reauth_used' && across.http === 403 && across.refused === 'reauth_used' && dev.ok === true,
-      JSON.stringify({ stale: stale.http + ' ' + stale.refused, old: old.http + ' ' + old.refused, fresh: ok.ok === true, again: again.refused, across: across.refused, dev: dev.ok === true }));
+        && again.http === 403 && again.refused === 'reauth_used' && across.http === 403 && across.refused === 'reauth_used' && dev.ok === true
+        && notOurs.http === 409 && notOurs.refused === 'already_published'
+        && forged.ok === true && notSigned.http === 409 && notSigned.refused === 'already_published' && admin.storage.puts.length === p0,
+      JSON.stringify({ stale: stale.http + ' ' + stale.refused, old: old.http + ' ' + old.refused, fresh: ok.ok === true, again: again.refused, across: across.refused, dev: dev.ok === true, not_ours: notOurs.http + ' ' + notOurs.refused, names_our_key: forged.ok === true ? notSigned.http + ' ' + notSigned.refused : forged }));
   }
 
   {

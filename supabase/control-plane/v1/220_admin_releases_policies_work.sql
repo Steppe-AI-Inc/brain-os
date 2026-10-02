@@ -104,7 +104,8 @@ create function factory.admin_publish_release(p_actor uuid, p_live_role text, p_
 --   3. ONE ENTRY, ONE RELEASE: a session that authorized a release authorizes no other (factory._entry_unused above).
 -- WHAT IS SIGNED is built by the signer from the four values below and its own key id: a production-channel manifest, nothing else.
 -- The signature exists only in the published record this transaction writes. The same release authorized again answers "already"
--- with its manifest (a lost answer, or the manifest placed in release storage once more) and signs and writes nothing.
+-- with its manifest (a lost answer, or the manifest placed in release storage once more) and writes nothing - and only for a release
+-- this plane's signer signed: the signer is asked again and must give the signature on record.
 -- ---------------------------------------------------------------------------------------------------
 create function factory.admin_authorize_update(p_actor uuid, p_live_role text, p_body jsonb) returns jsonb
   language plpgsql volatile security definer set search_path = pg_catalog, pg_temp set lock_timeout = '15s'
@@ -125,10 +126,15 @@ create function factory.admin_authorize_update(p_actor uuid, p_live_role text, p
     select f.sess, f.pw_at, f.refusal into sess, pw_at, refused from factory._fresh_password(a.ctx, p_body, 'authorize_update') f;
     if refused is not null then return refused; end if;
     perform factory._lock_tenant((a.ctx).tenant_id); -- authorizations, publishes and key revokes of this tenant queue here
-    -- the same release again: one release, said as "already"
+    -- the same release again: one release, said as "already" - only when the signer, asked again, gives the very signature on record
+    -- (Ed25519 is deterministic). A release recorded through publish-release with a signature made elsewhere is never answered here,
+    -- and the manifest answered is the signer's own, never one a caller supplied
     select r.* into mine from factory.releases r where r.tenant_id = (a.ctx).tenant_id and r.channel = ch and r.version = v and r.digest = d;
     if mine.release_id is not null and mine.source_sha = src and mine.receipt_sha256 = rc and mine.state = 'published' and mine.authorized_session is not null then
-      return jsonb_build_object('ok', true, 'already', true, 'release_id', mine.release_id, 'manifest', mine.manifest);
+      m := factory_signer.sign_release(v, src, d, rc);
+      if m is not null and mine.key_id = m ->> 'key_id' and mine.signature = m ->> 'signature' then
+        return jsonb_build_object('ok', true, 'already', true, 'release_id', mine.release_id, 'manifest', m);
+      end if;
     end if;
     if exists (select 1 from factory.releases r where r.tenant_id = (a.ctx).tenant_id and r.channel = ch and (r.version = v or r.digest = d)) then
       return factory._refusal('already_published', 409, 'this version or digest was published before on this channel');
