@@ -224,18 +224,25 @@ token check, as 401 `not_authenticated` or 503 `unavailable`, so check both when
    those bytes to `scripts/factory-runner/enrolled/trust/production.json`, and that candidate is verified and CERTIFIED.
 2. The verifier rebuilds the production channel from the CERTIFIED SHA
    (`node scripts/factory-build/build-sea.mjs --channel production`, then `verify-build.mjs`), and the receipt records the digest.
-3. The founder signs the manifest whose digest equals that receipt's reproduced digest, using the C-3 key:
+3. The founder signs the manifest whose digest equals that receipt's reproduced digest, using the C-3 key. The key id is one of
+   the signed fields, so it is attached first, with a placeholder signature of 86 `A` characters; `signing-input` refuses a
+   manifest that names no key:
 
    ```
    node scripts/factory-build/release-manifest.mjs make --artifact <exe> --channel production --version <v> --source-sha <sha> --receipt-sha256 <receipt sha256> --out manifest.json
+   node scripts/factory-build/release-manifest.mjs attach-signature --manifest manifest.json --key-id <id> --signature <86 x A>
    node scripts/factory-build/release-manifest.mjs signing-input --manifest manifest.json
    # sign that input with the C-3 key (outside this repository)
    node scripts/factory-build/release-manifest.mjs attach-signature --manifest manifest.json --key-id <id> --signature <b64url>
+   node scripts/factory-build/release-manifest.mjs verify --manifest manifest.json --artifact <exe> --channel production
    ```
+
+   `verify` must answer `{"ok":true,...}`: with the placeholder still attached it answers `bad_signature`.
 
 4. Optionally Authenticode-sign the exe. The digest does not change (S-5).
 5. Upload the exe and its manifest (step 6). Then publish through the Admin API, which is founder-only (tier founder and live role
-   founder): Brain OS → Factory → Computers, or `POST /v1/admin/publish-release` with the manifest's fields.
+   founder): `POST /v1/admin/publish-release` with the manifest's fields, made with the founder's own Brain OS session. The
+   Computers page lists the releases; it has no control that publishes one.
 
 ## 8. Brain OS web
 
@@ -247,8 +254,8 @@ OS production gets no schema change (S-9).
 
 ## 9. Afterwards
 
-- Re-enroll the two existing PCs through Add computer, one at a time, with the live legacy node stopped by the founder first. Legacy
-  adoption keeps their node ids.
+- Re-enroll the two existing PCs through Add computer, one at a time, with the live legacy node stopped by the founder first. Each
+  gets a new node id (`node-` followed by its agent principal's id): nothing carries a legacy node id over.
 - When both run enrolled, the founder retires the shared `factory_runner` credential.
 - The third PC's zero-touch acceptance follows `ZERO_TOUCH_ACCEPTANCE_SCRIPT.md` (not run; it needs steps 1–8 and C-3).
 

@@ -39,11 +39,12 @@ npm, repository checkout, `runner.env`, CA file or database URL. Nothing is pre-
 
 ## C. Back in Brain OS (observe server truth only)
 
-1. The computer shows **ALIVE**, then **Available**. The heartbeat age uses the Factory clock. The runtime version and digest are the
+1. The computer shows the badges **Alive** and **Available**. The heartbeat age uses the Factory clock. The runtime version and digest are the
    published release's.
 2. `status` on the PC (`%LOCALAPPDATA%\BrainFactory\runtime\<version>-<digest>\BrainFactory.exe status`) agrees with the page.
-3. Submit a probe work order that requires verification. One node authors it and a different identity certifies it. The work
-   order ends COMPLETE (Work card). The Waiting card shows each node's first failing gate while it waits.
+3. Submit a probe work order that requires verification (`POST /v1/admin/submit-work-order` with a Factory admin's own Brain OS
+   session: the page lists work, it has no control that submits it). One node authors it and a different identity certifies
+   it. The work order ends `done` (Work card). The Waiting card shows each node's first failing gate while it waits.
 
 ## D. Lifecycle, observed on the page and on the PC
 
@@ -58,7 +59,7 @@ npm, repository checkout, `runner.env`, CA file or database URL. Nothing is pre-
 | Restore | a fresh re-pair code | as for re-pair (uninstall, then setup with the code): ALIVE again |
 | Reboot the PC and sign in | Recovering, then Available (the logon task) | the supervisor starts at logon |
 | Kill the supervisor (Task Manager) | stale at most until the watchdog (5 min) | restarted by the watchdog |
-| Uninstall (`BrainFactory.exe uninstall`) | Stale → Offline; then revoke or archive it in Brain OS | the task, the runtime, the key and the state are removed |
+| Uninstall (`.\BrainFactorySetup.exe uninstall`, the downloaded installer, in a terminal opened in its folder; the installed copy cannot remove its own running file) | Stale → Offline; then revoke or archive it in Brain OS | the task, the runtime, the key and the state are removed |
 
 ## E. Negative checks on the same machine
 

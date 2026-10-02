@@ -114,6 +114,12 @@ const src = execFileSync('git', ['-C', ROOT, 'rev-parse', 'HEAD'], { encoding: '
 const rcpt = (s) => sha256('receipt ' + s);
 const readJ = (f) => { try { return JSON.parse(readFileSync(f, 'utf8')); } catch { return null; } };
 const bi = (ch) => readJ(join(ROOT, 'dist', 'brain-factory', V, ch, 'build-info.json'));
+// THE LIVE TRUST SET (WO-6). What a production build must read back: the committed production trust source, entry for entry (key id,
+// sha256 of the public key) - none before C-3, the founder's keys after it. And the key ids the Director's WO-6 names in this tree
+// (held byte-identical to the designated Director commit by the static contract): the production set is exactly those.
+const prodReadback = () => { const t = JSON.parse(readFileSync(join(ROOT, 'scripts/factory-runner/enrolled/trust/production.json'), 'utf8'));
+  return { channel: t.channel, mode: t.mode, keys: t.keys.map((k) => ({ key_id: k.key_id, public_key_sha256: createHash('sha256').update(Buffer.from(k.public_key, 'base64url')).digest('hex') })) }; };
+const WO6_KEY_IDS = [...new Set(readFileSync(join(ROOT, 'qa/work-orders/auto-enrollment-v1/WO-6.md'), 'utf8').match(/\bed25519:[0-9a-f]{64}\b/g) || [])].filter((id) => !KNOWN_DEV_KEY_IDS.includes(id)).sort();
 const W = await world();
 const homes = [];
 const testTasks = [];
@@ -369,9 +375,9 @@ try {
   const rf = await run(join(pdl, 'BrainFactorySetup.exe'), ['setup', '--api', W.node.baseUrl, '--manifest', join(pdl, 'BrainFactorySetup.manifest.json'), '--home', join(work, 'home-P'), '--no-tasks'], { stdin: 'XXXXX-XXXX-XXXX-XXXX-X\n' });
   const attemptsAfter = (await sup.query(`select count(*)::int n from factory.pairing_attempts`)).rows[0].n;
   const pTrust = (await run(PROD, ['trust'])).json;
-  row('R-f/k a production-channel build (trust set empty before C-3, mode production), pointed at a disposable plane, refuses a dev-key-signed release by name - before any network call',
+  row('R-f/k a production-channel build (its trust set exactly the committed production set, mode production), pointed at a disposable plane, refuses a dev-key-signed release by name - before any network call',
     rf.status === 3 && /dev_key_on_production_channel/.test(rf.out) && attemptsBefore === attemptsAfter && enrollRequests() === requestsBefore && !PROMPT.test(rf.out)
-      && pTrust.mode === 'production' && pTrust.keys.length === 0, JSON.stringify({ trust: pTrust, enrollRequests: enrollRequests() - requestsBefore }));
+      && pTrust.mode === 'production' && JSON.stringify(pTrust) === JSON.stringify(prodReadback()), JSON.stringify({ trust: pTrust, enrollRequests: enrollRequests() - requestsBefore }));
   // R-f2 (AC-5(f), the sentinel): the production-channel runtime's own upgrade path, in a home of the dedicated computer (neutral
   // inputs), offered ITS OWN SENTINEL (SENT_F2, marker MARKER_F2) with a dev-key-signed production manifest. It asks the plane first
   // (a heartbeat), then refuses by name; nothing is copied and that sentinel never runs
@@ -395,8 +401,8 @@ try {
   const PK = join(pk1, 'BrainFactorySetup.exe');
   const DEV_RUN = { env: DEV_ENV, cwd: devCwd };
   const k0 = await readbacks(PK, DEV_RUN), k0n = await readbacks(PROD);
-  row('R-k0 with every runtime input declaring dev, the production build reads back exactly its neutral self: trust set empty in mode production, channel production with its fixed endpoint, the same build and selftest',
-    JSON.stringify(k0) === JSON.stringify(k0n) && k0n.trust && k0n.trust.mode === 'production' && k0n.trust.keys.length === 0 && k0n.channel && k0n.channel.channel === 'production'
+  row('R-k0 with every runtime input declaring dev, the production build reads back exactly its neutral self: the committed production trust set in mode production, channel production with its fixed endpoint, the same build and selftest',
+    JSON.stringify(k0) === JSON.stringify(k0n) && k0n.trust && k0n.trust.mode === 'production' && JSON.stringify(k0n.trust) === JSON.stringify(prodReadback()) && k0n.channel && k0n.channel.channel === 'production'
       && k0n.channel.trust_mode === 'production' && typeof k0n.channel.default_api === 'string' && k0n.channel.default_api === bi('production').default_api,
     JSON.stringify({ trust: k0.trust, channel: k0.channel }));
   const HK1 = join(work, 'home-K1'); homes.push(HK1);
@@ -477,12 +483,12 @@ try {
       readbackIsBuildInfo: JSON.stringify(rb) === JSON.stringify(info.trust), buildInfoIsSource: JSON.stringify(info.trust) === JSON.stringify(want),
       bound: info.trust.keys.every((k) => /^[0-9a-f]{64}$/.test(k.public_key_sha256) && k.key_id === 'ed25519:' + k.public_key_sha256), unique: new Set(ids).size === ids.length,
       mode: info.trust.channel === ch && info.trust.mode === ch,
-      separation: ch === 'production' ? ids.length === 0 : ids.length >= 1 && ids.every((id) => KNOWN_DEV_KEY_IDS.includes(id)),
+      separation: ch === 'production' ? JSON.stringify([...ids].sort()) === JSON.stringify(WO6_KEY_IDS) && !ids.some((id) => KNOWN_DEV_KEY_IDS.includes(id)) : ids.length >= 1 && ids.every((id) => KNOWN_DEV_KEY_IDS.includes(id)),
       endpoint: !!cf && cf.channel === ch && cf.default_api === info.default_api && cf.release_base === info.release_base && cf.trust_mode === ch,
       digest: info.digest.value === authenticodeImageHash(readFileSync(exe)),
     };
   }
-  row('R-h per channel: the verifier\'s rebuild is byte-identical; the trust set read back from the exe equals build-info\'s, and both equal a recomputation from the committed trust source (key id, sha256 of the public key); key ids bound and unique; production empty before C-3, dev only dev keys; the channel read-back names build-info\'s endpoint and release storage; the digest is the exe\'s image hash',
+  row('R-h per channel: the verifier\'s rebuild is byte-identical; the trust set read back from the exe equals build-info\'s, and both equal a recomputation from the committed trust source (key id, sha256 of the public key); key ids bound and unique; production exactly the key ids the Director\'s WO-6 records (none before C-3) and no dev key, dev only dev keys; the channel read-back names build-info\'s endpoint and release storage; the digest is the exe\'s image hash',
     Object.values(hFacts).every((f) => Object.values(f).every(Boolean)),
     JSON.stringify(hFacts) + ' | ' + (hd.stdout.match(/IDENTICAL[^\n]*|DIFFERENT[^\n]*/) || [hd.stdout.slice(-200)])[0] + ' | ' + (hp.stdout.match(/IDENTICAL[^\n]*|DIFFERENT[^\n]*/) || [hp.stdout.slice(-200)])[0]);
 
