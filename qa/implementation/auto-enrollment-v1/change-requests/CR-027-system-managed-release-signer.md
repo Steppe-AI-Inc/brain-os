@@ -4,18 +4,25 @@
 re-enters its password. WO-6 r2, S-5, S-8, S-16, the contract's Release table and the final-acceptance conditions still describe a
 founder-held key. (WO-6; S-5; S-8; S-12; S-16; AC-5; VERIFICATION_SPEC §3 and final acceptance)**
 
+**This is a CANONICALIZATION request.** The founder's product decision is made and is not submitted for reconsideration. The
+Director is asked to record the founder-approved model in the binding WO-6 and the other canonical records. The implementer edits
+no Director text.
+
 - **Written:** 2026-10-03 by the IMPLEMENTER capability, in the implementer namespace. It is filed when
   `factory/auto-enrollment-v1-implementation` carries it (VERIFICATION_SPEC §3.1).
 - **Built on:** the Director documents at the CR-disposition record `a0bb79856a7a82ea8277c7bbf3a23ad6cc0631a0` (WO-6 revision 2,
   text sha256 `53411b250db11c6b3098be8161c935b0b541cd95a12225c446d267eac4ffc4ef`). The Director's later record, CERTIFIED for
   candidate #3 (2026-10-01), changes the ledger only; WO-6 is the same text there.
-- **Kind:** a founder product decision that changes what must be true inside the only founder gate. The implementer proposes; no
-  Director text is edited here.
-- **State of the implementation:** the founder directed it in the same message ("Then proceed unless another genuine founder product
-  decision is required"). It exists as a preparation only: the commits titled "Successor preparation" on top of the published
-  implementation head `047ba31`, each marked not frozen. It is not a candidate, nothing of it is applied to a live plane, nothing
-  is deployed, and candidate #3 (`95fdb85a`, CERTIFIED) is untouched. It becomes a candidate only against a Director revision that
-  decides this request.
+- **Kind:** canonicalization of a founder product decision that changes what must be true inside the only founder gate. What the
+  implementer proposes is wording and the details the decided model leaves to the canonical record; no Director text is edited here.
+- **Status of the implementation: IMPLEMENTATION PROPOSAL — NOT A CANDIDATE.** The founder directed it ("Then proceed unless
+  another genuine founder product decision is required") and directed its publication in this form. It is the commits after the
+  published implementation head `047ba31`:
+  - candidate #3 (`95fdb85a`, CERTIFIED) remains untouched;
+  - the successor is NOT frozen, and no candidate SHA is named;
+  - no deployment occurred;
+  - no live plane changed (the signer's bootstrap has not been run; the production trust set is still empty);
+  - Director canonicalization of this request is required before the successor is frozen.
 
 ## The founder's decision (as received by the implementer session; the founder holds the originals)
 
@@ -43,6 +50,19 @@ Message of 2026-10-02T16:59:56Z, "FOUNDER DECISION — SYSTEM-MANAGED RELEASE SI
 Two earlier messages of the same day set the flow (the password is re-entered for the account that is signed in; the existing
 `factory._founder_only` authority is reused; no new role, PIN, auth system or key ceremony).
 
+A later message of 2026-10-03, on this request itself, verbatim:
+
+> The founder product decision is already made: NO founder-managed release key; Factory manages the release signer internally;
+> founder controls release authorization using the EXISTING founder account; founder re-enters the EXISTING account password;
+> existing Factory founder-only authority is required; Factory handles signing/publication/update automatically.
+>
+> This founder-approved product policy supersedes the old WO-6 text that says the founder personally holds the signing key. CR-027
+> is therefore a CANONICALIZATION request to the Director. It is NOT a request to reconsider the founder's product decision. Work
+> must not edit Director-owned WO-6 itself.
+>
+> Do not freeze the successor until the Director records the founder-approved system-managed-signer model in the binding WO-6 /
+> applicable canonical records.
+
 ## Director sentences the decision changes
 
 Every sentence the implementer found that rests on a founder-held key. The right-hand column is a proposal, not text.
@@ -54,7 +74,7 @@ Every sentence the implementer found that rests on a founder-held key. The right
 | WO-6 "Certified bytes"; S-5; contract Release table "(after C-3) trust-set revision" | "The live trust set (the founder's public keys) is a source input. After C-3 the Director's WO-6 revision records the founder's public keys and key ids [...] Before C-3 the live trust set is empty" | The live trust set is the signer's public key. The Director's revision records its key id and public key; the next candidate adds exactly those bytes. Empty until the signer exists. |
 | WO-6 "Channel separation"; S-5 | "it trusts only the founder's keys" | it trusts only the keys of the live trust set (the plane signer's). |
 | WO-6 "Candidate report must include"; AC-5 (n) | "Proof that no production key material or authority is referenced."; "No production key material appears anywhere." | Proof that no PRIVATE production key material is in the repository, the artifact, the web bundle, a business table, worker state, a log or a command line; the authority is referenced only as the plane's signer. |
-| S-5 | "The digest the founder signs and AC-1 installs [...] The founder signs only a manifest whose source SHA is CERTIFIED and whose digest equals that receipt's reproduced digest." | The founder authorizes only a prepared release whose source SHA is CERTIFIED and whose digest equals that receipt's reproduced digest (see "Not decided by the implementer", 4). |
+| S-5 | "The digest the founder signs and AC-1 installs [...] The founder signs only a manifest whose source SHA is CERTIFIED and whose digest equals that receipt's reproduced digest." | The founder authorizes only a prepared release whose source SHA is CERTIFIED and whose digest equals that receipt's reproduced digest (see "What the canonical record still has to state", 4). |
 | S-8; contract "who may do what" | "Supplying the founder's public keys is not an API action: they enter the trust-set source through a Director WO-6 revision"; "supplying the founder's public keys for the trust-set source: the founder, out of band" | Still not an API action and still through a Director revision; the source of the bytes changes (below, 3). |
 | S-16 | "after C-3, the founder's public keys and key ids that the Director's WO-6 revision records" | ...the signer's public key and key id that the Director's WO-6 revision records. |
 | contract, founder gate | "Final acceptance (AC-1..AC-4) needs C-3 decided, because a live-plane node trusts only a founder-provisioned key (S-5)." | ...trusts only the key the founder's bootstrap created on the plane. |
@@ -94,7 +114,8 @@ Every sentence the implementer found that rests on a founder-held key. The right
   seconds old (60 seconds of clock tolerance), read by the Admin API from the caller's own access token (`amr` method `password`,
   `session_id`) after Brain OS verified the token, and added after the body whitelist; one entry authorizes one release; signing,
   publishing, superseding and the audit row are one transaction. A production release through the older `publish-release` needs
-  the same entry. `v1/060` records the session and the entry time on the release.
+  the same entry. `v1/060` records the session and the entry time on the release. The Admin API login holds EXECUTE on this front
+  door (`v1/290`; the one line was added on the founder's explicit authorization of 2026-10-03) and on nothing of the signer.
 - **Web** — Brain OS → Factory → Update (`web/app/(app)/software-factory/update/`, `web/lib/factory/reauth.ts`,
   `web/lib/factory/update.ts`): shows the prepared release's version, certified source, installer digest and certifying receipt;
   checks the staged installer against that digest; checks the password with Brain OS Auth for the signed-in account's own email;
@@ -103,11 +124,14 @@ Every sentence the implementer found that rests on a founder-held key. The right
   encryption) and then the signer file as `postgres`, before the migration (`qa/factory/v1/applying_role_plane.mjs`, row P4).
 - **Suites** — `release_signer_acceptance.mjs` (RS1–RS11), `update_authorization_acceptance.mjs` (UE, UA, UW; 21 rows).
 
-## Not decided by the implementer — the Director's to rule
+## What the canonical record still has to state
 
-1. **The authorization rule as product semantics.** The 120-second limit, one entry per release, and the same entry for a
-   production `publish-release` are the implementer's reading of "re-enter password → fresh authentication succeeds". Proposed as
-   binding text; the values are the Director's.
+None of these reopens the founder's decision. Each is a detail inside the decided model that the binding texts must state before
+a candidate can be judged against them, and each is the Director's to write, not the implementer's.
+
+1. **The authorization rule's values.** The 120-second limit, one entry per release, and the same entry for a production
+   `publish-release` are the implementer's reading of "re-enter password → fresh authentication succeeds". Proposed as binding
+   text; the values are the Director's.
 2. **The signer file's place in verification.** By VERIFICATION_SPEC's definition the candidate migration is every `.sql` under
    `supabase/control-plane/`. The signer file is outside it on purpose: it must be on the live plane BEFORE the successor is frozen
    (the artifact pins the key), and the migration's part 000 requires it (a grant on `sign_release`). As written today it is in no
@@ -134,15 +158,14 @@ Every sentence the implementer found that rests on a founder-held key. The right
   publish one.
 - The password gate is as strong as Brain OS Auth's password-change rule (whether a session may set a new password without the
   current one). That setting is production auth configuration: the founder's.
-- One line is deliberately absent: the Admin API login's EXECUTE on `factory.admin_authorize_update` (v1/290). Schema row C19 fails
-  on it by design, and the UA rows pass only with the engine role as the handler's database client (scratch). It is held for the
-  founder's explicit word.
 - Not run: the mutation campaign for the new guards, the web suite for the page's server action, the package and release suites.
+  What was run is targeted developer verification only; it is in `IMPLEMENTATION_PROPOSAL.md` beside the candidate notice.
 - First measured only by the real bootstrap: that the Management API runs the SQL as `postgres` in one transaction, and the live
   Vault's grants (the command reads them before it creates anything, and stops if another role could hold both parts).
 
 ## Impact
 
 - On candidate #3: none.
-- On the successor: it cannot be frozen before (a) the Director's revision, (b) the founder's bootstrap, (c) the Director's record
-  of the public key, in that order; then one candidate, one certification, independent QA.
+- On the successor: it is not frozen before (a) the Director's record of the founder-approved model in the binding WO-6 and the
+  applicable canonical records, (b) the founder's bootstrap, (c) the Director's record of the public key, in that order; then one
+  candidate, one certification, independent QA.
