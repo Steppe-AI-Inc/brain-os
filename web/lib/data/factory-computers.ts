@@ -98,6 +98,9 @@ export type Release = {
   superseded_at: string | null;
   revoked_at: string | null;
   revoke_reason: string | null;
+  /** a release the Factory signed (Factory -> Update): the Brain OS session whose password entry authorized it, and when */
+  authorized_session?: string | null;
+  authorized_password_at?: string | null;
 };
 
 export type Revocations = { key_ids: string[]; releases: { release_id?: string; digest: string }[] };
@@ -161,7 +164,8 @@ export async function listComputers(includeArchived = false): Promise<AdminResul
 export async function getComputer(computerId: string): Promise<AdminResult<ComputerDetail>> {
   return callFactoryAdmin<ComputerDetail>("get-computer", { computer_id: computerId });
 }
-export async function listReleases(): Promise<AdminResult<{ releases: Collection<Release>; revocations: Revocations }>> {
+/** signer: the PUBLIC half of this Factory's release signer - the key a production installer's trust set pins */
+export async function listReleases(): Promise<AdminResult<{ releases: Collection<Release>; revocations: Revocations; signer?: { key_id: string; public_key: string } | null }>> {
   return callFactoryAdmin("list-releases");
 }
 export async function listPolicies(): Promise<AdminResult<{ policies: Policy[]; versions: { policy_id: string; version: number; recorded_at: string; recorded_by: string }[] }>> {

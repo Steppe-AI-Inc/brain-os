@@ -3,9 +3,10 @@
 set local role factory_owner;
 
 -- ---------------------------------------------------------------------------------------------------
--- RELEASES (contract §2 Release; S-5; CR-003). Publishing, superseding and revoking are FOUNDER-ONLY. The plane records the manifest
--- the founder signed (under C-3 on the live plane); it holds no trust key and adds none to any node: a node's trust set is fixed in
--- the artifact it installed. What reaches a node from here is a revocation, never a key.
+-- RELEASES (contract §2 Release; S-5; CR-003). Publishing, superseding and revoking are FOUNDER-ONLY. A live release is signed by
+-- the plane's own signer, inside admin_authorize_update below; admin_publish_release records a manifest that was signed elsewhere
+-- (the dev channel on a disposable plane). Neither adds a key to any node: a node's trust set is fixed in the artifact it
+-- installed. What reaches a node from here is a revocation, never a key.
 -- Superseding happens only here: publishing a release supersedes the channel's published one, inside this founder-only action.
 -- Two publishes on one tenant are serialized (the tenant row), so the second sees the first and supersedes it. A key revoke takes
 -- the same tenant row first: a publish racing the revoke of its signing key either commits first (and the revoke then covers its
@@ -43,6 +44,86 @@ create function factory.admin_publish_release(p_actor uuid, p_live_role text, p_
     perform factory._audit((a.ctx).tenant_id, 'admin', (a.ctx).actor::text, 'release.published', 'release', rid::text, 'ok', null,
       jsonb_build_object('channel', ch, 'version', p_body ->> 'version', 'digest', p_body ->> 'digest', 'supersedes', prev.release_id));
     return jsonb_build_object('ok', true, 'release_id', rid, 'supersedes', prev.release_id);
+  end $$;
+
+-- ---------------------------------------------------------------------------------------------------
+-- AUTHORIZE AN UPDATE (founder decision 2026-10-03). The founder holds no release key and signs nothing by hand. Brain OS ->
+-- Factory -> Update asks for the password of the account that is signed in; this front door then, in ONE transaction, signs the
+-- exact release named in the body with the plane's signer and publishes it (the same record, superseding and audit as a publish).
+-- THREE THINGS MUST HOLD, in this order:
+--   1. FOUNDER-ONLY, by the one definition (factory._founder_only): tier founder in tenant_admins AND the live Brain OS role founder.
+--      A profiles.role alone never passes (S1); a caller who is not the founder learns nothing about the rest.
+--   2. A FRESH PASSWORD ENTRY of that same account: `reauth` says when the caller's Brain OS session entered its password and which
+--      session it is. The Admin API reads both from the caller's own token, which Brain OS verified on this call, and adds them
+--      AFTER its whitelist of body fields, so a caller cannot supply them. The entry must be at most 120 seconds old (60 seconds of
+--      clock difference between the two servers is allowed). The password itself never reaches this plane.
+--   3. ONE ENTRY, ONE RELEASE: a session that authorized a release authorizes no other (releases.authorized_session is unique).
+-- WHAT IS SIGNED is built by the signer from the four values below and its own key id: a production-channel manifest, nothing else.
+-- The signature exists only in the published record this transaction writes. The same release authorized again answers "already"
+-- with its manifest (a lost answer, or the manifest placed in release storage once more) and signs and writes nothing.
+-- ---------------------------------------------------------------------------------------------------
+create function factory.admin_authorize_update(p_actor uuid, p_live_role text, p_body jsonb) returns jsonb
+  language plpgsql volatile security definer set search_path = pg_catalog, pg_temp set lock_timeout = '15s'
+  as $$
+  declare a record; rid uuid := gen_random_uuid(); prev factory.releases; mine factory.releases; m jsonb; signer jsonb;
+          ch constant text := 'production';   -- the one channel the plane's signer signs
+          v text := p_body ->> 'version'; src text := p_body ->> 'source_sha'; d text := p_body ->> 'digest'; rc text := p_body ->> 'receipt_sha256';
+          reauth jsonb := p_body -> 'reauth'; sess uuid; pw_at timestamptz;
+  begin
+    select * into a from factory._admin(p_actor, p_live_role, p_body, 'authorize_update', true);
+    if a.refusal is not null then return a.refusal; end if;
+    if p_body ->> 'channel' is distinct from ch
+       or coalesce(v, '') !~ '^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]{1,40})?$' or coalesce(src, '') !~ '^[0-9a-f]{40}$'
+       or coalesce(d, '') !~ '^[0-9a-f]{64}$' or coalesce(rc, '') !~ '^[0-9a-f]{64}$' then
+      return factory._refusal('bad_request', 400, 'an update is {channel: "production", version, source_sha, digest, receipt_sha256}');
+    end if;
+    -- the fresh password entry (2): absent, malformed, too old or from the future is one refusal, audited
+    sess := factory._uuid(reauth, 'session_id');
+    if jsonb_typeof(reauth -> 'password_at') = 'number' and (reauth ->> 'password_at')::numeric between 0 and 4102444800 then
+      pw_at := to_timestamp((reauth ->> 'password_at')::numeric);
+    end if;
+    if sess is null or pw_at is null or pw_at < now() - interval '120 seconds' or pw_at > now() + interval '60 seconds' then
+      perform factory._audit((a.ctx).tenant_id, 'admin', (a.ctx).actor::text, 'admin.authorize_update', null, null, 'refused', 'reauth_required',
+        jsonb_build_object('password_age_seconds', round(extract(epoch from now() - pw_at))));
+      return factory._refusal('reauth_required', 403,
+        'enter your Brain OS password again: authorizing an update needs a password entry of this account made in the last two minutes');
+    end if;
+    perform factory._lock_tenant((a.ctx).tenant_id); -- authorizations, publishes and key revokes of this tenant queue here
+    -- the same release again: one release, said as "already"
+    select r.* into mine from factory.releases r where r.tenant_id = (a.ctx).tenant_id and r.channel = ch and r.version = v and r.digest = d;
+    if mine.release_id is not null and mine.source_sha = src and mine.receipt_sha256 = rc and mine.state = 'published' and mine.authorized_session is not null then
+      return jsonb_build_object('ok', true, 'already', true, 'release_id', mine.release_id, 'manifest', mine.manifest);
+    end if;
+    if exists (select 1 from factory.releases r where r.tenant_id = (a.ctx).tenant_id and r.channel = ch and (r.version = v or r.digest = d)) then
+      return factory._refusal('already_published', 409, 'this version or digest was published before on this channel');
+    end if;
+    -- one entry, one release (3)
+    if exists (select 1 from factory.releases r where r.authorized_session = sess) then
+      perform factory._audit((a.ctx).tenant_id, 'admin', (a.ctx).actor::text, 'admin.authorize_update', null, null, 'refused', 'reauth_used');
+      return factory._refusal('reauth_used', 403, 'this password entry already authorized a release: enter your Brain OS password again');
+    end if;
+    signer := factory_signer.public_key();
+    if signer ->> 'key_id' is null then
+      return factory._refusal('signer_unavailable', 503, 'this plane has no release signer; nothing was signed or published');
+    end if;
+    if exists (select 1 from factory.release_revocations x where x.tenant_id = (a.ctx).tenant_id and x.kind = 'key' and x.key_id = signer ->> 'key_id') then
+      return factory._refusal('key_revoked', 409, 'this plane''s signing key is revoked; nothing was signed or published');
+    end if;
+    m := factory_signer.sign_release(v, src, d, rc);
+    if m is null then   -- no stored seed, or one that is not this plane's key
+      return factory._refusal('signer_unavailable', 503, 'this plane''s release signer did not sign; nothing was published');
+    end if;
+    select r.* into prev from factory.releases r where r.tenant_id = (a.ctx).tenant_id and r.channel = ch and r.state = 'published' for update;
+    if prev.release_id is not null then
+      update factory.releases set state = 'superseded', superseded_at = now(), superseded_by_release_id = rid where release_id = prev.release_id;
+    end if;
+    insert into factory.releases (release_id, tenant_id, channel, version, source_sha, digest, key_id, signature, receipt_sha256, manifest,
+                                  published_by, authorized_session, authorized_password_at)
+    values (rid, (a.ctx).tenant_id, ch, v, src, d, m ->> 'key_id', m ->> 'signature', rc, m, (a.ctx).actor, sess, pw_at);
+    perform factory._audit((a.ctx).tenant_id, 'admin', (a.ctx).actor::text, 'release.published', 'release', rid::text, 'ok', null,
+      jsonb_build_object('channel', ch, 'version', v, 'digest', d, 'supersedes', prev.release_id, 'signed_by', m ->> 'key_id',
+                         'authorized_session', sess, 'password_at', pw_at));
+    return jsonb_build_object('ok', true, 'release_id', rid, 'supersedes', prev.release_id, 'manifest', m);
   end $$;
 
 create function factory.admin_revoke_release(p_actor uuid, p_live_role text, p_body jsonb) returns jsonb
@@ -94,8 +175,10 @@ create function factory.admin_list_releases(p_actor uuid, p_live_role text, p_bo
     select count(*) into total from factory.releases r where r.tenant_id = (a.ctx).tenant_id;
     select coalesce(jsonb_agg(to_jsonb(r) - 'manifest' order by r.published_at desc), '[]'::jsonb) into items
       from (select * from factory.releases r where r.tenant_id = (a.ctx).tenant_id order by r.published_at desc limit 100) r;
+    -- signer: the PUBLIC half of this plane's release signer ({key_id, public_key}) - what the installer's trust set must pin
     return jsonb_build_object('ok', true, 'releases', jsonb_build_object('items', items, 'shown', jsonb_array_length(items), 'total', total,
-      'truncated', jsonb_array_length(items) < total, 'order', 'published_at desc'), 'revocations', factory._revocations((a.ctx).tenant_id));
+      'truncated', jsonb_array_length(items) < total, 'order', 'published_at desc'), 'revocations', factory._revocations((a.ctx).tenant_id),
+      'signer', factory_signer.public_key());
   end $$;
 
 -- ---------------------------------------------------------------------------------------------------

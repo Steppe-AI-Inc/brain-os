@@ -14,10 +14,15 @@
 // path /auth/v1, and the check's request to the relative address /auth/v1/user then fails as an error (503 unavailable). Without the
 // key, Brain OS refuses the check's request (401 not_authenticated). No front door is reached (edge_boundary_acceptance EB8).
 // The production-ref refusal applies to the Factory database URL; BRAIN_OS_URL legitimately names Brain OS.
+// Given by the platform to every function of the project (the founder sets neither):
+//   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY   this project's own address and storage key. Their ONE use is placing a published
+//                                   release's signed manifest in the public release storage (_shared/release_storage.ts), after
+//                                   authorize-update. Without them the manifest is not placed and the answer says so.
 import postgres from 'npm:postgres@3.4.9';
 import { createAdminApi } from '../_shared/admin_api.ts';
 import { dbOptions, dbRefusal } from '../_shared/db.ts';
 import { importPepper, PEPPER_VERSION } from '../_shared/pairing.ts';
+import { manifestStore } from '../_shared/release_storage.ts';
 
 const dbUrl = Deno.env.get('FACTORY_ADMIN_DB_URL') || '';
 const caPem = Deno.env.get('FACTORY_DB_CA_PEM') || '';
@@ -39,6 +44,8 @@ const handler = createAdminApi({
   fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(8000) }),
   log: (e) => console.log(JSON.stringify(e)),
   basePath: '/factory-admin-api',  // the platform delivers /factory-admin-api/v1/admin/... (route.ts)
+  storeManifest: manifestStore({ url: Deno.env.get('SUPABASE_URL') || '', key: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
+    fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(15000) }) }),
 });
 
 Deno.serve((req: Request) => {

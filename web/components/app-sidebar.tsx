@@ -38,6 +38,7 @@ import {
   Bot,
   CreditCard,
   Factory,
+  RefreshCw,
   Cpu,
   type LucideIcon,
 } from "lucide-react";
@@ -100,6 +101,7 @@ const NAV_GROUPS: Array<{
         icon: Factory,
       },
       { href: "/software-factory/computers", navKey: "nav.factoryComputers", label: "Factory Computers", icon: Cpu },
+      { href: "/software-factory/update", navKey: "nav.factoryUpdate", label: "Factory Update", icon: RefreshCw },
       { href: "/engineering", navKey: "nav.engineering", label: "Engineering Factory", icon: Ruler },
     ],
   },

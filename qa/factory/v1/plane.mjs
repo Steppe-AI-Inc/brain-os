@@ -6,6 +6,8 @@
 //      provisions it as 69df2f52 AS `postgres` (the 69df2f52 files 001..003 read from git at 69df2f52, and the statements of the
 //      provisioner's dedicated-Supabase mode, including the default-privilege grant to factory_runner).
 //   2. optionally, BASELINE_69df2f52_EVIDENCE_ROWS.json loaded unchanged (the verifier adds no row and fills no column).
+//   2a. the release signer (scripts/factory-control-plane/release_signer.sql), AS `postgres`: part of the plane, before any
+//      migration, as the founder's one-time bootstrap makes it on the live plane (signer: false starts a plane without one).
 //   3. the candidate migration, AS `postgres` (applyAsApplyingLogin: it refuses a superuser login), in one transaction: the Director
 //      instrument's live-migration step when the baseline rows are loaded, else the migration files verbatim.
 //   4. the founder's API-login step, emulated AS `postgres` (which administers the two API roles through the ADMIN grant PostgreSQL
@@ -56,9 +58,9 @@ export async function connect(url) {
   return c;
 }
 
-export async function startV1Plane({ migrate = true, baselineRows = false, apiLogins = true, quiet = true } = {}) {
+export async function startV1Plane({ migrate = true, baselineRows = false, apiLogins = true, quiet = true, signer = true } = {}) {
   assertBaselineProvisioning();
-  const plane = await startApplyingRolePlane({ baselineRows, quiet });
+  const plane = await startApplyingRolePlane({ baselineRows, quiet, signer });
   try {
     Object.assign(plane, { migrated: false, migrationSha256: sha256(compose()) });
     if (migrate) { plane.applied = await applyAsApplyingLogin(plane); plane.migrated = true; }

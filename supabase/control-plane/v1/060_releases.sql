@@ -1,9 +1,13 @@
 -- FACTORY CONTROL PLANE V1 - PART 060: release records and revocations (contract §1 Runtime release, §2 Release; S-5; WO-6).
 --
--- WHAT THE PLANE HOLDS, AND WHAT IT NEVER HOLDS. The plane records a release only through the founder's publish action, which
--- cites the CERTIFIED receipt; it never holds a trust key. The trust set and the trust mode are fixed in the artifact at build
--- time, per channel (S-5): nothing here can add a key to any node. What the API may deliver to a node is a REVOCATION (of a
--- release or of a key id), never a key.
+-- WHAT THE PLANE HOLDS, AND WHAT IT NEVER HOLDS. The plane records a release only through a founder-only action, which cites the
+-- CERTIFIED receipt. The trust set and the trust mode are fixed in the artifact at build time, per channel (S-5): nothing here can
+-- add a key to any node, and no table here holds a key. What the API may deliver to a node is a REVOCATION (of a release or of a
+-- key id), never a key.
+-- WHO SIGNS (founder decision 2026-10-03). A live release is signed by the plane's own signer (factory_signer, created before this
+-- migration; its private key is in the platform's secret store, outside this schema), and only inside the founder-only
+-- factory.admin_authorize_update (part 220), which records beside the release the fresh password entry that authorized it. A
+-- release published with a signature made elsewhere (admin_publish_release: the dev channel on a disposable plane) carries none.
 
 set local role factory_owner;
 
@@ -27,6 +31,11 @@ create table factory.releases (
   revoked_at                timestamptz,
   revoked_by                uuid,
   revoke_reason             text check (revoke_reason is null or length(revoke_reason) <= 300),
+  -- a release the Factory signed: the Brain OS session whose password entry authorized it, and when that entry was made (both
+  -- read by the Admin API from the caller's own token). Null, both, for a release published with a signature made elsewhere.
+  authorized_session        uuid,
+  authorized_password_at    timestamptz,
+  check ((authorized_session is null) = (authorized_password_at is null)),
   unique (tenant_id, channel, version),
   unique (tenant_id, channel, digest),
   -- published: never superseded yet; superseded: says when; revoked: may have been superseded first
@@ -36,6 +45,8 @@ create table factory.releases (
 );
 -- one published (current) release per channel: publishing a newer one supersedes it
 create unique index releases_one_published_per_channel on factory.releases (tenant_id, channel) where state = 'published';
+-- one password entry authorizes one release
+create unique index releases_one_per_authorizing_session on factory.releases (authorized_session) where authorized_session is not null;
 
 create table factory.release_revocations (
   revocation_id  uuid primary key default gen_random_uuid(),

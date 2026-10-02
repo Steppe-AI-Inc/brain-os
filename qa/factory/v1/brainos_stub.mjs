@@ -2,6 +2,10 @@
 // - with the production semantics that matter to S-8: a token names one user; a user reads only its OWN profile row (RLS); and, as in
 // production today (side finding S1: profiles_update_self_or_admin has no WITH CHECK), a user can PATCH its own profiles.role.
 //
+// For Factory -> Update (founder decision 2026-10-03) it also answers the password sign-in the page repeats for the account that is
+// signed in - POST /auth/v1/token?grant_type=password - with a session whose token states what Supabase Auth's states: `amr`
+// ([{ method: "password", timestamp }]) and `session_id`; and POST /auth/v1/logout?scope=..., which ends that token.
+//
 // It is the implementer's developer instrument only. VERIFICATION_SPEC §3 (2) requires the verifier's AC-7 / R-1 / R-2 to run against
 // a disposable Brain OS auth stack started by the Supabase CLI with supabase/migrations applied at 55a15917; "a stubbed role check
 // never counts" for acceptance. This stub never stands in for that.
@@ -14,14 +18,35 @@ export async function startBrainOsStub() {
   const anonKey = 'anon-' + randomBytes(12).toString('hex');
   const users = new Map();     // token -> user id
   const profiles = new Map();  // user id -> { role, active }
+  const logouts = [];          // { userId, scope } of every sign-out
+  const grants = { ok: 0, refused: 0 };   // password sign-ins answered
   let url = '';
+  let issue = null;
   const server = createServer(async (req, res) => {
     const send = (s, b) => { res.writeHead(s, { 'content-type': 'application/json' }); res.end(JSON.stringify(b)); };
     if (req.headers.apikey !== anonKey) return send(401, { message: 'no api key' });
     const tok = (/^Bearer (.+)$/.exec(req.headers.authorization || '') || [])[1];
     const uid = tok && users.get(tok);
     const u = new URL(req.url, 'http://x');
-    if (u.pathname === '/auth/v1/user' && req.method === 'GET') return uid ? send(200, { id: uid, aud: 'authenticated' }) : send(401, { message: 'invalid JWT' });
+    if (u.pathname === '/auth/v1/user' && req.method === 'GET') return uid ? send(200, { id: uid, aud: 'authenticated', email: profiles.get(uid)?.email }) : send(401, { message: 'invalid JWT' });
+    if (u.pathname === '/auth/v1/token' && req.method === 'POST' && u.searchParams.get('grant_type') === 'password') {
+      // the password sign-in: the account's own email and password, or Supabase Auth's refusal
+      const chunks = []; for await (const c of req) chunks.push(c);
+      let body = {}; try { body = JSON.parse(Buffer.concat(chunks).toString() || '{}'); } catch { /* not JSON: no credentials */ }
+      const hit = [...profiles.entries()].find(([, p]) => p.email === body.email && typeof body.password === 'string' && p.password === body.password && p.active !== false);
+      if (!hit) { grants.refused++; return send(400, { code: 400, error_code: 'invalid_credentials', msg: 'Invalid login credentials' }); }
+      grants.ok++;
+      const now = Math.floor(Date.now() / 1000);
+      const access = issue(hit[0], undefined, { amr: [{ method: 'password', timestamp: now }], session_id: randomUUID(), aal: 'aal1', exp: now + 3600 });
+      return send(200, { access_token: access, token_type: 'bearer', expires_in: 3600, expires_at: now + 3600, refresh_token: randomBytes(9).toString('base64url'),
+        user: { id: hit[0], aud: 'authenticated', role: 'authenticated', email: hit[1].email } });
+    }
+    if (u.pathname === '/auth/v1/logout' && req.method === 'POST') {
+      if (!uid) return send(401, { message: 'invalid JWT' });
+      logouts.push({ userId: uid, scope: u.searchParams.get('scope') || 'global' });
+      users.delete(tok);   // this session's token is no longer Brain OS's
+      res.writeHead(204); return res.end();
+    }
     if (u.pathname === '/rest/v1/profiles') {
       const want = (/^eq\.(.+)$/.exec(u.searchParams.get('auth_user_id') || '') || [])[1];
       if (req.method === 'GET') {
@@ -50,15 +75,25 @@ export async function startBrainOsStub() {
   });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   url = 'http://127.0.0.1:' + server.address().port;
-  const issue = (userId, iss = url + '/auth/v1') => {
-    const t = b64u(JSON.stringify({ alg: 'HS256', typ: 'JWT' })) + '.' + b64u(JSON.stringify({ iss, sub: userId, role: 'authenticated' })) + '.' + randomBytes(16).toString('base64url');
+  issue = (userId, iss = url + '/auth/v1', claims = {}) => {
+    const t = b64u(JSON.stringify({ alg: 'HS256', typ: 'JWT' })) + '.' + b64u(JSON.stringify({ iss, sub: userId, role: 'authenticated', ...claims })) + '.' + randomBytes(16).toString('base64url');
     users.set(t, userId);
     return t;
   };
   return {
-    url, anonKey,
-    /** a persona: a user with a profile role; returns { userId, token } */
-    persona(role, { active = true } = {}) { const id = randomUUID(); profiles.set(id, { id: randomUUID(), role, active, full_name: role + ' persona', email: role + '-' + id.slice(0, 8) + '@stub.invalid' }); return { userId: id, token: issue(id), role }; },
+    url, anonKey, logouts, grants,
+    /** a persona: a user with a profile role; returns { userId, token, email, password } (the token states no password entry) */
+    persona(role, { active = true } = {}) {
+      const id = randomUUID(); const email = role + '-' + id.slice(0, 8) + '@stub.invalid'; const password = 'pw-' + randomBytes(9).toString('base64url');
+      profiles.set(id, { id: randomUUID(), role, active, full_name: role + ' persona', email, password });
+      return { userId: id, token: issue(id), role, email, password };
+    },
+    /** a token of the persona's whose session entered its password `ageSeconds` ago (0: just now), as a password sign-in issues it */
+    passwordToken(p, { ageSeconds = 0, sessionId = randomUUID() } = {}) {
+      return issue(p.userId, undefined, { amr: [{ method: 'password', timestamp: Math.floor(Date.now() / 1000) - ageSeconds }], session_id: sessionId, aal: 'aal1' });
+    },
+    /** a token of the persona's with exactly these extra claims */
+    tokenWith(p, claims) { return issue(p.userId, undefined, claims); },
     /** a token of ANOTHER Brain OS project (a different issuer) for an existing user */
     foreignToken(userId) { return issue(userId, 'https://otherprojectxxxxxxxxxx.supabase.co/auth/v1'); },
     /** what S1 allows today: the user updates its own profiles.role */

@@ -278,8 +278,8 @@ try {
     if (outcome !== 'refused') notRefused.push(dr.n + ': ' + outcome);
   }
   const countsAfter = await tableCounts();
-  row('C20 every front door (' + doors.length + ': the 15 node and 23 admin operations) called from a superuser session raises 42501 factory_superuser_refused; no factory table changes',
-    doors.length === 38 && notRefused.length === 0 && countsAfter === countsBefore, JSON.stringify({ notRefused, countsSame: countsAfter === countsBefore }));
+  row('C20 every front door (' + doors.length + ': the 15 node and 24 admin operations) called from a superuser session raises 42501 factory_superuser_refused; no factory table changes',
+    doors.length === 39 && notRefused.length === 0 && countsAfter === countsBefore, JSON.stringify({ notRefused, countsSame: countsAfter === countsBefore }));
   const defacl = (await sup.query(`select pg_get_userbyid(d.defaclrole) r, d.defaclobjtype t, a.grantee::regrole::text g, a.privilege_type p
       from pg_default_acl d cross join aclexplode(d.defaclacl) a where d.defaclnamespace = 'factory'::regnamespace`)).rows;
   row('C7 pg_default_acl in schema factory: no default grant to factory_runner (the 69df2f52 grant revoked)', !defacl.some((d) => d.g === 'factory_runner'),

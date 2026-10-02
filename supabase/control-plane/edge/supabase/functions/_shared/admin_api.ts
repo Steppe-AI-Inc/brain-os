@@ -11,6 +11,13 @@
 // CODE-ISSUING ACTIONS (Add Computer, issue code, re-pair, restore, create an agent principal) draw the pairing code HERE from the
 // CSPRNG, send the plane only its locator and HMAC-SHA256(FACTORY_PAIRING_PEPPER, code), and return the code to the admin ONCE.
 //
+// AUTHORIZE UPDATE (founder decision 2026-10-03) needs a FRESH PASSWORD ENTRY of the caller's own account. The password never comes
+// here: Brain OS -> Factory -> Update signs the account in again and calls with that session's token. This file reads from that
+// token - after Brain OS verified it on this call - when its session entered the password and which session it is (passwordEntry),
+// and adds the two facts as `reauth` AFTER the whitelist of body fields, as the code-issuing actions add theirs: a caller cannot
+// supply them. The front door decides (founder-only, at most two minutes old, one release per entry), signs with the plane's signer
+// and publishes in one transaction. The signed manifest it answers is then placed where the installer looks for it (storeManifest).
+//
 // ERRORS. An error is never turned into an answer about the caller: Brain OS refusing the token (401 / 403) is "not authenticated";
 // any other answer from Brain OS - an error status, a body that is not the JSON it documents - is Brain OS not answering, and fails the
 // call as an error (503 unavailable), never as "not authenticated" or "not authorized". The only catches are the parse of the caller's
@@ -29,10 +36,13 @@ export type AdminDeps = {
   fetch: typeof fetch;
   log?: (event: Record<string, unknown>) => void;
   basePath?: string;   // the function's own path prefix on the Edge platform ('/factory-admin-api'; route.ts)
+  // place a published release's signed manifest in release storage (<version>/BrainFactorySetup.manifest.json); answers whether it
+  // is there now, and never throws. Absent (a harness without storage): nothing is placed, and the answer says so.
+  storeManifest?: (version: string, manifest: Record<string, unknown>) => Promise<boolean>;
 };
 
-// op -> [front door, issues a code?, the body fields it accepts]
-export const ADMIN_OPS: Record<string, { fn: string; code: boolean; fields: string[] }> = {
+// op -> [front door, issues a code?, the body fields it accepts; fresh: it needs a fresh password entry and answers a signed manifest]
+export const ADMIN_OPS: Record<string, { fn: string; code: boolean; fields: string[]; fresh?: boolean }> = {
   'list-computers': { fn: 'admin_list_computers', code: false, fields: ['limit', 'offset', 'include_archived', 'tenant_id'] },
   'get-computer': { fn: 'admin_get_computer', code: false, fields: ['computer_id', 'tenant_id'] },
   'add-computer': { fn: 'admin_add_computer', code: true, fields: ['display_name', 'envelope', 'bind_s16a', 'ttl_seconds', 'tenant_id'] },
@@ -48,6 +58,7 @@ export const ADMIN_OPS: Record<string, { fn: string; code: boolean; fields: stri
   'create-principal': { fn: 'admin_create_principal', code: true, fields: ['computer_id', 'ttl_seconds', 'tenant_id'] },
   'adopt-release': { fn: 'admin_adopt_release', code: false, fields: ['computer_id', 'release_id', 'tenant_id'] },
   'publish-release': { fn: 'admin_publish_release', code: false, fields: ['channel', 'version', 'source_sha', 'digest', 'key_id', 'signature', 'receipt_sha256', 'manifest', 'tenant_id'] },
+  'authorize-update': { fn: 'admin_authorize_update', code: false, fresh: true, fields: ['channel', 'version', 'source_sha', 'digest', 'receipt_sha256', 'tenant_id'] },
   'revoke-release': { fn: 'admin_revoke_release', code: false, fields: ['release_id', 'reason', 'tenant_id'] },
   'revoke-key': { fn: 'admin_revoke_key', code: false, fields: ['key_id', 'reason', 'tenant_id'] },
   'list-releases': { fn: 'admin_list_releases', code: false, fields: ['tenant_id'] },
@@ -100,6 +111,21 @@ export async function liveIdentity(deps: AdminDeps, token: string): Promise<{ us
   return { userId: id, role: row && row.active !== false && typeof row.role === 'string' ? row.role : null };
 }
 
+/** WHEN THE CALLER'S SESSION ENTERED ITS PASSWORD, and which session it is, from the token's own claims (Supabase Auth: `amr` is a
+ * list of { method, timestamp }, a password sign-in is the method "password", and a refreshed token keeps the entry's time;
+ * `session_id` names the session). Read only after liveIdentity answered for this same token: Brain OS verified it on this call, so
+ * its claims are Brain OS's, and its payload parsed there (issuerOk). Null when the token states no password entry or no session. */
+export function passwordEntry(token: string): { password_at: number; session_id: string } | null {
+  const part = token.split('.')[1];
+  const p = JSON.parse(atob(part.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((part.length + 3) % 4))) as { amr?: unknown; session_id?: unknown };
+  if (!Array.isArray(p.amr) || typeof p.session_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(p.session_id)) return null;
+  let at: number | null = null;
+  for (const e of p.amr as Array<{ method?: unknown; timestamp?: unknown } | null>) {
+    if (e && e.method === 'password' && typeof e.timestamp === 'number' && Number.isSafeInteger(e.timestamp) && (at === null || e.timestamp > at)) at = e.timestamp;
+  }
+  return at === null ? null : { password_at: at, session_id: p.session_id };
+}
+
 export function createAdminApi(deps: AdminDeps): (req: Request) => Promise<Response> {
   return async (req: Request): Promise<Response> => {
     const url = new URL(req.url);
@@ -128,10 +154,19 @@ export function createAdminApi(deps: AdminDeps): (req: Request) => Promise<Respo
         body = { ...body, locator: g.locator, code_mac: hex(await codeMac(pepper.key, g.normalized)), pepper_version: pepper.version };
         code = { display: g.display, locator: g.locator };
       }
+      // a fresh password entry is a fact about the caller's token, never a body field (the whitelist above refused a `reauth`)
+      if (op.fresh) body = { ...body, reauth: passwordEntry(auth[1]) };
       const rows = await deps.sql('select factory.' + op.fn + '($1::uuid, $2, $3::text::jsonb) as r', [who.userId, who.role, JSON.stringify(body)]);
       const r = (rows[0] && rows[0].r) as Record<string, unknown> | undefined;
       if (!r || typeof r !== 'object') return refuse(500, 'server_error', 'the front door returned nothing');
       if (r.ok !== true) return json(typeof r.http === 'number' ? r.http : 409, r);
+      if (op.fresh) {
+        // the release is published (r is the record). Its signed manifest goes where the installer looks for it; when that did not
+        // happen the answer says so, and authorizing the same release again places it ("already": nothing is signed twice)
+        const signed = r.manifest as Record<string, unknown> | undefined;
+        const served = !!signed && typeof signed.version === 'string' && !!deps.storeManifest && await deps.storeManifest(signed.version, signed);
+        return json(200, { ...r, manifest_served: served });
+      }
       // the code is shown ONCE, to the admin who issued it (the plane never had it). The SQL answer must prove it recorded the code
       // drawn here - a new code id, an expiry, and the same locator - before the code is added. An "already" answer, or one lacking
       // any of those, recorded no code, and the receipt carries none (contract §9; S-12).

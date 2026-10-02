@@ -76,6 +76,8 @@ export async function startAdminApi(plane, brainOs, { pepperB64, pepperVersion =
   const key = await importPepper(pepperB64);
   const events = [];
   const perRequest = [];
+  // release storage, in memory: what authorize-update placed ({ version, manifest }); `ok = false` is storage refusing
+  const storage = { ok: true, puts: [] };
   const handler = createAdminApi({
     sql: counted(db),
     randomBytes: (n) => new Uint8Array(randomBytes(n)),
@@ -84,6 +86,7 @@ export async function startAdminApi(plane, brainOs, { pepperB64, pepperVersion =
     fetch: (u, i) => fetch(u, i),
     log: (e) => events.push(e),
     basePath,
+    storeManifest: async (version, manifest) => { if (!storage.ok) return false; storage.puts.push({ version, manifest }); return true; },
   });
   const bodies = []; // every response body this harness returned (S-12: a pairing code is returned exactly once)
   const server = createServer(async (req, res) => {
@@ -104,5 +107,5 @@ export async function startAdminApi(plane, brainOs, { pepperB64, pepperVersion =
     const r = await fetch(baseUrl + '/v1/admin/' + op, { method: 'POST', headers: { 'content-type': 'application/json', ...(token ? { authorization: 'Bearer ' + token } : {}) }, body: JSON.stringify(body || {}) });
     return { ...(await r.json()), http: r.status };
   };
-  return { baseUrl, origin, basePath, events, bodies, perRequest, db, call, async stop() { await new Promise((r) => server.close(r)); await db.end({ timeout: 2 }); } };
+  return { baseUrl, origin, basePath, events, bodies, perRequest, storage, db, call, async stop() { await new Promise((r) => server.close(r)); await db.end({ timeout: 2 }); } };
 }

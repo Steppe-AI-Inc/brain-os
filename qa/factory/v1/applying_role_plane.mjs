@@ -12,13 +12,19 @@
 //      statements of provision-control-plane.mjs's dedicated-Supabase mode (its project-ref and TLS checks are not run, and its
 //      identity row names this disposable plane, as §3.3 states);
 //   3. optionally BASELINE_69df2f52_EVIDENCE_ROWS.json loaded unchanged (load_order; complete rows);
+//   3a. THE RELEASE SIGNER (founder decision 2026-10-03), applied by applySigner() AS `postgres` in one transaction when the plane
+//      starts - it is part of the plane, like the 69df2f52 provisioning, and exists before any migration that names it:
+//      scripts/factory-control-plane/release_signer.sql, the same bytes the founder's one-time bootstrap applies to the live
+//      plane. The plane carries qa/factory/v1/vault_standin.sql (applied by the bootstrap superuser during alignment) for the two
+//      names of the platform's secret store that file uses; a tree that has no signer file gets none (signer: false: no signer);
 //   4. applyAsApplyingLogin(): AS `postgres`, in ONE simple-Query message, either the live-migration step the Director instrument
 //      tools/build_live_migration_step.mjs builds (exported from the designated Director commit into a temporary directory and run
 //      as an external tool: WO-1, never imported or copied into this tree) when the baseline rows are loaded, or the migration files
 //      verbatim, each followed by one LF, inside BEGIN / COMMIT (the instrument's check needs the baseline rows).
 // The bootstrap superuser's URL (superUrl) is for read-backs and test fixtures only; nothing applies the migration with it.
 // Limits (stated, not hidden): PostgreSQL 18 here, 17 live; the Supabase platform schemas, roles, supautils hooks and event
-// triggers are not reproduced (only the roles the applying login is a member of, and the database / schema ACLs it depends on).
+// triggers are not reproduced (only the roles the applying login is a member of, the database / schema ACLs it depends on, and
+// the secret store's two names as a stand-in that does not encrypt).
 //
 //   node qa/factory/v1/applying_role_plane.mjs [--tree <commit> | --worktree] [--director <commit>] [--raw]
 //     --tree      the committed blobs of the candidate migration at <commit> (default HEAD), as the verifier builds the step
@@ -40,7 +46,10 @@ export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..',
 export const BASELINE = '69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6';
 // the designated Director commit (r3); FACTORY_DESIGNATED_DIRECTOR overrides it, as in the static contract
 export const DIRECTOR = process.env.FACTORY_DESIGNATED_DIRECTOR || 'c7a845b61a3b0b419e8c9dfeff397547fdc75b03';
-const git = (...a) => { const r = spawnSync('git', ['-C', ROOT, ...a], { encoding: 'buffer', maxBuffer: 1 << 28, windowsHide: true }); if (r.status !== 0) throw new Error('git ' + a.join(' ') + ': ' + r.stderr); return r.stdout; };
+// the release signer's bootstrap (applied before the migration, never part of it) and the stand-in for the platform's secret store
+export const SIGNER_FILE = 'scripts/factory-control-plane/release_signer.sql';
+export const VAULT_STANDIN = 'qa/factory/v1/vault_standin.sql';
+const git =(...a) => { const r = spawnSync('git', ['-C', ROOT, ...a], { encoding: 'buffer', maxBuffer: 1 << 28, windowsHide: true }); if (r.status !== 0) throw new Error('git ' + a.join(' ') + ': ' + r.stderr); return r.stdout; };
 const rand = () => randomBytes(12).toString('base64url').replace(/[-_]/g, 'x');
 const sha = (b) => createHash('sha256').update(b).digest('hex');
 const lf = (b) => Buffer.from(b.toString('utf8').replace(/\r\n/g, '\n'), 'utf8');
@@ -105,7 +114,7 @@ const ATTRS = ['rolsuper', 'rolinherit', 'rolcreaterole', 'rolcreatedb', 'rolcan
  *   runnerUrl (factory_runner), loaded, alignment: [{ id, ok, detail }], observation, stop() }.
  * Throws when the alignment or the provisioning fails (the plane is then stopped and removed).
  */
-export async function startApplyingRolePlane({ baselineRows = false, quiet = true, director = DIRECTOR } = {}) {
+export async function startApplyingRolePlane({ baselineRows = false, quiet = true, director = DIRECTOR, signer = true, tree = null } = {}) {
   const OBS = observation(director);
   const dir = mkdtempSync(join(tmpdir(), 'factory-applying-'));
   const dataDir = join(dir, 'data');
@@ -144,6 +153,7 @@ export async function startApplyingRolePlane({ baselineRows = false, quiet = tru
       await su.query(`create schema extensions authorization postgres`);
       await su.query(`create extension if not exists pgcrypto schema extensions`);
       await su.query(`create extension if not exists "uuid-ossp" schema extensions`);
+      await su.query(lf(readFileSync(join(ROOT, VAULT_STANDIN))).toString('utf8'));   // the secret store's two names (no encryption here)
       await su.query(`revoke create on schema public from public`);
       const self = (await su.query(`select current_setting('createrole_self_grant') v`)).rows[0].v;
       row('P0', self === (OBS.createrole_self_grant.value || ''), 'createrole_self_grant = ' + JSON.stringify(self) + ' (live ' + JSON.stringify(OBS.createrole_self_grant.value) + ')');
@@ -187,11 +197,43 @@ export async function startApplyingRolePlane({ baselineRows = false, quiet = tru
         row('P3', true, 'baseline evidence rows loaded unchanged: ' + JSON.stringify(plane.loaded));
       }
     } finally { await ap.end(); }
+    // ---- the release signer: part of the plane, created before any migration (signer: false leaves the plane without one) ---------
+    if (signer) {
+      plane.signer = await applySigner(plane, { tree });
+      if (!plane.signer.absent) row('P4', true, 'the release signer created AS postgres (' + SIGNER_FILE + ', sha256 ' + plane.signer.sha256.slice(0, 16) + '...): ' + plane.signer.key_id);
+    }
     return plane;
   } catch (e) {
     await stop();
     throw e;
   }
+}
+
+/**
+ * THE RELEASE SIGNER'S BOOTSTRAP, AS THE APPLYING LOGIN, in one transaction and one simple-Query message: the file's bytes at
+ * `tree` (a commit) or in the working tree. It is the plane's pre-step, never part of the migration; a second application is the
+ * server's refusal (the role exists). A tree without the file (a candidate older than the signer) has no pre-step: { absent: true }.
+ * Returns { sha256, key_id, public_key } - the PUBLIC half, read back through factory_signer.public_key().
+ */
+export async function applySigner(plane, { tree = null } = {}) {
+  let bytes;
+  if (tree) { try { bytes = git('show', git('rev-parse', tree).toString('utf8').trim() + ':' + SIGNER_FILE); } catch { return { absent: true }; } }
+  else if (existsSync(join(ROOT, SIGNER_FILE))) bytes = lf(readFileSync(join(ROOT, SIGNER_FILE)));
+  else return { absent: true };
+  const c = new pg.Client({ connectionString: plane.adminUrl });
+  await c.connect();
+  try {
+    const me = (await c.query('select r.rolname, r.rolsuper from pg_catalog.pg_roles r where r.rolname = current_user')).rows[0];
+    if (!me || me.rolsuper || me.rolname !== 'postgres') throw new Error('REFUSING to apply the signer as ' + (me && me.rolname) + ': it is applied by the applying login, never a superuser');
+    try { await c.query('begin;\n' + bytes.toString('utf8') + '\ncommit;\n'); }
+    catch (e) {
+      await c.query('rollback').catch(() => {});
+      const err = new Error('the release signer was not created: ' + e.message + (e.code ? ' | sqlstate ' + e.code : ''));
+      err.code = e.code; throw err;
+    }
+    const k = (await c.query('select factory_signer.public_key() k')).rows[0].k;
+    return { sha256: sha(bytes), key_id: k.key_id, public_key: k.public_key };
+  } finally { await c.end(); }
 }
 
 /**
@@ -251,7 +293,7 @@ if (isEntry()) {
     let built;
     try { built = buildStep(probe, files, director); } finally { rmSync(probe, { recursive: true, force: true }); }
     row('M1', built.ok, built.ok ? 'the Director instrument (' + director.slice(0, 8) + ') built the step: sha256 ' + built.sha256 : 'the Director instrument REFUSED: ' + built.out.split('\n').pop());
-    plane = await startApplyingRolePlane({ baselineRows: true, director });
+    plane = await startApplyingRolePlane({ baselineRows: true, director, tree: TREE });
     for (const a of plane.alignment) row(a.id, a.ok, a.detail);
     if (built.ok || RAW) {
       const what = built.ok ? 'the live-migration step' : 'the migration verbatim (--raw DIAGNOSIS, not the step)';

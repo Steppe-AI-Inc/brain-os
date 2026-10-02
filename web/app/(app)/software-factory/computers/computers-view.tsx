@@ -179,7 +179,7 @@ function ReleasesCard({ releases, downloads }: { releases: Props["releases"]; do
             <div className="text-xs text-muted-foreground">
               {t("fc.installerPublic", "The installer is public (no login); it holds no secret. The pairing code is the control. The digest is the PE Authenticode image hash the runtime verifies before anything runs.")}
             </div>
-            {releases.releases.items.length === 0 && <div className="text-muted-foreground">{t("fc.noReleases", "No release is published on this plane. Before the founder's release-signing key is provisioned (C-3), no production release exists.")}</div>}
+            {releases.releases.items.length === 0 && <div className="text-muted-foreground">{t("fc.noReleases", "No release is published on this plane. The founder authorizes one in Factory > Update.")}</div>}
             {releases.releases.items.map((r) => {
               const d = r.state === "published" ? downloads[r.channel] : null;
               const s = served[r.release_id];

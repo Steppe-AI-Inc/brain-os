@@ -57,6 +57,8 @@ export const INVENTORY = [
   { file: V + '060_releases.sql', construct: 'channel_literal', fn: '-', value: 'production', count: 1, cls: 'call-input', ruling: CR022_CHANNEL, why: 'the same CHECK' },
   { file: V + '220_admin_releases_policies_work.sql', construct: 'channel_literal', fn: 'factory.admin_publish_release', value: 'dev', count: 1, cls: 'call-input', ruling: CR022_CHANNEL, why: 'the request\'s channel parameter validated against the two channels: one rule whatever its value' },
   { file: V + '220_admin_releases_policies_work.sql', construct: 'channel_literal', fn: 'factory.admin_publish_release', value: 'production', count: 1, cls: 'call-input', ruling: CR022_CHANNEL, why: 'the same validation' },
+  { file: V + '220_admin_releases_policies_work.sql', construct: 'channel_literal', fn: 'factory.admin_authorize_update', value: 'production', count: 1, cls: 'call-input', ruling: CR022_CHANNEL,
+    why: 'the one channel the plane\'s signer signs, as a constant: the request\'s channel must equal it or the call is refused bad_request - a fixed domain constraint on the call\'s input, the same rule on every plane (the signer itself builds only production-channel manifests; scripts/factory-control-plane/release_signer.sql)' },
   // ---------------------------------------------------------------- the engine and caller tests
   { file: V + '080_guards.sql', construct: 'current_user', fn: 'factory._legacy_guard', count: 1, cls: 'same-on-every-plane', ruling: CR022_ENGINE, construction: FACTORY_OWNER, why: 'the engine test of the INVOKER legacy guard: the writer of the row - the owner of the front door that runs the statement (factory_owner) or the legacy session role - one rule for every writer (the typed comparison the B-2 regression requires)' },
   { file: V + '080_guards.sql', construct: 'current_user', fn: 'factory._authority_guard', count: 1, cls: 'same-on-every-plane', ruling: CR022_ENGINE, construction: FACTORY_OWNER, why: 'the engine test of the INVOKER authority guard (as above)' },
@@ -84,6 +86,8 @@ export const INVENTORY = [
   ]),
   { file: EDGE + 'factory-admin-api/index.ts', construct: 'env:BRAIN_OS_URL', fn: '-', count: 1, cls: 'own-plane', why: 'the issuer a caller\'s token is verified against, and where it is verified' },
   { file: EDGE + 'factory-admin-api/index.ts', construct: 'env:BRAIN_OS_ANON_KEY', fn: '-', count: 1, cls: 'own-plane', why: 'the key the token check is sent with' },
+  { file: EDGE + 'factory-admin-api/index.ts', construct: 'env:SUPABASE_URL', fn: '-', count: 1, cls: 'own-plane', why: 'this plane\'s own project address, given to every function by the platform: where the signed manifest of a release authorize-update published is placed (_shared/release_storage.ts)' },
+  { file: EDGE + 'factory-admin-api/index.ts', construct: 'env:SUPABASE_SERVICE_ROLE_KEY', fn: '-', count: 1, cls: 'own-plane', why: 'this plane\'s own storage key, given to every function by the platform: sent only to that address, for that one object' },
   // the Edge handlers' fail-closed validation of their own configuration (unset; not the one postgresql://USER:PASS@HOST:PORT/DATABASE
   // form the file reads; an IP-literal host; no PEM certificate; a pepper that is not base64 of 32 bytes): 503 misconfigured /
   // pepper_unavailable, never another behaviour. Every test only refuses: nothing is defaulted, and no test chooses between two targets

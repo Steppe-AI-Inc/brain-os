@@ -5,19 +5,23 @@ import { factoryAdminApiUrl } from "./config";
 // carries the signed-in user's OWN Brain OS token; the Factory Admin API re-derives the live role from it and checks
 // factory.tenant_admins on that call. Nothing here decides authority: hiding a button is never the control, and this module never
 // holds a service key. The session is verified with Supabase Auth (getUser) before its token is forwarded anywhere.
+//
+// `freshToken` (Factory -> Update only): the token of the session a password re-entry of this SAME account just opened
+// (lib/factory/reauth.ts). It is sent instead of the page session's token, never without a signed-in page session; the Factory
+// reads from it when the password was entered and decides. The password itself is never sent to the Factory.
 
 export type AdminRefusal = { ok: false; refused: string; message?: string; http?: number; [key: string]: unknown };
 export type AdminResult<T> = ({ ok: true; http?: number } & T) | AdminRefusal;
 
 const TIMEOUT_MS = 20000;
 
-export async function callFactoryAdmin<T>(op: string, body: Record<string, unknown> = {}): Promise<AdminResult<T>> {
+export async function callFactoryAdmin<T>(op: string, body: Record<string, unknown> = {}, freshToken?: string): Promise<AdminResult<T>> {
   if (!/^[a-z-]{3,40}$/.test(op)) return { ok: false, refused: "bad_request", message: "unknown Factory action" };
   const supabase = await createClient();
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData.user) return { ok: false, refused: "not_authenticated", message: "Sign in to Brain OS first." };
   const { data: sessionData } = await supabase.auth.getSession();
-  const token = sessionData.session?.access_token;
+  const token = freshToken ?? sessionData.session?.access_token;
   if (!token) return { ok: false, refused: "not_authenticated", message: "Sign in to Brain OS first." };
   const base = factoryAdminApiUrl();
   if (!base) return { ok: false, refused: "misconfigured", message: "FACTORY_ADMIN_API_URL is not an allowed Factory endpoint." };

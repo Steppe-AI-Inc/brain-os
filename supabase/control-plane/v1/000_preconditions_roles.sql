@@ -78,6 +78,18 @@ grant select, insert, update, delete, references on
   to factory_owner;
 
 -- ---------------------------------------------------------------------------------------------------
+-- THE RELEASE SIGNER (founder decision 2026-10-03, "system-managed release signer"; S-5). The plane's Ed25519 signer exists before
+-- this migration: scripts/factory-control-plane/release_signer.sql created it, once, as this same applying login, which therefore
+-- owns it - as it owns schema factory. The private key is in the platform's secret store and is never returned to a caller; this
+-- migration creates no key and reads none. What it adds is the ONE grant that lets the engine ask for a signature: EXECUTE on
+-- factory_signer.sign_release for factory_owner, the role the SECURITY DEFINER front doors run as. The only front door that calls
+-- it is factory.admin_authorize_update (part 220): founder-only, after a fresh password entry. Neither API login holds EXECUTE on
+-- it. Like the 69df2f52 objects, the signer is named, never looked up: on a plane without one, or with one another login created,
+-- this statement fails and nothing of the migration commits.
+-- ---------------------------------------------------------------------------------------------------
+grant execute on function factory_signer.sign_release(text, text, text, text) to factory_owner;
+
+-- ---------------------------------------------------------------------------------------------------
 -- THE 69df2f52 DEFAULT-PRIVILEGE GRANT TO factory_runner IS REVOKED (S-10). 69df2f52's provisioning ran
 --   alter default privileges in schema factory grant select, insert, update, delete on tables to factory_runner
 -- as the applying login (VERIFICATION_SPEC §3.3: the applying login provisions the plane as 69df2f52). ALTER DEFAULT PRIVILEGES
