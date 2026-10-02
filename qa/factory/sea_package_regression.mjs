@@ -584,7 +584,7 @@ process.exit(0);
     const r23 = run(process.execPath, [join(L23, 'scripts/factory-build/build-sea.mjs'), '--channel', 'production', '--out', out23], { env: buildEnv(), cwd: L23 });
     let ctl23; try { ctl23 = policy.channelTrust('production'); } catch (e) { ctl23 = { error: e.message }; }
     check('B23 a pipeline copy whose production trust set holds the dev key: build-sea --channel production exits ' + r23.rc + ' (4 = REFUSED, naming the dev key) and creates no --out; the committed production set passes (' + (ctl23.keys ? ctl23.keys.length + ' keys' : ctl23.error) + ')',
-      r23.rc === 4 && /REFUSED/.test(r23.out) && /is a dev key/.test(r23.out) && !existsSync(out23) && Array.isArray(ctl23.keys) && ctl23.keys.length === 0, r23.out);
+      r23.rc === 4 && /REFUSED/.test(r23.out) && /is a dev key/.test(r23.out) && !existsSync(out23) && Array.isArray(ctl23.keys) && ctl23.keys.length === prodT.keys.length, r23.out);
     const raw = generateKeyPairSync('ed25519').publicKey.export({ format: 'der', type: 'spki' }).subarray(-32);
     const L24 = layout('b24-layout', 'dev.json', { ...devT, keys: [...devT.keys, { key_id: 'ed25519:' + sha256(raw), public_key: Buffer.from(raw).toString('base64url') }] });
     const out24 = join(work, 'b24-out');
