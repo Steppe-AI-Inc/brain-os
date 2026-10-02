@@ -1,7 +1,8 @@
 # Zero-touch acceptance on a clean PC — the prepared script (NOT RUN)
 
-**Who runs it:** the independent verifier, on the acceptance machine (the third PC), after the founder's steps 1–8
-(`FOUNDER_PREPARED_STEPS.md`) and C-3. The implementer never touches that machine (S-15). This script is the implementer's
+**Who runs it:** the independent verifier, on the acceptance machine (the third PC), after the founder's steps S and 1–8
+(`FOUNDER_PREPARED_STEPS.md`): the release it installs is the one the founder authorized in Brain OS → Factory → Update, signed by
+the Factory's own signer. The implementer never touches that machine (S-15). This script is the implementer's
 preparation only. The Director's AC-1..AC-4 rows and `VERIFICATION_SPEC.md` §6 define acceptance; this file does not.
 
 **The machine:** a Windows 10/11 PC that has never run Brain Factory. It has a standard (non-admin) Windows user, and no Git, Node,
@@ -17,7 +18,7 @@ npm, repository checkout, `runner.env`, CA file or database URL. Nothing is pre-
    
    Leave S-16(a) unbound unless this is the Home computer.
 3. The page shows the **pairing code once**, with its expiry, plus the download link for `BrainFactorySetup.exe` (production, the
-   C-3-signed release). Record the time.
+   published release the Factory signed). Record the time.
 4. Optional: **Check the served file**. The sha256 as served, the digest equal to the published release's digest, and the
    certificate-table state are shown.
 

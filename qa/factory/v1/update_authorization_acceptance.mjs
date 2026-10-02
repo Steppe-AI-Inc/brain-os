@@ -6,7 +6,7 @@
 // minutes that authorized no other release. Through the real Admin API handler, a plane with its own signer, and the Brain OS stub.
 //   UE  the handler (no database): what it reads from the token and hands the front door, and what it does with the answer
 //     UE1 `reauth` is the token's own password entry and session, added after the whitelist; a token that states none gives null;
-//         no other action carries it
+//         the two actions that publish a production release carry it, and no other action does
 //     UE2 a body that names `reauth` (or a key id, a signature, a manifest) is refused 400 before Brain OS or the plane is asked
 //     UE3 the signed manifest is placed in release storage only after the front door answered a published release; a refusal places
 //         nothing; storage that does not take it is said as manifest_served false, the release still answered; storage that does
@@ -28,8 +28,10 @@
 //     UA7 what is not an update is refused by name: another channel, a malformed value, a version or digest published before
 //     UA8 storage down: the release is published, manifest_served false; authorizing it again answers "already" and places the
 //         manifest - no second signature, no second release
-//     UA9 a stored seed that is not this plane's key: signer_unavailable, nothing published
+//     UA9 a part of the seed replaced in the secret store: signer_unavailable, nothing published
 //     UA10 the signer's key revoked: key_revoked, nothing published
+//     UA11 the older publish action cannot go round it: a production release published with a signature made elsewhere needs the
+//         same fresh entry (and uses it up, for both actions); a dev-channel release needs none
 //   UW  the page's part: web/lib/factory/reauth.ts (the password check) and update.ts (what is authorized, in which order) - the two
 //       files as the web app runs them. The server action that wires them (lib/data/factory-update.ts) needs next dev: not run here
 //     UW1 the password check is Brain OS's own password sign-in for the account's own email: a correct password opens a NEW session
@@ -98,10 +100,12 @@ try {
     const without = calls.at(-1).body;
     await post(h, 'list-releases', {}, tFresh);
     const other = calls.at(-1).body;
+    await post(h, 'publish-release', { channel: 'production', version: '7.0.0', source_sha: 'a'.repeat(40), digest: 'd'.repeat(64), key_id: 'dev-key-0001', signature: 'A'.repeat(86), receipt_sha256: 'c'.repeat(64), manifest: {} }, tFresh);
+    const publishBody = calls.at(-1).body;
     const latest = brain.tokenWith(founder, { session_id: randomUUID(), amr: [{ method: 'password', timestamp: 100 }, { method: 'otp', timestamp: 900 }, { method: 'password', timestamp: 500 }, null, { method: 'password', timestamp: '700' }] });
-    row('UE1 `reauth` handed to the front door is the token\'s own password entry and session ({ password_at, session_id }), added by the handler; a token that states no password entry gives reauth null; of several entries the latest password entry counts (never another method\'s time, never a time that is not a number); no other action carries `reauth`',
+    row('UE1 `reauth` handed to the front door is the token\'s own password entry and session ({ password_at, session_id }), added by the handler; a token that states no password entry gives reauth null; of several entries the latest password entry counts (never another method\'s time, never a time that is not a number); publish-release is handed the same entry, and an action that publishes nothing (list-releases) carries no `reauth`',
       withEntry && withEntry.password_at === cFresh.amr[0].timestamp && withEntry.session_id === cFresh.session_id && 'reauth' in without && without.reauth === null
-        && !('reauth' in other) && passwordEntry(latest).password_at === 500,
+        && !('reauth' in other) && publishBody.reauth && publishBody.reauth.session_id === cFresh.session_id && passwordEntry(latest).password_at === 500,
       JSON.stringify({ withEntry, without: without.reauth, other: Object.keys(other), latest: passwordEntry(latest).password_at }));
 
     const before = calls.length; const asked = brain.grants.ok;
@@ -284,11 +288,14 @@ try {
     const silent = await passwordReauth({ ...cfg, fetch: async () => { throw new Error('down'); } }, acct, 'a-password');
     const limited = await passwordReauth(answers(429, { msg: 'rate limit' }), acct, 'a-password');
     const noSession = await passwordReauth(answers(200, { user: { id: acct.id } }), acct, 'a-password');
-    row('UW2 a wrong password is refused by Brain OS (one refused sign-in) and named wrong_password; an answer for another account is not_this_account; no answer, a rate limit and an answer without a session are reauth_unavailable; no refusal carries the password',
+    const captcha = await passwordReauth(answers(400, { code: 400, error_code: 'captcha_failed', msg: 'captcha verification process failed' }), acct, 'a-password');
+    const olderWrong = await passwordReauth(answers(400, { error: 'invalid_grant', error_description: 'Invalid login credentials' }), acct, 'a-password');
+    row('UW2 a wrong password is refused by Brain OS (one refused sign-in) and named wrong_password - only Supabase Auth\'s own "invalid credentials" is (its older name too); an answer for another account is not_this_account; no answer, a rate limit, an answer without a session and any other refusal (a CAPTCHA it wants) are reauth_unavailable; no refusal carries the password or Brain OS\'s text',
       wrong.ok === false && wrong.refused === 'wrong_password' && brain.grants.refused === g0 + 1 && other.refused === 'not_this_account' && silent.refused === 'reauth_unavailable'
-        && limited.refused === 'reauth_unavailable' && noSession.refused === 'reauth_unavailable'
-        && ![wrong, other, silent, limited, noSession].some((r) => JSON.stringify(r).includes(founder.password) || JSON.stringify(r).includes('a-password')),
-      JSON.stringify({ wrong: wrong.refused, other: other.refused, silent: silent.refused, limited: limited.refused, noSession: noSession.refused }));
+        && limited.refused === 'reauth_unavailable' && noSession.refused === 'reauth_unavailable' && captcha.refused === 'reauth_unavailable' && /captcha_failed/.test(captcha.message)
+        && !/verification process/.test(captcha.message) && olderWrong.refused === 'wrong_password'
+        && ![wrong, other, silent, limited, noSession, captcha, olderWrong].some((r) => JSON.stringify(r).includes(founder.password) || JSON.stringify(r).includes('a-password')),
+      JSON.stringify({ wrong: wrong.refused, other: other.refused, silent: silent.refused, limited: limited.refused, noSession: noSession.refused, captcha: captcha.refused, olderWrong: olderWrong.refused }));
 
     const P = REL('6.0.0');
     const hr = brain.persona('hr_finance');
@@ -362,12 +369,31 @@ try {
   }
 
   {
-    const seed = (await sup.query(`select decrypted_secret s from vault.decrypted_secrets where name = 'factory_release_signer_seed'`)).rows[0].s;
-    await sup.query(`update vault.secrets set secret = encode(convert_to($1, 'utf8'), 'base64') where name = 'factory_release_signer_seed'`, ['11'.repeat(32)]);
+    const ext = (v, ch = 'production') => ({ channel: ch, version: v, source_sha: 'a'.repeat(40), digest: sha256('elsewhere ' + v + ch), key_id: 'other-key-0001', signature: 'A'.repeat(86), receipt_sha256: 'c'.repeat(64), manifest: { v } });
+    const h0 = await written();
+    const stale = await admin.call('publish-release', ext('8.0.0'), founder.token);
+    const old = await admin.call('publish-release', ext('8.0.0'), brain.passwordToken(founder, { ageSeconds: 300 }));
+    const unchanged = (await written()) === h0;
+    const tP = brain.passwordToken(founder), cP = claims(tP);
+    const ok = await admin.call('publish-release', ext('8.0.0'), tP);
+    const rowP = ok.ok ? await releaseRow(ok.release_id) : null;
+    const again = await admin.call('publish-release', ext('8.0.1'), tP);
+    const across = await authz(REL('8.1.0'), tP);
+    const dev = await admin.call('publish-release', ext('8.0.0', 'dev'), founder.token);
+    row('UA11 the older publish action cannot go round the password: a production release with a signature made elsewhere is refused 403 reauth_required for the founder\'s ordinary session token and for an entry five minutes old, and nothing is written; with a fresh entry it is published and the record names that entry; the same entry is then refused reauth_used for another production publish AND for authorize-update; a dev-channel release needs no entry',
+      stale.http === 403 && stale.refused === 'reauth_required' && old.http === 403 && old.refused === 'reauth_required' && unchanged
+        && ok.ok === true && rowP && rowP.channel === 'production' && rowP.authorized_session === cP.session_id && Number(rowP.pw_epoch) === cP.amr[0].timestamp
+        && again.http === 403 && again.refused === 'reauth_used' && across.http === 403 && across.refused === 'reauth_used' && dev.ok === true,
+      JSON.stringify({ stale: stale.http + ' ' + stale.refused, old: old.http + ' ' + old.refused, fresh: ok.ok === true, again: again.refused, across: across.refused, dev: dev.ok === true }));
+  }
+
+  {
+    const part = (await sup.query(`select decrypted_secret s from vault.decrypted_secrets where name = 'factory_release_signer_part'`)).rows[0].s;
+    await sup.query(`update vault.secrets set secret = encode(convert_to($1, 'utf8'), 'base64') where name = 'factory_release_signer_part'`, ['11'.repeat(32)]);
     const h0 = await written(), p0 = admin.storage.puts.length;
     const r = await authz(REL('4.0.0'), brain.passwordToken(founder));
-    await sup.query(`update vault.secrets set secret = encode(convert_to($1, 'utf8'), 'base64') where name = 'factory_release_signer_seed'`, [seed]);
-    row('UA9 a stored seed that is not this plane\'s key: 503 signer_unavailable with no data, and nothing is signed, published or placed',
+    await sup.query(`update vault.secrets set secret = encode(convert_to($1, 'utf8'), 'base64') where name = 'factory_release_signer_part'`, [part]);
+    row('UA9 a part of the seed that was replaced in the secret store (the two parts no longer give this plane\'s key): 503 signer_unavailable with no data, and nothing is signed, published or placed',
       r.http === 503 && r.refused === 'signer_unavailable' && nodata(r) && (await written()) === h0 && admin.storage.puts.length === p0, JSON.stringify({ answer: r.http + ' ' + r.refused }));
   }
 
@@ -389,4 +415,4 @@ const failed = results.filter((r) => !r.ok);
 const ev = process.argv.indexOf('--evidence');
 if (ev > -1) writeFileSync(process.argv[ev + 1], JSON.stringify({ suite: 'update_authorization_acceptance', results }, null, 2) + '\n');
 console.log('\nupdate_authorization_acceptance: ' + (results.length - failed.length) + '/' + results.length + ' OK' + (failed.length ? '; FAILED: ' + failed.map((r) => r.id.split(' ')[0]).join(', ') : ''));
-process.exit(failed.length || results.length < 20 ? 1 : 0);
+process.exit(failed.length || results.length < 21 ? 1 : 0);

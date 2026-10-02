@@ -7,15 +7,52 @@ set local role factory_owner;
 -- the plane's own signer, inside admin_authorize_update below; admin_publish_release records a manifest that was signed elsewhere
 -- (the dev channel on a disposable plane). Neither adds a key to any node: a node's trust set is fixed in the artifact it
 -- installed. What reaches a node from here is a revocation, never a key.
+-- A PRODUCTION RELEASE IS NEVER PUBLISHED WITHOUT A FRESH PASSWORD ENTRY of the founder's own account (founder decision 2026-10-03),
+-- whichever of the two actions publishes it: one definition of that check (factory._fresh_password, factory._entry_unused).
 -- Superseding happens only here: publishing a release supersedes the channel's published one, inside this founder-only action.
 -- Two publishes on one tenant are serialized (the tenant row), so the second sees the first and supersedes it. A key revoke takes
 -- the same tenant row first: a publish racing the revoke of its signing key either commits first (and the revoke then covers its
 -- release), or waits and is refused key_revoked; two revokes of one key are one revocation and one "already".
 -- ---------------------------------------------------------------------------------------------------
+-- THE FRESH PASSWORD ENTRY. `reauth` says when the caller's Brain OS session entered its password and which session it is. The
+-- Admin API reads both from the caller's own token, which Brain OS verified on this call, and adds them AFTER its whitelist of body
+-- fields: a caller cannot supply them. The entry must be at most 120 seconds old (60 seconds of clock difference between the two
+-- servers is allowed). Absent, malformed, too old or from the future is ONE refusal, audited. The password never reaches this plane.
+create function factory._fresh_password(p_ctx factory.admin_ctx, p_body jsonb, p_op text, out sess uuid, out pw_at timestamptz, out refusal jsonb)
+  language plpgsql volatile set search_path = pg_catalog, pg_temp
+  as $$
+  declare reauth jsonb := p_body -> 'reauth';
+  begin
+    sess := factory._uuid(reauth, 'session_id');
+    if jsonb_typeof(reauth -> 'password_at') = 'number' and (reauth ->> 'password_at')::numeric between 0 and 4102444800 then
+      pw_at := to_timestamp((reauth ->> 'password_at')::numeric);
+    end if;
+    if sess is null or pw_at is null or pw_at < now() - interval '120 seconds' or pw_at > now() + interval '60 seconds' then
+      perform factory._audit(p_ctx.tenant_id, 'admin', p_ctx.actor::text, 'admin.' || p_op, null, null, 'refused', 'reauth_required',
+        jsonb_build_object('password_age_seconds', round(extract(epoch from now() - pw_at))));
+      refusal := factory._refusal('reauth_required', 403,
+        'enter your Brain OS password again: publishing a production release needs a password entry of this account made in the last two minutes');
+      sess := null; pw_at := null;
+    end if;
+  end $$;
+
+-- ONE ENTRY, ONE RELEASE: null when no release names this session; otherwise the audited refusal (releases.authorized_session is
+-- unique, so two racing calls of one entry are decided by the tenant lock the callers hold)
+create function factory._entry_unused(p_ctx factory.admin_ctx, p_sess uuid, p_op text) returns jsonb
+  language plpgsql volatile set search_path = pg_catalog, pg_temp
+  as $$
+  begin
+    if not exists (select 1 from factory.releases r where r.authorized_session = p_sess) then return null; end if;
+    perform factory._audit(p_ctx.tenant_id, 'admin', p_ctx.actor::text, 'admin.' || p_op, null, null, 'refused', 'reauth_used');
+    return factory._refusal('reauth_used', 403, 'this password entry already published a release: enter your Brain OS password again');
+  end $$;
+
 create function factory.admin_publish_release(p_actor uuid, p_live_role text, p_body jsonb) returns jsonb
   language plpgsql volatile security definer set search_path = pg_catalog, pg_temp set lock_timeout = '15s'
   as $$
   declare a record; rid uuid := gen_random_uuid(); prev factory.releases; ch text := p_body ->> 'channel';
+          needs_entry constant boolean := ch is not distinct from 'production';   -- a production release needs the fresh password entry
+          sess uuid; pw_at timestamptz; refused jsonb;                            -- that entry (null, both, on the dev channel)
   begin
     select * into a from factory._admin(p_actor, p_live_role, p_body, 'publish_release', true);
     if a.refusal is not null then return a.refusal; end if;
@@ -26,6 +63,11 @@ create function factory.admin_publish_release(p_actor uuid, p_live_role text, p_
        or coalesce(p_body ->> 'receipt_sha256', '') !~ '^[0-9a-f]{64}$' or jsonb_typeof(p_body -> 'manifest') is distinct from 'object' then
       return factory._refusal('bad_request', 400, 'a release is {channel, version, source_sha, digest, key_id, signature, receipt_sha256, manifest}');
     end if;
+    -- a production release: the fresh password entry (the dev channel exists on disposable planes only and needs none)
+    if needs_entry then
+      select f.sess, f.pw_at, f.refusal into sess, pw_at, refused from factory._fresh_password(a.ctx, p_body, 'publish_release') f;
+      if refused is not null then return refused; end if;
+    end if;
     perform factory._lock_tenant((a.ctx).tenant_id); -- publishes and key revokes of this tenant queue here
     if exists (select 1 from factory.release_revocations v where v.tenant_id = (a.ctx).tenant_id and v.kind = 'key' and v.key_id = p_body ->> 'key_id') then
       return factory._refusal('key_revoked', 409, 'this release is signed by a revoked key');
@@ -34,13 +76,18 @@ create function factory.admin_publish_release(p_actor uuid, p_live_role text, p_
                  and (r.version = p_body ->> 'version' or r.digest = p_body ->> 'digest')) then
       return factory._refusal('already_published', 409, 'this version or digest was published before on this channel');
     end if;
+    if needs_entry then   -- one entry, one release
+      refused := factory._entry_unused(a.ctx, sess, 'publish_release');
+      if refused is not null then return refused; end if;
+    end if;
     select r.* into prev from factory.releases r where r.tenant_id = (a.ctx).tenant_id and r.channel = ch and r.state = 'published' for update;
     if prev.release_id is not null then
       update factory.releases set state = 'superseded', superseded_at = now(), superseded_by_release_id = rid where release_id = prev.release_id;
     end if;
-    insert into factory.releases (release_id, tenant_id, channel, version, source_sha, digest, key_id, signature, receipt_sha256, manifest, published_by)
+    insert into factory.releases (release_id, tenant_id, channel, version, source_sha, digest, key_id, signature, receipt_sha256, manifest,
+                                  published_by, authorized_session, authorized_password_at)
     values (rid, (a.ctx).tenant_id, ch, p_body ->> 'version', p_body ->> 'source_sha', p_body ->> 'digest', p_body ->> 'key_id',
-            p_body ->> 'signature', p_body ->> 'receipt_sha256', p_body -> 'manifest', (a.ctx).actor);
+            p_body ->> 'signature', p_body ->> 'receipt_sha256', p_body -> 'manifest', (a.ctx).actor, sess, pw_at);
     perform factory._audit((a.ctx).tenant_id, 'admin', (a.ctx).actor::text, 'release.published', 'release', rid::text, 'ok', null,
       jsonb_build_object('channel', ch, 'version', p_body ->> 'version', 'digest', p_body ->> 'digest', 'supersedes', prev.release_id));
     return jsonb_build_object('ok', true, 'release_id', rid, 'supersedes', prev.release_id);
@@ -53,11 +100,8 @@ create function factory.admin_publish_release(p_actor uuid, p_live_role text, p_
 -- THREE THINGS MUST HOLD, in this order:
 --   1. FOUNDER-ONLY, by the one definition (factory._founder_only): tier founder in tenant_admins AND the live Brain OS role founder.
 --      A profiles.role alone never passes (S1); a caller who is not the founder learns nothing about the rest.
---   2. A FRESH PASSWORD ENTRY of that same account: `reauth` says when the caller's Brain OS session entered its password and which
---      session it is. The Admin API reads both from the caller's own token, which Brain OS verified on this call, and adds them
---      AFTER its whitelist of body fields, so a caller cannot supply them. The entry must be at most 120 seconds old (60 seconds of
---      clock difference between the two servers is allowed). The password itself never reaches this plane.
---   3. ONE ENTRY, ONE RELEASE: a session that authorized a release authorizes no other (releases.authorized_session is unique).
+--   2. A FRESH PASSWORD ENTRY of that same account (factory._fresh_password above).
+--   3. ONE ENTRY, ONE RELEASE: a session that authorized a release authorizes no other (factory._entry_unused above).
 -- WHAT IS SIGNED is built by the signer from the four values below and its own key id: a production-channel manifest, nothing else.
 -- The signature exists only in the published record this transaction writes. The same release authorized again answers "already"
 -- with its manifest (a lost answer, or the manifest placed in release storage once more) and signs and writes nothing.
@@ -68,7 +112,7 @@ create function factory.admin_authorize_update(p_actor uuid, p_live_role text, p
   declare a record; rid uuid := gen_random_uuid(); prev factory.releases; mine factory.releases; m jsonb; signer jsonb;
           ch constant text := 'production';   -- the one channel the plane's signer signs
           v text := p_body ->> 'version'; src text := p_body ->> 'source_sha'; d text := p_body ->> 'digest'; rc text := p_body ->> 'receipt_sha256';
-          reauth jsonb := p_body -> 'reauth'; sess uuid; pw_at timestamptz;
+          sess uuid; pw_at timestamptz; refused jsonb;
   begin
     select * into a from factory._admin(p_actor, p_live_role, p_body, 'authorize_update', true);
     if a.refusal is not null then return a.refusal; end if;
@@ -77,17 +121,9 @@ create function factory.admin_authorize_update(p_actor uuid, p_live_role text, p
        or coalesce(d, '') !~ '^[0-9a-f]{64}$' or coalesce(rc, '') !~ '^[0-9a-f]{64}$' then
       return factory._refusal('bad_request', 400, 'an update is {channel: "production", version, source_sha, digest, receipt_sha256}');
     end if;
-    -- the fresh password entry (2): absent, malformed, too old or from the future is one refusal, audited
-    sess := factory._uuid(reauth, 'session_id');
-    if jsonb_typeof(reauth -> 'password_at') = 'number' and (reauth ->> 'password_at')::numeric between 0 and 4102444800 then
-      pw_at := to_timestamp((reauth ->> 'password_at')::numeric);
-    end if;
-    if sess is null or pw_at is null or pw_at < now() - interval '120 seconds' or pw_at > now() + interval '60 seconds' then
-      perform factory._audit((a.ctx).tenant_id, 'admin', (a.ctx).actor::text, 'admin.authorize_update', null, null, 'refused', 'reauth_required',
-        jsonb_build_object('password_age_seconds', round(extract(epoch from now() - pw_at))));
-      return factory._refusal('reauth_required', 403,
-        'enter your Brain OS password again: authorizing an update needs a password entry of this account made in the last two minutes');
-    end if;
+    -- the fresh password entry (2)
+    select f.sess, f.pw_at, f.refusal into sess, pw_at, refused from factory._fresh_password(a.ctx, p_body, 'authorize_update') f;
+    if refused is not null then return refused; end if;
     perform factory._lock_tenant((a.ctx).tenant_id); -- authorizations, publishes and key revokes of this tenant queue here
     -- the same release again: one release, said as "already"
     select r.* into mine from factory.releases r where r.tenant_id = (a.ctx).tenant_id and r.channel = ch and r.version = v and r.digest = d;
@@ -98,10 +134,8 @@ create function factory.admin_authorize_update(p_actor uuid, p_live_role text, p
       return factory._refusal('already_published', 409, 'this version or digest was published before on this channel');
     end if;
     -- one entry, one release (3)
-    if exists (select 1 from factory.releases r where r.authorized_session = sess) then
-      perform factory._audit((a.ctx).tenant_id, 'admin', (a.ctx).actor::text, 'admin.authorize_update', null, null, 'refused', 'reauth_used');
-      return factory._refusal('reauth_used', 403, 'this password entry already authorized a release: enter your Brain OS password again');
-    end if;
+    refused := factory._entry_unused(a.ctx, sess, 'authorize_update');
+    if refused is not null then return refused; end if;
     signer := factory_signer.public_key();
     if signer ->> 'key_id' is null then
       return factory._refusal('signer_unavailable', 503, 'this plane has no release signer; nothing was signed or published');

@@ -139,7 +139,7 @@ try {
   const manifest = (exe, version, channel = 'dev') => makeManifest({ artifact: exe, channel, version, source_sha: src, receipt_sha256: rcpt(version + channel) });
   const put = (name, m) => { const f = join(work, name); writeFileSync(f, JSON.stringify(m, null, 2)); return f; };
   const publish = (m) => admin.call('publish-release', { channel: m.channel, version: m.version, source_sha: m.source_sha, digest: m.digest, key_id: m.key_id,
-    signature: m.signature, receipt_sha256: m.receipt_sha256, manifest: m }, founder.token);
+    signature: m.signature, receipt_sha256: m.receipt_sha256, manifest: m }, W.brain.passwordToken(founder));   // a production publish needs a fresh password entry
   // a second sentinel with its own marker (so its own digest): R-d publishes and revokes it (a digest is published once per channel)
   const SENT_D = await buildSentinel(join(work, 'sentinel-d.exe'), MARKER_D);
   // a sentinel offered in R-f2 only: its marker can be written by nothing but the production-channel upgrade path of that row, so R-f2

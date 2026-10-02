@@ -11,12 +11,13 @@
 // CODE-ISSUING ACTIONS (Add Computer, issue code, re-pair, restore, create an agent principal) draw the pairing code HERE from the
 // CSPRNG, send the plane only its locator and HMAC-SHA256(FACTORY_PAIRING_PEPPER, code), and return the code to the admin ONCE.
 //
-// AUTHORIZE UPDATE (founder decision 2026-10-03) needs a FRESH PASSWORD ENTRY of the caller's own account. The password never comes
-// here: Brain OS -> Factory -> Update signs the account in again and calls with that session's token. This file reads from that
-// token - after Brain OS verified it on this call - when its session entered the password and which session it is (passwordEntry),
-// and adds the two facts as `reauth` AFTER the whitelist of body fields, as the code-issuing actions add theirs: a caller cannot
-// supply them. The front door decides (founder-only, at most two minutes old, one release per entry), signs with the plane's signer
-// and publishes in one transaction. The signed manifest it answers is then placed where the installer looks for it (storeManifest).
+// PUBLISHING A PRODUCTION RELEASE (founder decision 2026-10-03) needs a FRESH PASSWORD ENTRY of the caller's own account, through
+// either action that publishes one (authorize-update, publish-release). The password never comes here: Brain OS -> Factory ->
+// Update signs the account in again and calls with that session's token. This file reads from that token - after Brain OS verified
+// it on this call - when its session entered the password and which session it is (passwordEntry), and adds the two facts as
+// `reauth` AFTER the whitelist of body fields, as the code-issuing actions add theirs: a caller cannot supply them. The front door
+// decides (founder-only, at most two minutes old, one release per entry). authorize-update signs with the plane's signer and
+// publishes in one transaction; the signed manifest it answers is then placed where the installer looks for it (storeManifest).
 //
 // ERRORS. An error is never turned into an answer about the caller: Brain OS refusing the token (401 / 403) is "not authenticated";
 // any other answer from Brain OS - an error status, a body that is not the JSON it documents - is Brain OS not answering, and fails the
@@ -41,8 +42,9 @@ export type AdminDeps = {
   storeManifest?: (version: string, manifest: Record<string, unknown>) => Promise<boolean>;
 };
 
-// op -> [front door, issues a code?, the body fields it accepts; fresh: it needs a fresh password entry and answers a signed manifest]
-export const ADMIN_OPS: Record<string, { fn: string; code: boolean; fields: string[]; fresh?: boolean }> = {
+// op -> [front door, issues a code?, the body fields it accepts; reauth: the front door is handed the token's password entry;
+// signs: it answers a signed manifest, which is then placed in release storage]
+export const ADMIN_OPS: Record<string, { fn: string; code: boolean; fields: string[]; reauth?: boolean; signs?: boolean }> = {
   'list-computers': { fn: 'admin_list_computers', code: false, fields: ['limit', 'offset', 'include_archived', 'tenant_id'] },
   'get-computer': { fn: 'admin_get_computer', code: false, fields: ['computer_id', 'tenant_id'] },
   'add-computer': { fn: 'admin_add_computer', code: true, fields: ['display_name', 'envelope', 'bind_s16a', 'ttl_seconds', 'tenant_id'] },
@@ -57,8 +59,8 @@ export const ADMIN_OPS: Record<string, { fn: string; code: boolean; fields: stri
   'restore': { fn: 'admin_restore', code: true, fields: ['computer_id', 'ttl_seconds', 'tenant_id'] },
   'create-principal': { fn: 'admin_create_principal', code: true, fields: ['computer_id', 'ttl_seconds', 'tenant_id'] },
   'adopt-release': { fn: 'admin_adopt_release', code: false, fields: ['computer_id', 'release_id', 'tenant_id'] },
-  'publish-release': { fn: 'admin_publish_release', code: false, fields: ['channel', 'version', 'source_sha', 'digest', 'key_id', 'signature', 'receipt_sha256', 'manifest', 'tenant_id'] },
-  'authorize-update': { fn: 'admin_authorize_update', code: false, fresh: true, fields: ['channel', 'version', 'source_sha', 'digest', 'receipt_sha256', 'tenant_id'] },
+  'publish-release': { fn: 'admin_publish_release', code: false, reauth: true, fields: ['channel', 'version', 'source_sha', 'digest', 'key_id', 'signature', 'receipt_sha256', 'manifest', 'tenant_id'] },
+  'authorize-update': { fn: 'admin_authorize_update', code: false, reauth: true, signs: true, fields: ['channel', 'version', 'source_sha', 'digest', 'receipt_sha256', 'tenant_id'] },
   'revoke-release': { fn: 'admin_revoke_release', code: false, fields: ['release_id', 'reason', 'tenant_id'] },
   'revoke-key': { fn: 'admin_revoke_key', code: false, fields: ['key_id', 'reason', 'tenant_id'] },
   'list-releases': { fn: 'admin_list_releases', code: false, fields: ['tenant_id'] },
@@ -155,12 +157,12 @@ export function createAdminApi(deps: AdminDeps): (req: Request) => Promise<Respo
         code = { display: g.display, locator: g.locator };
       }
       // a fresh password entry is a fact about the caller's token, never a body field (the whitelist above refused a `reauth`)
-      if (op.fresh) body = { ...body, reauth: passwordEntry(auth[1]) };
+      if (op.reauth) body = { ...body, reauth: passwordEntry(auth[1]) };
       const rows = await deps.sql('select factory.' + op.fn + '($1::uuid, $2, $3::text::jsonb) as r', [who.userId, who.role, JSON.stringify(body)]);
       const r = (rows[0] && rows[0].r) as Record<string, unknown> | undefined;
       if (!r || typeof r !== 'object') return refuse(500, 'server_error', 'the front door returned nothing');
       if (r.ok !== true) return json(typeof r.http === 'number' ? r.http : 409, r);
-      if (op.fresh) {
+      if (op.signs) {
         // the release is published (r is the record). Its signed manifest goes where the installer looks for it; when that did not
         // happen the answer says so, and authorizing the same release again places it ("already": nothing is signed twice)
         const signed = r.manifest as Record<string, unknown> | undefined;

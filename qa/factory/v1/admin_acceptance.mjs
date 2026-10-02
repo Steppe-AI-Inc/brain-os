@@ -157,7 +157,7 @@ try {
   // releases, revocations, computers and envelopes unchanged; then the founder does each of them
   const promoted = brain.persona('holding_admin'); await W.grantAdmin(promoted, 'admin'); await brain.selfUpdateRole(promoted, 'founder');
   const demoted = brain.persona('founder'); await W.grantAdmin(demoted, 'founder'); brain.setRole(demoted.userId, 'holding_admin');
-  const pub = (p, v, key = 'dev-key-0001') => admin.call('publish-release', { channel: 'production', version: v, source_sha: 'a'.repeat(40), digest: sha256('d' + v), key_id: key, signature: 'A'.repeat(86), receipt_sha256: 'c'.repeat(64), manifest: { v } }, p.token);
+  const pub = (p, v, key = 'dev-key-0001') => admin.call('publish-release', { channel: 'production', version: v, source_sha: 'a'.repeat(40), digest: sha256('d' + v), key_id: key, signature: 'A'.repeat(86), receipt_sha256: 'c'.repeat(64), manifest: { v } }, brain.passwordToken(p));   // a production publish needs a fresh password entry (each persona's own)
   const cur0 = await pub(founder, '1.2.0');   // the production channel's published release a non-founder publish would supersede
   const rbTarget = await admin.call('add-computer', { display_name: 'P4 generic', envelope: { roles: ['generic'] } }, founder.token);
   const foDigest = async () => sha256(JSON.stringify((await sup.query(`select

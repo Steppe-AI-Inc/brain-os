@@ -6,8 +6,8 @@
 -- key id), never a key.
 -- WHO SIGNS (founder decision 2026-10-03). A live release is signed by the plane's own signer (factory_signer, created before this
 -- migration; its private key is in the platform's secret store, outside this schema), and only inside the founder-only
--- factory.admin_authorize_update (part 220), which records beside the release the fresh password entry that authorized it. A
--- release published with a signature made elsewhere (admin_publish_release: the dev channel on a disposable plane) carries none.
+-- factory.admin_authorize_update (part 220). Every production release records the fresh password entry that authorized it,
+-- whichever action published it; a dev-channel release (admin_publish_release on a disposable plane) carries none.
 
 set local role factory_owner;
 
@@ -31,8 +31,8 @@ create table factory.releases (
   revoked_at                timestamptz,
   revoked_by                uuid,
   revoke_reason             text check (revoke_reason is null or length(revoke_reason) <= 300),
-  -- a release the Factory signed: the Brain OS session whose password entry authorized it, and when that entry was made (both
-  -- read by the Admin API from the caller's own token). Null, both, for a release published with a signature made elsewhere.
+  -- a production release: the Brain OS session whose password entry authorized it, and when that entry was made (both read by the
+  -- Admin API from the caller's own token). Null, both, for a dev-channel release (disposable planes; no entry is asked).
   authorized_session        uuid,
   authorized_password_at    timestamptz,
   check ((authorized_session is null) = (authorized_password_at is null)),

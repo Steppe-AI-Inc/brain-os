@@ -260,7 +260,9 @@ try {
   }
   const publish = (c, v, key) => asSql(c.query(`select factory.admin_publish_release($1, 'founder', $2::jsonb) r`, [founder.userId, JSON.stringify({
     channel: 'production', version: v, source_sha: 'e'.repeat(40), digest: createHash('sha256').update('i7' + v).digest('hex'), key_id: key, signature: 'B'.repeat(86),
-    receipt_sha256: 'f'.repeat(64), manifest: { v } })]));
+    receipt_sha256: 'f'.repeat(64), manifest: { v },
+    // what the Admin API hands the front door for a production publish: the caller's fresh password entry (one per release)
+    reauth: { password_at: Math.floor(Date.now() / 1000), session_id: randomUUID() } })]));
   {
     await adminC.query('begin');
     const first = await publish(adminC, '7.0.0', 'race-key-0001');

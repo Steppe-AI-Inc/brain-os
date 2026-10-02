@@ -3,15 +3,21 @@
 **Status: PREPARED, NOT RUN.** Every step below is a founder action (CLAUDE.md §8; WO-1, WO-6, WO-7, WO-8, WO-10 boundaries). The
 implementer ran none of them and holds no production credential. Nothing here is a trust root, a secret value or a production key.
 
-The order matters. Steps 1–6 happen only **after** the Director's receipt says CERTIFIED for the exact candidate SHA
-(`VERIFICATION_SPEC.md` §5). Step 7 (a live release) also needs **C-3**, the production release-signing key custody, which is
-unresolved and founder-gated. Before C-3 the production trust set is empty, so no live-mode release exists and no production-channel
-node can run anything (S-5).
+The order matters. **Step S** (the release signer) happens once, **before** the candidate that pins its public key is frozen: a node
+trusts only the keys fixed into its installer at build time (S-5), so the key must exist first. Steps 1–6 happen only **after** the
+Director's receipt says CERTIFIED for the exact candidate SHA (`VERIFICATION_SPEC.md` §5). Step 7 (a live release) is authorized in
+Brain OS → Factory → Update by the founder's own account and its password.
+
+**The founder holds no release key** (founder decision 2026-10-03, "system-managed release signer"). The Factory owns one Ed25519
+signing key, created by step S on the Factory's own database server and kept in its secret store; nobody generates, copies or stores
+a key by hand, and nobody signs a manifest by hand. Until a release has been authorized (step 7) no live-mode release exists and no
+production-channel node can run anything (S-5).
 
 ## 0. What each step needs
 
 | step | needs | touches |
 |---|---|---|
+| S the release signer (once, before the candidate is frozen) | the signer file's exact bytes; a Supabase access token | one schema and one Vault secret on the live Factory plane |
 | 1 migration | CERTIFIED receipt; the step file the verifier built (its sha256 in the receipt) | the live Factory plane (`npvhuoozkbexddnvkqsj`) |
 | 1b observer SELECT on the new relations | step 1; the founder-provisioned observer role | grants on the live plane |
 | 2 API logins | step 1 | two roles on the live plane |
@@ -19,13 +25,49 @@ node can run anything (S-5).
 | 4 Edge secrets | steps 2, 3 | the Factory project's function secret store |
 | 5 deploy the two functions | step 4; `ALLOW_FUNCTIONS_DEPLOY=1?` asked once | Edge Functions on the Factory project |
 | 6 release storage | step 5 | a public Storage bucket on the Factory project |
-| 7 a live release | C-3; a CERTIFIED reproduced digest | the bucket, the Admin API `publish-release` |
+| 7 a live release | step S; a CERTIFIED reproduced digest; the installer staged (step 6) | the bucket; the Admin API `authorize-update`, from Brain OS → Factory → Update |
 | 8 Brain OS web | a PR into `master` | Brain OS production (Vercel) |
 | 9 re-enroll the two nodes, retire `factory_runner` | steps 5–8 | the two existing PCs, the live plane |
 | R `factory_runner` password rotation after step 1 | step 1 | one role on the live plane; `runner.env` on each legacy node |
 
 Every SQL step below runs as the plane's applying login `postgres` (NOSUPERUSER, CREATEROLE), the login that provisioned the plane as
 `69df2f52` and applies step 1. It never needs a superuser.
+
+## S. Create the release signer (once, before the candidate is frozen)
+
+- **What is applied:** `scripts/factory-control-plane/release_signer.sql`, unchanged, as `postgres`, in **one transaction**. It is
+  not part of the migration (it lives outside `supabase/control-plane/` on purpose) and it comes before it: the migration's part
+  000 grants the engine role the signer's one signing function, so on a plane without a signer step 1 aborts and nothing commits.
+- **What it creates:** schema `factory_signer` (one table, the Ed25519 functions, `public_key()`, `ready()` and `sign_release()`),
+  owned by `postgres` like schema `factory`; and ONE secret in the project's secret store (Supabase Vault),
+  `factory_release_signer_part`. It creates no role and changes no membership.
+- **Where the private key is:** nowhere as such. The database server draws TWO random parts from its own random source and derives
+  the key from both each time it signs: one part is the secret in the store, the other is a column of the signer's table. Neither
+  part is in a statement text or a result, and neither comes to a PC. `sign_release` signs one thing - a production-channel
+  release manifest it builds itself - and only the engine role may call it (the migration's grant); neither API login can.
+- **Who can read which part.** The store's part: `postgres` and, on Supabase, `service_role` (the platform grants that role the
+  store; `postgres` cannot take the grant back). The table's part: `postgres` and a role that may read every table
+  (`pg_read_all_data`: a read-only or observer login). Only a role that holds BOTH can derive the key: `postgres` - the plane's
+  owner-level login - and a superuser. At rest the store's part is ciphertext only; the table's part alone is not a secret.
+- **Who can break it without reading it:** a role that may write the store (`postgres`, `service_role`) can delete or replace the
+  store's part. The signer then signs nothing (`ready()` is false) and its key cannot be recovered: a new key is a new candidate.
+  Keep schema `vault` and schema `factory_signer` out of the project's exposed API schemas (Settings → Data API).
+- **It checks itself, or nothing commits:** RFC 8032's test vectors before the parts are drawn; and, last, that no function of the
+  signer is executable by any role but its owner (`public_key()` by everyone aside), that nobody else holds a privilege on its
+  table, and that the two parts, read back as they are read at use, give the public half it stored.
+- **What comes back:** `select factory_signer.public_key()` answers `{ "key_id": "ed25519:...", "public_key": "..." }`. Those two
+  PUBLIC values are what the candidate adds to `scripts/factory-runner/enrolled/trust/production.json`, and what the Director's
+  WO-6 record names. Anyone may read them back from the plane at any time; they are the same values.
+- **How it is sent:** as one request holding `begin;`, the file, `commit;` - through Supabase's Management API SQL endpoint with a
+  founder access token (the implementer's prepared command does exactly this, reads the plane first and changes nothing unless
+  SQL runs there as `postgres`, the database says it is `npvhuoozkbexddnvkqsj`, the secret store is there and no signer exists),
+  or with `psql -X -v ON_ERROR_STOP=1` in one session.
+- **Never twice.** A second application fails at its first statement (the schema exists) and changes nothing. A key is never
+  replaced in place: a new key is a new candidate that pins it, and the old one is retired with `revoke-key`.
+- **Undo (only before a release signed by it is published):** drop schema `factory_signer` with everything in it, and delete the
+  secret `factory_release_signer_part` from the secret store. A founder database action.
+- **A judging plane or a developer plane** runs the same file and gets a key of its own. A plain PostgreSQL has no Supabase Vault:
+  it carries `qa/factory/v1/vault_standin.sql` (the two names the file uses, without encryption), applied by its superuser first.
 
 ## 1. Apply the control-plane migration (WO-1 r3; AC-11)
 
@@ -218,36 +260,41 @@ token check, as 401 `not_authenticated` or 503 `unavailable`, so check both when
   there, so the one human download on a new PC is `BrainFactorySetup.exe`. The Computers page serves both links and can measure the
   file as served ("Check the served file").
 
-## 7. A live release (needs C-3)
+## 7. A live release (Brain OS → Factory → Update)
 
-1. After C-3, the Director issues the WO-6 revision with the founder's public keys. The implementer's next candidate adds exactly
-   those bytes to `scripts/factory-runner/enrolled/trust/production.json`, and that candidate is verified and CERTIFIED.
+1. The signer's public half (step S) is in `scripts/factory-runner/enrolled/trust/production.json` of the candidate, the Director's
+   WO-6 record names the same key id, and that candidate is verified and CERTIFIED.
 2. The verifier rebuilds the production channel from the CERTIFIED SHA
    (`node scripts/factory-build/build-sea.mjs --channel production`, then `verify-build.mjs`), and the receipt records the digest.
-3. The founder signs the manifest whose digest equals that receipt's reproduced digest, using the C-3 key. The key id is one of
-   the signed fields, so it is attached first, with a placeholder signature of 86 `A` characters; `signing-input` refuses a
-   manifest that names no key:
+3. The prepared release is the installer and its manifest, NOT signed (`key_id` and `signature` stay `null`):
 
    ```
-   node scripts/factory-build/release-manifest.mjs make --artifact <exe> --channel production --version <v> --source-sha <sha> --receipt-sha256 <receipt sha256> --out manifest.json
-   node scripts/factory-build/release-manifest.mjs attach-signature --manifest manifest.json --key-id <id> --signature <86 x A>
-   node scripts/factory-build/release-manifest.mjs signing-input --manifest manifest.json
-   # sign that input with the C-3 key (outside this repository)
-   node scripts/factory-build/release-manifest.mjs attach-signature --manifest manifest.json --key-id <id> --signature <b64url>
-   node scripts/factory-build/release-manifest.mjs verify --manifest manifest.json --artifact <exe> --channel production
+   node scripts/factory-build/release-manifest.mjs make --artifact <exe> --channel production --version <v> --source-sha <sha> --receipt-sha256 <receipt sha256> --out prepared.json
    ```
 
-   `verify` must answer `{"ok":true,...}`: with the placeholder still attached it answers `bad_signature`.
+   Its digest must equal the receipt's reproduced digest. Optionally Authenticode-sign the exe: the digest does not change (S-5).
+4. Stage it in release storage (step 6): the exe at `factory-releases/production/<version>/BrainFactorySetup.exe`, and the unsigned
+   manifest at `factory-releases/production/prepared.json`. Nothing is published by this.
+5. Authorize it: **Brain OS → Factory → Update**, signed in with the founder's own account. The page shows the prepared release -
+   version, certified source, installer digest, certifying receipt - and asks for the password of the account that is signed in.
+   **Confirm update** then, in this order: the release in storage is still the one shown; the installer storage serves has that
+   digest; Brain OS checks the password (its own password sign-in, for that account's email); the Factory checks that the caller
+   is its founder (tier founder in `tenant_admins` AND live role founder) and that the password was entered in the last two
+   minutes; the Factory's signer signs exactly that release and the release is published, in one transaction. The Admin API then
+   places the signed manifest at `factory-releases/production/<version>/BrainFactorySetup.manifest.json`, where setup looks for it.
+   A wrong password never reaches the Factory. The password is sent to Brain OS and nowhere else.
+6. Read back: the Update page says the release is published and its manifest is in storage; the Computers page lists it, serves
+   the download links and can measure the file as served ("Check the served file"). If storage did not take the manifest, the
+   page says so: confirming once more places it and signs nothing again.
 
-4. Optionally Authenticode-sign the exe. The digest does not change (S-5).
-5. Upload the exe and its manifest (step 6). Then publish through the Admin API, which is founder-only (tier founder and live role
-   founder): `POST /v1/admin/publish-release` with the manifest's fields, made with the founder's own Brain OS session. The
-   Computers page lists the releases; it has no control that publishes one.
+No production release is published without that password entry, by either action that publishes one: `publish-release` (a manifest
+signed elsewhere; used on disposable planes) asks for the same fresh entry on the production channel. Revoking a release or a key
+still needs the founder's session only: a revocation stops things and cannot make a computer run anything.
 
 ## 8. Brain OS web
 
-The Computers page (`web/app/(app)/software-factory/computers`) and the retirement of `/software-factory/workers` reach production
-only through a pull request into the protected `master`. The web needs no new environment variable in production: its defaults are
+The Computers page (`web/app/(app)/software-factory/computers`), the Update page (`web/app/(app)/software-factory/update`) and the
+retirement of `/software-factory/workers` reach production only through a pull request into the protected `master`. The web needs no new environment variable in production: its defaults are
 the Factory project's public function URL and release storage. A preview pointed at a disposable plane may set
 `FACTORY_ADMIN_API_URL` and `FACTORY_RELEASES_URL`, and only a Supabase project over HTTPS or a loopback address is accepted. Brain
 OS production gets no schema change (S-9).
@@ -257,7 +304,7 @@ OS production gets no schema change (S-9).
 - Re-enroll the two existing PCs through Add computer, one at a time, with the live legacy node stopped by the founder first. Each
   gets a new node id (`node-` followed by its agent principal's id): nothing carries a legacy node id over.
 - When both run enrolled, the founder retires the shared `factory_runner` credential.
-- The third PC's zero-touch acceptance follows `ZERO_TOUCH_ACCEPTANCE_SCRIPT.md` (not run; it needs steps 1–8 and C-3).
+- The third PC's zero-touch acceptance follows `ZERO_TOUCH_ACCEPTANCE_SCRIPT.md` (not run; it needs steps S and 1–8).
 
 ## R. Rotate the `factory_runner` password after step 1
 

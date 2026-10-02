@@ -32,12 +32,21 @@ export async function passwordReauth(cfg: Cfg, account: { id: string; email: str
   } catch {
     return { ok: false, refused: "reauth_unavailable", message: "Brain OS did not answer the password check. Nothing was authorized." };
   }
-  // Supabase Auth refuses a wrong password with 400 invalid_credentials; nothing in its answer is passed on
-  if (res.status === 400 || res.status === 401 || res.status === 422) {
-    return { ok: false, refused: "wrong_password", message: "That is not this account's password. Nothing was authorized." };
-  }
   if (res.status !== 200) {
-    return { ok: false, refused: "reauth_unavailable", message: `Brain OS did not check the password (HTTP ${res.status}). Nothing was authorized.` };
+    // Supabase Auth names a wrong password invalid_credentials (older versions: invalid_grant). Only that is "wrong password": any
+    // other refusal - a CAPTCHA it wants, a rate limit, a disabled sign-in - is the check not having been made. Its text is not passed on.
+    let code = "";
+    try {
+      const body = (await res.json()) as { error_code?: unknown; error?: unknown };
+      code = typeof body.error_code === "string" ? body.error_code : typeof body.error === "string" ? body.error : "";
+    } catch {
+      code = "";
+    }
+    if (res.status === 400 && (code === "invalid_credentials" || code === "invalid_grant")) {
+      return { ok: false, refused: "wrong_password", message: "That is not this account's password. Nothing was authorized." };
+    }
+    const named = /^[a-z_]{1,40}$/.test(code) ? `, ${code}` : "";
+    return { ok: false, refused: "reauth_unavailable", message: `Brain OS did not check the password (HTTP ${res.status}${named}). Nothing was authorized.` };
   }
   let session: { access_token?: unknown; user?: { id?: unknown } } | null = null;
   try {
