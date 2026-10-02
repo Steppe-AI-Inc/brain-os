@@ -14,7 +14,7 @@ The Director paraphrases nothing here:
 | Part | Source | Integrity |
 |---|---|---|
 | I | Part A of `docs/architecture/features/factory-auto-enrollment.md`, lines 24-337, on branch `factory/auto-enrollment-v1-contract` at commits `264987bb` and `33f14d6e55a41ee1a2a5acf463a000e3fe2975b9` (identical in both) | source file sha256 `53e61c0bea97c50ca294a471cf015fd1b8983799c32c12ad6bdb825537f53a06`; copied byte for byte |
-| II | the founder's messages to the Director, 2026-09-26 to 2026-09-28 (UTC); II.12, II.14, II.15 and II.17 also quote Director text verbatim | transcribed as received |
+| II | the founder's messages to the Director, 2026-09-26 to 2026-10-02 (UTC); II.12, II.14, II.15 and II.17 also quote Director text verbatim | transcribed as received |
 
 **About Part I's provenance.** Part I was transcribed by the implementer.
 
@@ -355,7 +355,7 @@ production Brain OS deploy; BLOCKED — EXTERNAL where applicable).
 
 ---
 
-# PART II — Founder rulings sent to the Director, 2026-09-26 to 2026-09-28 (verbatim)
+# PART II — Founder rulings sent to the Director, 2026-09-26 to 2026-10-02 (verbatim)
 
 ## II.1 Machine roles and authority
 
@@ -1014,3 +1014,137 @@ explicit refspec); the ledger event log records the result. The second chosen op
 public implementer record published before 2026-09-28 (ledger rule 3, "Public implementer records"); the records published on
 2026-09-28 before the ruling (04:29:42Z) are covered by a Director reading surfaced for the founder's confirmation. The
 founder's messages from 2026-09-29T02:54Z concern the release of r5 and are transcribed with it.
+
+## II.18 C-3 decided: a Factory-managed release signer — founder rulings, 2026-10-02 (UTC)
+
+Transcribed as received by the Director, in arrival order, with UTC times. The 16:31:48Z message arrived as typed text followed by
+pasted text; each is one block below.
+
+**16:31:48Z**
+
+```text
+HOME PC — CURRENT ASSIGNMENT
+
+CURRENT GOAL:
+Founder Beta through clean-laptop acceptance.
+
+CURRENT PHASE:
+Work is implementing the minimal Super Admin update-authorization delta.
+
+CURRENT CANDIDATE:
+95fdb85acf755f8d28fa2393165cac7fb9ca77b7
+Candidate #3 is frozen and independently passed.
+DO NOT REVERIFY OR MODIFY IT.
+
+YOUR ROLE NOW:
+Independent verifier / Director readiness.
+
+DO NOT:
+- develop the feature
+- modify Work's branch
+- rerun Candidate #3
+- run mutation/reference campaigns
+- start new governance revisions
+- redesign authentication
+- work on C-3 manual keys
+- expand Artifact Relay
+- touch production
+
+PREPARE ONLY the bounded independent verification plan for the successor.
+```
+
+```text
+Founder-approved product behavior:
+
+Existing Brain OS super_admin
+→ Factory
+→ Update
+→ re-enter EXISTING Brain OS account password
+→ Confirm
+→ Brain OS / Factory performs the prepared update automatically.
+
+Prepare independent checks for:
+
+1. valid current super_admin + correct password succeeds
+2. wrong password is refused
+3. non-super-admin is refused
+4. logged-out / stale session is refused
+5. authorization is bound to the exact prepared update/candidate
+6. changed update bytes require new authorization
+7. authorization cannot be replayed
+8. password is not persisted/logged/exposed to workers
+9. one successful confirmation starts the expected automated update path
+10. failure produces deterministic status/rollback rather than ambiguous partial state
+
+Do not expand beyond those behaviors unless a HIGH security/authority issue is
+demonstrated.
+
+When Work reports its ACTUAL DELTA:
+review only whether the proposed independent checks cover the changed surfaces.
+
+Do not certify intermediate commits.
+
+When Work freezes ONE successor SHA:
+begin independent verification of that exact SHA.
+
+If a reproducible certification-blocking defect is found:
+STOP expensive verification
+→ reject successor
+→ preserve evidence.
+
+Otherwise:
+return INDEPENDENT QA PASS and move immediately toward clean-laptop acceptance.
+
+KEEP VERIFIER READY.
+```
+
+**20:20:22Z**
+
+```text
+DIRECTOR — PROCESS CR-027 AS CANONICALIZATION
+```
+
+**20:20:25Z**
+
+```text
+The founder has already decided the product policy.
+
+Do not reopen the founder-vs-system-managed signer decision.
+
+Update the binding WO-6 and only the canonical statements materially affected by
+that decision so they consistently express:
+
+- Factory-managed release signer
+- private signing material remains inside the trusted server-side Factory boundary
+- founder never manages signing keys
+- founder update authority comes from existing founder identity +
+  existing Factory founder-only authority
+- founder re-authenticates using the existing Brain OS account password
+- successful founder confirmation authorizes the exact prepared update
+- Factory performs signing/publication/update automatically
+
+Check CR-027's listed affected canonical statements and reconcile only those that
+must change to remove contradiction.
+
+Do not redesign the feature.
+Do not create a new role.
+Do not reopen Candidate #3.
+Do not add unrelated governance.
+
+Return the exact Director canonical commit/revision applicable to the successor.
+```
+
+Director note: these messages state the founder's decision of C-3 (II.11) to the Director. The founder gave the decision itself to
+the implementer session, at 2026-10-02T16:59:56Z ("FOUNDER DECISION — SYSTEM-MANAGED RELEASE SIGNER") and in a later message on
+CR-027, which CR-027 dates 2026-10-03 (the implementing machine's local date; CR-027 quoted it by 2026-10-02T20:26:44Z). CR-027
+quotes those messages as the implementer received them, and the founder holds the originals; they are not transcribed here because
+the Director did not receive them. CR-027 is
+`qa/implementation/auto-enrollment-v1/change-requests/CR-027-system-managed-release-signer.md` on
+`factory/auto-enrollment-v1-implementation` at `4016c33060693d5d8c2eb0840ce686c33af5001b`, sha256
+`82eb9c9f493b4c286feec9e34581b04db02931b5f3a98866d0719bc43ae5b93d`, implementer-signed. The 20:20:25Z message directs this
+canonicalization; for this purpose it supersedes the 16:31:48Z line "start new governance revisions" (under "DO NOT").
+"super_admin" names no role: Brain OS has none, and the founder directs "Do not create a new role."; the founder's update authority
+is the existing founder identity under the existing Factory founder-only authority (S-8). The 16:31:48Z message's ten checks are the
+acceptance of the update authorization (AC-5(o)); its other lines also bound the successor's verification, and how that bound meets
+`VERIFICATION_SPEC.md` §3.11 and ledger rule 6 is surfaced for the founder's confirmation (ledger founder items). Director r6 records
+the decision in WO-6 revision 3 and in the canonical statements it affects (ledger event log, CR-027).

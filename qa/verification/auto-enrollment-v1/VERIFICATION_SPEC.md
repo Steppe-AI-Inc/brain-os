@@ -75,7 +75,7 @@ entry (§3.11).
    - From the §4 authoring-set field: no Home-computer run is in the authoring set of a work order whose commits change a path outside
      the Director-document paths (S-16). The receipt records that a signature proves the signing key, not the authoring machine.
    - S-16's key-custody rule covers the product code that the range's commits carry. The byte-identical copies above, and S-16's
-     two cases of copied Director-recorded bytes (fixed names and values; after C-3, the WO-6 trust-set bytes checked below), are
+     two cases of copied Director-recorded bytes (fixed names and values; the release signer's public key a WO-6 revision records, checked below), are
      Director inputs, never a finding under it.
    - The receipt records the fingerprint of every key in the allowed-signers file and, per commit, the verifying fingerprint. Each
      key is `implementer_signing_key`, an `additional_implementer_keys` entry, or the founder-ordered key that a change request
@@ -98,14 +98,15 @@ entry (§3.11).
      implements matches the sha256 of its entry in the ledger's ratification register. Any other proposal filed outside the
      implementer namespace is never decided, so implementing against it is implementing against an undecided change request.
    - **Migration files:** a change in the range to a file under `supabase/control-plane/` that exists at `69df2f52`, or to a file a
-     founder-applied step embedded, is a finding (contract §1, "The candidate migration").
-   - After C-3, the candidate's trust-set source equals the bytes recorded in the Director's WO-6 revision.
+     founder-applied step embedded (the release-signer bootstrap's file included, once the event log records it), is a finding (contract §1, "The candidate migration").
+   - Once a WO-6 revision records the release signer's public key, the candidate's production trust-set source equals exactly those
+     bytes.
 2. **Isolation (S-15).**
    - Verification runs on:
      - disposable PostgreSQL: `qa/factory/local_pg.mjs` for the certified reference suites, and a **judging plane** (step 3, "The
        judging plane") for every plane that judges the candidate;
      - local function runtimes;
-     - a **disposable Brain OS auth stack** for AC-7, R-1 and R-2: a local Supabase started by the CLI with `supabase/migrations/`
+     - a **disposable Brain OS auth stack** for AC-5(o), AC-7, R-1 and R-2: a local Supabase started by the CLI with `supabase/migrations/`
        applied at `55a15917` (including `profiles_update_self_or_admin` as in production), and the AC-7 personas seeded, including a
        self-updated `profiles.role`. The Admin API derives the role through the same calls it makes in production; a stubbed role
        check never counts;
@@ -126,7 +127,8 @@ entry (§3.11).
 3. **Baseline (AC-11).**
    - Check the branch refs, the legacy nodes' plane records and the checkout rule.
    - Load `BASELINE_69df2f52_EVIDENCE_ROWS.json` unchanged into a judging plane provisioned as `69df2f52` (below; the verifier adds no
-     row and fills no column), apply every founder-applied step in event-log order (at the sha256 its certifying receipt records), run
+     row and fills no column), apply every founder-applied step in event-log order (at the sha256 its certifying receipt records; the
+     release-signer bootstrap's is its event-log entry's, contract §1), run
      the live-migration step below on it, and re-hash with `tools/baseline_manifest.mjs`, run with
      `FACTORY_TARGET=disposable`, `FACTORY_RUNNER_PG_URL` naming that plane's non-superuser `factory_runner` login (user, password,
      port and database; `db.mjs` refuses a superuser), no other credential variable, no `FACTORY_RUNNER_ENV_FILE` or `PG*` variable and
@@ -140,8 +142,8 @@ entry (§3.11).
    - **The live-migration step** (AC-11; WO-1 founder boundary). The verifier builds it with `tools/build_live_migration_step.mjs` at
      the designated Director commit, from the candidate migration: the committed blobs (`git show <candidate sha>:<path>`, never a
      working-tree copy) of the candidate migration (contract §1): every `.sql` file the candidate adds under `supabase/control-plane/`,
-     recursively, excluding `supabase/control-plane/edge/`, since `69df2f52`, or since the last founder-applied step once one
-     exists, given by repository-relative path in byte order of path (the tool refuses any other order, and a duplicate). The implementer never supplies or edits the step. A
+     recursively, excluding `supabase/control-plane/edge/`, since `69df2f52`, or since the last founder-applied live-migration step once one
+     exists (the release-signer bootstrap never moves this base, contract §1), given by repository-relative path in byte order of path (the tool refuses any other order, and a duplicate). The implementer never supplies or edits the step. A
      refusal to build it is an AC-11 finding. Each embedded migration's printed sha256 equals its committed blob's. The tool's header
      states why its check means that the manifest hashes are unchanged.
    - **The judging plane.** Every disposable plane that judges the candidate (this step's copies, the planes of §3.5, AC-10's
@@ -215,7 +217,7 @@ entry (§3.11).
          handlers receive as in production (never a database login and never the token-signing secret). The receipt records
          which keys were handed over. The AC-7 persona rows (profiles, roles, `tenant_admins` seeds), each with its `xmin`, are
          hashed once after seeding, before any candidate process runs, and again before and after every run that hands
-         candidate code the service key (AC-7, R-1, R-2), with no candidate process alive while they are hashed. Every hash
+         candidate code the service key (AC-5(o), AC-7, R-1, R-2), with no candidate process alive while they are hashed. Every hash
          must equal the seed hash; a difference is an AC-7 finding.
        - **Evidence phases.** Each cluster's start through the issuing of its credentials, alignment, the fidelity check, every
          step run, the re-hash, the catalog-trust reads, the §3.5 read-backs and row checks, and AC-10's before and after reads
@@ -346,7 +348,7 @@ entry (§3.11).
 5. **Schema and privileges on the disposable plane.**
    - Every plane that judges AC-5..AC-12 and AC-14..AC-16 is a judging plane (step 3): provisioned as `69df2f52` as step 3 states,
      loaded with `BASELINE_69df2f52_EVIDENCE_ROWS.json` unchanged, then, in event-log order, every founder-applied step at the sha256
-     its certifying receipt records, then, after the fidelity check, exactly the step the verifier builds from the candidate migration
+     its certifying receipt records (the release-signer bootstrap's: its event-log entry's, contract §1), then, after the fidelity check, exactly the step the verifier builds from the candidate migration
      (the same bytes and sha256 as step 3), all as the applying login, with the `69df2f52` default-privilege grant to `factory_runner`
      in place. The receipt records each step's sha256. The certified reference suites (§3.7) are the exception: they create their own
      databases as their `69df2f52` bytes do (some under the clone's own `.factory` directory), and prove legacy non-regression only.
@@ -381,8 +383,9 @@ entry (§3.11).
          user, a computer record, an agent principal, a credential, a signing key or an envelope;
      - **after the first live migration** (the founder has applied a certified migration to the live plane, recorded in the ledger
        event log), the verifier also uses a second judging plane for each later candidate. It provisions the plane as `69df2f52`,
-       loads `BASELINE_69df2f52_EVIDENCE_ROWS.json` unchanged, and applies every prepared live-migration step the founder has applied
-       (at the sha256 its certifying receipt records), and the plane passes the fidelity check (step 3). It then seeds a bound computer
+       loads `BASELINE_69df2f52_EVIDENCE_ROWS.json` unchanged, and applies, in event-log order, every founder-applied step (a live-migration step at the sha256
+       its certifying receipt records; the release-signer bootstrap at the sha256 its event-log entry records, contract §1), and the
+       plane passes the fidelity check (step 3). It then seeds a bound computer
        record through that schema's Add Computer front door,
        as a Factory admin it provisions on that plane, and then applies the candidate's prepared live-migration step. The row check
        above holds on that plane, except that the rows seeded before the step exist. They are pre-existing rows, so the bound record,
@@ -533,9 +536,9 @@ entry (§3.11).
 ## 6. Final acceptance (AC-1..AC-4, then AC-13)
 
 - **Prerequisites:**
-  - C-3 is decided;
-  - the release under acceptance is the verifier-reproduced artifact of a CERTIFIED candidate, signed with the founder-provisioned key
-    (S-5);
+  - the founder's release-signer bootstrap is done, and a WO-6 revision records the signer's public key (S-5);
+  - the release under acceptance is the verifier-reproduced artifact of a CERTIFIED candidate, staged by the founder (contract §0),
+    published by the founder's confirmation in Factory → Update and signed by the release signer (S-5, S-8);
   - the founder-provisioned SELECT-only observer role exists (`FACTORY_OBSERVER_ENV`), and its first read is recorded as the
     storage-bucket referent (AC-10); the `runner.env` interim never serves final acceptance;
   - the founder boundaries are done: the live Factory migration (exactly the live-migration step in that candidate's receipt, AC-11),
@@ -549,6 +552,9 @@ entry (§3.11).
   and a redirected home directory, so no other file or variable supplies the connection. Final acceptance waits for the role.
 - **What the Director checks, read-only:**
   - the live policy rows, which must equal contract §1;
+  - the published release, before AC-1 starts: its source SHA, digest and receipt sha256 equal the certifying receipt's (its version
+    is bound by the founder's confirmation), its manifest signature verifies under the public key the WO-6 revision records, and its
+    publication record names the founder's authorization (S-5, S-8); a difference is a finding, and the founder revokes the release;
   - the installed artifact's digest (the PE Authenticode image hash, S-5), **computed on each machine itself** with a Director
     instrument committed under `tools/` before final acceptance and run by the built-in PowerShell (nothing installed), which must
     equal the receipt's reproduced production-channel digest. On the acceptance machine it runs only after AC-1's enrollment and
