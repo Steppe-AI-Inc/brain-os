@@ -33,7 +33,7 @@ const RUNTIME_PHASES = ['AVAILABLE', 'BUSY', 'DRAINING', 'RECOVERING'];
 const CHANNEL = typeof __CHANNEL__ !== 'undefined' ? __CHANNEL__ : { channel: null, default_api: null, release_base: null };
 export const INSTALLER_FILE = 'BrainFactorySetup.exe';
 const RELEASE_MANIFEST_FILE = 'BrainFactorySetup.manifest.json';   // setup.mjs MANIFEST_FILE (setup imports this module)
-const MAX_INSTALLER_BYTES = 512 * 1024 * 1024, MAX_MANIFEST_BYTES = 65536;
+const MAX_INSTALLER_BYTES = 256 * 1024 * 1024, MAX_MANIFEST_BYTES = 65536;   // the web page's installer limit
 export const TAKE_RETRY_MS = 15 * 60 * 1000;
 
 /** THE PLANE'S FRESH STATE, through this node's own credential (a heartbeat answers it): the revocations, the release adopted for
@@ -177,6 +177,8 @@ export async function takePublished({ home, published, adopted, running, channel
   const get = async (name, max) => {
     const r = await fetchImpl(base + name, { signal: AbortSignal.timeout(600000) });
     if (r.status !== 200) throw new Error(name + ': HTTP ' + r.status);
+    // a declared size over the limit is refused before a byte of it is read
+    if (Number(r.headers.get('content-length') || 0) > max) { await r.body?.cancel(); throw new Error(name + ' is larger than it can be'); }
     const b = Buffer.from(await r.arrayBuffer());
     if (b.length > max) throw new Error(name + ' is larger than it can be');
     return b;
