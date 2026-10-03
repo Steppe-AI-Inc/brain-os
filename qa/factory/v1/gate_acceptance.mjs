@@ -19,6 +19,16 @@
 //       ANOTHER channel does not count; published in its channel, or adopted (even superseded), it passes; a heartbeat answer that
 //       does not state the published releases refuses release_state_unavailable
 //   GA6 while a credential rotation of this home is pending, the gate decides nothing (rotation_pending) and sends no request
+//   GA7 THE PUBLISHED RELEASE, TAKEN BY THE NODE (founder correction 2026-10-03; CR-028): the plane names a published release of this
+//       channel that is not the one running; takePublished fetches its installer and signed manifest from the release storage it is
+//       given (the artifact's own, in a built runtime), and the ONE gate installs it (current.json names it, previous.json the old one);
+//       the fetched copies are removed
+//   GA8 what is NOT taken: an admin adopt pins the computer, another channel's release, the release already running, no release
+//       storage on the channel - nothing fetched; installer bytes that are not the manifest's (refused by the gate, nothing switched),
+//       and storage that does not serve the release (release_unavailable) - each recorded and not fetched again inside the retry
+//       window, and fetched again after it
+//   GA9 the worker: one cycle with a published release of its channel that is not running fetches it, installs it through the gate and
+//       exits SWITCH_RELEASE (4) - the supervisor's restart path - with nothing claimed; under an admin adopt the cycle takes nothing
 // usage: node qa/factory/v1/gate_acceptance.mjs
 import { createServer } from 'node:http';
 import fs, { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -37,20 +47,31 @@ const work = mkdtempSync(join(tmpdir(), 'bf-gate-'));
 
 // the dev channel's trust set, defined BEFORE release.mjs (imported by everything below) is first evaluated
 globalThis.__TRUST__ = JSON.parse(readFileSync(R('scripts/factory-runner/enrolled/trust/dev.json'), 'utf8'));
-const { gateOffer, upgrade } = await imp('scripts/factory-runner/enrolled/upgrade.mjs');
+const { gateOffer, upgrade, takePublished, TAKE_RETRY_MS } = await imp('scripts/factory-runner/enrolled/upgrade.mjs');
+const { runWorker, EXIT_WORKER } = await imp('scripts/factory-runner/enrolled/worker.mjs');
 const { runSetup } = await imp('scripts/factory-runner/enrolled/setup.mjs');
 const { paths, readJson, writeJson } = await imp('scripts/factory-runner/enrolled/home.mjs');
 const { newKey, storeKey } = await imp('scripts/factory-runner/enrolled/keys.mjs');
 const { makeManifest, signDev } = await imp('scripts/factory-build/release-manifest.mjs');
 
 // ---- the stub plane
-const plane = { sessionFailures: 0, adopted: null, published: [], statePublished: true, requests: [] };
+const plane = { sessionFailures: 0, adopted: null, published: [], statePublished: true, requests: [], storage: new Map(), claims: 0 };
 const server = createServer((q, r) => {
   let body = ''; q.on('data', (d) => { body += d; });
   q.on('end', () => {
-    const path = new URL(q.url, 'http://stub').pathname.replace(/^.*\/v1\//, '/v1/');
+    const raw = new URL(q.url, 'http://stub').pathname;
+    if (raw.startsWith('/releases/')) {   // the stand-in release storage (public, GET only)
+      plane.requests.push('STORAGE ' + q.method + ' ' + raw);
+      const b = q.method === 'GET' ? plane.storage.get(raw) : null;
+      if (!b) { r.writeHead(404, { 'content-type': 'application/json' }); return r.end('{"error":"not_found"}'); }
+      r.writeHead(200, { 'content-type': 'application/octet-stream' }); return r.end(b);
+    }
+    const path = raw.replace(/^.*\/v1\//, '/v1/');
     plane.requests.push(q.method + ' ' + path);
     const send = (status, j) => { r.writeHead(status, { 'content-type': 'application/json' }); r.end(JSON.stringify(j)); };
+    if (path === '/v1/node/register') return send(200, { ok: true, node_id: 'node-stub', enrollment_state: 'ALIVE', release: { current: true }, envelope: { version: 1 }, revocations: { key_ids: [], releases: [] } });
+    if (path === '/v1/node/release') return send(200, { ok: true, released: 0 });
+    if (path === '/v1/node/claim') { plane.claims++; return send(200, { ok: true, claimed: null, server_time: new Date().toISOString() }); }
     if (path === '/v1/time') return send(200, { ok: true, server_time: new Date().toISOString(), protocol: 1 });
     if (path === '/v1/session') {
       if (plane.sessionFailures > 0) { plane.sessionFailures--; return send(502, { ok: false, refused: 'plane_unavailable', message: 'stub: not answering yet' }); }
@@ -64,6 +85,8 @@ const server = createServer((q, r) => {
 });
 await new Promise((ok) => server.listen(0, '127.0.0.1', ok));
 const API = 'http://127.0.0.1:' + server.address().port + '/functions/v1/factory-node-api';
+const STORE = 'http://127.0.0.1:' + server.address().port + '/releases';
+const storageGets = () => plane.requests.filter((x) => x.startsWith('STORAGE GET')).length;
 const sessions = () => plane.requests.filter((x) => x === 'POST /v1/session').length;
 
 // ---- an enrolled home (a DPAPI-stored key and the config setup writes), and a signed offer
@@ -189,6 +212,74 @@ try {
     row('GA6 while a credential rotation of this home is pending, the gate refuses rotation_pending and sends nothing',
       r.ok === false && r.refused === 'rotation_pending' && plane.requests.length === before, JSON.stringify({ r: r.ok ? 'passed' : r.refused, sent: plane.requests.length - before }));
   }
+  // ---- GA7 / GA8 / GA9: the published release, taken by the node itself (CR-028)
+  const M2 = offer('0.2.0');
+  const serve = (version, exe, manifest) => { plane.storage.clear(); plane.storage.set('/releases/' + version + '/BrainFactorySetup.exe', exe); plane.storage.set('/releases/' + version + '/BrainFactorySetup.manifest.json', Buffer.from(JSON.stringify(manifest))); };
+  const PUB2 = [{ release_id: 'published-0.2.0', channel: 'dev', version: '0.2.0', digest: M2.digest }];
+  const RUNNING = { digest: 'a'.repeat(64) };
+  {
+    const { home, p } = await enrolledHome('ga7');
+    const cur = installed(home, '0.0.9', 'a'); writeJson(p.current, cur);
+    plane.published = PUB2; plane.adopted = null; serve('0.2.0', BYTES, M2);
+    const g0 = storageGets();
+    const r = await takePublished({ home, published: PUB2, adopted: null, running: RUNNING, channel: 'dev', releaseBase: STORE });
+    const now = readJson(p.current) || {};
+    row('GA7 a published release of this channel that is not the one running is fetched from release storage (installer and signed manifest, once each) and installed through the one gate: current.json names it (via upgrade), previous.json the release it replaced, and the fetched copies are gone',
+      r && r.ok === true && r.attempted === true && now.digest === M2.digest && now.version === '0.2.0' && now.via === 'upgrade' && (readJson(p.previous) || {}).digest === cur.digest
+        && storageGets() - g0 === 2 && !existsSync(join(home, 'state', 'incoming', M2.digest.slice(0, 16))),
+      JSON.stringify({ r: r && (r.ok ? 'installed' : r.refused), current: now.version, gets: storageGets() - g0 }));
+  }
+  {
+    const { home, p } = await enrolledHome('ga8');
+    const cur = installed(home, '0.0.9', 'a'); writeJson(p.current, cur);
+    plane.published = PUB2; plane.adopted = null; serve('0.2.0', BYTES, M2);
+    const g0 = storageGets();
+    const none = {
+      adopt: await takePublished({ home, published: PUB2, adopted: { release_id: 'x', version: '0.0.9', digest: cur.digest, state: 'superseded' }, running: RUNNING, channel: 'dev', releaseBase: STORE }),
+      otherChannel: await takePublished({ home, published: [{ ...PUB2[0], channel: 'production' }], adopted: null, running: RUNNING, channel: 'dev', releaseBase: STORE }),
+      running: await takePublished({ home, published: PUB2, adopted: null, running: { digest: M2.digest }, channel: 'dev', releaseBase: STORE }),
+      noStorage: await takePublished({ home, published: PUB2, adopted: null, running: RUNNING, channel: 'dev', releaseBase: null }),
+    };
+    const fetchedForNone = storageGets() - g0;
+    // installer bytes that are not the manifest's: another system executable under the same name
+    serve('0.2.0', readFileSync(join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'hostname.exe')), M2);
+    let t = Date.now();
+    const clock = () => t;
+    const wrong = await takePublished({ home, published: PUB2, adopted: null, running: RUNNING, channel: 'dev', releaseBase: STORE, now: clock });
+    const unchanged = JSON.stringify(readJson(p.current)) === JSON.stringify(cur);
+    const g1 = storageGets();
+    const again = await takePublished({ home, published: PUB2, adopted: null, running: RUNNING, channel: 'dev', releaseBase: STORE, now: clock });
+    const refetchedInWindow = storageGets() - g1;
+    plane.storage.clear();
+    t += TAKE_RETRY_MS + 1000;
+    const missing = await takePublished({ home, published: PUB2, adopted: null, running: RUNNING, channel: 'dev', releaseBase: STORE, now: clock });
+    row('GA8 nothing is fetched under an admin adopt, for another channel\'s release, for the release already running, or without release storage; installer bytes that are not the manifest\'s are refused by the gate (nothing switched), the refusal is recorded and nothing is fetched again inside the retry window; after it the release is fetched again, and storage that does not serve it is release_unavailable',
+      Object.values(none).every((x) => x === null) && fetchedForNone === 0 && wrong && wrong.ok === false && wrong.attempted === true && wrong.refused === 'digest_mismatch' && unchanged
+        && again && again.skipped === true && refetchedInWindow === 0 && missing && missing.ok === false && missing.refused === 'release_unavailable',
+      JSON.stringify({ none, fetchedForNone, wrong: wrong && (wrong.refused || 'taken'), unchanged, again, refetchedInWindow, missing: missing && missing.refused }));
+  }
+  {
+    const { home, p } = await enrolledHome('ga9');
+    writeJson(p.current, installed(home, '0.0.9', 'a'));
+    plane.published = PUB2; plane.adopted = null; serve('0.2.0', BYTES, M2);
+    const c0 = plane.claims;
+    const runtime = { version: '0.0.9', digest: RUNNING.digest, channel: 'dev', release_base: STORE };
+    const exit = await runWorker({ home, runtime, once: true, pollMs: 50 });
+    const claimed = plane.claims - c0;
+    const now = readJson(p.current) || {};
+    const st = readJson(p.status, {});
+    const { home: home2, p: p2 } = await enrolledHome('ga9-pinned');
+    writeJson(p2.current, installed(home2, '0.0.9', 'a'));
+    plane.adopted = { release_id: 'adopted-0.0.9', version: '0.0.9', digest: RUNNING.digest, state: 'superseded' };
+    const g0 = storageGets();
+    const exitPinned = await runWorker({ home: home2, runtime, once: true, pollMs: 50 });
+    const pinnedGets = storageGets() - g0;
+    plane.adopted = null;
+    row('GA9 one worker cycle with a published release of its channel that is not running takes it - fetched, installed through the gate - and exits SWITCH_RELEASE (4) with nothing claimed, saying SWITCHING; under an admin adopt the cycle fetches nothing and ends normally',
+      exit === EXIT_WORKER.SWITCH_RELEASE && now.digest === M2.digest && st.state === 'SWITCHING' && claimed === 0 && exitPinned === EXIT_WORKER.STOPPED && pinnedGets === 0 && (readJson(p2.current) || {}).version === '0.0.9',
+      JSON.stringify({ exit, current: now.version, state: st.state, claimed, exitPinned, pinnedGets }));
+  }
+  plane.published = PUBLISHED; plane.storage.clear();
 } catch (e) {
   row('X0 gate suite', false, e && e.stack || e);
 } finally {

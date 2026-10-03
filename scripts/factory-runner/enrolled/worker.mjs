@@ -6,7 +6,8 @@
 // (credential.mjs), then register (the release it runs, its fingerprint, hostname, OS, resources), heartbeat RECOVERING, then
 // RECONCILE - every run this node still holds on the plane is given back (a restarted process holds no work; the plane requeues it for
 // the certified takeover), so no resumed work continues without a fresh claim - then heartbeat AVAILABLE.
-// LOOP: heartbeat (liveness, phase, resources); an admin-requested rotation is honoured; while draining nothing is claimed; otherwise
+// LOOP: heartbeat (liveness, phase, resources); a published release of this channel that is not the one running is taken (upgrade.mjs
+// "take"); an admin-requested rotation is honoured; while draining nothing is claimed; otherwise
 // ONE claim that names every type this runtime has a handler for, the reserved type 'verification' included. The SERVER ranks
 // authoring and verification work together (numeric priority, then queue age) under the credential's CURRENT envelope and picks the
 // assignment kind (contract §2 "chosen automatically by the scheduler"; P-7): the worker caches no role, so an envelope amendment
@@ -33,7 +34,7 @@ import { HANDLERS, AUTHORING_TYPES } from './handlers.mjs';
 import { fingerprintProblem, hostname, machineFingerprintAsync, osName, resources } from './identity.mjs';
 import { loadKey, newKey, storeKey } from './keys.mjs';
 import { logger, paths, readJson, writeJson } from './home.mjs';
-import { adoptIfInstalled } from './upgrade.mjs';
+import { adoptIfInstalled, takePublished } from './upgrade.mjs';
 import { mergeRevocations } from './revocations.mjs';
 import { holdPipe } from './instance.mjs';
 import { beginRotation, pendingRotation, promotePending, resolvePendingRotation, unknownOutcome } from './credential.mjs';
@@ -216,6 +217,13 @@ async function runHeld({ home, runtime, pollMs, once, fetchImpl, standbyOnly, ke
       const sw = hb.adopted_release ? adoptIfInstalled(home, hb.adopted_release, runtime.digest) : null;
       if (sw && !sw.missing) { log('a Factory admin adopted release ' + hb.adopted_release.version + ': switching to it (never a silent downgrade)'); setState({ state: 'SWITCHING', message: 'adopting ' + hb.adopted_release.version }); return EXIT_WORKER.SWITCH_RELEASE; }
       if (sw && sw.missing) log('a Factory admin adopted release ' + hb.adopted_release.version + ', which is not installed here: install it with `upgrade`');
+      // THE PUBLISHED RELEASE, TAKEN BY ITSELF (upgrade.mjs "take"; CR-028): a published release of this channel that is not the one
+      // running here, with no admin adopt pinning this computer, is fetched from this artifact's release storage and offered to the one
+      // upgrade gate; once installed the worker switches to it exactly as for an adopt (the supervisor verifies it again before it runs)
+      const tk = await takePublished({ home, published: hb.published_releases, adopted: hb.adopted_release, running: runtime,
+        ...(runtime.channel ? { channel: runtime.channel } : {}), ...(runtime.release_base ? { releaseBase: runtime.release_base } : {}), ...(fetchImpl ? { fetchImpl } : {}) });
+      if (tk && tk.ok && tk.digest && tk.digest !== runtime.digest) { log('the published release ' + tk.version + ' is installed: switching to it'); setState({ state: 'SWITCHING', message: 'taking the published release ' + tk.version }); return EXIT_WORKER.SWITCH_RELEASE; }
+      if (tk && tk.attempted && !tk.ok) log('the published release ' + tk.version + ' was not taken: ' + tk.refused + (tk.message ? ' - ' + tk.message : ''));
       // STANDBY: the release this node runs is revoked (its digest or its signing key). It claims and runs nothing, says so, and never
       // downgrades on its own - it waits for a Factory admin to adopt a certified release (contract §6), then switches to it.
       if (standby) { setState({ state: 'RELEASE_REVOKED', message: 'the release this node runs is revoked: no work is claimed until a Factory admin adopts a certified release' }); await nap(pollMs); if (once) break; continue; }
