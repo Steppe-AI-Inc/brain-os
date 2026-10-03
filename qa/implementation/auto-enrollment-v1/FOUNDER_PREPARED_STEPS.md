@@ -6,7 +6,8 @@ implementer ran none of them and holds no production credential. Nothing here is
 The order matters. **Step S** (the release signer) happens once, **before** the candidate that pins its public key is frozen: a node
 trusts only the keys fixed into its installer at build time (S-5), so the key must exist first. Steps 1–6 happen only **after** the
 Director's receipt says CERTIFIED for the exact candidate SHA (`VERIFICATION_SPEC.md` §5). Step 7 (a live release) is authorized in
-Brain OS → Factory → Update by the founder's own account and its password.
+Brain OS → Factory → Update by the founder's own account and its password - and that is the founder's whole part of a release: the
+Director stages each certified release, and the computers take a published release by themselves (CR-028).
 
 **The founder holds no release key** (founder decision 2026-10-03, "system-managed release signer"). The Factory owns one Ed25519
 signing key, created by step S on the Factory's own database server and kept in its secret store; nobody generates, copies or stores
@@ -58,10 +59,12 @@ Every SQL step below runs as the plane's applying login `postgres` (NOSUPERUSER,
 - **What comes back:** `select factory_signer.public_key()` answers `{ "key_id": "ed25519:...", "public_key": "..." }`. Those two
   PUBLIC values are what the candidate adds to `scripts/factory-runner/enrolled/trust/production.json`, and what the Director's
   WO-6 record names. Anyone may read them back from the plane at any time; they are the same values.
-- **How it is sent:** as one request holding `begin;`, the file, `commit;` - through Supabase's Management API SQL endpoint with a
-  founder access token (the implementer's prepared command does exactly this, reads the plane first and changes nothing unless
-  SQL runs there as `postgres`, the database says it is `npvhuoozkbexddnvkqsj`, the secret store is there and no signer exists),
-  or with `psql -X -v ON_ERROR_STOP=1` in one session.
+- **How it is applied (Director r6, contract §0 and §1):** a verifier judges the file alone first, and the Director records the
+  judgment with the file's path, sha256 and implementer commit. The founder then applies exactly those bytes, which the Director
+  provides, in one transaction, by the path the Director's founder procedure names: `psql -X -1 -v ON_ERROR_STOP=1 -f <file>` from a
+  client that is not implementer-authored, on a machine where no implementer session runs, or the provider's own console once it is
+  shown to apply a file as one transaction - never `supabase db query --file`. No implementer-authored program receives a founder or
+  plane credential and no account-level management token is used; a database credential typed into a client is rotated afterwards.
 - **Never twice.** A second application fails at its first statement (the schema exists) and changes nothing. A key is never
   replaced in place: a new key is a new candidate that pins it, and the old one is retired with `revoke-key`.
 - **Undo (only before a release signed by it is published):** drop schema `factory_signer` with everything in it, and delete the
@@ -221,16 +224,18 @@ secret store and nowhere else. Two ways in, one per kind of value:
 Read back: `npx supabase secrets list --project-ref npvhuoozkbexddnvkqsj` lists the six names (it shows digests, never the
 values).
 
-## 5. Deploy the two functions (after independent verification of the exact SHA; `ALLOW_FUNCTIONS_DEPLOY=1?` asked once)
+## 5. Deploy the three functions (after independent verification of the exact SHA; `ALLOW_FUNCTIONS_DEPLOY=1?` asked once)
 
 From the repository root at the CERTIFIED SHA:
 
 ```
 npx supabase functions deploy factory-node-api  --project-ref npvhuoozkbexddnvkqsj --workdir supabase/control-plane/edge --no-verify-jwt
 npx supabase functions deploy factory-admin-api --project-ref npvhuoozkbexddnvkqsj --workdir supabase/control-plane/edge --no-verify-jwt
+npx supabase functions deploy factory-release-stage --project-ref npvhuoozkbexddnvkqsj --workdir supabase/control-plane/edge --no-verify-jwt
 ```
 
-`supabase/control-plane/edge/supabase/config.toml` also sets `verify_jwt = false` for both functions. The functions authenticate
+`supabase/control-plane/edge/supabase/config.toml` also sets `verify_jwt = false` for all three. `factory-release-stage` needs no
+secret: the platform gives it the project's address and storage key, and it accepts only a statement the Director's key signed (CR-028). The functions authenticate
 every request themselves. A node's session is not a Supabase JWT, and a Brain OS token is signed by the other project, so the
 gateway's JWT check would refuse every call. The Brain OS workflow (`supabase-functions.yml`, `master` push, project
 `pvphxgrtdfrudejjhzjk`) deploys only the root `supabase/functions/` and cannot reach these (`factory_v1_static_contract` E2, E5).
@@ -243,6 +248,8 @@ gateway's JWT check would refuse every call. The Brain OS workflow (`supabase-fu
 2. `POST .../factory-admin-api/v1/admin/list-computers` with a founder session returns 200 with a `computers` envelope. With an
    employee session it returns 403 `not_authorized`. With no token it returns 401.
 3. `POST .../factory-node-api/v1/node/heartbeat` with no session returns 401 `session_invalid`.
+3b. `POST .../factory-release-stage` with the body `{}` returns 400 `bad_request`, and a `GET` returns 405: the function is there and the
+   gateway passes the request through; nothing is staged.
 4. Record the outcome of each against the deployed function version (`npx supabase functions list --project-ref npvhuoozkbexddnvkqsj`).
 
 A 503 `misconfigured` names what is missing from the database configuration (the URL or `FACTORY_DB_CA_PEM`). A 503
@@ -266,23 +273,31 @@ token check, as 401 `not_authenticated` or 503 `unavailable`, so check both when
    WO-6 record names the same key id, and that candidate is verified and CERTIFIED.
 2. The verifier rebuilds the production channel from the CERTIFIED SHA
    (`node scripts/factory-build/build-sea.mjs --channel production`, then `verify-build.mjs`), and the receipt records the digest.
-3. The prepared release is the installer and its manifest, NOT signed (`key_id` and `signature` stay `null`):
+3. **The Director stages it** (CR-028; not a founder action), once the receipt says CERTIFIED:
 
    ```
-   node scripts/factory-build/release-manifest.mjs make --artifact <exe> --channel production --version <v> --source-sha <sha> --receipt-sha256 <receipt sha256> --out prepared.json
+   node scripts/factory-build/stage-release.mjs --artifact <the reproduced BrainFactorySetup.exe> --version <v> --source-sha <the CERTIFIED SHA> --receipt-sha256 <the receipt's sha256> --signing-key <the Director's signing key file>
    ```
 
-   Its digest must equal the receipt's reproduced digest. Optionally Authenticode-sign the exe: the digest does not change (S-5).
-4. Stage it in release storage (step 6): the exe at `factory-releases/production/<version>/BrainFactorySetup.exe`, and the unsigned
-   manifest at `factory-releases/production/prepared.json`. Nothing is published by this.
-5. Authorize it: **Brain OS → Factory → Update**, signed in with the founder's own account. The page shows the prepared release -
+   The command computes the installer's digest (it must equal the receipt's reproduced digest), has ssh-keygen sign the prepared
+   update's statement with the Director's own key (it never reads the key), and sends it to `factory-release-stage`, which checks the
+   signature and writes the prepared update (`factory-releases/production/prepared.json`, unsigned, and `prepared.sig`). The command
+   then uploads the installer once to `factory-releases/production/<version>/BrainFactorySetup.exe` - the address never overwrites an
+   installer that is there - and reads it back. Nothing is published by this. Optionally Authenticode-sign the exe first: the digest
+   does not change (S-5).
+4. Authorize it: **Brain OS → Factory → Update**, signed in with the founder's own account. The page shows the prepared release -
    version, certified source, installer digest, certifying receipt - and asks for the password of the account that is signed in.
    **Confirm update** then, in this order: the release in storage is still the one shown; the installer storage serves has that
    digest; Brain OS checks the password (its own password sign-in, for that account's email); the Factory checks that the caller
-   is its founder (tier founder in `tenant_admins` AND live role founder) and that the password was entered in the last two
-   minutes; the Factory's signer signs exactly that release and the release is published, in one transaction. The Admin API then
+   is its founder (tier founder in `tenant_admins` AND live role founder), that the password was entered in the last two minutes,
+   and that the four values are the ones staged under the Director's signature (otherwise `not_staged`); the Factory's signer signs
+   exactly that release and the release is published, in one transaction. The Admin API then
    places the signed manifest at `factory-releases/production/<version>/BrainFactorySetup.manifest.json`, where setup looks for it.
    A wrong password never reaches the Factory. The password is sent to Brain OS and nowhere else.
+5. **The computers take it by themselves** (CR-028): at its next heartbeat, between two pieces of work, every enrolled computer
+   whose release is not the published one fetches the published installer and its signed manifest from release storage (the address
+   compiled into it), verifies both against the trust set pinned in it, installs the release and switches to it; nobody upgrades a
+   computer by hand. A computer a Factory admin adopted a release for stays on that release.
 6. Read back: the Update page says the release is published and its manifest is in storage; the Computers page lists it, serves
    the download links and can measure the file as served ("Check the served file"). If storage did not take the manifest, the
    page says so: confirming once more places it and signs nothing again.

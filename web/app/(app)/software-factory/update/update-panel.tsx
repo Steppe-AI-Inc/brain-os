@@ -40,8 +40,15 @@ export function UpdatePanel({ state }: { state: UpdateState }) {
     const entered = password;
     setPassword("");   // the password leaves this page's state as soon as it is sent
     start(async () => {
-      setResult(await authorizeUpdate({ password: entered, expected: prepared }));
-      router.refresh();
+      // the page re-reads the Factory's state whatever happened - an answer that never arrived included (AC-5(o)): what it then
+      // shows (published, or still prepared) is the plane's, never a guess
+      try {
+        setResult(await authorizeUpdate({ password: entered, expected: prepared }));
+      } catch {
+        setResult({ ok: false, refused: "unreachable", message: "The answer did not arrive. The page now shows the Factory's state as it is." });
+      } finally {
+        router.refresh();
+      }
     });
   };
 

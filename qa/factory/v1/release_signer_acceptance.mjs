@@ -27,6 +27,7 @@
 //   RS10 no part is in a statement of the file or in a result of applying it: the file's only 32-byte literals are the RFC's
 //        vectors; the store's secret is created with a placeholder and its value is given to the store's update call (which writes
 //        ciphertext only); applying the file returns two rows only - the self-test's void and the update's void
+//   RS12 two bootstraps on two fresh planes give two different keys (AC-5(p))
 //   RS11 the file's own last check stops it on a plane whose default privileges would hand a signer function, or the signer table,
 //        to another role - and then nothing of the file remains: no schema, no stored secret
 // usage: node qa/factory/v1/release_signer_acceptance.mjs [--evidence <file>]
@@ -111,8 +112,12 @@ try {
     const admin = await client(plane.adminApiUrl), node = await client(plane.nodeApiUrl), runner = await client(plane.runnerUrl);
     await su.query("create role reads_everything login password 'reads_everything_pw' in role pg_read_all_data");
     await su.query("create role acts_as_service_role login password 'acts_as_service_role_pw' in role service_role");
+    // the observer's recorded grants (contract §1: SELECT on every factory relation; no member of pg_read_all_data), AC-5(p)
+    await su.query("create role observes_factory login password 'observes_factory_pw'");
+    await su.query('grant usage on schema factory to observes_factory; grant select on all tables in schema factory to observes_factory');
     const reader = await client(plane.superUrl.replace(/\/\/[^@]+@/, '//reads_everything:reads_everything_pw@'));
     const service = await client(plane.superUrl.replace(/\/\/[^@]+@/, '//acts_as_service_role:acts_as_service_role_pw@'));
+    const observer = await client(plane.superUrl.replace(/\/\/[^@]+@/, '//observes_factory:observes_factory_pw@'));
     try {
       // ---- RS5: the seed and the signed manifest
       const m = (await owner.query(SIGN, REL)).rows[0].m;
@@ -147,7 +152,7 @@ try {
         Object.values(refused).every((c) => c === '22023'), JSON.stringify(refused));
 
       // ---- RS7: who can reach the private key (the seed needs BOTH parts)
-      const who = { applying_login: ap, service_role: service, reads_every_table: reader, legacy_runner: runner, admin_api: admin, node_api: node, engine_role: owner };
+      const who = { applying_login: ap, service_role: service, reads_every_table: reader, legacy_runner: runner, admin_api: admin, node_api: node, observer, engine_role: owner };
       const reach = {};
       for (const [name, c] of Object.entries(who)) {
         const store = await tryOn(c, STORE), table = await tryOn(c, 'select part from factory_signer.signer'), seedFn = await tryOn(c, 'select factory_signer._seed()');
@@ -158,9 +163,9 @@ try {
       }
       const others = Object.entries(reach).filter(([n]) => n !== 'applying_login');
       const cipherOnly = await tryOn(reader, `select secret from vault.secrets where name = '${NAME}'`);
-      row('RS7 who can reach the private key (the seed needs BOTH parts): service_role reads the store\'s part - the platform\'s grant - and is refused the table\'s part; a login that may read every table reads the table\'s part and is refused the store\'s (it sees the stored text only); the legacy runner, both API logins and the engine role read neither; none of them may run the seed\'s own function, the internal signing function or ready() (42501), and of them only the engine role may call sign_release. The applying login, the plane\'s owner-level login, holds both. Every login reads the public half',
+      row('RS7 who can reach the private key (the seed needs BOTH parts): service_role reads the store\'s part - the platform\'s grant - and is refused the table\'s part; a login that may read every table reads the table\'s part and is refused the store\'s (it sees the stored text only); the legacy runner, both API logins, a login holding the observer\'s grants and the engine role read neither; none of them may run the seed\'s own function, the internal signing function or ready() (42501), and of them only the engine role may call sign_release. The applying login, the plane\'s owner-level login, holds both. Every login reads the public half',
         reach.service_role.store_part === 'READ' && reach.service_role.table_part === '42501' && reach.reads_every_table.store_part === '42501' && reach.reads_every_table.table_part === 'READ'
-          && ['legacy_runner', 'admin_api', 'node_api', 'engine_role'].every((n) => reach[n].store_part === '42501' && reach[n].table_part === '42501')
+          && ['legacy_runner', 'admin_api', 'node_api', 'observer', 'engine_role'].every((n) => reach[n].store_part === '42501' && reach[n].table_part === '42501')
           && others.every(([, r]) => !(r.store_part === 'READ' && r.table_part === 'READ') && r.seed_function === '42501' && r.internal_sign === '42501' && r.ready === '42501')
           && others.every(([n, r]) => r.sign_release === (n === 'engine_role' ? 'signed' : '42501'))
           && reach.applying_login.store_part === 'READ' && reach.applying_login.table_part === 'READ' && reach.applying_login.sign_release === 'signed'
@@ -212,11 +217,13 @@ try {
       // the store's create call is given a placeholder; the part is the second argument of the store's update call
       const created = /select vault\.update_secret\(\n\s*vault\.create_secret\('placeholder[^']*', 'factory_release_signer_part',\n\s*'[^']*'\),\n\s*encode\(sha256\((uuid_send\(gen_random_uuid\(\)\)( \|\| )?){4}\), 'hex'\)\);/.test(text);
       const fresh = await startV1Plane({ migrate: false, signer: false });
-      let returned;
+      let returned, freshKey = null;
       try {
         const c = await client(fresh.adminUrl);
-        try { const res = await c.query('begin;\n' + text + '\ncommit;\n'); returned = (Array.isArray(res) ? res : [res]).flatMap((r) => r.rows || []); }
-        finally { await c.end(); }
+        try {
+          const res = await c.query('begin;\n' + text + '\ncommit;\n'); returned = (Array.isArray(res) ? res : [res]).flatMap((r) => r.rows || []);
+          freshKey = (await c.query('select factory_signer.public_key() k')).rows[0].k;
+        } finally { await c.end(); }
       } finally { await fresh.stop(); }
       row('RS10 no part is in a statement of the file or in a result of applying it: the file\'s only 32-byte literals are the RFC\'s vectors; the store\'s secret is created with a placeholder and its value is the second argument of the store\'s update call; applying the file returns two rows only - the self-test\'s void and the update\'s void',
         literals.length === 6 && literals.every((l) => vectors.has(l)) && !text.includes(storePart) && !text.includes(hex(tablePart)) && created
@@ -241,7 +248,11 @@ try {
         leaks.function.applied === false && /self-check: a function is executable by a role other than its owner/.test(leaks.function.message) && leaks.function.left.schema === false && leaks.function.left.secrets === 0
           && leaks.table.applied === false && /self-check: another role holds a privilege on the signer table/.test(leaks.table.message) && leaks.table.left.schema === false && leaks.table.left.secrets === 0,
         JSON.stringify(leaks));
-    } finally { for (const c of [owner, admin, node, runner, reader, service]) await c.end().catch(() => {}); }
+      // ---- RS12: a second fresh plane's bootstrap (RS10's) gives another key
+      const bound = (k) => !!k && /^ed25519:[0-9a-f]{64}$/.test(k.key_id) && k.key_id === 'ed25519:' + createHash('sha256').update(Buffer.from(k.public_key, 'base64url')).digest('hex');
+      row('RS12 two bootstraps on two fresh planes give two different keys, each bound to its key id (AC-5(p))',
+        bound(signer) && bound(freshKey) && freshKey.key_id !== signer.key_id && freshKey.public_key !== signer.public_key, JSON.stringify({ first: signer.key_id, second: freshKey && freshKey.key_id }));
+    } finally { for (const c of [owner, admin, node, runner, reader, service, observer]) await c.end().catch(() => {}); }
   } finally { await su.end().catch(() => {}); await ap.end().catch(() => {}); }
 } catch (e) {
   row('RS0 the suite completed', false, (e.stack || e.message || String(e)).split('\n').slice(0, 4).join(' | '));
@@ -253,4 +264,4 @@ const failed = results.filter((r) => !r.ok);
 const ev = process.argv.indexOf('--evidence');
 if (ev > -1) writeFileSync(process.argv[ev + 1], JSON.stringify({ suite: 'release_signer_acceptance', results }, null, 2) + '\n');
 console.log('\nrelease_signer_acceptance: ' + (results.length - failed.length) + '/' + results.length + ' OK' + (failed.length ? '; FAILED: ' + failed.map((r) => r.id.split(' ')[0]).join(', ') : ''));
-process.exit(failed.length || results.length < 11 ? 1 : 0);
+process.exit(failed.length || results.length < 12 ? 1 : 0);
