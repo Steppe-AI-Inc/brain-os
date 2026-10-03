@@ -285,7 +285,9 @@ entry (§3.11).
    - a secret scan;
    - the **instrument-integrity check** (S-10): any `CREATE EVENT TRIGGER`, any `CREATE CAST` to `json` or `jsonb`, any setting of
      `allow_system_table_mods`, and any write to a `pg_catalog` relation in the candidate diff is a finding;
-   - the **static one-engine check**: every Edge handler authenticates and calls exactly one SQL front door;
+   - the **static one-engine check**: every Edge handler authenticates and calls exactly one SQL front door, except the release-stage
+     handler, which calls none; the service-role key is used only as S-10 confines it (the release-stage handler and the Admin API,
+     on the release bucket);
    - the **plane-conditioned-behaviour scan** (S-10). It covers every SQL object and migration statement the candidate adds or changes,
      its Edge handlers and its prepared founder steps, which is S-10's scope.
      - **Hits.** Every reference to a value that can tell the live plane from a disposable one, or live operation from the
@@ -537,7 +539,7 @@ entry (§3.11).
 
 - **Prerequisites:**
   - the founder's release-signer bootstrap is done, and a WO-6 revision records the signer's public key (S-5);
-  - the release under acceptance is the verifier-reproduced artifact of a CERTIFIED candidate, staged by the founder (contract §0),
+  - the release under acceptance is the verifier-reproduced artifact of a CERTIFIED candidate, staged by the Director (contract §4),
     published by the founder's confirmation in Factory → Update and signed by the release signer (S-5, S-8);
   - the founder-provisioned SELECT-only observer role exists (`FACTORY_OBSERVER_ENV`), and its first read is recorded as the
     storage-bucket referent (AC-10); the `runner.env` interim never serves final acceptance;
