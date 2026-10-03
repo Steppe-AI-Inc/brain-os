@@ -59,11 +59,31 @@ Contract reference: `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md`. Govern
   | CR-003 | founder-only release tier | **RATIFIED**. Granting `release_broker` and publishing a release are founder-only |
   | CR-004 | installer distribution | **Option A**. The installer is downloadable without login. It contains no secret; its sha256 and signing state are shown on the Computers page. The pairing code is the control |
 
-- **The only founder gate: C-3, production release-signing key custody** (II.11), inside WO-6.
+- **C-3, production release signing (II.11), is decided by the founder (II.18): a Factory-managed release signer** (S-5), inside
+  WO-6. No founder gate remains.
+  - The founder never handles the release-signing key. The founder's update authority is the existing founder-only rule (S-8), and
+    the confirmation also needs a fresh entry of the founder's own Brain OS password (S-8). On that one confirmation the Factory
+    signs, publishes and supersedes automatically (§2 Release): that is the update the founder authorizes. The confirmation installs
+    nothing on any node; nodes take the published release by the unchanged path (WO-6, upgrade and rollback).
+  - II.18 decides II.11's C-3: the implementer builds the release signer's code and its bootstrap, and never creates, holds or uses
+    the production key (S-5). The authorization's values (S-8) and the bootstrap's form (§1) are Director decisions on CR-027.
   - Implementation completes everything else with dev keys on disposable planes.
-  - **Final acceptance (AC-1..AC-4) needs C-3 decided**, because a live-plane node trusts only a founder-provisioned key (S-5).
+  - **Final acceptance (AC-1..AC-4) needs the founder's release-signer bootstrap and the Director's WO-6 revision recording the
+    signer's public key**, because a live-plane node trusts only that key (S-5).
 - **Founder boundaries** (actions, not policy gates; I A.4 §12):
   - the live Factory migration, applied as exactly the live-migration step in the certified candidate's receipt (AC-11);
+  - the release-signer bootstrap (WO-6, S-5; §1, "The candidate migration"): the application of the pinned signer file to the live
+    plane, after a verifier has judged that file and before the candidate whose trust set carries its key. It needs no key handling.
+    The founder applies exactly the file's bytes, which the Director provides from the implementer's signed commit, in one
+    transaction, all or nothing, by the path the Director's founder procedure names: `psql -X -1 -v ON_ERROR_STOP=1 -f` from a
+    client that is not implementer-authored, on a machine where no implementer session runs, or the provider's own console once
+    it is shown to apply a file as one transaction; never `supabase db query --file` (`VERIFICATION_SPEC.md` §3.3). No
+    implementer-authored program receives a founder or plane credential, and no account-level management token is used; a
+    database credential typed into a client is rotated afterwards. The founder states the path used, and the Director's event-log entry records it as the founder's attestation (the
+    read-only observation cannot show it: a recorded limit);
+  - the prepared update's staging, per release (S-5): before Factory → Update, the founder places the verifier-reproduced installer
+    and its unsigned manifest, which the Director provides, in the Factory's release storage (a production write with no key
+    handling);
   - the live Edge deploy;
   - production secrets (the pepper, API roles);
   - the production Brain OS deploy by PR into `master`;
@@ -98,7 +118,7 @@ Contract reference: `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md`. Govern
   | I A.4 §4 "service / watchdog" vs I A.2 "per-user install, no admin" | a per-user task at logon plus a watchdog, and no Windows service: after a reboot the node runs from the installing user's next logon. While the installing user is logged off, the computer derives STALE / OFFLINE, does no work, and its leases lapse into the certified takeover (AC-1). Included in the Part I confirmation request, with that consequence, as the reading of I A.4 §4's "persistent" |
   | Branch names (I A.3 §3) | the feature branch `factory/auto-enrollment-v1-contract` was superseded at `27d78ff6` by the Director's branch decision (ADR amendment 10; founder confirmation requested). I A.3 §3's isolation rules apply unchanged to the implementation branch and its worktree. Implementation advances on `factory/auto-enrollment-v1-implementation`, built on the designated Director commit. The live legacy checkout rule is unchanged |
 
-## 1. Canonical state (facts; the implementer designs the tables inside `supabase/control-plane/`, never `supabase/migrations/`)
+## 1. Canonical state (facts; the implementer designs the tables inside `supabase/control-plane/`, never `supabase/migrations/`; the release-signer bootstrap's own schema is the one exception, below)
 
 - **Tenant:** `factory.tenants` (one row today), and `tenant_id` on every factory row.
 - **Factory admins:** `factory.tenant_admins` (tenant, Brain OS auth user id, **tier** `founder | admin`), written only by the founder's
@@ -182,10 +202,42 @@ Contract reference: `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md`. Govern
       rebinding and an unbound re-enrollment of a bound computer are refused during this milestone (S-14). The definition, the
       product-layer scope and its evidence are stated in S-16.
 - **The candidate migration** (AC-11, WO-1): every `.sql` file the candidate adds under `supabase/control-plane/`, recursively,
-  excluding `supabase/control-plane/edge/`, since `69df2f52`, or since the last founder-applied step once one exists (the ledger
+  excluding `supabase/control-plane/edge/`, since `69df2f52`, or since the last founder-applied live-migration step once one exists (the ledger
   event log lists each applied step's embedded files by path and sha256), applied in byte order of repository-relative path.
   - The `69df2f52` files `001`..`003`, and every file a founder-applied step embedded, are never changed; a change to one is a
     finding (`VERIFICATION_SPEC.md` §3.1).
+  - **The release-signer bootstrap** (WO-6, S-5) is a founder-applied step of its own kind: one SQL file of the candidate's, outside
+    `supabase/control-plane/`, that the founder applies to the live plane in one transaction (§0). A second application is refused
+    by name and changes nothing.
+    - **Judged, recorded, then applied.** Before the founder applies it, a verifier judges the file alone on a judging plane: the
+      `VERIFICATION_SPEC.md` §3.4 scan and inventories, the bounds below, and the AC-5(p) cases that need no candidate (the
+      read-backs, two fresh bootstraps and the RFC 8032 cross-check). The Director records the
+      judgment in the event log, with the file's path, sha256 and the implementer commit that carries it; the founder applies only
+      that file. The candidate carries it byte for byte (a change to it is a finding, `VERIFICATION_SPEC.md` §3.1), and the
+      candidate's certification judges it again.
+    - **Bounds.** It creates only its own schema and the objects in it, and one entry in the platform secret store. It creates no
+      role, login, membership, default privilege or event trigger, nothing in any other schema, and changes nothing that exists. It
+      grants USAGE on its schema and EXECUTE on the function that returns the public key to every login (the legacy login
+      included) and grants nothing else; only the candidate migration may grant the signing function, and only to the owner of the
+      founder-authorized publication's front door. Beyond those grants no legacy privilege or default grant reaches its objects,
+      and it writes no other row. Anything else the live plane gains at the bootstrap is an S-11 / S-15 finding, never a founder
+      action.
+    - **Not a live-migration step.** It never moves the candidate migration's base: in every Director document and instrument, "the
+      last founder-applied step" means the last founder-applied live-migration step, and where a founder-applied step's sha256 is the
+      one its certifying receipt records, the bootstrap's is the one its event-log entry records.
+    - **Observed, then the referent.** The Director's read-only observation after it is as expected only if the live catalog equals
+      the referent before it plus exactly the difference that file, at its event-log sha256, produces on a judging plane (read with
+      the same catalog tool). The Director also judges, from the catalog, the secret store's object ACLs and the memberships that
+      reach its decrypt path, never a secret's name or contents: no login other than an owner-level one reaches both that path and
+      the signer's relation, and no API, node, legacy or observer login reaches either (S-5). That read is
+      then the referent (`VERIFICATION_SPEC.md` §3.3); otherwise it is an S-11 finding and is not a referent. The live secret
+      store's contents are never observed (a recorded limit).
+    - **Judging planes.** Every judging plane applies it, in event-log order with the other founder-applied steps and before the
+      live-migration step. The plane's secret store is the image's own, aligned to the referent's extension; its internal objects and
+      grants are the image's and are not compared (`VERIFICATION_SPEC.md` §3.3, a recorded limit).
+    - **Rejection.** A certification-blocking finding in it REJECTS the candidate. Before any production release, a removal step,
+      judged before use, removes what it created, a Director observation confirms the state before it, and a new bootstrap and a
+      new trust-set revision replace the signer.
   - Every disposable plane that judges a candidate is a judging plane (`VERIFICATION_SPEC.md` §3.3): a local Supabase database whose
     bootstrap superuser aligns its roles and their settings, memberships, database and schema ACLs, default privileges, extensions and
     event triggers to the pre-candidate referent, leaving what the `69df2f52` provisioning and the founder-applied steps create to the
@@ -252,7 +304,8 @@ Contract reference: `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md`. Govern
   Director read of the live plane uses it, never an enrolled computer's credential. Until it exists, candidate-stage live reads use
   the documented `runner.env` interim, read-only. The interim never serves final acceptance, which requires the observer role
   (`VERIFICATION_SPEC.md` §6). Its first read is the storage-bucket referent (AC-10), and no column it can read holds a bearer
-  value (S-12).
+  value (S-12). It is no member of `pg_read_all_data`, and it holds no privilege on the release signer's schema beyond the USAGE
+  and the public-key EXECUTE that every login holds; the Director checks both from the catalog at its first read (S-5).
 - **Derived, never stored as a flag:**
   - runtime liveness: STALE after 180 s without a heartbeat, OFFLINE after 30 min;
   - the displayed computer state, from each principal's state (that of its active credential; with none, that of its latest pairing
@@ -314,9 +367,9 @@ STALE and OFFLINE are derived (§1).
 
 | From | To | Trigger | Who |
 |---|---|---|---|
-| (after C-3) trust-set revision | candidate | the Director issues a WO-6 revision recording the founder's public keys and key ids; the implementer's next candidate adds exactly those bytes to the trust-set source; it receives a full verification pass | Director (revision), implementer (candidate) |
+| (after the release-signer bootstrap) trust-set revision | candidate | the Director reads the release signer's public key from the live plane, read-only, and issues a WO-6 revision recording it and its key id; the implementer's next candidate adds exactly those bytes to the trust-set source; it receives a full verification pass | Director (revision), implementer (candidate) |
 | candidate | certified | a Director-committed receipt with verdict CERTIFIED, including the reproduced digest. The plane records it only through the founder's publish action, which cites that receipt; the Director never writes the plane | the verifier certifies; the Director records it in the ledger |
-| certified | published | the founder signs a manifest whose digest equals the reproduced digest (C-3) | founder (tier `founder` and live role founder; S-8) |
+| certified | published | the founder confirms the prepared update (S-5) in Factory → Update with a fresh entry of the founder's own Brain OS password (S-8). In one transaction the release signer signs the manifest it builds from the update's version, source SHA, digest (equal to the reproduced digest) and receipt sha256, the release is published, the previous one is superseded, and the audit row is written. A failure or a refusal signs, publishes and supersedes nothing, is named, and is audited when it reaches the Factory (S-8). The confirmation installs nothing on a node (§0) | the founder authorizes (tier `founder` and live role founder, with the fresh entry; S-8); the Factory signs and publishes (S-5) |
 | published | superseded | a newer certified release is published | founder |
 | published | revoked | revoke | founder |
 | node on release X | node on the previous certified release | adopt / roll back | Factory admin (a node never downgrades silently) |
@@ -419,14 +472,15 @@ The security / tenancy / authority invariants S-1..S-16 (`.SECURITY_TENANCY.md`)
 | transition | who may |
 |---|---|
 | Add Computer: configure the envelope, issue / revoke a pairing code, re-pair | a Factory admin (S-8: role founder \| holding_admin **and** listed in `tenant_admins`) |
-| grant `release_broker` in an envelope; publish a release | founder-only per S-8 (tier `founder` in `tenant_admins` and live role founder; CR-003) |
+| grant `release_broker` in an envelope; publish a release | founder-only per S-8 (tier `founder` in `tenant_admins` and live role founder; CR-003); a production release also needs the founder's fresh password entry (S-8) |
 | bind S-16(a) to a computer at its Add Computer (add-only; never released by archive and re-enrollment) | a Factory admin (S-14's one permitted campaign write) |
 | start / verify pairing, obtain the node credential | the holder of a valid, unexpired, unconsumed code, once |
 | every node operation | the node's own active credential, within its envelope. Tenant, identity and authority come from the credential, never from the body |
 | amend envelope; drain / resume; rotate / revoke credential; archive / restore; create an agent principal and issue its pairing code | a Factory admin |
 | certify a candidate | a distinct authorized verifier under the policy (S-13, S-16) |
-| production release signing; publishing, superseding or revoking a release | founder-only per S-8 (tier `founder` and live role founder); C-3 for key custody |
-| supplying the founder's public keys for the trust-set source | the founder, out of band; recorded by a Director WO-6 revision (not an API action; S-5, S-8) |
+| authorizing an update (Factory → Update); publishing, superseding or revoking a release | founder-only per S-8 (tier `founder` and live role founder); publishing a production release also needs the founder's fresh password entry (S-8). Production release signing is the release signer's, only on that authorization; no person holds the release-signing key (S-5, II.18) |
+| the release-signer bootstrap; the signer's public key for the trust-set source | the founder applies the bootstrap after a verifier has judged its file (a founder boundary with no key handling, §0, §1); the Director reads the public key from the live plane, read-only, through the signer's public-key function, and records it by a WO-6 revision (not an API action; S-5, S-8) |
+| staging the prepared update in the Factory's release storage | the founder, per release (a founder boundary, §0; S-5) |
 | adopt / roll back a computer's release | Factory admin |
 | make a policy stricter | Factory admin (stricter only; the campaign rows are frozen for this milestone) |
 
@@ -466,6 +520,9 @@ foreign tenant, a self-promoted employee, and a founder / holding_admin not in `
   - release status;
   - waiting verifications;
   - work observation.
+- **Brain OS → Factory → Update** (the founder only, S-8): the prepared update's version, source SHA, digest and certifying receipt;
+  the founder's own Brain OS password, re-entered; Confirm; then the named result: published, already published, or the refusal
+  (S-5, WO-6).
 - **`BrainFactorySetup.exe`:** code entry, progress, and every refusal by name.
 - **`/software-factory/workers`:** replaced or retired. The implementer states which, and the Director ratifies it.
 
@@ -481,6 +538,7 @@ foreign tenant, a self-promoted employee, and a founder / holding_admin not in `
 | amend the envelope | amend it back |
 | adopt a release | adopt the previous certified release |
 | publish a release | revoke it |
+| the release-signer bootstrap | revoke its key; the judged removal step, a new bootstrap and a new trust-set revision replace the signer (§1) |
 | make a policy stricter (Factory admin) | none through the Admin API, which refuses any relaxation (AC-12(e)); only a Director revision, carried by a new candidate migration, restores the Director-stated rows |
 | create an agent principal | retire it by revoking its credentials; a principal is never deleted or reused, and its history stays |
 
@@ -514,6 +572,7 @@ foreign tenant, a self-promoted employee, and a founder / holding_admin not in `
   - the verification model;
   - the SEA installer and runtime;
   - the release manifest and trust set;
+  - the release signer and its bootstrap, and the founder's update authorization (Factory → Update);
   - the Computers page.
 - **Reporting:** the implementer lists every table, function, route, secret name and environment variable in its candidate report.
   `docs/architecture/CAPABILITY_IMPACT_REGISTRY.yaml` gains Factory entries.

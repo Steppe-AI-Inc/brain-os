@@ -6,7 +6,7 @@ the DIRECTOR capability.
 
 The Director paraphrases nothing here:
 - Part II is transcribed from the founder's messages. II.12 also quotes, verbatim, the Director message whose reconstruction the
-  founder confirmed, and II.14 the Director questions whose options the founder chose.
+  founder confirmed, and II.14, II.15 and II.17 the Director questions whose options the founder chose.
 - Part I is a byte-for-byte copy of the implementer's transcription. **Founder confirmation of Part I is requested.**
 
 ## Provenance
@@ -14,7 +14,7 @@ The Director paraphrases nothing here:
 | Part | Source | Integrity |
 |---|---|---|
 | I | Part A of `docs/architecture/features/factory-auto-enrollment.md`, lines 24-337, on branch `factory/auto-enrollment-v1-contract` at commits `264987bb` and `33f14d6e55a41ee1a2a5acf463a000e3fe2975b9` (identical in both) | source file sha256 `53e61c0bea97c50ca294a471cf015fd1b8983799c32c12ad6bdb825537f53a06`; copied byte for byte |
-| II | the founder's messages to the Director, 2026-09-26 and 2026-09-27 (UTC); II.12 and II.14 also quote Director text verbatim | transcribed as received |
+| II | the founder's messages to the Director, 2026-09-26 to 2026-10-02 (UTC); II.12, II.14, II.15 and II.17 also quote Director text verbatim | transcribed as received |
 
 **About Part I's provenance.** Part I was transcribed by the implementer.
 
@@ -355,7 +355,7 @@ production Brain OS deploy; BLOCKED — EXTERNAL where applicable).
 
 ---
 
-# PART II — Founder rulings sent to the Director, 2026-09-26 and 2026-09-27 (verbatim)
+# PART II — Founder rulings sent to the Director, 2026-09-26 to 2026-10-02 (verbatim)
 
 ## II.1 Machine roles and authority
 
@@ -844,5 +844,307 @@ Permanent rule:
 FULL QA RECEIPTS:
 ```
 
-Nothing after "FULL QA RECEIPTS:" arrived except "KEEP WORKING." (16:32:04Z). Director note: the chosen option above governs
+Nothing after "FULL QA RECEIPTS:" arrived in that sequence except "KEEP WORKING." (16:32:04Z), and no later founder message
+completes the permanent rule (II.15's do not). Director note: the chosen option above governs
 until the founder completes the permanent rule; its completion is listed under the ledger's founder items.
+
+## II.15 Director r3 release — founder authorization, 2026-09-28 (UTC)
+
+Transcribed as received, in arrival order, with UTC times. The Director's question and the chosen option are quoted verbatim;
+the "(founder's choice)" block is the chosen option's label and description joined by ": " (the founder's answer was the
+label). The founder's "KEEP WORKING." message at 02:55:07Z carries no ruling and is omitted.
+
+**2026-09-27 19:37:56Z** (Director question)
+
+```text
+Director r3 is ready. Its last two confirmation rounds found no HIGH, the final round found no MEDIUM, and every lens answers both governance tests NO; the remaining lows are listed as r4 work in the r3 event. The change is 13 Director-document files on top of r2 5709a6a4, with no supabase/functions/** changes. How should r3 be released?
+```
+
+**2026-09-28 01:23:38Z** (founder's choice)
+
+```text
+Release + push now (Recommended): Sign and commit r3 on factory/auto-enrollment-v1-director (parent 5709a6a4). Push only that branch, by explicit refspec (never the local receipt ref), with ALLOW_FUNCTIONS_DEPLOY=1 for this single push only. Then check the remote refs read-only (director = r3 SHA, factory = 69df2f52, master = 55a15917) and publish the r3 SHA to the Work PC.
+```
+
+**01:24:15Z**
+
+```text
+FOUNDER AUTHORIZATION — RELEASE DIRECTOR R3
+```
+
+```text
+Release Director r3 now.
+```
+
+**01:24:16Z**
+
+```text
+Requirements:
+```
+
+```text
+1. Commit exactly the current reviewed r3 bytes.
+```
+
+```text
+origin/master   = 55a159172a9bbc9b69cde4d2f832418573a4b0b910. Confirm no production workflow/deployment was triggered.
+```
+
+**01:24:20Z**
+
+```text
+11. Publish the exact r3 SHA to the Work PC.
+
+From that point forward, the next implementation candidate must consume r3,
+not r2.
+
+The remaining LOW findings become r4 work and must not delay r3 release.
+
+KEEP WORKING.
+```
+
+Nothing arrived between "1. Commit exactly the current reviewed r3 bytes." and the line beginning "origin/master". Director note: r3 was released under the chosen
+option and the items above, with the conditions of the r2 push (the commit changes no `supabase/functions/**`; the pre-push
+override for that one push only; the Director branch alone, by explicit refspec); the ledger event log records the result.
+
+## II.16 Public implementer records — founder ruling, 2026-09-28 (UTC)
+
+Transcribed as received, in arrival order, with UTC times. Director note: the ruling answers the Director's report of
+2026-09-28 that the implementer's public `qa/implementation/auto-enrollment-v1/R3_RECONCILIATION.md` (commit `c1f52a14`)
+lists its own r3 gaps file by file.
+
+**04:29:42Z**
+
+```text
+FOUNDER RULING — IMPLEMENTER RECONCILIATION DISCLOSURE
+```
+
+**04:29:57Z**
+
+```text
+The existing public reconciliation note may remain as-is unless it contains
+credentials, exploit instructions, or materially increases exposure beyond
+what is already obvious from the public code.
+
+Do NOT rewrite public git history merely to remove it.
+
+Going forward:
+
+PUBLIC IMPLEMENTER RECORDS MAY CONTAIN:
+- Director revision consumed
+- candidate/base SHA
+- finding IDs
+- disposition state
+- affected requirement IDs
+- test/result summary
+- statement that reconciliation is complete/incomplete
+
+KEEP PRIVATE:
+- exploit mechanisms
+- race interleavings
+- privilege-bypass details
+- secret-handling weaknesses
+- detailed file-by-file instructions that materially aid exploitation
+- verifier-only evidence
+
+Public Git remains code/version truth, not the default disclosure channel for
+live unfixed security defects.
+
+Record this prospectively in r4/r5 governance as appropriate.
+
+KEEP WORKING.
+```
+
+The founder sent the same two messages again, byte-identical, at 04:33:38Z and 04:33:47Z; they are transcribed once.
+
+Director note: the existing note contains no credentials or exploit instructions and does not materially increase exposure
+beyond what is already obvious from the public code, so it remains as-is; no public history is rewritten. The ruling is recorded prospectively in
+ledger rule 3 ("Public implementer records").
+
+## II.17 Director r4 release and the scope of II.16 — founder rulings, 2026-09-28 (UTC)
+
+Transcribed as received, in arrival order, with UTC times. The Director's questions and the chosen options are quoted verbatim;
+each block under "(founder's choices)" is a chosen option's label and description joined by ": " (the founder's answer was the
+label). The founder's later messages up to 2026-09-29T02:51Z, when Director r5 was drafted, carry no ruling on these questions
+and are omitted: "KEEP WORKING." at
+11:42:41Z and 11:46:51Z, and on 2026-09-29 "RESUME DIRECTOR / VERIFIER — FRESH STATE FIRST" (02:47:39Z) and "KEEP WORKING."
+(02:47:41Z).
+
+**05:24:17Z** (Director questions)
+
+```text
+Director r4 is ready. It carries the r3 lows, the release record of r3, and your II.15 and II.16 rulings. Its last review round found no HIGH and no MEDIUM, and every lens answers both governance tests NO. It is 5 Director-document files on top of r3 c7a845b6, with no supabase/functions changes. Remaining lows go to r5. The Work PC's next candidate still consumes r3: r4 says a notice naming r3 is judged against r3. How should r4 be released?
+```
+
+```text
+Your II.16 ruling applies its test only to the one existing reconciliation note: it may remain unless it contains credentials, exploit instructions, or materially increases exposure beyond the public code. r4 applies the same test to any other implementer record published before 2026-09-28, as a Director reading surfaced for your confirmation. Do you confirm that reading?
+```
+
+**11:42:12Z** (founder's choices)
+
+```text
+Release + push now (Recommended): Sign and commit exactly the reviewed r4 bytes on factory/auto-enrollment-v1-director (parent c7a845b6). Push only that branch by explicit refspec, with ALLOW_FUNCTIONS_DEPLOY=1 for that single push. Verify the refs read-only (director = r4, factory = 69df2f52, master = 55a15917), then re-read Actions and deployments a few minutes later and report any Preview.
+```
+
+```text
+Confirm the reading (Recommended): Every public implementer record published before 2026-09-28 is judged by the same test. One that fails it becomes a founder item, and no history is rewritten. r5 records your confirmation.
+```
+
+**11:42:29Z**
+
+```text
+FOUNDER AUTHORIZATION — RELEASE DIRECTOR R4
+```
+
+```text
+Release r4 now exactly as reviewed.
+```
+
+```text
+Parent:
+```
+
+```text
+c7a845b61a3b0b419e8c9dfeff397547fdc75b03
+```
+
+Director note: r4 was released under the first chosen option and these messages, with the conditions of the r2 and r3 pushes
+(the commit changes no `supabase/functions/**`; the pre-push override for that one push only; the Director branch alone, by
+explicit refspec); the ledger event log records the result. The second chosen option confirms that II.16's test applies to every
+public implementer record published before 2026-09-28 (ledger rule 3, "Public implementer records"); the records published on
+2026-09-28 before the ruling (04:29:42Z) are covered by a Director reading surfaced for the founder's confirmation. The
+founder's messages from 2026-09-29T02:54Z concern the release of r5 and are transcribed with it.
+
+## II.18 C-3 decided: a Factory-managed release signer — founder rulings, 2026-10-02 (UTC)
+
+Transcribed as received by the Director, in arrival order, with UTC times. The 16:31:48Z message arrived as typed text followed by
+pasted text; each is one block below.
+
+**16:31:48Z**
+
+```text
+HOME PC — CURRENT ASSIGNMENT
+
+CURRENT GOAL:
+Founder Beta through clean-laptop acceptance.
+
+CURRENT PHASE:
+Work is implementing the minimal Super Admin update-authorization delta.
+
+CURRENT CANDIDATE:
+95fdb85acf755f8d28fa2393165cac7fb9ca77b7
+Candidate #3 is frozen and independently passed.
+DO NOT REVERIFY OR MODIFY IT.
+
+YOUR ROLE NOW:
+Independent verifier / Director readiness.
+
+DO NOT:
+- develop the feature
+- modify Work's branch
+- rerun Candidate #3
+- run mutation/reference campaigns
+- start new governance revisions
+- redesign authentication
+- work on C-3 manual keys
+- expand Artifact Relay
+- touch production
+
+PREPARE ONLY the bounded independent verification plan for the successor.
+```
+
+```text
+Founder-approved product behavior:
+
+Existing Brain OS super_admin
+→ Factory
+→ Update
+→ re-enter EXISTING Brain OS account password
+→ Confirm
+→ Brain OS / Factory performs the prepared update automatically.
+
+Prepare independent checks for:
+
+1. valid current super_admin + correct password succeeds
+2. wrong password is refused
+3. non-super-admin is refused
+4. logged-out / stale session is refused
+5. authorization is bound to the exact prepared update/candidate
+6. changed update bytes require new authorization
+7. authorization cannot be replayed
+8. password is not persisted/logged/exposed to workers
+9. one successful confirmation starts the expected automated update path
+10. failure produces deterministic status/rollback rather than ambiguous partial state
+
+Do not expand beyond those behaviors unless a HIGH security/authority issue is
+demonstrated.
+
+When Work reports its ACTUAL DELTA:
+review only whether the proposed independent checks cover the changed surfaces.
+
+Do not certify intermediate commits.
+
+When Work freezes ONE successor SHA:
+begin independent verification of that exact SHA.
+
+If a reproducible certification-blocking defect is found:
+STOP expensive verification
+→ reject successor
+→ preserve evidence.
+
+Otherwise:
+return INDEPENDENT QA PASS and move immediately toward clean-laptop acceptance.
+
+KEEP VERIFIER READY.
+```
+
+**20:20:22Z**
+
+```text
+DIRECTOR — PROCESS CR-027 AS CANONICALIZATION
+```
+
+**20:20:25Z**
+
+```text
+The founder has already decided the product policy.
+
+Do not reopen the founder-vs-system-managed signer decision.
+
+Update the binding WO-6 and only the canonical statements materially affected by
+that decision so they consistently express:
+
+- Factory-managed release signer
+- private signing material remains inside the trusted server-side Factory boundary
+- founder never manages signing keys
+- founder update authority comes from existing founder identity +
+  existing Factory founder-only authority
+- founder re-authenticates using the existing Brain OS account password
+- successful founder confirmation authorizes the exact prepared update
+- Factory performs signing/publication/update automatically
+
+Check CR-027's listed affected canonical statements and reconcile only those that
+must change to remove contradiction.
+
+Do not redesign the feature.
+Do not create a new role.
+Do not reopen Candidate #3.
+Do not add unrelated governance.
+
+Return the exact Director canonical commit/revision applicable to the successor.
+```
+
+Director note: these messages state the founder's decision of C-3 (II.11) to the Director. The founder gave the decision itself to
+the implementer session, at 2026-10-02T16:59:56Z ("FOUNDER DECISION — SYSTEM-MANAGED RELEASE SIGNER") and in a later message on
+CR-027, which CR-027 dates 2026-10-03 (the implementing machine's local date; CR-027 quoted it by 2026-10-02T20:26:44Z). CR-027
+quotes those messages as the implementer received them, and the founder holds the originals; they are not transcribed here because
+the Director did not receive them. CR-027 is
+`qa/implementation/auto-enrollment-v1/change-requests/CR-027-system-managed-release-signer.md` on
+`factory/auto-enrollment-v1-implementation` at `4016c33060693d5d8c2eb0840ce686c33af5001b`, sha256
+`82eb9c9f493b4c286feec9e34581b04db02931b5f3a98866d0719bc43ae5b93d`, implementer-signed. The 20:20:25Z message directs this
+canonicalization; for this purpose it supersedes the 16:31:48Z line "start new governance revisions" (under "DO NOT").
+"super_admin" names no role: Brain OS has none, and the founder directs "Do not create a new role."; the founder's update authority
+is the existing founder identity under the existing Factory founder-only authority (S-8). The 16:31:48Z message's ten checks are the
+acceptance of the update authorization (AC-5(o)); its other lines also bound the successor's verification, and how that bound meets
+`VERIFICATION_SPEC.md` §3.11 and ledger rule 6 is surfaced for the founder's confirmation (ledger founder items). Director r6 records
+the decision in WO-6 revision 3 and in the canonical statements it affects (ledger event log, CR-027).
