@@ -273,24 +273,24 @@ token check, as 401 `not_authenticated` or 503 `unavailable`, so check both when
    WO-6 record names the same key id, and that candidate is verified and CERTIFIED.
 2. The verifier rebuilds the production channel from the CERTIFIED SHA
    (`node scripts/factory-build/build-sea.mjs --channel production`, then `verify-build.mjs`), and the receipt records the digest.
-3. **The Director stages it** (CR-028; not a founder action), once the receipt says CERTIFIED:
-
-   ```
-   node scripts/factory-build/stage-release.mjs --artifact <the reproduced BrainFactorySetup.exe> --version <v> --source-sha <the CERTIFIED SHA> --receipt-sha256 <the receipt's sha256> --signing-key <the Director's signing key file>
-   ```
-
-   The command computes the installer's digest (it must equal the receipt's reproduced digest), has ssh-keygen sign the prepared
-   update's statement with the Director's own key (it never reads the key), and sends it to `factory-release-stage`, which checks the
-   signature and writes the prepared update (`factory-releases/production/prepared.json`, unsigned, and `prepared.sig`). The command
-   then uploads the installer once to `factory-releases/production/<version>/BrainFactorySetup.exe` - the address never overwrites an
-   installer that is there - and reads it back. Nothing is published by this. Optionally Authenticode-sign the exe first: the digest
-   does not change (S-5).
+3. **The Director stages it** (WO-6 r4, contract §4; not a founder action), once the receipt says CERTIFIED, with the Director's OWN
+   tooling - no implementer-authored program receives or invokes the Director's key:
+   - the statement is exactly `{"channel":"production","digest":"<64 hex>","receipt_sha256":"<64 hex>","source_sha":"<40 hex>","v":1,"version":"<semver>"}`
+     (keys in this order, no white space), with the receipt's reproduced digest, the CERTIFIED SHA and the receipt's sha256;
+   - it is signed with `director_signing_key` in namespace `brain-factory-prepared-update-v1` (an OpenSSH signature, sha512);
+   - `POST {"statement": ..., "signature": ...}` to `factory-release-stage` checks the signature, writes the prepared update
+     (`factory-releases/production/prepared.json`, unsigned, and `prepared.sig`) and answers the installer's upload address - to this
+     first request only: the same statement sent again is answered `already`, with no address (S-7);
+   - the installer goes once to that address (`factory-releases/production/<version>/BrainFactorySetup.exe`), which never overwrites
+     an installer that is there.
+   Nothing is published by this. Optionally Authenticode-sign the exe first: the digest does not change (S-5).
 4. Authorize it: **Brain OS → Factory → Update**, signed in with the founder's own account. The page shows the prepared release -
    version, certified source, installer digest, certifying receipt - and asks for the password of the account that is signed in.
    **Confirm update** then, in this order: the release in storage is still the one shown; the installer storage serves has that
    digest; Brain OS checks the password (its own password sign-in, for that account's email); the Factory checks that the caller
    is its founder (tier founder in `tenant_admins` AND live role founder), that the password was entered in the last two minutes,
-   and that the four values are the ones staged under the Director's signature (otherwise `not_staged`); the Factory's signer signs
+   that the four values are the ones staged under the Director's signature, and that the installer at the staged path has the staged
+   digest (otherwise `not_staged`); the Factory's signer signs
    exactly that release and the release is published, in one transaction. The Admin API then
    places the signed manifest at `factory-releases/production/<version>/BrainFactorySetup.manifest.json`, where setup looks for it.
    A wrong password never reaches the Factory. The password is sent to Brain OS and nowhere else.

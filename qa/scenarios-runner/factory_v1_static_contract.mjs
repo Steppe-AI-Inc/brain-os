@@ -153,11 +153,11 @@ check('O2 every Admin API op names exactly one admin front door (factory.admin_*
 // the Director instrument), every Edge source, and the founder's prepared steps. The PLATFORM list and the SECRETISH pattern are read
 // from the Director catalog tool at the designated Director commit (never copied into this tree). The class of each hit is the
 // implementer's PROPOSAL (factory_v1_plane_scan_inventory.mjs); the verifier classes every hit itself.
-const DIRECTOR_COMMIT = process.env.FACTORY_DESIGNATED_DIRECTOR || '7f8edf2c703f89799b62b3106c3d6d7397b25b3c';
-// THE DIRECTOR'S RECORD OF CHANGE-REQUEST DECISIONS: r6 (2026-10-03), which records CR-027's and has the CR-006..CR-026 dispositions
-// (2026-09-30) in its history. The successor is built against r6: it is merged into this branch, so the Director's documents in this
-// tree are byte-identical to it. P3p reads the ledger at this commit; H2 accepts citations of its history.
-const CR_DISPOSITION_COMMIT = '7f8edf2c703f89799b62b3106c3d6d7397b25b3c';
+const DIRECTOR_COMMIT = process.env.FACTORY_DESIGNATED_DIRECTOR || 'f6ec0bf3ca01443121fa09644213ae9214f78ba5';
+// THE DIRECTOR'S RECORD OF CHANGE-REQUEST DECISIONS: r7 (2026-10-03), which records CR-028's and has CR-027's (r6) and the
+// CR-006..CR-026 dispositions (2026-09-30) in its history. The successor is built against r7: it is merged into this branch, so the
+// Director's documents in this tree are byte-identical to it. P3p reads the ledger at this commit; H2 accepts citations of its history.
+const CR_DISPOSITION_COMMIT = 'f6ec0bf3ca01443121fa09644213ae9214f78ba5';
 const BASE_COMMIT = '69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6';
 const gitOut = (...a) => { const r = spawnSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28 }); return r.status === 0 ? r.stdout : null; };
 const byteOrder = (a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b));

@@ -2,17 +2,21 @@
 // before Brain OS -> Factory -> Update can be confirmed, the Factory's release storage already holds the certified release and the
 // Factory knows its candidate SHA, version, digest and certifying receipt. Until now the founder placed those files and compared the
 // four values on the page with the ones the Director gave (S-5). Both become the Factory's:
-//   * the DIRECTOR - the party that certifies - signs the prepared update's STATEMENT with its existing signing key (the one the
-//     ledger records as director_signing_key; ssh-keygen -Y sign, namespace STAGE_NAMESPACE) and sends it to factory-release-stage;
+//   * the DIRECTOR - the party that certifies - forms the prepared update's STATEMENT and signs it with its existing signing key (the
+//     one the ledger records as director_signing_key; an SSH signature, namespace STAGE_NAMESPACE), with its OWN tooling: no
+//     implementer-authored program receives or invokes that key (WO-6 r4, contract §4). It sends both to factory-release-stage;
 //   * factory-release-stage verifies that signature against DIRECTOR_KEY, writes the prepared update (the release tool's unsigned
-//     manifest form, as before) and the signature beside it, and answers a one-object upload URL for the installer, which the
-//     Director's command then uploads - once: the URL never overwrites an installer that is there;
-//   * at Confirm, the Admin API checks the same signature again and that the four values asked for are the staged ones (stagedUpdate),
-//     and tells the front door; the front door refuses anything else (not_staged), audited. So the founder's one confirmation can
-//     only ever publish what the Director certified - whoever holds the founder's session and password.
-// Nothing here can sign a release: the release signer signs only inside the founder-authorized publication (WO-6 r3).
+//     manifest form, as before) and the signature beside it, and answers a one-object upload URL for the installer - to the request
+//     that FIRST stages that statement only (S-7): a statement sent again, by anyone, is answered "already" with no address. The URL
+//     never overwrites an installer that is there;
+//   * at Confirm, the Admin API checks the same signature again, that the four values asked for are the staged ones, and that the
+//     installer at the staged path has the staged digest (stagedUpdate), and tells the front door; the front door refuses anything
+//     else (not_staged), audited. So the founder's one confirmation can only ever publish what the Director certified - whoever
+//     holds the founder's session and password.
+// Nothing here can sign a release: the release signer signs only inside the founder-authorized publication (WO-6 r4).
 import { ed25519Verify } from './node_api.ts';
 import { RELEASE_BUCKET, manifestText } from './release_storage.ts';
+import { peImageDigest } from './pe_image.ts';
 
 // the Director's signing key as the Director's ledger records it (director_signing_key.public_key at the designated Director commit;
 // release_stage_acceptance SG5 holds this constant to that record byte for byte)
@@ -22,6 +26,7 @@ export const INSTALLER_FILE = 'BrainFactorySetup.exe';
 export const PREPARED_FILE = 'prepared.json';
 export const PREPARED_SIG_FILE = 'prepared.sig';
 const MAX_REQUEST = 16384;
+const MAX_INSTALLER_BYTES = 256 * 1024 * 1024;   // the web page's and the runtime's installer limit
 const VERSION = /^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]{1,40})?$/;
 const te = new TextEncoder(), td = new TextDecoder();
 
@@ -134,9 +139,13 @@ async function stage(deps: StageDeps, req: Request): Promise<Response> {
     if (!(await verifySshSignature(body.signature, te.encode(statementText(st)), STAGE_NAMESPACE, key))) {
       return refuse(403, 'bad_signature', 'the statement is not signed by the Director\'s signing key for staging (' + STAGE_NAMESPACE + '): nothing is staged');
     }
-    // an older prepared update never replaces a newer one (a signature is public once staged, so it can be sent again)
+    // a signature is public once staged, so a statement can be sent again by anyone: sent again it changes nothing and receives no
+    // upload address (only the request that first staged it did, S-7); and an older prepared update never replaces a newer one
     const current = await stagedStatementOf(deps.read, key);
-    if (current && statementText(current) !== statementText(st) && notNewer(st.version, current.version)) {
+    if (current && statementText(current) === statementText(st)) {
+      return json(200, { ok: true, already: true, staged: st, message: 'this statement is staged already; its installer upload address went to the request that staged it' });
+    }
+    if (current && notNewer(st.version, current.version)) {
       return refuse(409, 'not_newer', 'the prepared update is ' + current.version + ': only a newer version replaces it');
     }
     const prepared = manifestText({ v: 1, channel: st.channel, version: st.version, source_sha: st.source_sha, digest: st.digest, key_id: null, receipt_sha256: st.receipt_sha256, signature: null });
@@ -161,14 +170,17 @@ async function stagedStatementOf(read: (path: string) => Promise<string | null>,
   return (await verifySshSignature(sig, te.encode(statementText(st)), STAGE_NAMESPACE, key)) ? st : null;
 }
 
-/** the Admin API's staged check (createAdminApi's `staged`): are the four values asked for the ones the Director's signature stages? */
-export function stagedUpdate(cfg: { read: (path: string) => Promise<string | null>; directorKey?: string }): (body: Record<string, unknown>) => Promise<boolean> {
+/** the Admin API's staged check (createAdminApi's `staged`): are the four values asked for the ones the Director's signature stages,
+ *  AND does the installer at the staged path have the staged digest (WO-6 r4; contract §2 Release: otherwise not_staged)? */
+export function stagedUpdate(cfg: { read: (path: string) => Promise<string | null>; readBytes: (path: string, max: number) => Promise<Uint8Array | null>; directorKey?: string }): (body: Record<string, unknown>) => Promise<boolean> {
   return async (body) => {
     const key = ed25519KeyOf(cfg.directorKey || DIRECTOR_KEY);
     if (!key) return false;
     const st = await stagedStatementOf(cfg.read, key);
-    return !!st && body.channel === st.channel && body.version === st.version && body.source_sha === st.source_sha && body.digest === st.digest
-      && body.receipt_sha256 === st.receipt_sha256;
+    if (!st || body.channel !== st.channel || body.version !== st.version || body.source_sha !== st.source_sha || body.digest !== st.digest
+      || body.receipt_sha256 !== st.receipt_sha256) return false;
+    const exe = await cfg.readBytes('production/' + encodeURIComponent(st.version) + '/' + INSTALLER_FILE, MAX_INSTALLER_BYTES);
+    return !!exe && peImageDigest(exe) === st.digest;
   };
 }
 
@@ -182,6 +194,16 @@ export function storageReader(cfg: { url: string; key: string; fetch: typeof fet
     if (r.status === 200) return await r.text();
     await r.body?.cancel();
     return null;
+  };
+}
+/** an object of the release bucket as bytes, by the authenticated read; null when there is none or its declared size is over `max` */
+export function storageBytesReader(cfg: { url: string; key: string; fetch: typeof fetch }): (path: string, max: number) => Promise<Uint8Array | null> {
+  return async (path, max) => {
+    if (!cfg.url || !cfg.key) return null;
+    const r = await cfg.fetch(base(cfg.url) + '/object/authenticated/' + RELEASE_BUCKET + '/' + path, { headers: { authorization: 'Bearer ' + cfg.key, apikey: cfg.key } });
+    if (r.status !== 200 || Number(r.headers.get('content-length') || 0) > max) { await r.body?.cancel(); return null; }
+    const b = new Uint8Array(await r.arrayBuffer());
+    return b.length > max ? null : b;
   };
 }
 export function storageWriter(cfg: { url: string; key: string; fetch: typeof fetch }): StageDeps['put'] {

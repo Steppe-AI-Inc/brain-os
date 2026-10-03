@@ -1,7 +1,8 @@
 // factory-release-stage: the prepared update, staged by the Factory (founder correction 2026-10-03; CR-028; _shared/release_stage.ts).
-// Called by the Director's staging command (scripts/factory-build/stage-release.mjs) after a candidate is CERTIFIED, with a statement
-// of the prepared update signed by the Director's own signing key. No caller is trusted for anything else: what is staged is exactly
-// what that signature covers. Deploying it is a founder action (ALLOW_FUNCTIONS_DEPLOY=1?), with the project's other functions.
+// Called by the Director, with its own tooling (WO-6 r4: no implementer-authored program receives or invokes its key), after a
+// candidate is CERTIFIED, with a statement of the prepared update signed by the Director's signing key. No caller is trusted for
+// anything else: what is staged is exactly what that signature covers, and only the request that first stages a statement receives
+// its installer's upload address (S-7). Deploying it is a founder action (ALLOW_FUNCTIONS_DEPLOY=1?), with the project's other functions.
 // Lives in the control-plane Supabase CLI project (supabase/control-plane/edge/supabase/), never supabase/functions/.
 //
 // Configuration: none is set by the founder. The platform gives every function of the project:

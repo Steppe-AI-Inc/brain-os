@@ -15,16 +15,17 @@
 // key, Brain OS refuses the check's request (401 not_authenticated). No front door is reached (edge_boundary_acceptance EB8).
 // The production-ref refusal applies to the Factory database URL; BRAIN_OS_URL legitimately names Brain OS.
 // Given by the platform to every function of the project (the founder sets neither):
-//   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY   this project's own address and storage key. Their TWO uses, both for authorize-update:
-//                                   reading the prepared update the Director staged and its signature (_shared/release_stage.ts), and
-//                                   placing the published release's signed manifest (_shared/release_storage.ts). Without them nothing
-//                                   is staged as far as this API can tell (not_staged), and nothing is placed.
+//   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY   this project's own address and storage key. Their TWO uses, both for authorize-update
+//                                   (S-10): reading the prepared update the Director staged, its signature and its installer
+//                                   (_shared/release_stage.ts), and placing the published release's signed manifest
+//                                   (_shared/release_storage.ts). Without them nothing is staged as far as this API can tell
+//                                   (not_staged), and nothing is placed.
 import postgres from 'npm:postgres@3.4.9';
 import { createAdminApi } from '../_shared/admin_api.ts';
 import { dbOptions, dbRefusal } from '../_shared/db.ts';
 import { importPepper, PEPPER_VERSION } from '../_shared/pairing.ts';
 import { manifestStore } from '../_shared/release_storage.ts';
-import { stagedUpdate, storageReader } from '../_shared/release_stage.ts';
+import { stagedUpdate, storageBytesReader, storageReader } from '../_shared/release_stage.ts';
 
 const dbUrl = Deno.env.get('FACTORY_ADMIN_DB_URL') || '';
 const caPem = Deno.env.get('FACTORY_DB_CA_PEM') || '';
@@ -34,6 +35,9 @@ const refusal = dbRefusal(dbUrl, caPem);
 const refused = refusal !== null;
 const db = refused ? null : postgres(dbOptions(dbUrl, caPem));
 const pepperKey = importPepper(Deno.env.get('FACTORY_PAIRING_PEPPER'));
+// the release bucket, through the project's own address and storage key (read once; S-10 confines their use to what follows)
+const storageUrl = Deno.env.get('SUPABASE_URL') || '', storageKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+const storage = (ms: number) => ({ url: storageUrl, key: storageKey, fetch: (input: string | URL | Request, init?: RequestInit) => fetch(input, { ...init, signal: AbortSignal.timeout(ms) }) });
 
 const handler = createAdminApi({
   sql: async (text, params) => {
@@ -46,10 +50,9 @@ const handler = createAdminApi({
   fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(8000) }),
   log: (e) => console.log(JSON.stringify(e)),
   basePath: '/factory-admin-api',  // the platform delivers /factory-admin-api/v1/admin/... (route.ts)
-  storeManifest: manifestStore({ url: Deno.env.get('SUPABASE_URL') || '', key: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
-    fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(15000) }) }),
-  staged: stagedUpdate({ read: storageReader({ url: Deno.env.get('SUPABASE_URL') || '', key: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
-    fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(15000) }) }) }),
+  storeManifest: manifestStore(storage(15000)),
+  // the installer is read whole to hash it (WO-6 r4): a longer wait than the small objects'
+  staged: stagedUpdate({ read: storageReader(storage(15000)), readBytes: storageBytesReader(storage(60000)) }),
 });
 
 Deno.serve((req: Request) => {
