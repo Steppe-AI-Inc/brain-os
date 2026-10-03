@@ -6,7 +6,8 @@ the DIRECTOR capability.
 
 The Director paraphrases nothing here:
 - Part II is transcribed from the founder's messages. II.12 also quotes, verbatim, the Director message whose reconstruction the
-  founder confirmed, and II.14, II.15 and II.17 the Director questions whose options the founder chose.
+  founder confirmed, II.14, II.15 and II.17 the Director questions whose options the founder chose, and II.19 the Director question
+  the founder answered.
 - Part I is a byte-for-byte copy of the implementer's transcription. **Founder confirmation of Part I is requested.**
 
 ## Provenance
@@ -14,7 +15,7 @@ The Director paraphrases nothing here:
 | Part | Source | Integrity |
 |---|---|---|
 | I | Part A of `docs/architecture/features/factory-auto-enrollment.md`, lines 24-337, on branch `factory/auto-enrollment-v1-contract` at commits `264987bb` and `33f14d6e55a41ee1a2a5acf463a000e3fe2975b9` (identical in both) | source file sha256 `53e61c0bea97c50ca294a471cf015fd1b8983799c32c12ad6bdb825537f53a06`; copied byte for byte |
-| II | the founder's messages to the Director, 2026-09-26 to 2026-10-02 (UTC); II.12, II.14, II.15 and II.17 also quote Director text verbatim | transcribed as received |
+| II | the founder's messages to the Director, 2026-09-26 to 2026-10-03 (UTC); II.12, II.14, II.15, II.17 and II.19 also quote Director text verbatim | transcribed as received |
 
 **About Part I's provenance.** Part I was transcribed by the implementer.
 
@@ -355,7 +356,7 @@ production Brain OS deploy; BLOCKED — EXTERNAL where applicable).
 
 ---
 
-# PART II — Founder rulings sent to the Director, 2026-09-26 to 2026-10-02 (verbatim)
+# PART II — Founder rulings sent to the Director, 2026-09-26 to 2026-10-03 (verbatim)
 
 ## II.1 Machine roles and authority
 
@@ -1148,3 +1149,219 @@ is the existing founder identity under the existing Factory founder-only authori
 acceptance of the update authorization (AC-5(o)); its other lines also bound the successor's verification, and how that bound meets
 `VERIFICATION_SPEC.md` §3.11 and ledger rule 6 is surfaced for the founder's confirmation (ledger founder items). Director r6 records
 the decision in WO-6 revision 3 and in the canonical statements it affects (ledger event log, CR-027).
+
+## II.19 The r6 release, the founder's corrections and the CR-028 direction — founder messages, 2026-10-03 (UTC)
+
+Transcribed as received by the Director, in arrival order, with UTC times. At 01:50:35Z the founder answered the Director's release
+question for r6 in free text; the question and the answer are both quoted verbatim.
+
+**01:50:35Z** (the Director's question)
+
+```text
+Director r6 (CR-027 canonicalized) is committed locally as 7f8edf2c on parent 3615366e, signed Good with the Director key, and passes the pre-release gate. A local-only Director commit can never be designated, so Work can use r6 only after it's published. Release it now?
+```
+
+(the founder's answer)
+
+```text
+DIRECTOR ACTION — PROCESS CR-027 NOW
+```
+
+**01:51:15Z**
+
+```text
+CURRENT GOAL:
+Founder Beta through the minimal automatic-update successor.
+
+IMPLEMENTATION PROPOSAL:
+4016c33060693d5d8c2eb0840ce686c33af5001b
+
+CR-027:
+sha256
+82eb9c9f493b4c286feec9e34581b04db02931b5f3a98866d0719bc43ae5b93d
+
+Candidate #3 remains:
+
+95fdb85acf755f8d28fa2393165cac7fb9ca77b7
+
+and MUST remain untouched.
+
+==================================================
+FOUNDER-APPROVED PRODUCT POLICY
+==================================================
+
+The policy decision is already made.
+
+The founder does NOT manage a release-signing key.
+
+The intended product behavior is:
+
+existing Brain OS founder/highest-authority account
+→ Factory → Update
+→ re-enter EXISTING account password
+→ Confirm
+→ Factory automatically handles signing, publication and update.
+
+Factory owns the internal release-signing mechanism.
+
+Do NOT reconsider this product decision.
+
+==================================================
+DIRECTOR TASK
+==================================================
+
+Process CR-027 strictly as CANONICALIZATION.
+
+Update WO-6 and only the canonical records that materially contradict the
+founder-approved model.
+
+Canonical text must consistently express:
+
+1. Release signing is Factory/system-managed.
+
+2. Private signing material remains inside the trusted Factory server-side
+   boundary and is not handled by the founder, Work, Home, browser or nodes.
+
+3. Founder control is expressed through:
+   - current authenticated founder identity;
+   - re-entry of the EXISTING Brain OS account password;
+   - existing Factory founder-only authority.
+
+4. A mutable profile.role by itself is not sufficient authority.
+
+5. Successful founder confirmation authorizes the exact prepared release.
+
+6. Factory then performs signing/publication/update automatically.
+
+7. Candidate #3 remains historical/certified and unchanged.
+
+Do NOT:
+- redesign the feature;
+- create a new role;
+- create a founder PIN;
+- restore manual C-3 key management;
+- reopen Candidate #3;
+- expand CR-027;
+- add unrelated governance;
+- start independent successor verification yet.
+
+==================================================
+CHECK THE PROPOSAL
+==================================================
+
+Confirm that CR-027's 16 affected canonical references are reconciled only where
+necessary.
+
+If one listed location does not actually require a semantic change, leave it
+alone and record why.
+
+Do not mechanically rewrite documents merely because CR-027 lists them.
+
+==================================================
+OUTPUT
+==================================================
+
+Produce one signed Director canonicalization commit/revision.
+
+Report:
+
+DIRECTOR — CR-027 CANONICALIZED
+
+with:
+- exact Director commit SHA
+- exact WO-6 revision
+- canonical files changed
+- confirmation that no product code changed
+- confirmation Candidate #3 remains unchanged
+- exact canonical policy now applicable to the successor
+
+Then STOP.
+
+Work may resume successor development only after this Director result exists.
+```
+
+**03:02:05Z**
+
+```text
+KEEP VERIFIER READY.
+```
+
+**10:30:29Z**
+
+```text
+HOME — STATE CORRECTION
+```
+
+**10:30:47Z**
+
+```text
+Three of the four r6 questions are already resolved by later founder decisions.
+
+DO NOT WAIT on:
+- successor verification scope
+- meaning of "update automatically"
+- per-release staging
+
+Those are settled.
+
+ACTIVE TASKS NOW:
+
+1. PROCESS CR-028
+   Canonicalize only the r6 text contradicted by the later founder decisions:
+   - automatic staging
+   - automatic post-confirm node upgrade
+   - no founder staging/manual node upgrade
+
+   Do not redesign anything.
+
+2. START STAGE A BOOTSTRAP VERIFICATION
+
+   Work has already named the signer bootstrap:
+   release_signer.sql
+
+   and reported its pinned sha256 beginning:
+   333536de...
+
+   Verify the exact file from the published implementation proposal / Work handoff.
+   Do not accept a different byte sequence.
+
+   Judge:
+   - provenance
+   - allowed object creation only
+   - transactionality
+   - private-key reachability
+
+   - public-key-only exposure
+   - randomness
+   - signature correctness against an independent Ed25519 implementation
+
+   Return:
+   BOOTSTRAP FILE — VERIFIED
+   or a concrete blocking defect.
+
+3. PASSWORD-CHANGE PROBE
+
+   If a disposable Brain OS test account already exists:
+   run qa/factory/v1/password_change_probe.mjs.
+
+   If none exists:
+   report BLOCKED — TEST ACCOUNT REQUIRED.
+
+Do not run successor QA yet.
+Do not rerun Candidate #3.
+Do not start mutation/reference campaigns.
+Do not create new governance beyond CR-028 canonicalization.
+
+NEXT GATE:
+CR-028 canonicalized + bootstrap verified.
+```
+
+Director note: the Director released r6 on the 01:50:35Z answer. The two corrections themselves ("RESUME SUCCESSOR DEVELOPMENT — TWO
+PRODUCT CORRECTIONS", 2026-10-03) were given to the implementer session. CR-028 quotes them as the implementer received them, and the
+founder holds the originals; they are not transcribed here because the Director did not receive them. CR-028 is
+`qa/implementation/auto-enrollment-v1/change-requests/CR-028-factory-staging-and-automatic-node-update.md` on
+`factory/auto-enrollment-v1-implementation` at `8ac331ffda37456a4afa63c692024016ffb40806`, sha256
+`f79e7041174f84cef5270be93daa414e5573a4a18a22848e6a42ea01b18baa21`, implementer-signed. The 01:51:15Z message states the policy
+("Factory automatically handles signing, publication and update"). The 10:30:47Z message states that the later founder decisions
+settle three of r6's four surfaced items, directs CR-028's canonicalization and the Stage A judgment, and asks for the
+password-change probe only if a disposable test account exists. Director r7 records them (ledger event log, CR-028).

@@ -63,8 +63,9 @@ Contract reference: `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md`. Govern
   WO-6. No founder gate remains.
   - The founder never handles the release-signing key. The founder's update authority is the existing founder-only rule (S-8), and
     the confirmation also needs a fresh entry of the founder's own Brain OS password (S-8). On that one confirmation the Factory
-    signs, publishes and supersedes automatically (§2 Release): that is the update the founder authorizes. The confirmation installs
-    nothing on any node; nodes take the published release by the unchanged path (WO-6, upgrade and rollback).
+    signs, publishes and supersedes automatically, and every node then takes the published release by itself (§2 Release; II.19):
+    that is the update the founder authorizes. The founder stages nothing and upgrades no node: the Director stages each CERTIFIED
+    release (§4), and every node takes the published release through the unchanged upgrade gate (WO-6).
   - II.18 decides II.11's C-3: the implementer builds the release signer's code and its bootstrap, and never creates, holds or uses
     the production key (S-5). The authorization's values (S-8) and the bootstrap's form (§1) are Director decisions on CR-027.
   - Implementation completes everything else with dev keys on disposable planes.
@@ -81,9 +82,6 @@ Contract reference: `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md`. Govern
     implementer-authored program receives a founder or plane credential, and no account-level management token is used; a
     database credential typed into a client is rotated afterwards. The founder states the path used, and the Director's event-log entry records it as the founder's attestation (the
     read-only observation cannot show it: a recorded limit);
-  - the prepared update's staging, per release (S-5): before Factory → Update, the founder places the verifier-reproduced installer
-    and its unsigned manifest, which the Director provides, in the Factory's release storage (a production write with no key
-    handling);
   - the live Edge deploy;
   - production secrets (the pepper, API roles);
   - the production Brain OS deploy by PR into `master`;
@@ -170,7 +168,9 @@ Contract reference: `docs/architecture/FEATURE_COMPLETENESS_CONTRACT.md`. Govern
     and the certifying receipt hash;
   - nodes verify it against a **pinned trust set**, fixed in the artifact at build time together with the trust mode; nothing received
     at runtime adds a key or changes the mode (S-5);
-  - the release a node runs is stamped on the node, on every run and on every checkpoint.
+  - the release a node runs is stamped on the node, on every run and on every checkpoint;
+  - a node takes its channel's published release by itself (§2 Release), fetching it only from the release storage fixed in its
+    artifact at build time (S-5).
 - **Verification record:** work order, authoring run and identity, certifying run and identity, verifier authority at certification,
   exact candidate provenance, and the policy applied.
   - New-model certification records live in **their own table**.
@@ -368,10 +368,11 @@ STALE and OFFLINE are derived (§1).
 | From | To | Trigger | Who |
 |---|---|---|---|
 | (after the release-signer bootstrap) trust-set revision | candidate | the Director reads the release signer's public key from the live plane, read-only, and issues a WO-6 revision recording it and its key id; the implementer's next candidate adds exactly those bytes to the trust-set source; it receives a full verification pass | Director (revision), implementer (candidate) |
-| candidate | certified | a Director-committed receipt with verdict CERTIFIED, including the reproduced digest. The plane records it only through the founder's publish action, which cites that receipt; the Director never writes the plane | the verifier certifies; the Director records it in the ledger |
-| certified | published | the founder confirms the prepared update (S-5) in Factory → Update with a fresh entry of the founder's own Brain OS password (S-8). In one transaction the release signer signs the manifest it builds from the update's version, source SHA, digest (equal to the reproduced digest) and receipt sha256, the release is published, the previous one is superseded, and the audit row is written. A failure or a refusal signs, publishes and supersedes nothing, is named, and is audited when it reaches the Factory (S-8). The confirmation installs nothing on a node (§0) | the founder authorizes (tier `founder` and live role founder, with the fresh entry; S-8); the Factory signs and publishes (S-5) |
+| candidate | certified | a Director-committed receipt with verdict CERTIFIED, including the reproduced digest. The plane records it only through the founder's publish action, which cites that receipt. The Director writes no Factory record: it stages the certified release (the prepared update and its installer) through `factory-release-stage`, which writes only release storage (§4, S-7) | the verifier certifies; the Director records it in the ledger and stages it |
+| certified | published | the founder confirms the prepared update the Director staged (S-5) in Factory → Update with a fresh entry of the founder's own Brain OS password (S-8); values other than the staged ones, or an installer at the staged path without the staged digest, are refused (`not_staged`). In one transaction the release signer signs the manifest it builds from the update's version, source SHA, digest (equal to the reproduced digest) and receipt sha256, the release is published, the previous one is superseded, and the audit row is written. A failure or a refusal signs, publishes and supersedes nothing, is named, and is audited when it reaches the Factory (S-8). The Admin API then places the signed manifest beside the installer in release storage; if that placement fails, the release is published but not served: the page says so, and authorizing the same release again places it (`already`) and writes nothing else. Every node then takes the release by the row below | the founder authorizes (tier `founder` and live role founder, with the fresh entry; S-8); the Factory signs and publishes (S-5) |
 | published | superseded | a newer certified release is published | founder |
 | published | revoked | revoke | founder |
+| node on release X | node on its channel's published release Y | at a heartbeat, between claims and never while work runs, unless a Factory admin's adopt pins the computer: the node fetches Y's installer and signed manifest only from the release storage fixed in its artifact (S-5) and offers them to the unchanged upgrade gate (the pinned trust set, the revocations, no silent downgrade). A node that cannot take Y keeps X, claims nothing, and tries again after 15 minutes | the node itself (II.19) |
 | node on release X | node on the previous certified release | adopt / roll back | Factory admin (a node never downgrades silently) |
 
 **Verification** (CR-002 ratified)
@@ -480,7 +481,7 @@ The security / tenancy / authority invariants S-1..S-16 (`.SECURITY_TENANCY.md`)
 | certify a candidate | a distinct authorized verifier under the policy (S-13, S-16) |
 | authorizing an update (Factory → Update); publishing, superseding or revoking a release | founder-only per S-8 (tier `founder` and live role founder); publishing a production release also needs the founder's fresh password entry (S-8). Production release signing is the release signer's, only on that authorization; no person holds the release-signing key (S-5, II.18) |
 | the release-signer bootstrap; the signer's public key for the trust-set source | the founder applies the bootstrap after a verifier has judged its file (a founder boundary with no key handling, §0, §1); the Director reads the public key from the live plane, read-only, through the signer's public-key function, and records it by a WO-6 revision (not an API action; S-5, S-8) |
-| staging the prepared update in the Factory's release storage | the founder, per release (a founder boundary, §0; S-5) |
+| staging the prepared update (its four values and its installer) in the Factory's release storage | the Director, per CERTIFIED release: a statement of the four values signed with `director_signing_key` in namespace `brain-factory-prepared-update-v1`, sent to `factory-release-stage`. The Director forms and signs the statement with its own tooling; no implementer-authored program receives or invokes the key (S-5, S-7, II.19) |
 | adopt / roll back a computer's release | Factory admin |
 | make a policy stricter | Factory admin (stricter only; the campaign rows are frozen for this milestone) |
 
@@ -502,8 +503,8 @@ foreign tenant, a self-promoted employee, and a founder / holding_admin not in `
 - **Enrollment records.** Pairing codes and enrollment attempts are kept for audit.
 - **Revocation.** It ends a credential and never deletes the computer or its evidence. Leases lapse, and the certified takeover applies.
 - **Archive.** It stops all work, and history stays readable. Restore returns the computer to service with a fresh re-pair.
-- **Releases.** Node → current release plus history. Run and checkpoint → release (stamped). A revoked release stops claiming until a
-  certified release is adopted. There is never a silent downgrade.
+- **Releases.** Node → current release plus history. Run and checkpoint → release (stamped). A node on a revoked release stops claiming until
+  it takes a newer published release or a certified release is adopted. There is never a silent downgrade.
 
 ## 7. UX surfaces
 
@@ -573,6 +574,7 @@ foreign tenant, a self-promoted employee, and a founder / holding_admin not in `
   - the SEA installer and runtime;
   - the release manifest and trust set;
   - the release signer and its bootstrap, and the founder's update authorization (Factory → Update);
+  - the release-stage function and the node's automatic take of a published release;
   - the Computers page.
 - **Reporting:** the implementer lists every table, function, route, secret name and environment variable in its candidate report.
   `docs/architecture/CAPABILITY_IMPACT_REGISTRY.yaml` gains Factory entries.
