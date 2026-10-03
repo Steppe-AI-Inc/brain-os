@@ -946,7 +946,7 @@ const SPEC_310 = {
 };
 /** the guard phrases of the Director's table (§3 step 10), read from the designated Director commit */
 function specPhrases() {
-  const director = process.env.FACTORY_DESIGNATED_DIRECTOR || 'c7a845b61a3b0b419e8c9dfeff397547fdc75b03';
+  const director = process.env.FACTORY_DESIGNATED_DIRECTOR || '7f8edf2c703f89799b62b3106c3d6d7397b25b3c';
   const r = spawnSync('git', ['-C', ROOT, 'show', director + ':qa/verification/auto-enrollment-v1/VERIFICATION_SPEC.md'], { encoding: 'utf8', maxBuffer: 1 << 26, windowsHide: true });
   if (r.status !== 0) throw new Error('the designated Director commit ' + director + ' is not in this repository');
   const lines = r.stdout.replace(/\r\n/g, '\n').split('\n');
