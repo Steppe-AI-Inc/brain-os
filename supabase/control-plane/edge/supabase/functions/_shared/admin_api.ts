@@ -40,6 +40,9 @@ export type AdminDeps = {
   // place a published release's signed manifest in release storage (<version>/BrainFactorySetup.manifest.json); answers whether it
   // is there now, and never throws. Absent (a harness without storage): nothing is placed, and the answer says so.
   storeManifest?: (version: string, manifest: Record<string, unknown>) => Promise<boolean>;
+  // is the update asked for the one the Factory staged under the Director's signature (release_stage.ts stagedUpdate)? The answer is
+  // handed to the front door as `staged`, after the body whitelist. Absent (a harness without staging): never staged.
+  staged?: (body: Record<string, unknown>) => Promise<boolean>;
 };
 
 // op -> [front door, issues a code?, the body fields it accepts; reauth: the front door is handed the token's password entry;
@@ -158,6 +161,8 @@ export function createAdminApi(deps: AdminDeps): (req: Request) => Promise<Respo
       }
       // a fresh password entry is a fact about the caller's token, never a body field (the whitelist above refused a `reauth`)
       if (op.reauth) body = { ...body, reauth: passwordEntry(auth[1]) };
+      // the Director-certified, Factory-staged update (CR-028): a fact the Factory checks itself, never a body field
+      if (op.signs) body = { ...body, staged: !!deps.staged && (await deps.staged(body)) === true };
       const rows = await deps.sql('select factory.' + op.fn + '($1::uuid, $2, $3::text::jsonb) as r', [who.userId, who.role, JSON.stringify(body)]);
       const r = (rows[0] && rows[0].r) as Record<string, unknown> | undefined;
       if (!r || typeof r !== 'object') return refuse(500, 'server_error', 'the front door returned nothing');

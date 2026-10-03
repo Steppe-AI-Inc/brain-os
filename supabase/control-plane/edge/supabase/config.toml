@@ -2,6 +2,7 @@
 # Deploying is a founder action, after independent verification of the exact SHA (ALLOW_FUNCTIONS_DEPLOY=1?), from the repository root:
 #   npx supabase functions deploy factory-node-api  --project-ref npvhuoozkbexddnvkqsj --workdir supabase/control-plane/edge --no-verify-jwt
 #   npx supabase functions deploy factory-admin-api --project-ref npvhuoozkbexddnvkqsj --workdir supabase/control-plane/edge --no-verify-jwt
+#   npx supabase functions deploy factory-release-stage --project-ref npvhuoozkbexddnvkqsj --workdir supabase/control-plane/edge --no-verify-jwt
 # This is NOT the Brain OS project (supabase/ at the repository root, pvphxgrtdfrudejjhzjk), whose master-push workflow deploys the root
 # supabase/functions/ only (qa/scenarios-runner/factory_v1_static_contract.mjs E2, E5).
 project_id = "brain-os-factory-control-plane"
@@ -13,4 +14,9 @@ project_id = "brain-os-factory-control-plane"
 verify_jwt = false
 
 [functions.factory-admin-api]
+verify_jwt = false
+
+# factory-release-stage authenticates its caller by the Director's signature over the statement (_shared/release_stage.ts); the
+# Director's command presents no Supabase JWT
+[functions.factory-release-stage]
 verify_jwt = false

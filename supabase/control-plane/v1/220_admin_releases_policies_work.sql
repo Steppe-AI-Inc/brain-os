@@ -102,6 +102,10 @@ create function factory.admin_publish_release(p_actor uuid, p_live_role text, p_
 --      A profiles.role alone never passes (S1); a caller who is not the founder learns nothing about the rest.
 --   2. A FRESH PASSWORD ENTRY of that same account (factory._fresh_password above).
 --   3. ONE ENTRY, ONE RELEASE: a session that authorized a release authorizes no other (factory._entry_unused above).
+--   4. THE STAGED UPDATE (founder correction 2026-10-03; CR-028): the four values are the ones the Factory staged under the Director's
+--      signature. The Admin API checks that signature and the values itself and hands the answer as `staged`, after its body
+--      whitelist (a caller cannot supply it). Anything else is refused not_staged, audited: the founder's confirmation publishes only
+--      what the Director certified.
 -- WHAT IS SIGNED is built by the signer from the four values below and its own key id: a production-channel manifest, nothing else.
 -- A signature leaves this function only in the published record this transaction writes - or, for the same release authorized
 -- again, when it IS the one on record: that answers "already" with its manifest (a lost answer, or the manifest placed in release
@@ -138,6 +142,12 @@ create function factory.admin_authorize_update(p_actor uuid, p_live_role text, p
     end if;
     if exists (select 1 from factory.releases r where r.tenant_id = (a.ctx).tenant_id and r.channel = ch and (r.version = v or r.digest = d)) then
       return factory._refusal('already_published', 409, 'this version or digest was published before on this channel');
+    end if;
+    -- the staged update (4)
+    if p_body -> 'staged' is distinct from 'true'::jsonb then
+      perform factory._audit((a.ctx).tenant_id, 'admin', (a.ctx).actor::text, 'admin.authorize_update', null, null, 'refused', 'not_staged',
+        jsonb_build_object('version', v, 'digest', d));
+      return factory._refusal('not_staged', 409, 'this is not the update the Factory staged under the Director''s certification: nothing was signed or published');
     end if;
     -- one entry, one release (3)
     refused := factory._entry_unused(a.ctx, sess, 'authorize_update');

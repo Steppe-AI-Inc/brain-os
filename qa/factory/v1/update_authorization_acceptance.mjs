@@ -11,6 +11,9 @@
 //     UE3 the signed manifest is placed in release storage only after the front door answered a published release; a refusal places
 //         nothing; storage that does not take it is said as manifest_served false, the release still answered; storage that does
 //         not answer at all is an error at the request boundary (503, outcome unknown), never an answer
+//     UE5 `staged` handed to the front door is the Factory's own check that the four values are the Director-staged ones (CR-028):
+//         true only when that check says so, false for other values and without a check; no other action is handed it; a body that
+//         names `staged` is refused 400 before the front door
 //     UE4 the storage writer puts ONE object - production/<version>/BrainFactorySetup.manifest.json - at the project's own address
 //         with the platform's key; it answers false for a refusal, no configuration or a bad version, and lets "no answer" through
 //         as the error it is
@@ -30,6 +33,9 @@
 //         manifest - the signature on record, no second release
 //     UA9 a part of the seed replaced in the secret store: signer_unavailable, nothing published
 //     UA10 the signer's key revoked: key_revoked, nothing published
+//     UA12 the staged update (CR-028): an update that is not the one the Factory staged under the Director's signature is refused
+//         409 not_staged, audited, and nothing is signed, written or placed; staged, it is published; a repeat of that published
+//         release answers "already" whatever is staged now (it signs and writes nothing)
 //     UA11 the older publish action cannot go round it: a production release published with a signature made elsewhere needs the
 //         same fresh entry (and uses it up, for both actions); a dev-channel release needs none; and authorize-update never answers
 //         "already" for a release recorded that way, so nothing a caller supplied is answered or placed in release storage
@@ -87,10 +93,11 @@ try {
     const stored = [];
     let answer = { ok: true, release_id: randomUUID(), manifest: { v: 1, channel: 'production', version: '7.0.0' } };
     let storeAnswers = true;
-    const api = (withStore = true) => createAdminApi({
+    const api = (withStore = true, staged = undefined) => createAdminApi({
       sql: async (text, params) => { calls.push({ text, body: JSON.parse(params[2]) }); return [{ r: answer }]; },
       randomBytes: (n) => new Uint8Array(n), pepper: async () => null, brainOs: { url: BRAIN, anonKey: brain.anonKey }, fetch: (u, i) => fetch(u, i),
       ...(withStore ? { storeManifest: async (version, manifest) => { stored.push({ version, manifest }); return storeAnswers; } } : {}),
+      ...(staged ? { staged } : {}),
     });
     const post = async (h, op, body, token) => { const r = await h(new Request('http://x/v1/admin/' + op, { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token }, body: JSON.stringify(body) })); return { ...(await r.json()), http: r.status }; };
     const h = api();
@@ -106,16 +113,26 @@ try {
     const latest = brain.tokenWith(founder, { session_id: randomUUID(), amr: [{ method: 'password', timestamp: 100 }, { method: 'otp', timestamp: 900 }, { method: 'password', timestamp: 500 }, null, { method: 'password', timestamp: '700' }] });
     row('UE1 `reauth` handed to the front door is the token\'s own password entry and session ({ password_at, session_id }), added by the handler; a token that states no password entry gives reauth null; of several entries the latest password entry counts (never another method\'s time, never a time that is not a number); publish-release is handed the same entry, and an action that publishes nothing (list-releases) carries no `reauth`',
       withEntry && withEntry.password_at === cFresh.amr[0].timestamp && withEntry.session_id === cFresh.session_id && 'reauth' in without && without.reauth === null
-        && !('reauth' in other) && publishBody.reauth && publishBody.reauth.session_id === cFresh.session_id && passwordEntry(latest).password_at === 500,
+        && !('reauth' in other) && !('staged' in other) && !('staged' in publishBody) && publishBody.reauth && publishBody.reauth.session_id === cFresh.session_id && passwordEntry(latest).password_at === 500,
       JSON.stringify({ withEntry, without: without.reauth, other: Object.keys(other), latest: passwordEntry(latest).password_at }));
 
     const before = calls.length; const asked = brain.grants.ok;
     const forged = {};
-    for (const [name, extra] of Object.entries({ reauth: { reauth: { password_at: Math.floor(Date.now() / 1000), session_id: randomUUID() } }, key_id: { key_id: signer.key_id }, signature: { signature: 'A'.repeat(86) }, manifest: { manifest: {} } })) {
+    for (const [name, extra] of Object.entries({ reauth: { reauth: { password_at: Math.floor(Date.now() / 1000), session_id: randomUUID() } }, key_id: { key_id: signer.key_id }, signature: { signature: 'A'.repeat(86) }, manifest: { manifest: {} }, staged: { staged: true } })) {
       const r = await post(h, 'authorize-update', REL('7.0.1', extra), founder.token); forged[name] = r.http + ' ' + r.refused;
     }
-    row('UE2 a body that names `reauth`, a key id, a signature or a manifest is refused 400 bad_request, and the front door is not called',
+    row('UE2 a body that names `reauth`, a key id, a signature, a manifest or `staged` is refused 400 bad_request, and the front door is not called',
       Object.values(forged).every((v) => v === '400 bad_request') && calls.length === before && brain.grants.ok === asked, JSON.stringify(forged));
+
+    {
+      const hs = api(true, async (b) => b.version === '7.0.0' && b.digest === REL('7.0.0').digest);
+      await post(hs, 'authorize-update', REL('7.0.0'), brain.passwordToken(founder)); const yes = calls.at(-1).body.staged;
+      await post(hs, 'authorize-update', REL('7.0.9'), brain.passwordToken(founder)); const otherValues = calls.at(-1).body.staged;
+      await post(api(true), 'authorize-update', REL('7.0.0'), brain.passwordToken(founder)); const noCheck = calls.at(-1).body.staged;
+      await post(hs, 'list-releases', {}, brain.passwordToken(founder)); const listBody = calls.at(-1).body;
+      row('UE5 `staged` handed to the front door is the Factory\'s own staged check: true for the staged values, false for other values and with no check at all; no other action is handed it',
+        yes === true && otherValues === false && noCheck === false && !('staged' in listBody), JSON.stringify({ yes, otherValues, noCheck, list: Object.keys(listBody) }));
+    }
 
     stored.length = 0;
     const ok1 = await post(h, 'authorize-update', REL('7.0.0'), tFresh);
@@ -399,6 +416,26 @@ try {
   }
 
   {
+    // the staged update (CR-028): 9.0.0 not staged, then staged, then staged no more
+    const h0 = await written(), a0 = await audited('not_staged'), p0 = admin.storage.puts.length;
+    admin.stage.ok = false;
+    const notStaged = await authz(REL('9.0.0'), brain.passwordToken(founder));
+    const unchanged = (await written()) === h0 && admin.storage.puts.length === p0;
+    const a1 = await audited('not_staged');
+    admin.stage.ok = (b) => b.version === '9.0.0';
+    const staged = await authz(REL('9.0.0'), brain.passwordToken(founder));
+    admin.stage.ok = false;
+    const h1 = await written();
+    const repeat = await authz(REL('9.0.0'), brain.passwordToken(founder));
+    const repeatWroteNothing = (await written()) === h1;
+    admin.stage.ok = true;
+    row('UA12 an update that is not the one the Factory staged under the Director\'s signature is refused 409 not_staged with no data, audited, and nothing is signed, written or placed; staged, the same update is published; its repeat answers "already" though nothing names it as staged any more, and writes nothing',
+      notStaged.http === 409 && notStaged.refused === 'not_staged' && nodata(notStaged) && unchanged && a1 === a0 + 1 && staged.ok === true && staged.already !== true
+        && repeat.ok === true && repeat.already === true && repeatWroteNothing,
+      JSON.stringify({ notStaged: notStaged.http + ' ' + notStaged.refused, audited: a1 - a0, staged: staged.ok ? 'published' : staged.refused, repeat: repeat.ok ? (repeat.already ? 'already' : 'published again?') : repeat.refused }));
+  }
+
+  {
     const part = (await sup.query(`select decrypted_secret s from vault.decrypted_secrets where name = 'factory_release_signer_part'`)).rows[0].s;
     await sup.query(`update vault.secrets set secret = encode(convert_to($1, 'utf8'), 'base64') where name = 'factory_release_signer_part'`, ['11'.repeat(32)]);
     const h0 = await written(), p0 = admin.storage.puts.length;
@@ -426,4 +463,4 @@ const failed = results.filter((r) => !r.ok);
 const ev = process.argv.indexOf('--evidence');
 if (ev > -1) writeFileSync(process.argv[ev + 1], JSON.stringify({ suite: 'update_authorization_acceptance', results }, null, 2) + '\n');
 console.log('\nupdate_authorization_acceptance: ' + (results.length - failed.length) + '/' + results.length + ' OK' + (failed.length ? '; FAILED: ' + failed.map((r) => r.id.split(' ')[0]).join(', ') : ''));
-process.exit(failed.length || results.length < 21 ? 1 : 0);
+process.exit(failed.length || results.length < 23 ? 1 : 0);

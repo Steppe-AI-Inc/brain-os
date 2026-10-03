@@ -279,7 +279,8 @@ const candidateMigration = () => [...new Set([...(gitOut('diff', '--name-only', 
   // P7 exception handlers: each PL/pgSQL handler is listed, and one that can absorb a plane-configuration-dependent error re-raises it
   const swallow = sqlRes.handlers.filter((h) => h.plane.length && !h.reraises);
   check('P7 no PL/pgSQL exception handler (' + sqlRes.handlers.length + ' in scope) catches a plane-configuration-dependent condition (insufficient privilege, an undefined object, an unsupported feature, a limit, a cancelled query, an unavailable lock, OTHERS) without re-raising; the Edge catch sites (' + edgeRes.catches.length + ') are the ones G6 lists',
-    swallow.length === 0 && edgeRes.catches.length === 7, swallow.map((h) => h.file.replace(/^.*\//, '') + ':' + h.line + ' when ' + h.plane.join(' or ')).join(' | '));
+    // 11: the seven of the node and admin APIs, and the four of factory-release-stage (CR-028), each listed in G6
+    swallow.length === 0 && edgeRes.catches.length === 11, swallow.map((h) => h.file.replace(/^.*\//, '') + ':' + h.line + ' when ' + h.plane.join(' or ')).join(' | '));
   // P8 an identity column is carried only while no statement compares it with a fixed value
   const idBad = sqlRes.identityCols.filter((c) => c.comparedWithConstant);
   check('P8 every identity column the migration defines (' + sqlRes.identityCols.map((c) => c.column).join(', ') + ') is a row id only: no statement compares it with a fixed value',
@@ -369,7 +370,8 @@ const UNMEASURED = [
   const catchSites = [];
   for (const [name, text] of [['node_api.ts', nodeApi], ['admin_api.ts', adminApi], ['enroll.ts', read(join(FN, '_shared', 'enroll.ts'))], ['peer.ts', peerSrc],
     ['pairing.ts', read(join(FN, '_shared', 'pairing.ts'))], ['db.ts', read(join(FN, '_shared', 'db.ts'))], ['route.ts', read(join(FN, '_shared', 'route.ts'))],
-    ['factory-node-api/index.ts', read(NODE_FN)], ['factory-admin-api/index.ts', read(ADMIN_FN)]]) {
+    ['factory-node-api/index.ts', read(NODE_FN)], ['factory-admin-api/index.ts', read(ADMIN_FN)],
+    ['release_stage.ts', read(join(FN, '_shared', 'release_stage.ts'))], ['factory-release-stage/index.ts', read(join(FN, 'factory-release-stage', 'index.ts'))]]) {
     text.split('\n').forEach((line, i) => { const code = line.replace(/\/\/.*$/, ''); if (/\bcatch\b/.test(code)) catchSites.push({ f: name, line: i + 1, code: code.trim() }); });
   }
   const ALLOWED_CATCH = [
@@ -380,6 +382,12 @@ const UNMEASURED = [
     ['admin_api.ts', /catch \(e\) \{ if \(e instanceof SyntaxError\) return false; throw e; \}/, 'the caller\'s token payload (SyntaxError only; everything else re-thrown)'],
     ['admin_api.ts', /try \{ body = JSON\.parse\(new TextDecoder\(\)\.decode\(raw\)\); \} catch \{ return refuse\(400, 'bad_request', 'the body is not JSON'\); \}/, 'the caller\'s JSON body'],
     ['admin_api.ts', /^\} catch \(e\) \{$/, 'THE REQUEST BOUNDARY (500 server_refused / 503 unavailable)'],
+    // factory-release-stage (CR-028): the caller's statement and body, the prepared update read back from release storage (not JSON:
+    // not a staged update - authorize-update then refuses not_staged, and a new statement may replace it), and its one boundary
+    ['release_stage.ts', /try \{ o = JSON\.parse\(text\); \} catch \{ return null; \}/, 'the caller\'s statement (not JSON: no statement, 400)'],
+    ['release_stage.ts', /try \{ body = JSON\.parse\(text\); \} catch \{ body = null; \}/, 'the caller\'s JSON body (400)'],
+    ['release_stage.ts', /try \{ p = JSON\.parse\(pj\); \} catch \{ return null; \}/, 'the prepared update in release storage (not JSON: not a staged update)'],
+    ['release_stage.ts', /^\} catch \(e\) \{$/, 'THE REQUEST BOUNDARY of factory-release-stage (503 unavailable)'],
   ];
   const unlisted = catchSites.filter((c) => !ALLOWED_CATCH.some(([f, re]) => f === c.f && re.test(c.code)));
   const boundaries = ['node_api.ts', 'admin_api.ts'].map((f) => {
