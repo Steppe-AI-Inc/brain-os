@@ -11,8 +11,8 @@
 //      dev entry, and with the empty set; a fresh key pinned in a production set verifies its own signature (the refusal is specific
 //      to dev keys), and the same key unpinned is key_outside_trust_set
 //   U3 the dev key id is stated once in effect: release.mjs KNOWN_DEV_KEY_IDS, trust/dev.json's key ids and release-manifest.mjs
-//      devKey() agree; trust/production.json holds none of them, and exactly the key ids the Director's WO-6 records (the founder's
-//      keys after C-3; none before it); every committed entry is bound to its key id, and none repeats
+//      devKey() agree; trust/production.json holds none of them, and exactly the key ids the Director's WO-6 records (the release
+//      signer's key, from revision 5); every committed entry is bound to its key id, and none repeats
 //   U4 the trust decision takes nothing from runtime input, by source structure: release.mjs reads no environment variable, file or
 //      network answer and loads no module dynamically; its imports are node:crypto and pe-image.mjs (which imports node:crypto only);
 //      EMBEDDED_TRUST is assigned once, from __TRUST__; revocations supply key_ids and releases only; every verifyRelease call of the
@@ -55,7 +55,7 @@ const DEV_ENTRY = { key_id: DEV.keyId, public_key: DEV.publicKey.toString('base6
 const devSigned = (m) => signWith({ ...m, key_id: DEV.keyId }, { privateKey: DEV.privateKey });
 const flipSig = (m) => { const b = Buffer.from(m.signature, 'base64url'); b[7] ^= 0x01; return { ...m, signature: b.toString('base64url') }; };
 const V = (manifest, trust, revocations = NO_REVOCATIONS) => safe(() => verifyRelease({ manifest, artifact: null, trust, revocations }));
-// the key ids the Director's WO-6 names as the live trust set (the founder's keys, recorded after C-3; none before it)
+// the key ids the Director's WO-6 names as the live trust set (the release signer's key, recorded by revision 5)
 const WO6_KEY_IDS = [...new Set(read('qa/work-orders/auto-enrollment-v1/WO-6.md').match(/\bed25519:[0-9a-f]{64}\b/g) || [])].filter((id) => !KNOWN_DEV_KEY_IDS.includes(id)).sort();
 
 let T_DEV, T_PROD;
@@ -104,14 +104,14 @@ if (T_DEV) {
     sameIds: JSON.stringify([...KNOWN_DEV_KEY_IDS].sort()) === JSON.stringify([...devIds].sort()) && JSON.stringify([...devIds]) === JSON.stringify([DEV.keyId]),
     devPublicKey: (dev.keys || []).length === 1 && dev.keys[0].public_key === DEV_ENTRY.public_key,
     productionHoldsNoDevKey: !(prod.keys || []).some((k) => KNOWN_DEV_KEY_IDS.includes(k.key_id) || devIds.includes(k.key_id) || k.public_key === DEV_ENTRY.public_key),
-    // WO-6: the live trust set is exactly the founder's keys the Director's WO-6 records, and nothing else (none before C-3). The
+    // WO-6: the live trust set is exactly the release signer's key the Director's WO-6 records, and nothing else. The
     // key ids are read from the Director's document in this tree, which the static contract holds byte-identical to the designated
     // Director commit; a dev key id that document may mention is never one of them
     productionIsTheDirectorsRecord: Array.isArray(prod.keys) && JSON.stringify(prod.keys.map((k) => k.key_id).sort()) === JSON.stringify(WO6_KEY_IDS),
     allBound: all.every(bound), noRepeat: new Set(all.map((k) => k.key_id)).size === all.length,
     modes: dev.channel === 'dev' && dev.mode === 'dev' && prod.channel === 'production' && prod.mode === 'production',
   };
-  row('U3 release.mjs KNOWN_DEV_KEY_IDS, trust/dev.json\'s key ids and devKey() agree; trust/production.json holds no dev key, and exactly the key ids the Director\'s WO-6 records (none before C-3); every entry is bound to its key id and none repeats',
+  row('U3 release.mjs KNOWN_DEV_KEY_IDS, trust/dev.json\'s key ids and devKey() agree; trust/production.json holds no dev key, and exactly the key ids the Director\'s WO-6 records (the release signer\'s key); every entry is bound to its key id and none repeats',
     Object.values(facts).every(Boolean), JSON.stringify({ ...facts, wo6_key_ids: WO6_KEY_IDS }));
 }
 

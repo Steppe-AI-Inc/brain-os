@@ -5,7 +5,7 @@
 //
 // CHANNEL (S-5, WO-6). The release channel's TRUST SET and TRUST MODE (scripts/factory-runner/enrolled/trust/<channel>.json) and its
 // default Node API endpoint are FIXED INTO THE BUNDLE at build time (esbuild defines __TRUST__ and __CHANNEL__); nothing at runtime
-// changes them. The production channel's trust set is empty until C-3, so a production-channel build trusts no key at all.
+// changes them. The production channel's trust set is exactly the release signer's public key the Director's WO-6 records (S-5).
 // CHANNEL SEPARATION is checked first (channelTrust, before the output directory, the base binary, git or the toolchain lock is
 // touched): a production trust set that holds a dev key, or a dev trust set that holds a key that is not a dev key, is refused
 // (exit 4) and nothing is written. A check added to build() later keeps this order, so the refusal stays the first answer.

@@ -181,7 +181,7 @@ try {
   }
   // ---- SG5 the pinned key is the Director's ledger record
   {
-    const director_commit = process.env.FACTORY_DESIGNATED_DIRECTOR || 'f6ec0bf3ca01443121fa09644213ae9214f78ba5';
+    const director_commit = process.env.FACTORY_DESIGNATED_DIRECTOR || '3745a281acf8475058c2420b2c7a402efd675ddd';
     const r = spawnSync('git', ['-C', ROOT, 'show', director_commit + ':qa/work-orders/AUTO_ENROLLMENT_V1_LEDGER.json'], { encoding: 'utf8', maxBuffer: 1 << 26 });
     let recorded = null;
     try { recorded = JSON.parse(r.stdout).director_signing_key.public_key.split(' ').slice(0, 2).join(' '); } catch { recorded = null; }

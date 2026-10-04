@@ -115,7 +115,7 @@ const rcpt = (s) => sha256('receipt ' + s);
 const readJ = (f) => { try { return JSON.parse(readFileSync(f, 'utf8')); } catch { return null; } };
 const bi = (ch) => readJ(join(ROOT, 'dist', 'brain-factory', V, ch, 'build-info.json'));
 // THE LIVE TRUST SET (WO-6). What a production build must read back: the committed production trust source, entry for entry (key id,
-// sha256 of the public key) - none before C-3, the founder's keys after it. And the key ids the Director's WO-6 names in this tree
+// sha256 of the public key) - the release signer's key WO-6 revision 5 records. And the key ids the Director's WO-6 names in this tree
 // (held byte-identical to the designated Director commit by the static contract): the production set is exactly those.
 const prodReadback = () => { const t = JSON.parse(readFileSync(join(ROOT, 'scripts/factory-runner/enrolled/trust/production.json'), 'utf8'));
   return { channel: t.channel, mode: t.mode, keys: t.keys.map((k) => ({ key_id: k.key_id, public_key_sha256: createHash('sha256').update(Buffer.from(k.public_key, 'base64url')).digest('hex') })) }; };
@@ -488,7 +488,7 @@ try {
       digest: info.digest.value === authenticodeImageHash(readFileSync(exe)),
     };
   }
-  row('R-h per channel: the verifier\'s rebuild is byte-identical; the trust set read back from the exe equals build-info\'s, and both equal a recomputation from the committed trust source (key id, sha256 of the public key); key ids bound and unique; production exactly the key ids the Director\'s WO-6 records (none before C-3) and no dev key, dev only dev keys; the channel read-back names build-info\'s endpoint and release storage; the digest is the exe\'s image hash',
+  row('R-h per channel: the verifier\'s rebuild is byte-identical; the trust set read back from the exe equals build-info\'s, and both equal a recomputation from the committed trust source (key id, sha256 of the public key); key ids bound and unique; production exactly the key ids the Director\'s WO-6 records (the release signer\'s key) and no dev key, dev only dev keys; the channel read-back names build-info\'s endpoint and release storage; the digest is the exe\'s image hash',
     Object.values(hFacts).every((f) => Object.values(f).every(Boolean)),
     JSON.stringify(hFacts) + ' | ' + (hd.stdout.match(/IDENTICAL[^\n]*|DIFFERENT[^\n]*/) || [hd.stdout.slice(-200)])[0] + ' | ' + (hp.stdout.match(/IDENTICAL[^\n]*|DIFFERENT[^\n]*/) || [hp.stdout.slice(-200)])[0]);
 

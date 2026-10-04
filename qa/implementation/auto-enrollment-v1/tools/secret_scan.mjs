@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
 // the designated Director commit (r3) the candidate is judged against
-const DIRECTOR_COMMIT = 'f6ec0bf3ca01443121fa09644213ae9214f78ba5';
+const DIRECTOR_COMMIT = '3745a281acf8475058c2420b2c7a402efd675ddd';
 const BASE = process.argv.slice(2).find((a) => !a.startsWith('--')) || DIRECTOR_COMMIT;
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 26 }).trim();
 const head = git('rev-parse', 'HEAD');

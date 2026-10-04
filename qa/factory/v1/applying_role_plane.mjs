@@ -45,7 +45,7 @@ import { stopServer } from '../local_pg.mjs';
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 export const BASELINE = '69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6';
 // the designated Director commit (r3); FACTORY_DESIGNATED_DIRECTOR overrides it, as in the static contract
-export const DIRECTOR = process.env.FACTORY_DESIGNATED_DIRECTOR || 'f6ec0bf3ca01443121fa09644213ae9214f78ba5';
+export const DIRECTOR = process.env.FACTORY_DESIGNATED_DIRECTOR || '3745a281acf8475058c2420b2c7a402efd675ddd';
 // the release signer's bootstrap (applied before the migration, never part of it) and the stand-in for the platform's secret store
 export const SIGNER_FILE = 'scripts/factory-control-plane/release_signer.sql';
 export const VAULT_STANDIN = 'qa/factory/v1/vault_standin.sql';

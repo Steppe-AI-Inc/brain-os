@@ -3,10 +3,10 @@
   "mode": "production",
   "_about": [
     "THE LIVE TRUST SET (S-5, WO-6). A source input, fixed into the production-channel artifact at build time.",
-    "It is EMPTY until C-3 (production release-signing key custody) is decided: before C-3 no live-mode release exists, and a",
-    "production-channel build trusts no key at all. After C-3 the Director issues a WO-6 revision recording the founder's public keys and",
-    "key ids, and the implementer's next candidate adds exactly those bytes here - nothing else, never a key the implementer holds.",
+    "It holds exactly the entry the Director's WO-6 revision 5 records: the public key of the Factory-managed release signer, which the",
+    "live plane generated in the founder's bootstrap (2026-10-04) and the Director read from the plane. No person holds or handles its",
+    "private key, and it is never a key the implementer generated or holds. A replaced signer is a new WO-6 revision and a new candidate.",
     "Each entry: { \"key_id\": \"ed25519:<sha256 of the 32-byte public key, hex>\", \"public_key\": \"<32-byte Ed25519 public key, base64url>\" }."
   ],
-  "keys": []
+  "keys": [{ "key_id": "ed25519:d3ed1390c6e6c367006a4fc5bdecd31d6cfe34823d5eeda7b9341656d962c81e", "public_key": "4iR7Ra54qciQ5xT-xnXEF1E90x415CEIokAMMvZdkrU" }]
 }

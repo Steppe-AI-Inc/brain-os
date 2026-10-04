@@ -122,7 +122,7 @@ for (const ch of CHANNELS) {
   const f = join(ROOT, 'dist', 'brain-factory', version, ch, 'build-info.json');
   if (!existsSync(f)) { out.push('| ' + ch + ' | (no build at ' + f + ') |'); continue; }
   const b = JSON.parse(readFileSync(f, 'utf8'));
-  const keys = b.trust.keys.length ? b.trust.keys.map((k) => '`' + k.key_id + '` / `' + k.public_key_sha256 + '`').join('<br>') : '**empty** (no key before C-3)';
+  const keys = b.trust.keys.length ? b.trust.keys.map((k) => '`' + k.key_id + '` / `' + k.public_key_sha256 + '`').join('<br>') : '**empty** (no key recorded by WO-6)';
   out.push('| ' + ch + ' | ' + b.runtime_version + ' | `' + b.source_commit + '` | ' + b.dirty + ' | ' + b.built_at + ' | `' + b.digest.value + '` | `' + b.sha256 + '` | ' + b.trust.mode + ' | ' + keys + ' | ' + (b.default_api || '(none: dev)') + ' |');
   if (b.source_commit !== head) out.push('| | **the build is not of HEAD ' + head.slice(0, 8) + '** |');
 }

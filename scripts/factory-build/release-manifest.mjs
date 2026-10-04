@@ -4,17 +4,18 @@
 //   make    --artifact <exe> --channel production|dev --version <semver> --source-sha <40 hex> --receipt-sha256 <64 hex> --out <file>
 //   sign-dev             --manifest <file>        sign with the DEV key (dev channel only; its seed is published, below)
 //   signing-input        --manifest <file>        print the exact bytes a key signs (base64) - for a signer outside this tool
-//   attach-signature     --manifest <file> --key-id <ed25519:...> --signature <base64url>     (the production path: see below)
+//   attach-signature     --manifest <file> --key-id <ed25519:...> --signature <base64url>     (a signature made elsewhere: see below)
 //   verify               --manifest <file> --artifact <exe> --channel production|dev
 //
-// THE PRODUCTION SIGNING INTERFACE (C-3: production release-signing key custody is FOUNDER-GATED and UNRESOLVED). This tool never
-// creates, holds or uses a production key and names no custody option. What a production key must satisfy:
+// THE PRODUCTION SIGNING INTERFACE (C-3 is decided by the founder: the production signer is the Factory-managed release signer of the
+// live plane, WO-6 r5). This tool never creates, holds or uses a production key: a production manifest is signed only by the release
+// signer, inside the founder-authorized publication (Brain OS -> Factory -> Update). What a production key satisfies:
 //   * algorithm   Ed25519 (RFC 8032), a 32-byte public key;
 //   * key id      "ed25519:" + the lowercase hex SHA-256 of the 32-byte public key (bound to the key one-to-one; never shared);
 //   * signature   Ed25519 over `signing-input` (the manifest's seven fields as JSON with sorted keys), base64url without padding;
 //   * trust       the public key and key id enter scripts/factory-runner/enrolled/trust/production.json only through a Director WO-6
-//                 revision after C-3; the next candidate is certified with them (a node trusts only the keys fixed in its artifact);
-//   * rotation    a new key is added the same way (a new certified release carries it); a key is retired by a revocation the API
+//                 revision that records them; the next candidate is certified with them (a node trusts only the keys fixed in its artifact);
+//   * rotation    a replaced signer is added the same way (a new certified release carries it); a key is retired by a revocation the API
 //                 delivers (revoke-key, founder-only) - a revoked key's signatures are refused by every node from its next heartbeat.
 //
 // THE DEV KEY is derived from a PUBLISHED seed, on purpose: anyone rehearsing on a disposable plane can sign a dev release, and that is
