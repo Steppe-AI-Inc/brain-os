@@ -356,7 +356,7 @@ production Brain OS deploy; BLOCKED — EXTERNAL where applicable).
 
 ---
 
-# PART II — Founder rulings sent to the Director, 2026-09-26 to 2026-10-03 (verbatim)
+# PART II — Founder rulings sent to the Director, 2026-09-26 to 2026-10-04 (verbatim)
 
 ## II.1 Machine roles and authority
 
@@ -1365,3 +1365,140 @@ founder holds the originals; they are not transcribed here because the Director 
 ("Factory automatically handles signing, publication and update"). The 10:30:47Z message states that the later founder decisions
 settle three of r6's four surfaced items, directs CR-028's canonicalization and the Stage A judgment, and asks for the
 password-change probe only if a disposable test account exists. Director r7 records them (ledger event log, CR-028).
+
+## II.20 The r7 release, the bootstrap gate and the bootstrap's report — founder messages, 2026-10-03 to 2026-10-04 (UTC)
+
+Transcribed as received by the Director, in arrival order, with UTC times. A pasted text is transcribed without the client's
+paste markers.
+
+**2026-10-03T11:11:23Z**
+
+```text
+FINISH CURRENT R7 REVIEW.
+```
+
+**2026-10-03T11:12:03Z**
+
+```text
+If the reviewer finds no blocking defect:
+- sign Director r7
+- push it
+- read back remote head
+- report exact Director SHA
+- report WO-6 revision 4 SHA
+- confirm Candidate #3 and product code remain untouched
+
+If it finds a real defect:
+- fix only that defect
+- rerun the bounded r7 gate/review
+- publish
+
+Do not start another review cycle after a clean result.
+```
+
+**2026-10-03T11:17:20Z**
+
+```text
+KEEP VERIFIER READY.
+```
+
+**2026-10-03T16:39:03Z**
+
+```text
+NEXT GATE — PREPARE EXACT FOUNDER BOOTSTRAP ACTION
+```
+
+**2026-10-03T16:39:05Z** (pasted)
+
+```text
+Director r7 and Stage A are complete.
+
+Do not do more governance or review.
+
+Prepare ONE exact founder action to apply the already-verified:
+
+release_signer.sql
+sha256 333536de…450f
+
+Requirements:
+
+- use exactly the bytes Stage A verified;
+- execute by the r7/WO-6 approved path;
+- no implementer session running on the execution machine;
+- no management-token workaround;
+- no key material exposed to founder;
+- no manual key handling;
+- precheck exact file hash before execution;
+- apply transactionally;
+- postcheck proves signer exists and only PUBLIC material is observable;
+- output the generated public key / key_id for Director recording;
+- private key must remain inside Factory server-side boundary.
+
+Return:
+
+FOUNDER BOOTSTRAP — READY
+
+with ONE command/procedure only.
+
+Do not execute it yourself unless the canonical contract already authorizes Director
+execution without founder approval.
+```
+
+**2026-10-04T04:15:27Z**
+
+```text
+key_id:     ed25519:d3ed1390c6e6c367006a4fc5bdecd31d6cfe34823d5eeda7b9341656d962c81e
+  public_key: 4iR7Ra54qciQ5xT-xnXEF1E90x415CEIokAMMvZdkrU  applied:    2026-10-04T04:10:11Z UTC on DESKTOP-MDPE6FS, by psql -1 (this script)
+```
+
+**2026-10-04T04:16:07Z**
+
+```text
+BOOTSTRAP HAS BEEN APPLIED.
+```
+
+**2026-10-04T04:16:13Z**
+
+```text
+Record and independently verify:
+
+key_id:
+ed25519:d3ed1390c6e6c367006a4fc5bdecd31d6cfe34823d5eeda7b9341656d962c81e
+
+public_key:
+4iR7Ra54qciQ5xT-xnXEF1E90x415CEIokAMMvZdkrU
+
+applied:
+2026-10-04T04:10:11Z UTC
+
+NEXT:
+
+1. Perform the already-planned read-only live verification:
+   - signer exists exactly once;
+   - public_key() returns the same public key;
+   - non-owner cannot sign or access private material;
+   - live catalog change matches Stage A-approved bootstrap.
+
+2. Record this exact key_id/public_key in the next Director / WO-6 revision.
+
+3. Publish and read back that Director revision.
+
+4. Return:
+   DIRECTOR — SIGNER KEY RECORDED
+   - Director SHA
+   - WO-6 revision/hash
+   - exact recorded key_id
+   - exact recorded public_key
+
+Do not start another review cycle.
+Do not redesign the signer.
+Do not touch Candidate #3.
+```
+
+Director note: at 17:03:16Z the founder sent "Ran 2 shell commands" with a paste of the Director's own earlier answer (its
+"FOUNDER BOOTSTRAP — READY" text and the founder's prompt line "KEEP VERIFIER READY."); it is Director output, so it is not
+transcribed. At 17:04:16Z and 17:04:20Z the founder sent the 16:39:03Z and 16:39:05Z messages again; the second differs only in that
+its last line, "execution without founder approval.", follows a blank line outside the pasted part. The Director answered with
+FOUNDER BOOTSTRAP — READY and did not execute the procedure: the contract makes the bootstrap the founder's action (§0). The
+04:15:27Z message is the three lines the Director's founder procedure printed; its last line is the founder's statement of the path
+used (contract §0), recorded in the event log as the founder's attestation. Director r8 records the key (WO-6 revision 5).
