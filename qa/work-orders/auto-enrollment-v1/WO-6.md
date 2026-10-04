@@ -1,8 +1,8 @@
 # WO-6 — Release manifest, pinned trust set, signing abstraction and runtime upgrade
 
-- **Binding**, revision 4, issued by the DIRECTOR.
+- **Binding**, revision 5, issued by the DIRECTOR.
 - Contract: §0 (C-3), §1 (Runtime release; the release-signer bootstrap), §2 (Release), §4, §7; S-5, S-7, S-8, S-10, S-12.
-- Founder text: II.4, II.11, II.18, II.19.
+- Founder text: II.4, II.11, II.18, II.19, II.20.
 - Executed by: the IMPLEMENTER.
 - Certified by: a distinct authorized verifier.
 - Scope changes: only a Director revision changes this WO.
@@ -53,8 +53,8 @@
   - **The live trust set (the release signer's public key) is a source input.** After the founder's bootstrap the Director reads the
     public key from the live plane, read-only, and a WO-6 revision records it and its key id; the implementer's next candidate adds
     exactly those bytes to the trust-set source (S-5; under S-16 they are a Director input, and the Director authors no product code).
-    So the live release candidate contains them in its SHA and is certified with them. Until that revision the live trust set is
-    empty and no live-mode release exists.
+    So the live release candidate contains them in its SHA and is certified with them. Revision 5 records them ("The live trust
+    set", below); before it the live trust set was empty and no live-mode release existed.
 - **Pinned trust set.** A node verifies the manifest signature and the artifact digest **before execution**, against a **trust set
   pinned on the node**, never against a key named by the manifest or the API. Refused by name:
   - unsigned;
@@ -89,6 +89,31 @@
   - the founder's update authorization: its Admin API front door and the Factory → Update page;
   - the release-stage function and the node's automatic take.
 
+## The live trust set (recorded by revision 5)
+The founder applied the release-signer bootstrap on 2026-10-04 (contract §0, §1). The Director then read the signer's public half from
+the live plane, read-only, through `factory_signer.public_key()` as a non-owner login, and it equals what the founder's run reported
+(ledger event log). The live trust set is exactly this one entry:
+
+| key id | public key (Ed25519, 32 bytes) |
+|---|---|
+| `ed25519:d3ed1390c6e6c367006a4fc5bdecd31d6cfe34823d5eeda7b9341656d962c81e` | `4iR7Ra54qciQ5xT-xnXEF1E90x415CEIokAMMvZdkrU` (base64url without padding, as `public_key()` returns it); hex `e2247b45ae78a9c890e714fec675c417513dd31e35e42108a2400c32f65d92b5` |
+
+- The key id is `ed25519:` followed by the sha256 of the 32-byte public key.
+- The implementer's next candidate adds exactly this entry to the trust-set source, and nothing else. The verifier reads it back as
+  (key id, public-key sha256), with the channel and trust mode ("Certified bytes").
+- The bootstrap: `scripts/factory-control-plane/release_signer.sql`, sha256
+  `333536de52fdfcbf7a5b51a399f142cbae5af35b444d78f10c70c6dd7718450f`, at implementer commit
+  `8ac331ffda37456a4afa63c692024016ffb40806` (the file Stage A judged). The founder applied it at 2026-10-04T04:10:11Z by
+  `psql -X -1 -v ON_ERROR_STOP=1 -f`, through the Director's founder procedure; the founder's attestation of that path is in the
+  event log.
+- The referent: the Director's post-bootstrap catalog read,
+  `qa/verification/auto-enrollment-v1/LIVE_PLANE_CATALOG_SNAPSHOT_POST_BOOTSTRAP.json` (`snapshot_sha256`
+  `f2bc674133cb33eed1d2fc1d1c47718a171b4e08de07c050642612337f0a78f9`), equals the pre-candidate referent plus exactly the difference
+  the judged file produces on a judging plane. It is the judging planes' referent from this revision (contract §1, "Observed, then the
+  referent"; `VERIFICATION_SPEC.md` §3.3), and every judging plane applies the bootstrap at the sha256 above (contract §1, "Judging
+  planes").
+- Replacing the signer (the removal step and a new bootstrap, contract §1 "Rejection") needs a new WO-6 revision recording the new key.
+
 ## Must satisfy
 AC-3, AC-5, AC-7, S-5, S-7, S-8, S-10, S-12, P-9
 
@@ -100,7 +125,8 @@ C-3 is decided by the founder (II.18): a Factory-managed release signer. No foun
 - The implementer builds the release signer and its one-time bootstrap. A verifier judges the bootstrap's file, and the founder then
   applies it (contract §0, §1; it needs no key handling). The implementer never applies it to the live plane and never holds the
   signer's key, an owner-level (signing-equivalent, S-5) credential of the live plane, or the Admin API login.
-- Final acceptance waits for the bootstrap and the Director's WO-6 revision recording the signer's public key (S-5).
+- The founder applied the bootstrap on 2026-10-04, and revision 5 records the signer's public key (S-5); final acceptance no longer
+  waits for either.
 - Installer Authenticode signing is a separate founder / external boundary, under WO-4.
 
 ## Candidate report must include
@@ -111,3 +137,4 @@ C-3 is decided by the founder (II.18): a Factory-managed release signer. No foun
 - Proof that no code path places private release-signing material anywhere S-5 forbids, and that the signing authority is referenced
   only as the release signer.
 - The cases of AC-5(o), (p), (q) and (r).
+- The live trust-set entry in the trust-set source, byte-equal to "The live trust set" above.

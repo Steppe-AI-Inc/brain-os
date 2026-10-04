@@ -60,7 +60,7 @@
   "document_set": [
     {
       "path": "docs/architecture/features/factory-node-management-auto-enrollment.FOUNDER_TEXT.md",
-      "sha256": "fcc7eaf628547de9bd8b0d9a46deef50d03644a17049189e8f66e99b3f8092ad"
+      "sha256": "8aa6d71ff4a1690da06c056d094fe9db43605ba9e277425096f24bb8ce6c7b36"
     },
     {
       "path": "docs/architecture/features/factory-node-management-auto-enrollment.md",
@@ -105,6 +105,10 @@
     {
       "path": "qa/verification/auto-enrollment-v1/LIVE_PLANE_CATALOG_SNAPSHOT_PRE_CANDIDATE.json",
       "sha256": "80507056c08e7e07eed4a64c348bf942c5ea8cbd9561189a239bf8ed5b094df6"
+    },
+    {
+      "path": "qa/verification/auto-enrollment-v1/LIVE_PLANE_CATALOG_SNAPSHOT_POST_BOOTSTRAP.json",
+      "sha256": "fa92a9695040975094b40bf3b6f16a74a71f84b6af4f4b871ba6c034f8b8b523"
     },
     {
       "path": "qa/verification/auto-enrollment-v1/tools/baseline_manifest.mjs",
@@ -293,9 +297,9 @@
       "id": "WO-6",
       "title": "Release manifest, pinned trust set, signing abstraction and runtime upgrade",
       "issued_by": "DIRECTOR",
-      "revision": 4,
+      "revision": 5,
       "text_path": "qa/work-orders/auto-enrollment-v1/WO-6.md",
-      "text_sha256": "337882be317e8a40a996cfe30064f209838325b75c8dc5748c61fd5a209e8c53",
+      "text_sha256": "1ffbcca2867f7b4febfaea8beea47219fddf38359142345596f5654257ab8ef7",
       "state": "BINDING",
       "depends_on": [
         "WO-1",
@@ -313,7 +317,7 @@
         "P-9"
       ],
       "founder_gate": null,
-      "founder_boundary": "C-3 is decided by the founder (II.18): a Factory-managed release signer. No founder gate remains. - The implementer builds the release signer and its one-time bootstrap. A verifier judges the bootstrap's file, and the founder then applies it (contract §0, §1; it needs no key handling). The implementer never applies it to the live plane and never holds the signer's key, an owner-level (signing-equivalent, S-5) credential of the live plane, or the Admin API login. - Final acceptance waits for the bootstrap and the Director's WO-6 revision recording the signer's public key (S-5). - Installer Authenticode signing is a separate founder / external boundary, under WO-4.",
+      "founder_boundary": "C-3 is decided by the founder (II.18): a Factory-managed release signer. No founder gate remains. - The implementer builds the release signer and its one-time bootstrap. A verifier judges the bootstrap's file, and the founder then applies it (contract §0, §1; it needs no key handling). The implementer never applies it to the live plane and never holds the signer's key, an owner-level (signing-equivalent, S-5) credential of the live plane, or the Admin API login. - The founder applied the bootstrap on 2026-10-04, and revision 5 records the signer's public key (S-5); final acceptance no longer waits for either. - Installer Authenticode signing is a separate founder / external boundary, under WO-4.",
       "branch": null,
       "candidate_sha": null,
       "receipts": []
@@ -612,11 +616,12 @@
     "one_time_founder_actions_not_gates": [
       "provisioning the SELECT-only observer role (needed before final acceptance; the runner.env interim serves candidate-stage reads only); row security does not filter its reads of the factory relations and storage.buckets (for example BYPASSRLS), and at its first read the founder confirms that every storage bucket it lists is founder-approved, in a confirmation that names no bucket (AC-10)",
       "the pre-candidate Edge record for AC-10, plus a founder-provided token whose scopes the provider lists, each read-only (unlisted scopes: refused, and the founder reads in person), held only on the Director machine outside every repository and runner.env, recorded in the event log by id, scopes and expiry (never its value), revoked by the founder at final acceptance (verification proceeds without it, only CERTIFIED entries wait for it, and a missing record never REJECTS; its content is bounded by AC-10's timing rule, the handoff of binding work orders; each candidate's Edge reading is then a Director read with the token, and if the founder reads in person instead each reading is a recurring founder action)",
-      "the release-signer bootstrap (contract §0, §1; WO-6): the founder applies the judged signer file to the live plane, with no key handling and no implementer-authored program receiving a credential; final acceptance waits for it and for the Director's WO-6 revision recording the signer's public key"
+      "the release-signer bootstrap (contract §0, §1; WO-6): the founder applies the judged signer file to the live plane, with no key handling and no implementer-authored program receiving a credential; final acceptance waits for it and for the Director's WO-6 revision recording the signer's public key Done: the founder applied it on 2026-10-04, and WO-6 revision 5 records the key (event log)."
     ],
     "completed": [
       "implementer / candidate-provenance signing identity (CR-005): CONFIRMED by founder ruling 2026-09-26; it does not resolve C-3",
-      "Resolved by the founder, 2026-10-03 (II.19; the founder's settling decisions themselves were not received by the Director): the successor's verification scope, where the Director applies r6's reading (the bounded pass is AC-5(o) to (r) and, for every surface the delta changes, that surface's rows and certified suites, in place of §3.7's reference suites and §3.10's mutation checks; a row whose surfaces the diff leaves unchanged carries candidate #3's receipt evidence; its INDEPENDENT QA PASS is the CERTIFIED verdict that rule 6 records); the meaning of \"update automatically\" (every node takes the published release by itself); and per-release staging (the Director stages each CERTIFIED release; CR-028)"
+      "Resolved by the founder, 2026-10-03 (II.19; the founder's settling decisions themselves were not received by the Director): the successor's verification scope, where the Director applies r6's reading (the bounded pass is AC-5(o) to (r) and, for every surface the delta changes, that surface's rows and certified suites, in place of §3.7's reference suites and §3.10's mutation checks; a row whose surfaces the diff leaves unchanged carries candidate #3's receipt evidence; its INDEPENDENT QA PASS is the CERTIFIED verdict that rule 6 records); the meaning of \"update automatically\" (every node takes the published release by itself); and per-release staging (the Director stages each CERTIFIED release; CR-028)",
+      "the release-signer bootstrap: applied by the founder 2026-10-04T04:10:11Z (event log); WO-6 revision 5 records the signer's public key (Director r8)"
     ],
     "surfaced": [
       "S1: Brain OS production profiles_update_self_or_admin lacks WITH CHECK (production migration, founder)",
@@ -632,7 +637,8 @@
       "The 2026-09-28 pre-ruling records reading (ledger rule 3): II.16's test also applied to the public implementer records published on 2026-09-28 before the ruling (04:29:42Z), for confirmation",
       "The verifier-namespace reading for this milestone (ledger rule 3): qa/verification/auto-enrollment-v1/<candidate-sha>/, with the Director-issued files elsewhere under qa/verification/auto-enrollment-v1/ and the single-writer qa/*.json files counted as Director canonical state, for confirmation",
       "The Brain OS Auth password-change setting (S-8's stated limit): until Brain OS Auth refuses a password change that presents neither the current password nor a reauthentication, the fresh password entry adds no protection against a stolen session; the setting is production auth configuration, a founder action. The founder asked for the live probe if a disposable Brain OS test account exists (II.19): BLOCKED — TEST ACCOUNT REQUIRED (a dedicated test account of the Brain OS project, never the founder's; none is held)",
-      "The adopt pin (contract §2 Release): a computer a Factory admin adopted a release for stays on that release until an admin adopts again; no rule ends a pin, so such a computer takes no later published release by itself. For the founder's confirmation, as a limit"
+      "The adopt pin (contract §2 Release): a computer a Factory admin adopted a release for stays on that release until an admin adopts again; no rule ends a pin, so such a computer takes no later published release by itself. For the founder's confirmation, as a limit",
+      "The database-password reset after the release-signer bootstrap (contract §0: a database credential typed into a client is rotated afterwards): not yet stated by the founder, for confirmation"
     ]
   },
   "ratification_register": [
@@ -1192,6 +1198,36 @@
       "utc": "2026-10-03",
       "event": "Director r7, founder-directed (founder text II.19): CR-028 canonicalized. The Director stages each CERTIFIED release through factory-release-stage, with a statement of its four values signed by director_signing_key in namespace brain-factory-prepared-update-v1, formed and signed with the Director's own tooling; only the request that first stages a statement receives its installer's upload address; an update is confirmed only while the staged installer is served with the staged digest, and the front door publishes only what the Admin API reports as staged (not_staged otherwise); and every node takes its channel's published release by itself, at a heartbeat between claims, through the unchanged upgrade gate, unless a Factory admin's adopt pins it. The founder stages nothing and upgrades no node. WO-6 is issued as revision 4 (text sha256 337882be317e8a40a996cfe30064f209838325b75c8dc5748c61fd5a209e8c53); it now also covers S-7 and S-10. Reconciled: S-5, S-7, S-10 (the service-role key's confined use by the stage handler and the Admin API), S-15 and S-16; contract §0, §1, §2 Release (the Director stages; the signed manifest's placement and its failure state; the node's take), §4, §6 and §11; AC-5 ((o) the placement failure; new (q) staging with a stand-in key at candidate stage; new (r) the automatic take and how a judging plane exercises it), AC-7 and AC-9; VERIFICATION_SPEC §3.4 and §6; founder text II.19 and the Part II header; ledger rule 1, the coverage and the founder items. The Director reads the 10:30:47Z message as settling r6's surfaced items on the successor's verification scope (r6's reading applies), the meaning of \"update automatically\" and per-release staging; the password-change setting stays surfaced (the live probe is BLOCKED — TEST ACCOUNT REQUIRED), and the permanent adopt pin is surfaced. Reviewed before commit by one bounded review (1 HIGH, 8 MEDIUM, 9 LOW): the HIGH and the real MEDIUM defects are fixed, with L-1, L-2, L-3, L-6 and L-8; M-3 is surfaced; L-4, L-5, L-7 and L-9 are recorded, not changed; then a bounded re-check of the fixes. CR-028 (sha256 f79e7041174f84cef5270be93daa414e5573a4a18a22848e6a42ea01b18baa21; implementer-signed) is recorded with its decision in change_requests. Carried, not in this revision: the items r6 carried. Candidate #3 (95fdb85a, CERTIFIED) is untouched; the implementation commits after 047ba310 are a proposal, not a candidate. Published on the founder's instruction of 2026-10-03T11:12:03Z (publish after the bounded review), which the next Director entry transcribes with this commit. Next: the founder's bootstrap of the judged file; a Director WO-6 revision recording the signer's public key with the bootstrap's file, sha256, commit and path and the post-bootstrap live catalog read; then one successor candidate, which designates that revision.",
       "by": "DIRECTOR"
+    },
+    {
+      "utc": "2026-10-04",
+      "by": "FOUNDER",
+      "event": "Founder messages, 2026-10-03 to 2026-10-04 (UTC; founder text II.20). On 2026-10-03: at 11:11:23Z \"FINISH CURRENT R7 REVIEW.\"; at 11:12:03Z the r7 publication rule (sign, push and read back r7 if the reviewer finds no blocking defect; otherwise fix only that defect and rerun the bounded gate) and \"Do not start another review cycle after a clean result.\"; at 11:17:20Z \"KEEP VERIFIER READY.\"; at 16:39:03Z \"NEXT GATE — PREPARE EXACT FOUNDER BOOTSTRAP ACTION\", with the requirements at 16:39:05Z (\"Prepare ONE exact founder action to apply the already-verified: release_signer.sql\", \"Do not do more governance or review.\" and \"Do not execute it yourself unless the canonical contract already authorizes Director execution without founder approval.\"), sent again at 17:04:16Z and 17:04:20Z. On 2026-10-04: at 04:15:27Z the three lines the founder procedure printed, the last \"applied: 2026-10-04T04:10:11Z UTC on DESKTOP-MDPE6FS, by psql -1 (this script)\"; at 04:16:07Z \"BOOTSTRAP HAS BEEN APPLIED.\"; at 04:16:13Z \"Record and independently verify\", with the read-only live verification, \"Record this exact key_id/public_key in the next Director / WO-6 revision.\", \"Publish and read back that Director revision.\", \"Do not start another review cycle.\", \"Do not redesign the signer.\" and \"Do not touch Candidate #3.\""
+    },
+    {
+      "utc": "2026-10-03",
+      "by": "DIRECTOR",
+      "event": "Director r7 published on the founder's instruction of 2026-10-03T11:12:03Z (founder text II.20), after the bounded review, its fixes and a bounded re-check with no blocking finding. r7 is committed as f6ec0bf3ca01443121fa09644213ae9214f78ba5 (parent 7f8edf2c), signed with the Director key. It was pushed to factory/auto-enrollment-v1-director by explicit refspec with no override (it changes no supabase/functions path) and read back: the remote ref, a Good signature, and 0 of 23 document-set and 0 of 10 WO hash mismatches recomputed from the published commit."
+    },
+    {
+      "utc": "2026-10-03",
+      "by": "DIRECTOR",
+      "event": "The founder procedure for the release-signer bootstrap (contract §0), prepared by the Director, which did not execute it (the contract makes the bootstrap the founder's action): one PowerShell command on the Home machine, bootstrap.ps1 (sha256 55ab03810adb4609cde7ec5946377bacf3b235494bacf4ac5877d4854357733a). It refuses the implementer's machine. Before connecting it checks release_signer.sql at sha256 333536de52fdfcbf7a5b51a399f142cbae5af35b444d78f10c70c6dd7718450f (the committed blob at 8ac331ff, the file Stage A judged), its postcheck (sha256 c7e257173c30789a33be769b9ea27db71f8464a27eb3630c71c560f7dd3c978f) and the pinned Supabase Root 2021 CA (sha256 700723581420dd1ac98fd7e9ac529f0ef210eadcaf87fc868a3ad7d114c2f3b7), and it takes psql from the provider's own image (public.ecr.aws/supabase/postgres:17.6.1.171) by its pinned id. It runs psql -X -1 -v ON_ERROR_STOP=1 -f release_signer.sql -f postcheck.sql as postgres over the session pooler, with TLS verify-full against that CA; the founder types the password only at psql's hidden prompt, and no management token is used. The postcheck runs in the same transaction and writes nothing. It raises, so nothing commits, unless the signer is ready, the store holds exactly one entry under its name, only public_key() is executable by PUBLIC, no role other than an owner-level one reaches both parts or can sign, and the public half is well formed; it records only the public half and that metadata. Before handing it over the Director checked read-only that the live plane had the store's extension and no factory_signer schema, and that the file's slowest statement (129 ms on a disposable plane) is far inside the plane's statement timeout. It verified the route's certificate chain and host name with a TLS-only handshake (no login sent). A dry run of the procedure on a disposable plane passed four cases: the postcheck refusing a role that reached both parts (nothing applied), an injected failure (nothing applied), a clean application, and a second application refused with the key unchanged."
+    },
+    {
+      "utc": "2026-10-04",
+      "by": "FOUNDER",
+      "event": "The release-signer bootstrap, applied by the founder (contract §0, §1): scripts/factory-control-plane/release_signer.sql, sha256 333536de52fdfcbf7a5b51a399f142cbae5af35b444d78f10c70c6dd7718450f, at implementer commit 8ac331ffda37456a4afa63c692024016ffb40806, committed on the live plane at 2026-10-04T04:10:11Z. The founder's attestation of the path used (founder text II.20, 04:15:27Z) is \"applied: 2026-10-04T04:10:11Z UTC on DESKTOP-MDPE6FS, by psql -1 (this script)\": the Director's founder procedure above, psql -X -1 -v ON_ERROR_STOP=1 -f from the provider's own image, on the Home machine, as postgres. Its postcheck passed inside the committed transaction. Not yet stated by the founder: the database-password reset that contract §0 requires after a credential is typed into a client (surfaced)."
+    },
+    {
+      "utc": "2026-10-04",
+      "by": "DIRECTOR",
+      "event": "Post-bootstrap observation (contract §1, \"Observed, then the referent\"; S-5): AS EXPECTED. Read-only, through the Director instrument's one read-only session (the runner.env interim, as the legacy login) on the live plane npvhuoozkbexddnvkqsj. The live catalog read with tools/live_catalog_snapshot.mjs (snapshot_sha256 f2bc674133cb33eed1d2fc1d1c47718a171b4e08de07c050642612337f0a78f9) equals the referent before it (LIVE_PLANE_CATALOG_SNAPSHOT_PRE_CANDIDATE.json, snapshot_sha256 133561edf13cfe7f3dcad594707fa7aee5c485c8c1167bfd0b82b79646a9c8be) plus exactly the difference the judged file produced on Stage A's judging plane, read with the same tool: difference sha256 22154985cf55f7038fd9af59716af665ce792ed60312cb917b092b1f6cb040eb in both (relations +1, columns +5, functions +11, table ACL +8, function ACL +12, schema ACL +3, constraints +5, indexes +1; nothing removed, nothing else changed, no entry naming the reader). So the postcheck changed nothing. That read is committed as qa/verification/auto-enrollment-v1/LIVE_PLANE_CATALOG_SNAPSHOT_POST_BOOTSTRAP.json and is the referent from now (VERIFICATION_SPEC §3.3). From the catalog, with each login judged by its own effective privileges and those of every role it can SET ROLE to, and never a secret's name or contents: only owner-level logins reach both the secret store's decrypt path and the signer's relation; the platform's grants reach single parts; the legacy login reaches neither, and no API, node or observer login exists yet; only owner-level logins can call the signing function; every login can call public_key(), and no non-owner-level login any other signer function. The public half, read through public_key() by the legacy login, equals the founder's report: key id ed25519:d3ed1390c6e6c367006a4fc5bdecd31d6cfe34823d5eeda7b9341656d962c81e, public key 4iR7Ra54qciQ5xT-xnXEF1E90x415CEIokAMMvZdkrU (32 bytes; the key id is ed25519: followed by their sha256). The signer's table holds exactly one row (its primary key and a check on only_one allow one, and public_key() returns it). The live secret store's contents are never observed (a recorded limit); the founder's in-transaction postcheck counted one entry. The evidence is private; its manifest sha256 is e73eec258170dcd002cd962bb5889b9ca98553b8127eaa84edee1f0e2d72c5bf, signed with the Director key."
+    },
+    {
+      "utc": "2026-10-04",
+      "by": "DIRECTOR",
+      "event": "Director r8, founder-directed (founder text II.20): the signer key record. WO-6 is issued as revision 5 (text sha256 1ffbcca2867f7b4febfaea8beea47219fddf38359142345596f5654257ab8ef7). Its section \"The live trust set\" records the one entry, key id ed25519:d3ed1390c6e6c367006a4fc5bdecd31d6cfe34823d5eeda7b9341656d962c81e and public key 4iR7Ra54qciQ5xT-xnXEF1E90x415CEIokAMMvZdkrU, which the implementer's next candidate adds to the trust-set source and nothing else, with the bootstrap's file, sha256, commit, path and time and the post-bootstrap referent; final acceptance no longer waits for the bootstrap or this record. The document set adds LIVE_PLANE_CATALOG_SNAPSHOT_POST_BOOTSTRAP.json; founder text II.20 transcribes the founder's messages since r7; the founder items record the bootstrap as done and surface the password reset. No review cycle (the founder's instruction of 2026-10-04T04:16:13Z). Not changed: the contract, SECURITY_TENANCY, ACCEPTANCE_MATRIX, VERIFICATION_SPEC, every other WO, the implementation branch, and candidate #3 (95fdb85a, CERTIFIED). Carried, not in this revision: the items r6 carried and r7's recorded lows. Next: one successor candidate that adds exactly this entry to the trust-set source and designates this revision."
     }
   ]
 }
