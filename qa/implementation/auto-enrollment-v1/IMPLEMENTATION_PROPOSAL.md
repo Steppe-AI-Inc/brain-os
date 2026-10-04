@@ -20,8 +20,10 @@ revision 5, text sha256 `1ffbcca2867f7b4febfaea8beea47219fddf38359142345596f5654
   `4iR7Ra54qciQ5xT-xnXEF1E90x415CEIokAMMvZdkrU`. Nothing else of this proposal is on a live plane.
 - **CR-027 and CR-028 are canonicalized** (r6, r7). The r7 and r8 texts are reconciled here (below).
 
-**BLOCKED — the password-change probe's prerequisite** (a Brain OS test account that is not the founder's; r7: BLOCKED — TEST ACCOUNT
-REQUIRED). The freeze, the one L4 run and the hand-off to Home come after it, and after the Work PC is restarted.
+**SIDE FINDING — DEFERRED: the password-change question** (the founder's ruling of 2026-10-04). Whether Brain OS Auth lets a stolen
+session change the account password is not this milestone's gate: S-8 states it as a limit, the probe is not run, no test account is
+created for it and no Auth setting is changed. The milestone's update-authorization requirement is the one the authorization suite
+holds (below). The freeze, the one L4 run and the hand-off to Home follow the Work PC's restart.
 
 ## What the proposal contains
 
@@ -39,7 +41,7 @@ REQUIRED). The freeze, the one L4 run and the hand-off to Home come after it, an
 - The web: Brain OS → Factory → Update, which re-reads the Factory's state whatever the answer (AC-5(o)).
 - Judging planes: `qa/factory/v1/vault_standin.sql`, then the signer file, before the migration.
 - `qa/factory/v1/password_change_probe.mjs`: the non-mutating question to the live Brain OS Auth that S-8's stated limit depends on
-  (a test account, never the founder's). Not run: BLOCKED — TEST ACCOUNT REQUIRED (r7).
+  (a test account, never the founder's). Not run: SIDE FINDING — DEFERRED (the founder, 2026-10-04).
 
 ### The r7 reconcile (founder's instruction of 2026-10-04, "reconcile r7 now")
 
@@ -60,7 +62,8 @@ Run by the implementing session on the trees named. It is the implementer's own 
 | `qa/scenarios-runner/factory_v1_static_contract.mjs` | the r8 trust entry | 73 passed, 0 failed |
 | `deno check` of the three function entry points and the staging modules | the r7 reconcile | clean |
 | `qa/factory/v1/schema_acceptance.mjs`, `admin_acceptance.mjs` | `8ac331f` | 82/82, 46/46 |
-| `qa/factory/v1/update_authorization_acceptance.mjs`, through the real Admin API login | `8ac331f` | 23/23 |
+| `qa/factory/v1/update_authorization_acceptance.mjs`, through the real Admin API login | `8ac331f`, `8c69aec` | 23/23, 23/23: a fresh entry of the existing password is required (UW1, UA2); a wrong password is refused (UW2); the entry holds for the canonical window only (UA2, UA3); a session alone authorizes nothing (UA2, UA11); one entry authorizes one exact staged certified release (UA6, UA12, UW3, UW4); the same entry for another release, or other values, is refused (UA5, UA11). Against the suite's stand-in Brain OS Auth on a disposable plane |
+| `qa/factory/v1/v1_mutation_proof.mjs --plan` | `8c69aec` | 431 of 431 mutants plant (nothing run) |
 | `qa/factory/v1/release_signer_acceptance.mjs` | `8ac331f` | 12/12 |
 | `qa/factory/v1/gate_acceptance.mjs`, `runtime_units.mjs`, `release_trust_unit.mjs`, `installer_input_acceptance.mjs` | `8ac331f` | 9/9, 35/35, 8/8, 10/10 |
 | web `tsc --noEmit`, `eslint` (the Update panel) | `8ac331f` | clean |
@@ -73,5 +76,4 @@ Update page's server action - all part of the one L4 run on the frozen SHA.
 ## Order from here
 
 1. Done: the bootstrap (founder, 2026-10-04), the key record (Director r8), the trust entry and the affected L3 checks.
-2. The password-change probe's prerequisite (a Brain OS test account) is resolved and the probe runs.
-3. The Work PC is restarted; ONE successor SHA is frozen; ONE L4 certification runs; the frozen successor goes to Home.
+2. The Work PC is restarted; ONE successor SHA is frozen; ONE L4 certification runs; the frozen successor goes to Home.
