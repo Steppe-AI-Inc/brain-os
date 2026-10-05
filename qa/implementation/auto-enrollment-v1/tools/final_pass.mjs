@@ -39,6 +39,10 @@ if (DECL) {
 
 const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 const N = (args, minutes = 30, cwd = ROOT) => ({ cmd: process.execPath, args, minutes, cwd });
+// A STEP PASSES WHEN IT EXITS 0 AND PRINTED ITS RESULT LINE. Exit 0 alone is not a result: a suite whose disposable plane never
+// starts can end with exit 0 and no output at all (embedded-postgres registers an exit hook that ends a process whose event loop
+// empties with code 0 - seen once, 2026-10-05, in a mutation-proof run). Such a step did not run, and is counted as FAILED. The three
+// static steps that print nothing when they succeed are marked `quiet`.
 // [name, command, how its summary line reads]
 const STEPS = [
   ['build dev channel', N(['scripts/factory-build/build-sea.mjs', '--channel', 'dev'], 20)],
@@ -50,9 +54,9 @@ const STEPS = [
   ['static: architecture_impact_registry_contract', N(['qa/scenarios-runner/architecture_impact_registry_contract.mjs'], 5)],
   ['static: secret scan self-test', N(['qa/implementation/auto-enrollment-v1/tools/secret_scan.mjs', '--selftest'], 5)],
   ['static: secret scan', N(['qa/implementation/auto-enrollment-v1/tools/secret_scan.mjs'], 5)],
-  ['static: deno check (Edge functions)', { cmd: npx, args: ['--yes', 'deno@2.5.6', 'check', 'supabase/control-plane/edge/supabase/functions/factory-node-api/index.ts', 'supabase/control-plane/edge/supabase/functions/factory-admin-api/index.ts', 'supabase/control-plane/edge/supabase/functions/factory-release-stage/index.ts'], minutes: 10, cwd: ROOT, shell: true }],
-  ['static: web tsc', { cmd: npx, args: ['tsc', '--noEmit', '-p', 'tsconfig.json'], minutes: 15, cwd: join(ROOT, 'web'), shell: true }],
-  ['static: web eslint (changed files)', { cmd: npx, args: ['eslint', '"app/(app)/software-factory/computers"', '"app/(app)/software-factory/workers"', '"app/(app)/software-factory/update"', 'lib/factory', 'lib/data/factory-computers.ts', 'lib/data/factory-update.ts', 'components/app-sidebar.tsx', 'lib/i18n/dictionary.ts'], minutes: 15, cwd: join(ROOT, 'web'), shell: true }],
+  ['static: deno check (Edge functions)', { cmd: npx, args: ['--yes', 'deno@2.5.6', 'check', 'supabase/control-plane/edge/supabase/functions/factory-node-api/index.ts', 'supabase/control-plane/edge/supabase/functions/factory-admin-api/index.ts', 'supabase/control-plane/edge/supabase/functions/factory-release-stage/index.ts'], minutes: 10, cwd: ROOT, shell: true, quiet: true }],
+  ['static: web tsc', { cmd: npx, args: ['tsc', '--noEmit', '-p', 'tsconfig.json'], minutes: 15, cwd: join(ROOT, 'web'), shell: true, quiet: true }],
+  ['static: web eslint (changed files)', { cmd: npx, args: ['eslint', '"app/(app)/software-factory/computers"', '"app/(app)/software-factory/workers"', '"app/(app)/software-factory/update"', 'lib/factory', 'lib/data/factory-computers.ts', 'lib/data/factory-update.ts', 'components/app-sidebar.tsx', 'lib/i18n/dictionary.ts'], minutes: 15, cwd: join(ROOT, 'web'), shell: true, quiet: true }],
   ['static: web next build', { cmd: npx, args: ['next', 'build'], minutes: 30, cwd: join(ROOT, 'web'), shell: true, env: { NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:9', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'qa-dummy', NEXT_TELEMETRY_DISABLED: '1' } }],
   ['schema_acceptance', N(['qa/factory/v1/schema_acceptance.mjs'], 30)],
   ['manifest_rehearsal', N(['qa/factory/v1/manifest_rehearsal.mjs'], 30)],
@@ -96,14 +100,15 @@ for (const [name, s] of STEPS) {
   const file = name.replace(/[^A-Za-z0-9._-]+/g, '_') + '.txt';
   writeFileSync(join(OUT, file), ['step ' + name, 'command ' + [s.cmd, ...s.args].join(' '), 'cwd ' + s.cwd, 'commit ' + head, ...isolationHeader(ISO, ISO_PROOF), 'started ' + new Date(t0).toISOString(),
     'seconds ' + secs, 'exit ' + r.status + (r.error ? ' error ' + r.error.code : ''), 'summary ' + last, '', out].join('\n'));
-  rows.push({ name, exit: r.status, secs, last, file });
-  console.log((r.status === 0 ? 'PASS ' : 'FAIL ') + name.padEnd(46) + String(secs).padStart(5) + 's  ' + last.slice(0, 140));
+  const noResult = r.status === 0 && !s.quiet && last === '';
+  rows.push({ name, exit: r.status, ok: r.status === 0 && !noResult, secs, last: noResult ? 'NO RESULT LINE: the step ended 0 without printing its result - counted as FAILED' : last, file });
+  console.log((r.status === 0 && !noResult ? 'PASS ' : 'FAIL ') + name.padEnd(46) + String(secs).padStart(5) + 's  ' + (noResult ? 'NO RESULT LINE (exit 0 without a result)' : last.slice(0, 140)));
 }
 const md = ['# Final developer pass', '', 'Commit `' + head + '`; run by `qa/implementation/auto-enrollment-v1/tools/final_pass.mjs` (serial; developer verification, never independent).', '',
   ...isolationHeader(ISO, ISO_PROOF).map((l) => '- ' + l), '',
   '| step | exit | seconds | summary | evidence |', '|---|---|---|---|---|',
   ...rows.map((r) => '| ' + r.name + ' | ' + r.exit + ' | ' + r.secs + ' | ' + r.last.replace(/\|/g, '/').slice(0, 160) + ' | `' + r.file + '` |'), '',
-  (rows.every((r) => r.exit === 0) ? 'Every step exited 0.' : 'FAILED steps: ' + rows.filter((r) => r.exit !== 0).map((r) => r.name).join(', '))];
+  (rows.every((r) => r.ok) ? 'Every step exited 0 and printed its result line (the quiet static steps: exit 0).' : 'FAILED steps: ' + rows.filter((r) => !r.ok).map((r) => r.name).join(', '))];
 writeFileSync(join(OUT, 'SUMMARY.md'), md.join('\n') + '\n');
-console.log('\nfinal_pass: ' + rows.filter((r) => r.exit === 0).length + '/' + rows.length + ' steps exit 0');
-process.exit(rows.every((r) => r.exit === 0) ? 0 : 1);
+console.log('\nfinal_pass: ' + rows.filter((r) => r.ok).length + '/' + rows.length + ' steps passed (exit 0 with their result line)');
+process.exit(rows.every((r) => r.ok) ? 0 : 1);
