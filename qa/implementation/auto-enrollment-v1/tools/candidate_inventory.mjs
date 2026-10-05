@@ -4,6 +4,7 @@
 //   node qa/implementation/auto-enrollment-v1/tools/candidate_inventory.mjs > inventory.md
 import { readdirSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -80,6 +81,32 @@ say();
 say(internal.map((x) => tick(x.name)).join(', '));
 say();
 
+// ---- the release signer (WO-6): its own file, applied once before the migration by the applying login, which then owns it
+const SIGNER = 'scripts/factory-control-plane/release_signer.sql';
+const signer = read(SIGNER);
+const signerSha = createHash('sha256').update(execFileSync('git', ['-C', ROOT, 'cat-file', 'blob', 'HEAD:' + SIGNER])).digest('hex');
+const signerFns = [...signer.matchAll(/^create function (factory_signer\.[a-z0-9_]+)\(([^)]*)\) returns ([a-z0-9_.]+)/gm)].map((m) => {
+  const head = signer.slice(m.index, signer.indexOf('\nas ', m.index) < 0 ? m.index + 400 : signer.indexOf('\nas ', m.index));
+  const granted = (to, text) => new RegExp('^grant execute on function ' + m[1].replace('.', '\\.') + '\\([^)]*\\) to ' + to + ';', 'm').test(text);
+  return { name: m[1], args: m[2].replace(/\s+/g, ' ').trim(), ret: m[3], definer: /security definer/.test(head),
+    who: granted('public', signer) ? 'PUBLIC' : granted('factory_owner', sql.map((x) => x.t).join('\n')) ? 'its owner, and ' + tick('factory_owner') + ' (the migration\'s part 000)' : 'its owner only' };
+});
+say('## Release signer');
+say();
+say(tick(SIGNER) + ' (sha256 ' + tick(signerSha) + ', as committed), applied once, before the migration, by the applying login, which owns what it creates. It creates no role.');
+say();
+say('- schema ' + tick((/^create schema ([a-z0-9_]+);/m.exec(signer) || ['', '?'])[1]));
+// (a grant on the table would be a statement of the file: the line says which, or that there is none)
+for (const m of signer.matchAll(/^create table (factory_signer\.[a-z0-9_]+)/gm)) {
+  const grants = [...signer.matchAll(new RegExp('^grant ([^;]*?) on (?:table )?' + m[1].replace('.', '\\.') + ' to ([a-z_, ]+);', 'gm'))].map((g) => g[1] + ' to ' + g[2]);
+  say('- table ' + tick(m[1]) + ' (' + (grants.length ? 'the file grants: ' + grants.join('; ') : 'the file grants nothing on it to anyone') + ')');
+}
+say();
+say('| function | returns | definer | who may execute |');
+say('|---|---|---|---|');
+for (const f of signerFns) say('| ' + tick(f.name + '(' + f.args + ')') + ' | ' + f.ret + ' | ' + (f.definer ? 'yes' : 'no') + ' | ' + f.who + ' |');
+say();
+
 // ---- routes
 const EDGE = 'supabase/control-plane/edge/supabase/functions';
 const nodeApi = read(EDGE + '/_shared/node_api.ts');
@@ -88,8 +115,9 @@ const routes = [...((/export const FRONT_DOORS[^=]*=\s*\{([\s\S]*?)\n\};/.exec(n
 const ops = [...((/export const ADMIN_OPS[^=]*=\s*\{([\s\S]*?)\n\};/.exec(adminApi) || ['', ''])[1]).matchAll(/'([a-z-]+)':\s*\{\s*fn:\s*'([a-z0-9_]+)',\s*code:\s*(true|false)/g)];
 say('## Routes');
 say();
-say('Base URLs, deployed by the founder on project ' + tick('npvhuoozkbexddnvkqsj') + ': ' + tick('https://npvhuoozkbexddnvkqsj.supabase.co/functions/v1/factory-node-api')
-  + ' and ' + tick('.../factory-admin-api') + '. The platform delivers each function its paths under ' + tick('/<function name>') + ' (route.ts).');
+const fnNames = [...read('supabase/control-plane/edge/supabase/config.toml').matchAll(/^\[functions\.([a-z0-9-]+)\]/gm)].map((m) => m[1]);
+say('Base URLs, deployed by the founder on project ' + tick('npvhuoozkbexddnvkqsj') + ' (' + fnNames.length + ' functions, ' + tick('config.toml') + '): '
+  + fnNames.map((n) => tick('https://npvhuoozkbexddnvkqsj.supabase.co/functions/v1/' + n)).join(', ') + '. The platform delivers each function its paths under ' + tick('/<function name>') + ' (route.ts).');
 say();
 say('### Factory Node API (S-7; ' + routes.length + ' routes)');
 say();
@@ -103,14 +131,28 @@ say('| op | front door | issues a pairing code |');
 say('|---|---|---|');
 for (const m of ops) say('| ' + tick(m[1]) + ' | ' + tick('factory.' + m[2]) + ' | ' + (m[3] === 'true' ? 'yes (shown once)' : 'no') + ' |');
 say();
+// a function of config.toml that is neither API: one handler, and whether its entry point reaches the database at all
+for (const n of fnNames.filter((x) => x !== 'factory-node-api' && x !== 'factory-admin-api')) {
+  const entry = read(EDGE + '/' + n + '/index.ts');
+  const shared = [...entry.matchAll(/from '\.\.\/_shared\/([a-z_]+\.ts)'/g)].map((m) => m[1]);
+  const db = shared.includes('db.ts') || /DB_URL/.test(entry);
+  const stage = shared.includes('release_stage.ts') ? read(EDGE + '/_shared/release_stage.ts') : '';
+  const objects = [...stage.matchAll(/^export const ([A-Z_]+_FILE) = '([^']+)';/gm)].map((m) => tick(m[2]));
+  say('### ' + n + ' (one handler; ' + (db ? 'it connects to the database' : 'no database login, no front door') + ')');
+  say();
+  say('- entry point ' + tick(EDGE + '/' + n + '/index.ts') + ', modules ' + shared.map((s) => tick('_shared/' + s)).join(', '));
+  if (stage) say('- ' + tick('POST') + ' only (' + (/405/.test(stage) ? 'any other method is 405' : 'see the module') + '): a statement of a prepared update with the Director\'s signature over it, in namespace '
+    + tick((/^export const STAGE_NAMESPACE = '([^']+)';/m.exec(stage) || ['', '?'])[1]) + '; release-storage objects it names: ' + objects.join(', '));
+  say();
+}
 const webRoutes = files('web/app/(app)/software-factory', /^page\.tsx$/).map((f) => f.replace(/^web\/app\/\(app\)/, '').replace(/\/page\.tsx$/, ''));
 say('### Brain OS web routes');
 say();
-for (const r of webRoutes.filter((r) => /computers|workers/.test(r))) say('- ' + tick(r) + (/workers/.test(r) ? ' (retired: redirects to /software-factory/computers)' : ''));
+for (const r of webRoutes.filter((r) => /computers|workers|update/.test(r))) say('- ' + tick(r) + (/workers/.test(r) ? ' (retired: redirects to /software-factory/computers)' : ''));
 say();
 
 // ---- secrets and environment
-const edgeEntry = [EDGE + '/factory-node-api/index.ts', EDGE + '/factory-admin-api/index.ts'];
+const edgeEntry = fnNames.map((n) => EDGE + '/' + n + '/index.ts');
 const secretUse = {};
 for (const f of edgeEntry) for (const m of read(f).matchAll(/Deno\.env\.get\('([A-Z0-9_]+)'\)/g)) (secretUse[m[1]] ||= new Set()).add(f.split('/')[5]);
 say('## Edge secret and configuration names (the Factory project\'s function secret store; values are set by the founder and appear nowhere in the repository)');
@@ -119,8 +161,10 @@ say('| name | read by |');
 say('|---|---|');
 for (const k of Object.keys(secretUse).sort()) say('| ' + tick(k) + ' | ' + [...secretUse[k]].sort().join(', ') + ' |');
 say();
+say('The names that begin ' + tick('SUPABASE_') + ' are the project\'s own address and storage key: the platform gives them to every function, and the founder sets none of them. The founder sets the others (' + tick('FOUNDER_PREPARED_STEPS.md') + ' step 4).');
+say();
 const envFiles = [...files('scripts/factory-runner/enrolled', /\.mjs$/), 'scripts/factory-runner/sea/main.mjs', ...files('scripts/factory-build', /\.mjs$/),
-  ...files('scripts/factory-control-plane', /\.mjs$/), ...files('web/lib/factory', /\.ts$/), 'web/lib/data/factory-computers.ts',
+  ...files('scripts/factory-control-plane', /\.mjs$/), ...files('web/lib/factory', /\.ts$/), 'web/lib/data/factory-computers.ts', 'web/lib/data/factory-update.ts',
   // the tool founder step 4 runs (it reads none today: factory_v1_static_contract C3 holds it to that)
   'qa/implementation/auto-enrollment-v1/tools/founder_secrets.mjs'];
 const envs = {};

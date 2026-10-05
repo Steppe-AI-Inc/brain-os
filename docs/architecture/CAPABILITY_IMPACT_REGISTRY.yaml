@@ -212,15 +212,31 @@ concepts:
       - scripts/factory-runner/enrolled/trust/production.json
       - scripts/factory-build/build-sea.mjs
       - supabase/control-plane/v1/060_releases.sql
+      # the live release (WO-6 revision 5): signed by the Factory's own release signer, only inside the founder-only update
+      # authorization (a fresh entry of the founder's own Brain OS password); staged beforehand under the Director's signature;
+      # taken by every node itself through the one upgrade gate
+      - scripts/factory-control-plane/release_signer.sql
+      - supabase/control-plane/v1/220_admin_releases_policies_work.sql
+      - supabase/control-plane/edge/supabase/functions/_shared/release_stage.ts
+      - web/lib/factory/update.ts
+      - web/lib/factory/reauth.ts
     entity_types: [factory_release, factory_release_revocation]
     surfaces:
       - scripts/factory-runner/enrolled/supervisor.mjs
       - scripts/factory-runner/enrolled/upgrade.mjs
+      - scripts/factory-runner/enrolled/worker.mjs
       - web/lib/factory/pe-image.ts
+      - web/app/(app)/software-factory/update
+      - web/lib/data/factory-update.ts
+      - supabase/control-plane/edge/supabase/functions/factory-release-stage/index.ts
     ai_interactions: [none]
     developer_suites:
       - qa/factory/v1/release_acceptance.mjs
       - qa/factory/sea_package_regression.mjs
+      - qa/factory/v1/release_signer_acceptance.mjs
+      - qa/factory/v1/update_authorization_acceptance.mjs
+      - qa/factory/v1/release_stage_acceptance.mjs
+      - qa/factory/v1/gate_acceptance.mjs
     regression_families: [factory_v1_static_contract]
 
   factory_legacy_fence:
@@ -246,9 +262,12 @@ concepts:
     surfaces:
       - supabase/control-plane/edge/supabase/functions/factory-node-api/index.ts
       - supabase/control-plane/edge/supabase/functions/factory-admin-api/index.ts
+      # one request and no front door: it reaches release storage only (S-7; S-10)
+      - supabase/control-plane/edge/supabase/functions/factory-release-stage/index.ts
     ai_interactions: [none]
     developer_suites:
       - qa/factory/v1/admin_acceptance.mjs
+      - qa/factory/v1/release_stage_acceptance.mjs
     regression_families: [factory_v1_static_contract]
 
 # Known lifecycle-completeness gaps (not done; registered so they are not forgotten):

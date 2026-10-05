@@ -251,4 +251,8 @@ try {
 }
 const failed = results.filter((r) => !r.ok);
 console.log('\nrelease_stage_acceptance: ' + (results.length - failed.length) + '/' + results.length + ' OK' + (failed.length ? '; FAILED: ' + failed.map((r) => r.id.split(' ')[0]).join(', ') : ''));
-process.exit(failed.length || results.length < 7 ? 1 : 0);
+// The process ends by itself, once the two HTTP servers of SG6 have finished closing. process.exit() while they close aborts node on
+// Windows (a libuv assertion; exit 0xC0000409) AFTER every row has passed - and a step that aborts is a failed step. The timer only
+// ends a process that something still holds open; unref'd, it never keeps the process alive.
+process.exitCode = failed.length || results.length < 7 ? 1 : 0;
+setTimeout(() => process.exit(process.exitCode), 5000).unref();

@@ -51,7 +51,10 @@ const SPARSE = ['/supabase/control-plane/', '/scripts/', '/qa/factory/', '/qa/ve
   // the founder's pepper tool (installer I9) and the evidence tools the static contract's S15 row reads
   '/qa/implementation/auto-enrollment-v1/tools/',
   // the static contract's plane scan (its library and the implementer's class proposals)
-  '/qa/scenarios-runner/factory_v1_plane_scan.mjs', '/qa/scenarios-runner/factory_v1_plane_scan_inventory.mjs'];
+  '/qa/scenarios-runner/factory_v1_plane_scan.mjs', '/qa/scenarios-runner/factory_v1_plane_scan_inventory.mjs',
+  // the Director's WO-6: the release rows hold the production trust set to exactly the key ids it records (release_trust_unit U3,
+  // release_acceptance R-h). They read it in the tree, where the static contract holds it byte-identical to the designated Director commit
+  '/qa/work-orders/auto-enrollment-v1/WO-6.md'];
 const RUN_TIMEOUT_MS = 45 * 60 * 1000;
 // ROWS RED BY DESIGN: suite -> { row: the undecided change request(s) it waits on }. Only these rows may fail in a control that still
 // judges (differentially); remove an entry when its change request is decided and the row is green.
