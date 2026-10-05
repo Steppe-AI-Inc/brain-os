@@ -1,0 +1,24 @@
+step installer_input_acceptance
+command node qa/factory/v1/installer_input_acceptance.mjs
+cwd C:/Users/DELL/dev/brain-os-factory-enroll
+commit c353e8953338f855a134a95787a075e8e93cfa01
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-OxbF02\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-OxbF02\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-OxbF02\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-05T19:56:38.678Z
+seconds 4
+exit 0
+judged PASS
+summary installer_input_acceptance: 10/10 OK
+
+OK   I1 no pairing code gets past the command line: 23 positions, spellings and embeddings (and --yes) each end with exit 64 and a named REFUSED line that holds no part of the code; --code is refused by name; nothing is created
+OK   I2 setup takes the pairing code from the first line of standard input only (a second line is never taken); the prompt is written and the code is not; a closed input yields no code at once; a blank line is no code
+OK   I3 the node sends a code or a token only to https or this computer's loopback: the rule accepts 4 and refuses 8 addresses by name (endpoint_refused); a client on a refused address sends nothing from time, session, op, enroll/start, enroll/complete or rotate
+OK   I4 storeKey writes a DPAPI-protected node key or nothing: without DPAPI it refuses by name (dpapi_required) and leaves no file or directory; with DPAPI the file is a DPAPI envelope
+OK   I5 the build refuses a toolchain off package-lock.json by name (toolchain_off_lock, exit 2): a changed esbuild version, a changed platform-binary integrity, a missing install record, a resolution outside this checkout, ESBUILD_BINARY_PATH; the locked tree passes; the check runs before esbuild is loaded and the loaded version is compared
+OK   I6 setup reads exactly one input (the pairing code's prompt) and no code or confirmation option; stores the key before it asks for the code; applies THE GATE after enrollment and before every install step (in setup and in upgrade); only setup and upgrade write current.json (besides the admin adopt); main.mjs passes setup none of its test seams
+OK   I7 a new enrollment with DPAPI unavailable refuses by name (dpapi_required) before the code is read and before any request (no credential can be issued), writing no key and no config; with DPAPI it asks the plane's time, reads the code once, sends it only in enroll/start, and never prints it
+OK   I8 verifyRelease takes no default revocations: an omitted list throws; setup's pre-credential check names NO_REVOCATIONS explicitly (the gate applies the fresh list)
+OK   I9 the founder's pepper tool puts 32 random bytes (base64) into one new owner-only file, prints no value, and the shred step leaves nothing; from the path alone it refuses an existing or relative directory, one below a .git directory or .git file, and one with a OneDrive component
+OK   I10 the machine fingerprint is the sha256 of the UTF-8 bytes of the MachineGuid registry string EXACTLY AS STORED: an upper-case GUID, a braced value, a non-GUID value, leading or trailing spaces and a non-ASCII character each hash as they are (no case change, no shape filter, no trimming, UTF-8); no value (or an unreadable answer) gives none; on this machine the runtime's value equals the registry's, read independently
+
+installer_input_acceptance: 10/10 OK

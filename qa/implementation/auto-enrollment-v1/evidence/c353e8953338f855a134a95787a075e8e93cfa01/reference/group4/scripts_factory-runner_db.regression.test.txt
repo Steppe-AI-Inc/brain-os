@@ -1,0 +1,31 @@
+suite scripts/factory-runner/db.regression.test
+command node scripts/factory-runner/db.regression.test.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c353e8953338f855a134a95787a075e8e93cfa01
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-G5WSNc\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-G5WSNc\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-G5WSNc\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-05T20:52:25.486Z
+seconds 0
+exit 0
+summary ℹ fail 0
+
+✔ DML is allowed (2.0262ms)
+✔ FACTORY_WORKER_CANNOT_EXECUTE_DDL_OR_TOUCH_MIGRATION_HISTORY (0.1601ms)
+✔ read() refuses a mutating statement before connecting (0.5745ms)
+✔ NO_FALLBACK_TO_AMBIENT_AUTHORITY — without FACTORY_RUNNER_PG_URL every call refuses (0.3847ms)
+✔ FAIL_CLOSED_ON_AN_UNSAFE_URL — pure assessment, no connection (1.5924ms)
+✔ an unsafe URL is refused by read() before any driver is loaded (1.9196ms)
+✔ a superuser connection string is refused as not least-privilege (1.59ms)
+✔ the query string cannot override who or where: user/host/port/password settings and repeated keys are refused (0.4455ms)
+✔ the production guard cannot be bypassed by percent-encoding: escapes are decoded one by one, and a malformed user name is refused, not thrown (0.4757ms)
+✔ what pg would re-encode or cannot decode is refused: a space or a bare % anywhere, a malformed escape in the password or database (0.4865ms)
+✔ nothing may come from the environment: a URL without user, password, port or database is refused (0.2267ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 16.1575

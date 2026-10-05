@@ -1,0 +1,26 @@
+step release_stage_acceptance
+command C:\Program Files\nodejs\node.exe qa/factory/v1/release_stage_acceptance.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c353e8953338f855a134a95787a075e8e93cfa01
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-ySNHMm\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-ySNHMm\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-ySNHMm\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-05T15:58:01.133Z
+seconds 1
+exit 0
+summary release_stage_acceptance: 7/7 OK
+
+OK   SG1 the signature check accepts exactly the stand-in Director key's sha512 signature over the statement in the staging namespace, and refuses another key, another namespace, a changed statement, a tampered or truncated signature, and sha256
+OK   SG2 the canonical production statement parses back to its values; other white space, another key order, an extra field, upper-case hex, the dev channel and a malformed version are no statement
+OK   SG3 a statement the Director's key signed stages the prepared update (the unsigned manifest form) and its signature and answers the installer's one-object upload address; refused with nothing written: GET 405, another body 400, a malformed statement 400, another key or namespace 403, too large 413, storage that takes nothing 503; storage not answering is the boundary's 503 unavailable; an older version over the newer one 409 not_newer; the same statement again is "already" with no upload address and nothing written
+OK   SG4 the staged check is true only for the staged four values with the installer at the staged path having the staged digest, and false for another digest or version, for a prepared update changed after it was signed, without its signature, against another key, with no installer at the path, and with another installer there
+OK   SG5 the key factory-release-stage and the Admin API check (release_stage.ts DIRECTOR_KEY) is the Director's signing key as the Director's ledger records it at the designated Director commit 3745a281
+OK   SG6 the first staging request receives the installer's upload address and the installer is uploaded through it; the same statement re-sent by another party, before the upload and after it, receives none ("already"); a second upload to the address is refused; the staged check is then true
+OK   SG7 the Admin API's digest (pe_image.ts) equals the runtime's (pe-image.mjs) on three Windows executables; one byte changed inside a section changes it, the CheckSum field does not, and bytes that are no PE file give null
+
+release_stage_acceptance: 7/7 OK
+
+--- stderr ---
+(node:2632) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DELL/dev/brain-os-factory-enroll/supabase/control-plane/edge/supabase/functions/_shared/release_stage.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DELL\dev\brain-os-factory-enroll\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

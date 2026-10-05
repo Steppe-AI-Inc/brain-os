@@ -1,0 +1,21 @@
+2026-10-05T16:08:03Z commit headroom 24.33 GB (free physical, C: free: 6.68 27.18)
+isolation exit=0 2026-10-05T16:08:03Z -> 2026-10-05T16:08:05Z v1_mutation_proof: 1 of 1 mutants killed
+2026-10-05T16:08:06Z commit headroom 24.32 GB (free physical, C: free: 6.61 27.17)
+tls exit=0 2026-10-05T16:08:06Z -> 2026-10-05T16:10:48Z v1_mutation_proof: 14 of 14 mutants killed
+2026-10-05T16:10:48Z commit headroom 24.13 GB (free physical, C: free: 6.53 27.18)
+releaseunit exit=0 2026-10-05T16:10:49Z -> 2026-10-05T16:11:01Z v1_mutation_proof: 18 of 18 mutants killed
+2026-10-05T16:11:02Z commit headroom 23.99 GB (free physical, C: free: 6.43 27.17)
+units exit=0 2026-10-05T16:11:02Z -> 2026-10-05T16:36:14Z v1_mutation_proof: 27 of 27 mutants killed
+2026-10-05T16:36:14Z commit headroom 23.44 GB (free physical, C: free: 5.90 27.14)
+gate exit=0 2026-10-05T16:36:15Z -> 2026-10-05T16:37:38Z v1_mutation_proof: 5 of 5 mutants killed
+2026-10-05T16:37:39Z commit headroom 23.33 GB (free physical, C: free: 5.77 27.13)
+edge exit=0 2026-10-05T16:37:39Z -> 2026-10-05T16:37:43Z v1_mutation_proof: 5 of 5 mutants killed
+2026-10-05T16:37:44Z commit headroom 23.31 GB (free physical, C: free: 5.74 27.13)
+legacydirector exit=0 2026-10-05T16:37:44Z -> 2026-10-05T16:44:04Z v1_mutation_proof: 6 of 6 mutants killed
+2026-10-05T16:44:04Z commit headroom 23.43 GB (free physical, C: free: 5.88 27.13)
+recovery exit=0 2026-10-05T16:44:05Z -> 2026-10-05T17:29:43Z v1_mutation_proof: 13 of 13 mutants killed
+2026-10-05T17:29:44Z commit headroom 22.79 GB (free physical, C: free: 5.31 27.10)
+installer exit=0 2026-10-05T17:29:44Z -> 2026-10-05T17:31:21Z v1_mutation_proof: 16 of 16 mutants killed
+2026-10-05T17:31:22Z commit headroom 22.69 GB (free physical, C: free: 5.18 27.11)
+release exit=0 2026-10-05T17:31:22Z -> 2026-10-05T19:52:10Z v1_mutation_proof: 27 of 27 mutants killed
+LANE A FINISHED 2026-10-05T19:52:10Z

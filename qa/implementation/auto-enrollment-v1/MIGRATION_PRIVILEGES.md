@@ -123,6 +123,25 @@ change: on a plane that has the V1 migration, the plane's applying login rotates
 `runner.env` is then updated on each legacy node and the node restarted, and the `69df2f52` provisioner is never re-run. Step R's second read-back lists any
 default privilege reaching `factory_runner`, and it must list none.
 
+## The release signer (the successor; WO-6 revision 5)
+
+The signer is not part of the migration. `scripts/factory-control-plane/release_signer.sql` is applied once, before it, by the same
+applying login, which therefore owns schema `factory_signer`, its one table and its functions (`release_signer_acceptance` RS1, RS8).
+The file creates no role. The migration adds exactly one privilege to it:
+
+| what | the statement | does it name or read the login? |
+|---|---|---|
+| the engine role may ask for a signature | part 000: `grant execute on function factory_signer.sign_release(text, text, text, text) to factory_owner` | no. It names the function. On a plane without a signer, or with one another login created, it fails and nothing of the migration commits |
+
+- `factory_owner` is the role the SECURITY DEFINER front doors run as. The only front door that calls `sign_release` is
+  `factory.admin_authorize_update` (part 220): founder-only, after a fresh password entry.
+- Neither API login holds EXECUTE on a signer function other than `public_key()`, which PUBLIC may execute (RS7, RS8). Part 290 gives
+  the Admin API login EXECUTE on the front door, as on every other admin front door, and on nothing of the signer.
+- The catalog difference of the step stays as predicted: `predicted_catalog_difference.json` is unchanged since candidate #3, and
+  `manifest_rehearsal` CD3 holds every added function privilege to `factory_owner` or to a front door's one API role.
+- On a judging plane the suites apply a stand-in for the platform's secret store (`qa/factory/v1/vault_standin.sql`, with the
+  platform's grants to `service_role`) and then the signer file, before the migration.
+
 ## The claim lock
 
 `factory._claim` asks for the plane-wide claim lock with `pg_try_advisory_xact_lock`, up to 150 times, 0.1 s apart. If it never gets

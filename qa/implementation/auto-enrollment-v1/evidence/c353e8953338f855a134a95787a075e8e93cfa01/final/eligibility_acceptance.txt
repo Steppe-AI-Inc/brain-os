@@ -1,0 +1,44 @@
+step eligibility_acceptance
+command C:\Program Files\nodejs\node.exe qa/factory/v1/eligibility_acceptance.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c353e8953338f855a134a95787a075e8e93cfa01
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-ySNHMm\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-ySNHMm\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-ySNHMm\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-05T15:55:36.775Z
+seconds 76
+exit 0
+summary eligibility_acceptance: 25/25 OK
+
+OK   G11b gate 11 decided by the computer's own heavy limit: with 1 heavy run held (envelope max_heavy 1), 1 of 3 runs on the computer and 1 of 2 heavy runs on the plane, the next heavy claim answers gate 11 "1 of 1 heavy runs on this computer" - {"h1":"claimed","h2":"not eligible: gate 11 max_concurrency - 1 of 1 heavy runs on this computer","runs":1,"plane_heavy":1,"plane_limit":2}
+OK   G1-G12 each gate refuses alone and names itself (1 credential, 2 tenant, 3 company scope, 4 authorization, 5 role, 6 capability, 7 independence, 8 locks, 9 drain, 10 health x2, 11 concurrency x2, 12 minimum resources) - {"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"10":10,"11":11,"12":12,"g10b":10,"g11h":11,"g2fn":"2"}
+OK   G2b a claim naming another tenant's work order is answered exactly like one naming no work order (no existence leak)
+OK   H1 S-16(a): the bound computer never takes authoring of product code - a surface outside the Director-document paths, no declared surface, a mixed set, or a ".." path; only docs/ qa/verification/ qa/work-orders/ governance/ work - 7,7,7,7
+OK   G1b the revoked computer shows CREDENTIAL_REVOKED on the Computers view - CREDENTIAL_REVOKED
+OK   H2 an unbound record enrolled on the Home machine BEFORE its bound record, reporting the same fingerprint, is a Home-computer record: product code and a work order with no declared surface are refused at gate 7 (S-16(a)); Director-document work is still claimed (a restriction only); it is not bound - 7,7,0
+OK   H3 the bound record, archived (it keeps its binding) and restored (re-paired, reporting its fingerprint), is still refused product code at gate 7 and still takes Director-document work - {"archived":["ARCHIVED",true],"product":7,"docs":0,"restored":["ALIVE",true]}
+OK   O1 a node violating two gates is refused by the FIRST in the founder's order (3<5, 4<6, 5<8, 6<12, 8<12, 5<9, 8<9, 9<12) - 3+5:3 4+6:4 5+8:5 6+12:6 8+12:8 5+9:5 8+9:8 9+12:9
+OK   O2 through the gate function, for synthesized inputs: the base passes every gate; each of 17 single violations (every gate, and the sub-checks 4 release, 6 detection, 10 RECOVERING, 11 heavy on the computer and on the plane) fails exactly its gate; every pair of violations of different gates - adjacent gates included - fails the LOWER gate; the verification branch of gate 7 sits between gates 6 and 8 - 162 cases
+OK   D1 detection only restricts: an envelope capability the node detects as absent makes it ineligible (gate 6); without that detection it is eligible - 6,claimed
+OK   K1 a strictly better-ranked, fresh, AVAILABLE, eligible node delays the weaker node's claim - and never past 30 s from queueing (then the weaker node claims) - claimed 30.32 s after queueing (server clock); 29 deferred answers, the last at 29.27 s
+OK   K2 a "better" node that is draining, stale, not authorized for the work, or in another tenant never delays an eligible node (it claims at once) - true,true,true,true
+OK   Y1 numeric priority: 100 before 10 before 2 (lexical text order would give 2, 100, 10) - 100,10,2
+OK   Y2 a node authorized for both kinds, with a p100 verification and three p2 authoring work orders queued, is given the verification on its FIRST claim (one claim naming 'prio-x' and 'verification'): kind verification, the candidate in the answer - {"kind":"verification","got":"V100"}
+OK   Y3 across both kinds numeric priority decides, never the kind: authoring p50, then the verification p30, then authoring p2 - every successive claim, whatever its kind, at a priority no higher than the one before - [{"label":"50","priority":50},{"label":"30v","priority":30},{"label":"other:verification","priority":10},{"label":"2","priority":2}]
+OK   Y4 a claim listing only 'prio-x' never gets the queued p99 verification (only authoring work, then nothing); through the reserved type the verification is taken, and an authoring work order whose type is named 'verification' is never taken as verification work - it stays queued with no run - {"onlyAuthoring":["authoring:authoring","authoring:authoring","none"],"viaReserved":"V99","after":null,"namedState":{"status":"queued","runs":0}}
+OK   K3 a preference never excludes: while the node that prefers the class is draining, and again while it is stale, a node without the preference claims that class's work on its FIRST claim - ["claimed","claimed"]
+OK   K4 with EQUAL resources the preference alone ranks the preferring (available, fresh) node higher: the other node's first claim is deferred, and it claims within 30 s of queueing - the preference delays, it never excludes - claimed 30.33 s after queueing (server clock); 29 deferred answers, the last at 29.28 s
+OK   K4b the node that prefers a class is never refused other work: the only eligible node for an other-class work order, it claims it at once - claimed
+OK   RS1 a resource value that is not a number is refused 400 bad_request by name at BOTH layers - the Node API (its own message) and the SQL front door called directly ("resources.<key> is a number") - for heartbeat, claim and register; nothing is stored - {"api":[[400,"bad_request","field resources is an object of at most 8 KiB whos"],[400,"bad_request","field resources is an object of at most 8 KiB whos"],[400,"bad_request","field resources is an object of at most 8 KiB whos"]],"sql":[[400,"bad_request","resources.cpu_pct is a number"],[400,"bad_request","resources.cpu_pct is a number"],[400,"bad_request","resources.ram_free_mb is a number"]],"unchanged":true}
+OK   RS2 while an eligible, fresh, AVAILABLE peer has a stored cpu_pct that is not a number, another node's claim is still answered - claimed, or deferred by ranking - and never 500 server_refused - {"claimed":true,"considered":[]}
+OK   RS3 for a work order with a hard minimum (ram_mb 1), a peer whose stored ram_free_mb is not a number is excluded at gate 12 (narrowing only), and the other eligible node claims on its first try - {"claimed":true}
+OK   RS4 a genuine runtime's report is never refused: this machine's identity.mjs resources() and the edge values (cpu_pct -3 and 140, 0 cores, a 1e12 MB disk, a null value, a partial report) are accepted - []
+OK   LS1 the lease: a claim and a renew that name no lease_seconds, or name it as a string or a JSON null, are granted 120 s (the 69df2f52 default); a number is honoured (30 s) and held to 5..600 s (1e9 -> 600, 1 -> 5) - {"claimAbsent":120,"renew30":30,"renewAbsent":120,"renewString":120,"renewNull":120,"renewHuge":600,"renewTiny":5,"claimString":120}
+OK   G4r gate 4 on the server: a superseded release without an adopt is refused; an admin adopt restores it; a release signed by a revoked key is refused even adopted, and never adopted again (key_revoked); another key's release is unaffected; a revoked release is refused - {"before":0,"zPublished":0,"superseded":4,"adopted":0,"keyRevoked":4,"otherKey":0,"releaseRevoked":4,"P2":true,"zreg":true,"ad1":true,"ad2":"key_revoked"}
+
+eligibility_acceptance: 25/25 OK
+
+--- stderr ---
+(node:6620) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DELL/dev/brain-os-factory-enroll/supabase/control-plane/edge/supabase/functions/_shared/node_api.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DELL\dev\brain-os-factory-enroll\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

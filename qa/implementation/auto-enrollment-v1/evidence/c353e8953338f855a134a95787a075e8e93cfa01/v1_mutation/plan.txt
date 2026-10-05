@@ -1,0 +1,434 @@
+v1_mutation_proof: 431 mutants (plan only) on C:\Users\DELL\dev\brain-os-factory-enroll @ c353e8953338f855a134a95787a075e8e93cfa01
+PLANTED  G2    eligibility  [semantic] expected FAIL G1-G12 - gate 2 (tenant) removed
+PLANTED  G3    eligibility  [semantic] expected FAIL G1-G12|O1 - gate 3 (company scope) removed
+PLANTED  G4a   eligibility  [semantic] expected FAIL G1-G12|O1 - gate 4 (the envelope's work types) removed
+PLANTED  G4b   eligibility  [semantic] expected FAIL G4r - gate 4 (a current certified release) removed
+PLANTED  G5    eligibility  [semantic] expected FAIL G1-G12|O1 - gate 5 (required role) removed
+PLANTED  G6a   eligibility  [semantic] expected FAIL G1-G12|O1 - gate 6 (capabilities from the envelope) removed
+PLANTED  G6b   eligibility  [semantic] expected FAIL D1 - gate 6 (detection only restricts) removed: a capability the node detects as absent no longer makes it ineligible
+PLANTED  G7h   eligibility  [semantic] expected FAIL H1 - gate 7 (the S-16(a) authoring restriction) removed
+PLANTED  G7f   eligibility  [semantic] expected FAIL H2 - gate 7 restricts only the bound record itself, not a record that reported the bound record's fingerprint
+PLANTED  G11b  eligibility  [semantic] expected FAIL G11b - gate 11 (the per-computer heavy limit) removed
+PLANTED  PX1   eligibility  [semantic] expected FAIL K3|K4 - a preference excludes: a node without it defers for as long as any active computer prefers the class
+PLANTED  PX2   eligibility  [semantic] expected FAIL K4b - a preference is a hard gate: a node that prefers another class is refused this work
+PLANTED  ORD67 eligibility  [semantic] expected FAIL O2 - gate 7's authoring restriction checked before gate 6
+PLANTED  ORD1011 eligibility  [semantic] expected FAIL O2 - gate 11's run limit checked before gate 10
+PLANTED  ORD1112 eligibility  [semantic] expected FAIL O2 - gate 12 checked before gate 11
+PLANTED  G8    eligibility  [semantic] expected FAIL G1-G12|O1 - gate 8 (surface locks) removed
+PLANTED  G9    eligibility  [semantic] expected FAIL G1-G12|O1 - gate 9 (drain) removed
+PLANTED  G10a  eligibility  [semantic] expected FAIL G1-G12 - gate 10 (heartbeat freshness) removed
+PLANTED  G10b  eligibility  [semantic] expected FAIL G1-G12 - gate 10 (a RECOVERING node) removed
+PLANTED  G11a  eligibility  [semantic] expected FAIL G1-G12 - gate 11 (the computer's max concurrency) removed
+PLANTED  G11c  eligibility  [semantic] expected FAIL G1-G12 - gate 11 (the tenant's plane-wide heavy limit) removed
+PLANTED  G12   eligibility  [semantic] expected FAIL G1-G12|O1 - gate 12 (hard minimum resources) removed
+PLANTED  DB    eligibility  [semantic] expected FAIL K1 - the preference-deferral bound is 300 s instead of 30 s
+PLANTED  NP    eligibility  [semantic] expected FAIL Y1 - priority ordered as text (lexical) instead of numerically
+PLANTED  KR    eligibility  [semantic] expected FAIL G4r - a release signed by a revoked key counts as current again (the 4eec9f0 defect)
+PLANTED  RV    admin        [semantic] expected FAIL L1|L7 - the per-call credential status re-check removed (gate 1): a revoked credential keeps working
+PLANTED  SB    admin        [semantic] expected FAIL G2 - the S-14 registration refusal removed: an unbound re-enrollment of a bound machine reaches ALIVE
+PLANTED  SB2   admin        [semantic] expected FAIL G2 - the S-14 refusal judges only the fingerprint this call reports, not the record's history (a retry reporting another one passes)
+PLANTED  G1n   admin        [semantic] expected FAIL G2 - gate 1 no longer requires the credential's enrollment walk to be ALIVE (a REGISTRATION_FAILED record takes work)
+PLANTED  RTN   admin        [semantic] expected FAIL G2 - a credential whose walk is not ALIVE may rotate (a new credential leaves REGISTRATION_FAILED behind)
+PLANTED  WSC   admin        [semantic] expected FAIL L6|L3b - a rotated credential no longer carries the walk it came from (its own row only)
+PLANTED  WSD   admin        [semantic] expected FAIL L3b - the rotation chain is followed to a fixed depth again (64): a credential rotated more often loses its walk
+PLANTED  WT    admin        [semantic] expected FAIL G2r - the worker retries an S-14 registration refusal (exit 3) instead of stopping REFUSED
+PLANTED  G1s   admin        [semantic] expected FAIL G2d - gate 1 no longer refuses a record whose registration S-14 refused (an ALIVE record keeps taking work)
+PLANTED  SBM   admin        [semantic] expected FAIL G2d - the S-14 refusal no longer marks the record (only the answer names it)
+PLANTED  FPE   admin        [semantic] expected FAIL G2e - a fingerprint reported only at enroll/start no longer counts as reported
+PLANTED  DS    admin        [semantic] expected FAIL S1 - the computer's state is its first principal's again
+PLANTED  DS2   admin        [semantic] expected FAIL S2 - the contract's order of enrollment states changed (INSTALL_FAILED and REGISTERING swapped)
+PLANTED  CK    admin        [semantic] expected FAIL G3 - submission accepts and stores an unknown or malformed campaign_key
+PLANTED  CKV   admin        [semantic] expected FAIL G3 - a campaign work order may be submitted with requires_verification false
+PLANTED  LK    revocation   [semantic] expected FAIL I1|I2|I3a|I3b|I4 - no share lock on the credential row: a call and a revoke no longer serialize
+PLANTED  FN    takeover     [semantic] expected FAIL T6 - a checkpoint no longer checks that the run is still this node's (stale-worker fence removed)
+PLANTED  ID    admin        [refusal-name] expected FAIL E1 - a body naming node / tenant / role / principal is accepted at the Edge AND in the front doors
+PLANTED  S7    admin        [semantic] expected FAIL R1 - a route outside S-7 (GET /v1/debug) answers
+PLANTED  TA    admin        [semantic] expected FAIL P1|P2 - factory.tenant_admins no longer required: the live role alone makes a Factory admin
+PLANTED  TF    admin        [semantic] expected FAIL P4 - founder-only actions no longer need tier founder AND live role founder (the one definition, factory._founder_only)
+PLANTED  RT    admin        [semantic] expected FAIL R1p|X0 - the platform path prefix is not stripped (every deployed call would be 404)
+PLANTED  FP    admin        [semantic] expected FAIL P4 - publishing - and so superseding - a release is no longer founder-only
+PLANTED  FR    admin        [semantic] expected FAIL P4 - revoking a release is no longer founder-only
+PLANTED  FK    admin        [semantic] expected FAIL P4 - revoking a release key is no longer founder-only
+PLANTED  FA    admin        [semantic] expected FAIL P4 - Add Computer granting release_broker is no longer founder-only
+PLANTED  FE    admin        [semantic] expected FAIL P4 - an amendment granting release_broker is no longer founder-only
+PLANTED  PL    revocation   [semantic] expected FAIL I5a|I5c - the amendment decides founder-only from an unlocked, untenanted read taken before the caller is authorized
+PLANTED  PL2   admin        [semantic] expected FAIL P3b - the same pre-lock decision: a foreign admin's answer depends on this tenant's envelope
+PLANTED  PLS   static       [source] expected FAIL A1|A2 - the same pre-lock decision, read from the source
+PLANTED  NA    admin        [semantic] expected FAIL P3b - a not_found (a foreign or an unknown id) leaves no audited receipt (contract §9)
+PLANTED  CS    admin        [semantic] expected FAIL L7r|L12 - every ok answer of a code-issuing op carries the drawn code, stored or not
+PLANTED  CSS   static       [source] expected FAIL A4 - the same, read from the source
+PLANTED  WA    static       [source] expected FAIL A3 - the Computers page shows a pairing code from an "already" receipt
+PLANTED  PO    admin        [semantic] expected FAIL R2 - the Admin API op lookup follows the prototype chain (constructor is an op)
+PLANTED  POS   static       [source] expected FAIL A4 - the same, read from the source
+PLANTED  PN    admin        [semantic] expected FAIL R2 - the node body schema is indexed without an own-property test, so an inherited name such as constructor passes as a known field
+PLANTED  RC2   admin        [semantic] expected FAIL L9b - revoking a code ends every in-flight enrollment on its computer instead of only those begun with the revoked codes
+PLANTED  SW    admin        [semantic] expected FAIL L9d - the locator sweep expires a code and leaves the enrollment started from it as it was
+PLANTED  PW    admin        [semantic] expected FAIL L9c - a principal_id that is not a uuid reads as "none named": the action widens to every principal or retargets the first
+PLANTED  VR    independence [semantic] expected FAIL (r) - after revoke or archive the verifier keeps holding its claim; others wait for the lease to run out
+PLANTED  VS    revocation   [semantic] expected FAIL I6 - the returned claim is derived from the statement snapshot, not from the runs this revoke gave back (a claim a concurrent reaper passed on is flipped back)
+PLANTED  AU    admin        [semantic] expected FAIL L6 - a second drain writes an audit row before answering "already"
+PLANTED  AD    admin        [semantic] expected FAIL L10 - the amendment's audit no longer records the envelope it replaced (from)
+PLANTED  SAU   admin        [semantic] expected FAIL L8 - the amendment's stale_state refusal is not audited
+PLANTED  EV    admin        [semantic] expected FAIL L8b - an amendment without expected_version skips the optimistic check (a three-valued IF)
+PLANTED  EVP   admin        [semantic] expected FAIL L8b - a policy update without expected_version skips the optimistic check (a three-valued IF)
+PLANTED  LT    revocation   [semantic] expected FAIL I7a - Add Computer's S-16(a) check is not serialized per tenant
+PLANTED  LTR   revocation   [semantic] expected FAIL I7e - Restore's S-16(a) check is not serialized per tenant
+PLANTED  LP    revocation   [semantic] expected FAIL I7b - two publishes on one channel are not serialized
+PLANTED  LA    revocation   [semantic] expected FAIL I7c|I7d - an adoption reads its release without a share lock
+PLANTED  LKK   revocation   [semantic] expected FAIL I7d - a key revoke does not lock the key's releases first
+PLANTED  LKP   revocation   [semantic] expected FAIL I7f|I7g - a key revoke does not queue on the tenant row: a publish of that key goes through while the revoke is uncommitted, and a second revoke of an unused key fails on the unique index
+PLANTED  LTF   revocation   [semantic] expected FAIL I7h - the tenant serialization lock is FOR UPDATE: every foreign-key insert of the tenant (FOR KEY SHARE) waits behind an open publish
+PLANTED  SWL   revocation   [semantic] expected FAIL I8c - the locator sweep locks the enrollments of the elapsed codes before it expires those codes
+PLANTED  CEL   revocation   [semantic] expected FAIL I8d - enroll/complete locks its enrollment before the pairing code
+PLANTED  LTFS  static       [source] expected FAIL A5 - the same lock strength, read from the source
+PLANTED  PS    admin        [semantic] expected FAIL G1 - a policy may be relaxed through the Admin API (front door and guard)
+PLANTED  LD    schema       [self-check] expected FAIL P1|X0 - the baseline default-privilege grant to factory_runner is no longer revoked (990 check (d) must abort the migration)
+PLANTED  LX    schema       [semantic] expected FAIL C6|L2 - factory_runner may EXECUTE a node front door (granted after the migration's self-check)
+PLANTED  LR    schema       [semantic] expected FAIL C8|L7|AL1 - an API role is granted to factory_runner
+PLANTED  LR2   schema       [semantic] expected FAIL C8|AL1 - factory_runner is granted to an API role (the reverse membership)
+PLANTED  F1    schema       [semantic] expected FAIL C9|C3 - part 990 runs as the applying login instead of factory_owner, and part 010 keeps its transient PUBLIC REFERENCES on factory.tenants: the revoke by name takes nothing back, and the read-backs must see PUBLIC's REFERENCES
+PLANTED  SG    schema       [semantic] expected FAIL P1|X0 - no SET grant on factory_owner for its creator (createrole_self_grant ''): SET ROLE factory_owner is refused to the applying login
+PLANTED  SI    schema       [semantic] expected FAIL AL1|AL2|RO2 - the applying login INHERITS factory_owner (createrole_self_grant 'set, inherit'): it holds the authority tables' privileges, and a re-run provisioning grant reaches factory_runner
+PLANTED  TR    schema       [semantic] expected FAIL AL3 - factory_owner keeps the TRIGGER it held to attach the legacy guard
+PLANTED  DP    schema       [self-check] expected FAIL P1|X0 - the default-privilege revoke of PUBLIC EXECUTE is per-schema again (a no-op against the global default): every function keeps PUBLIC EXECUTE, and check (c) must abort the migration
+PLANTED  FX    schema       [self-check] expected FAIL P1|X0 - the default revoke of PUBLIC EXECUTE is gone: every function keeps PUBLIC EXECUTE, and check (c) must abort the migration
+PLANTED  SQR   schema       [semantic] expected FAIL C3s - factory_runner is granted USAGE and SELECT on an identity sequence of a new table (audit_events) after part 990's revokes: the read-back C3s must see it
+PLANTED  PX    schema       [semantic] expected FAIL C9|C3 - the transient PUBLIC REFERENCES on factory.tenants is kept and 990's table revoke no longer names PUBLIC: the read-backs must see PUBLIC's REFERENCES, which every role holds (C9: the API roles; C3: factory_runner)
+PLANTED  PXS   static       [source] expected FAIL R5 - part 990's table revoke no longer names PUBLIC (read from the source)
+PLANTED  AX    schema       [semantic] expected FAIL AL7 - the API roles also get CREATE on schema factory (a privilege beyond USAGE there)
+PLANTED  SC    schema       [semantic] expected FAIL AL6 - a relation the migration creates is missing from 990's table revoke by name (read against every relation factory_owner owns)
+PLANTED  OB    schema       [semantic] expected FAIL OB1 - the prepared observer step omits a relation the migration adds
+PLANTED  RR    schema       [semantic] expected FAIL RO1 - the prepared rotation step re-runs the 69df2f52 provisioner instead of \password
+PLANTED  CU    static       [source] expected FAIL R1|R2 - a migration statement names the applying login (grant factory_owner to current_user)
+PLANTED  OW    static       [source] expected FAIL R1 - part 990 scopes its check (c) by reading object owners again
+PLANTED  LN    static       [source] expected FAIL R3 - the claim catches lock_not_available and returns a refusal instead of re-raising
+PLANTED  RL    static       [source] expected FAIL R4 - the migration ends as factory_owner (its last `reset role` removed)
+PLANTED  RS    static       [source] expected FAIL R5 - a relation the migration creates is missing from part 080's authority-guard list
+PLANTED  RSR   static       [source] expected FAIL R5 - a relation the migration creates is missing from 990's table revoke
+PLANTED  RSS   static       [source] expected FAIL R5 - an identity sequence is missing from 990's sequence revoke
+PLANTED  FS    static       [source] expected FAIL R6 - a founder step reads the attributes of the object owner again
+PLANTED  S1W   static       [source] expected FAIL R7 - founder step 1 composes the migration with migration.mjs again
+PLANTED  AV    static       [source] expected FAIL X4 - the developer migration tool takes the admin URL from its command line again
+PLANTED  MTT   static       [source] expected FAIL X4b - the developer migration tool judges only the text of its URL again (not what pg's parser reads, and a tab or a line break is not refused)
+PLANTED  MTE   static       [source] expected FAIL X4b - the developer migration tool accepts a URL that names no user, host or database (pg takes it from the environment)
+PLANTED  MTC   static       [source] expected FAIL X4b - the developer migration tool connects with the text of the URL again, not with the configuration it judged
+PLANTED  AR    static       [source] expected FAIL X4 - the developer migration tool no longer refuses the live Factory ref
+PLANTED  SA    static       [source] expected FAIL H1 - a developer suite applies the migration with the superuser URL again
+PLANTED  MQ1   static       [source] expected FAIL H1 - a developer suite sends compose() to the plane over the superuser connection with a plain query
+PLANTED  MQ2   static       [source] expected FAIL H1 - the same, through a variable holding the composed text
+PLANTED  MQ3   static       [source] expected FAIL H1 - a developer suite reads a migration file and sends it with its own query call
+PLANTED  PR    schema       [semantic] expected FAIL C9|P1|X0 - the Node API role may insert principals directly (a node could mint a principal)
+PLANTED  LG    schema       [semantic] expected FAIL L4 - the legacy guard lets factory_runner update or delete a new-model / enrolled row
+PLANTED  LG2   schema       [semantic] expected FAIL L5 - the legacy guard lets factory_runner create a new-model row
+PLANTED  LG3   schema       [semantic] expected FAIL M1|M2|M3 - the legacy guard FAILS the frozen claim on a lapsed enrolled row instead of leaving it unchanged
+PLANTED  RC    schema       [semantic] expected FAIL L3 - the reserved capability may be written on a node by the legacy path
+PLANTED  TAG   schema       [semantic] expected FAIL E10b - the tenant-admins guard no longer refuses a write that arrives through an API login
+PLANTED  SP    schema       [semantic] expected FAIL L9 - the legacy guard pins the empty search_path and compares current_user::text: L9 must see a legacy write succeed
+PLANTED  SPA   schema       [semantic] expected FAIL L9b - the authority guard pins the empty search_path and compares current_user::text: L9b must see an authority write succeed
+PLANTED  SPN   schema       [semantic] expected FAIL L11 - node_session_open pins the empty search_path: L11 must see the calling session's domain CHECK evaluated
+PLANTED  SPD   schema       [semantic] expected FAIL L11b - admin_add_computer pins the empty search_path: L11b must see the calling session's domain CHECK evaluated
+PLANTED  SPS   schema       [semantic] expected FAIL C10 - one front door (admin_add_computer) pins the empty search_path: the read-back C10 must see it (static R8 reads the same from the source)
+PLANTED  ENG   schema       [semantic] expected FAIL C16 - the legacy guard's engine test compares current_user::text again, search_path still pinned: C16 must fail
+PLANTED  ENC   schema       [semantic] expected FAIL C16 - the authority guard's engine test also reads CAST(current_user AS text) (no :: cast), search_path still pinned: C16 must fail
+PLANTED  ENS   static       [source] expected FAIL R9 - the authority guard's engine test also reads CAST(current_user AS text): the static R9 must fail
+PLANTED  F3    schema       [semantic] expected FAIL L10 - the new-model test no longer treats an enrolled node id on an agent_runs row as new-model
+PLANTED  F3L   schema       [semantic] expected FAIL L10 - the new-model test no longer treats an enrolled node id on a surface_locks row as new-model
+PLANTED  F3N   schema       [semantic] expected FAIL L10 - the new-model test no longer treats a nodes row under an id in the enrolled namespace as new-model (a node row could be written ahead of an enrollment)
+PLANTED  F3R   schema       [semantic] expected FAIL L10g - a lock is new-model through its run only when the run has a principal (the run's enrolled node id no longer counts)
+PLANTED  F3E   enrollment   [semantic] expected FAIL EN20 - enrollment completion adopts a node row under the principal's node id that is not the principal's
+PLANTED  GB    schema       [semantic] expected FAIL C15 - a new-model column (principal_id) is added to the legacy guard's surface_locks base list: the read-back C15 must see the lists differ
+PLANTED  GB2   schema       [semantic] expected FAIL C15 - the legacy guard's surface_locks base list is extended past its array (`array[...] || array['principal_id']`): the read-back C15 must not find the arm in its one shape
+PLANTED  GBS   static       [source] expected FAIL R10 - the same added column, read from the source: R10 must see the guard's list differ from part 000's reference list
+PLANTED  GB2S  static       [source] expected FAIL R10 - the same arm extended past its array, read from the source: R10 must not find the arm in its one shape
+PLANTED  BCT   static       [source] expected FAIL R11 - a migration statement changes the type of a 69df2f52 column (nodes.max_heavy)
+PLANTED  BCR   static       [source] expected FAIL R11 - a migration statement renames a 69df2f52 column (work_orders.handoff), inside a DO block
+PLANTED  BCD   static       [source] expected FAIL R11 - a migration statement drops a 69df2f52 column (agent_runs.summary) without the COLUMN keyword
+PLANTED  BCX   static       [source] expected FAIL R11 - a DO block drops a 69df2f52 column through a dynamic statement: format() with placeholders for the table and the column (nodes.platform)
+PLANTED  BCY   static       [source] expected FAIL R11 - a DO block retypes a 69df2f52 column through a dynamic statement, keeping every value (nodes.platform to varchar(4000)): no read-back row sees the type
+PLANTED  GBB   static       [source] expected FAIL R12 - a 69df2f52 column (nodes.max_heavy) is dropped from part 000's reference list and from the legacy guard's copy alike: the two lists still agree (R10, C15), and R12 must see them differ from the referent
+PLANTED  IN    independence [semantic] expected FAIL (b)(c)|(g)|(j)|(m)|(n) - independence reduced to run-only: an authoring identity may claim (gate 7) and certify (floor) its own candidate
+PLANTED  IN2   independence [semantic] expected FAIL (j)|(j2) - the authoring set reduced to the completing run (a taken-over author may verify)
+PLANTED  FLP   independence [semantic] expected FAIL (k2) - the floor no longer refuses a candidate that is not the work order's current one
+PLANTED  FLR   independence [semantic] expected FAIL (k2) - the floor no longer refuses a certifying run that is in the authoring set
+PLANTED  FLI   independence [semantic] expected FAIL (k2) - the floor no longer refuses an authoring identity (the gate kept)
+PLANTED  FLA   independence [semantic] expected FAIL (h) - the floor no longer requires verifier authority in the CURRENT envelope
+PLANTED  FLS   independence [semantic] expected FAIL (k2) - the floor's campaign check of the same computer record removed (the fingerprint check kept)
+PLANTED  FLF   independence [semantic] expected FAIL (k2) - the floor's campaign fingerprint check removed
+PLANTED  FLC   independence [semantic] expected FAIL (k2) - the floor applies no campaign check at all
+PLANTED  G7c   independence [semantic] expected FAIL (m) - gate 7's campaign check of the same computer record removed (the floor kept)
+PLANTED  G7p   independence [semantic] expected FAIL (i)(e)|(p)|(p2) - gate 7's campaign fingerprint check removed (the floor kept)
+PLANTED  CKG   independence [semantic] expected FAIL (i2) - gate 7 reads a campaign with no policy row as the tenant default
+PLANTED  CKF   independence [semantic] expected FAIL (i2) - the certification reads a campaign with no policy row as the tenant default
+PLANTED  FPH   independence [semantic] expected FAIL (p2) - the authoring side counts only its runs' own fingerprints, not what its computers reported before
+PLANTED  FPM   independence [semantic] expected FAIL (p2) - the certifier side counts only the fingerprint of this call, not what its computer reported before
+PLANTED  FPN   independence [semantic] expected FAIL (p3) - an unknown fingerprint under the campaign no longer refuses (gate and floor)
+PLANTED  FPA   independence [semantic] expected FAIL (p5) - an author whose computer never reported a fingerprint no longer counts as unknown (the shared helper: gate 7 and the floor; the certifier side kept)
+PLANTED  FLU   independence [semantic] expected FAIL (k3) - the floor's own unknown-fingerprint check removed (gate 7 kept)
+PLANTED  FPV   independence [semantic] expected FAIL (p4) - the runtime's fingerprint varies per process (per install)
+PLANTED  RSW   independence [semantic] expected FAIL (o3) - a refused resubmission leaves the work order out of the queue (withheld from the next repair)
+PLANTED  RSN   independence [semantic] expected FAIL (o3) - a refused resubmission is not named on the work order
+PLANTED  RQR   independence [semantic] expected FAIL (o3) - a refused resubmission resets the work order's queue age
+PLANTED  RQF   independence [semantic] expected FAIL (o3) - a FAIL resets the work order's queue age
+PLANTED  CP    independence [semantic] expected FAIL (o2) - a certification is not bound to its work order and exact candidate provenance
+PLANTED  RQ    takeover     [semantic] expected FAIL T11 - the takeover resets the work order's queue age
+PLANTED  RS1   takeover     [semantic] expected FAIL T12 - a run is not stamped with its node's release
+PLANTED  RS2   takeover     [semantic] expected FAIL T12 - a checkpoint is not stamped with its node's release
+PLANTED  FPX   installer    [semantic] expected FAIL I10 - the fingerprint upper-cases the stored MachineGuid
+PLANTED  FPL   installer    [semantic] expected FAIL I10 - the fingerprint lower-cases the stored MachineGuid again
+PLANTED  FPS   installer    [semantic] expected FAIL I10 - the fingerprint accepts only a 36-character GUID shape again
+PLANTED  PH    enrollment   [semantic] expected FAIL EN9|EN19 - the code's HMAC is not compared: any secret with a live locator enrolls
+PLANTED  PC    enrollment   [semantic] expected FAIL EN9 - the per-locator failure cap is 500 instead of 5
+PLANTED  PD    enrollment   [semantic] expected FAIL EN15 - the pairing secret generated deterministically (a counter, not the CSPRNG)
+PLANTED  TL    tls          [semantic] expected FAIL T2|T3b|T6 - the Edge connects with ssl: 'require' again (verifies nothing)
+PLANTED  IP    tls          [semantic] expected FAIL T3a - an IP-literal database host is accepted (the certificate's name goes unchecked)
+PLANTED  DTW   tls          [semantic] expected FAIL T6 - the Node API entry point hands the database URL to the driver again (the driver reads it a second time, by its own rules)
+PLANTED  DTWs  static       [source] expected FAIL P4 - the Admin API entry point hands the database URL to the driver again
+PLANTED  DTE   tls          [semantic] expected FAIL T8 - the production project is no longer refused on what was read (the decoded user, the host, the database), only on the text
+PLANTED  DTX   tls          [semantic] expected FAIL T5 - the production project is no longer refused on the text (a ref in a part the form does not read is refused only as a malformed URL)
+PLANTED  DTQ   tls          [semantic] expected FAIL T8 - a query string is read past instead of refused (?user= and ?options= are what a pooler picks the project from)
+PLANTED  DTA   tls          [semantic] expected FAIL T9 - a URL that is not printable ASCII on one line is no longer refused as such (a tab or a line break inside a name)
+PLANTED  DTL   tls          [semantic] expected FAIL T7 - the host is no longer taken in lower case
+PLANTED  DTU   tls          [semantic] expected FAIL T7 - the user name is no longer decoded before it is judged and handed to the driver
+PLANTED  DTP   tls          [semantic] expected FAIL T7 - the password is no longer decoded before it is handed to the driver
+PLANTED  DTC   tls          [semantic] expected FAIL T8|T9 - the decoded user name is no longer held to its characters (a user that still carries an escape after one decoding is accepted)
+PLANTED  DTT   tls          [semantic] expected FAIL T8|T9 - dbOptions gives the driver options for a URL that was refused (without a target the driver takes one from its environment)
+PLANTED  DTN   tls          [semantic] expected FAIL T9 - only the dotted form of an IPv4 address is refused (one decimal number, hex and the short forms are read as names)
+PLANTED  DTD   tls          [semantic] expected FAIL T9 - a missing port is defaulted instead of refused
+PLANTED  RU    release      [refusal-name] expected FAIL R-b - an unsigned release is accepted
+PLANTED  HS    release      [semantic] expected FAIL R-t - the supervisor no longer verifies itself first (a tampered supervisor goes on)
+PLANTED  HO    release      [semantic] expected FAIL R-i2 - the supervisor outlives a switch: no handoff, the logon task keeps the superseded exe
+PLANTED  RD    release      [semantic] expected FAIL R-m|R-B5a - a superseded release is installed without an admin adopt (a silent downgrade), through upgrade or setup
+PLANTED  RSG   release      [refusal-name] expected FAIL R-bs1|R-bs2|R-bs3 - the release-signature check removed (a pinned key id with a signature that does not verify is accepted)
+PLANTED  RSGu  releaseunit  [semantic] expected FAIL U1 - the same, judged at function level
+PLANTED  MK    release      [refusal-name] expected FAIL R-e2 - a key named by the manifest is used when its key id is not pinned
+PLANTED  MKu   releaseunit  [semantic] expected FAIL U7 - the same, judged at function level
+PLANTED  DR    release      [semantic] expected FAIL R-f/k|R-f2|R-k1|R-k3 - the dev-key refusal of a production-mode runtime removed
+PLANTED  DK    releaseunit  [semantic] expected FAIL U2 - the dev-key refusal applies only when the dev key is outside the trust set (the 412ac14 order): a production set holding the dev entry verifies a dev signature
+PLANTED  DKb   releaseunit  [semantic] expected FAIL U5 - the build accepts a production trust set that holds a dev key
+PLANTED  DKd   releaseunit  [semantic] expected FAIL U5 - the build accepts a dev trust set that holds a key that is not a dev key
+PLANTED  TKu   releaseunit  [semantic] expected FAIL U3 - trust/production.json holds a key the Director's WO-6 does not record
+PLANTED  TKr   release      [semantic] expected FAIL R-h - the same, judged on the built production artifact: its trust set holds a key the Director's WO-6 does not record
+PLANTED  TMb   releaseunit  [semantic] expected FAIL U5b - the build takes a production entry that is not bound to its public key
+PLANTED  TMr   releaseunit  [semantic] expected FAIL U5b - the build takes a production trust set in which a key id repeats
+PLANTED  TMm   releaseunit  [semantic] expected FAIL U5b - the build takes a trust file whose mode is not its channel
+PLANTED  CM    release      [semantic] expected FAIL R-cm - the channel check removed (a production-channel release verifies on a dev runtime)
+PLANTED  CMu   releaseunit  [semantic] expected FAIL U6 - the same, judged at function level
+PLANTED  MF    release      [semantic] expected FAIL R-mf - the malformed refusal skipped (a manifest without its receipt hash, or of another format version, goes on to the later checks)
+PLANTED  MFu   releaseunit  [semantic] expected FAIL U6 - the same, judged at function level
+PLANTED  BD    releaseunit  [semantic] expected FAIL U6 - a pinned entry is used although its key id is not the id of the public key it carries
+PLANTED  NTu   releaseunit  [semantic] expected FAIL U6 - a runtime that carries no trust set reads it as an empty one of the manifest's channel instead of refusing no_trust_set
+PLANTED  RUV   release      [semantic] expected FAIL R-ru|R-B5d - the upgrade gate goes on when the plane does not answer, as if nothing were revoked (the list already stored decides)
+PLANTED  KE    release      [semantic] expected FAIL R-k0|R-k1|R-k2|R-k3|R-k4 - the trust mode and keys are taken from the environment
+PLANTED  KEu   releaseunit  [semantic] expected FAIL U4 - the same, judged from the source structure
+PLANTED  KC    release      [semantic] expected FAIL R-k1 - setup verifies its release against a trust set named in the home's configuration file
+PLANTED  KCu   releaseunit  [semantic] expected FAIL U4 - the same, judged from the source structure
+PLANTED  KX    release      [semantic] expected FAIL R-k1 - setup verifies its release against a trust file beside the exe
+PLANTED  KA    release      [semantic] expected FAIL R-k3 - upgrade verifies against a trust set the plane's answer names
+PLANTED  KAu   releaseunit  [semantic] expected FAIL U4 - the same, judged from the source structure
+PLANTED  KS    release      [semantic] expected FAIL R-k4 - the supervisor's start path verifies against a trust set named in the home's revocation file
+PLANTED  KSu   releaseunit  [semantic] expected FAIL U4 - the same, judged from the source structure
+PLANTED  CT    release      [semantic] expected FAIL R-n|R-n2|R-n3 - trust material read from the certificate table of the running exe
+PLANTED  CTu   releaseunit  [semantic] expected FAIL U4 - the same, judged from the source structure
+PLANTED  CE    release      [semantic] expected FAIL R-n2 - setup takes its endpoint from the certificate table when the build has none (the dev channel)
+PLANTED  TRB   release      [semantic] expected FAIL R-h - the exe's trust read-back hashes the public key's text instead of its 32 bytes
+PLANTED  TB    release      [semantic] expected FAIL R-h - build-info records the sha256 of the public key's text instead of its 32 bytes
+PLANTED  RRV   release      [semantic] expected FAIL R-d - the revoked-release refusal removed
+PLANTED  EX    release      [semantic] expected FAIL R-a|R-b|R-e|R-bs1|R-f2|R-d - upgrade runs the offered artifact before it is verified
+PLANTED  EXP   release      [semantic] expected FAIL R-f2 - the production-channel runtime's upgrade runs the offered artifact before it is verified (the dev channel's does not)
+PLANTED  NC    release      [semantic] expected FAIL R-j0|R-c0 - the node never claims (R-j and R-c alone would still pass)
+PLANTED  CA    installer    [semantic] expected FAIL I1 - the command line takes a pairing code again (--code refused no more, and mapped as an option)
+PLANTED  CA2   release      [semantic] expected FAIL R-B3d|R-B3p - the same, judged on the built dev and production artifacts
+PLANTED  AG    installer    [semantic] expected FAIL I1 - an argument with the form of a pairing code is accepted as an option value (it names a home, a task, a manifest)
+PLANTED  EC    installer    [semantic] expected FAIL I1 - the unknown-command refusal shows the argument
+PLANTED  EC2   static       [source] expected FAIL C2 - the same, read from the source
+PLANTED  EO    installer    [semantic] expected FAIL I1 - the unknown-option refusal shows the argument
+PLANTED  YN    installer    [semantic] expected FAIL I6|I7 - setup asks a second question (a confirmation) after the pairing code
+PLANTED  CL    static       [source] expected FAIL C1 - a harness puts an issued pairing code on the setup command line
+PLANTED  ON    installer    [semantic] expected FAIL I1 - the argv guard stops reading O as 0 and I / L as 1: a code spelled that way, without dashes, passes as an option value
+PLANTED  ON2   static       [source] expected FAIL C4 - the same, judged against pairing.ts
+PLANTED  EM    installer    [semantic] expected FAIL I1 - the argv guard stops looking for a displayed code inside a longer argument (a path, a URL, a file name)
+PLANTED  WP    static       [source] expected FAIL C7 - the dev-channel command on the Computers page loses its .\ (PowerShell does not run it as shown)
+PLANTED  FV    static       [source] expected FAIL C3 - the founder's pepper tool decides where it may write from an environment value again
+PLANTED  AL    static       [source] expected FAIL C4 - the argv guard's code alphabet drifts from pairing.ts (L instead of Z)
+PLANTED  WS    static       [source] expected FAIL C7 - the Computers page tells a dev-channel operator the production step (run it and enter the code), which that artifact cannot do
+PLANTED  EP    installer    [semantic] expected FAIL I3 - the node client accepts any endpoint (a cleartext network address receives the code and the tokens)
+PLANTED  KD    installer    [semantic] expected FAIL I4|I7 - the node key is stored without DPAPI when DPAPI is unavailable (acl_only)
+PLANTED  TK    installer    [semantic] expected FAIL I5 - the build no longer compares its toolchain with package-lock.json
+PLANTED  GS    release      [semantic] expected FAIL R-B5a|R-B5b|R-B5c|R-B5d - setup on an enrolled home skips the upgrade gate (no fresh revocations, no anti-downgrade)
+PLANTED  GS2   installer    [semantic] expected FAIL I6 - the same, read from the source
+PLANTED  GAS   gate         [semantic] expected FAIL GA1 - the gate also accepts a downgrade that only the local status.json names as adopted
+PLANTED  GRT   gate         [semantic] expected FAIL GA2 - the gate gives up on the first failed session opening or heartbeat (no retry)
+PLANTED  GCU   gate         [semantic] expected FAIL GA3 - upgrade switches although current.json moved after the gate
+PLANTED  GCS   gate         [semantic] expected FAIL GA4 - setup switches although current.json moved after the gate
+PLANTED  NR    installer    [semantic] expected FAIL I8 - verifyRelease reads an omitted revocation list as "nothing revoked" again
+PLANTED  FSP   installer    [semantic] expected FAIL I9 - the founder's pepper tool prints the value it generates
+PLANTED  PK    static       [source] expected FAIL C3 - the founder's prepared steps generate the pepper with console.log again
+PLANTED  PVE   static       [source] expected FAIL X1v - the Node API entry point takes the pepper's version from FACTORY_PAIRING_PEPPER_VERSION again (a configured value can differ from the version the Admin API issues codes with)
+PLANTED  PKS   pairing      [semantic] expected FAIL PC1|PC2|PC3 - the S-6 caps are counted with no serialization (both enrollment front doors take no key)
+PLANTED  PKP   pairing      [semantic] expected FAIL PC1x - the per-peer serialization key is dropped (the tenant key alone)
+PLANTED  PKT   pairing      [semantic] expected FAIL PC2 - the per-tenant serialization key is dropped (the peer key alone)
+PLANTED  PKF   pairing      [semantic] expected FAIL PC8 - complete takes the S-6 keys before its row locks (a key held across a row wait)
+PLANTED  LOE   pairing      [semantic] expected FAIL PC4 - complete locks its enrollment before the computer (the pre-change order: enrollment, then code, then computer)
+PLANTED  LOS   static       [source] expected FAIL PA3 - the same lock order, read from the source
+PLANTED  CKN   pairing      [semantic] expected FAIL PC5 - the consume judges expiry at the transaction's start (now()), before its lock waits
+PLANTED  CCB   pairing      [semantic] expected FAIL PC6 - the code-consumed refusal is removed (a second complete of a consumed code falls through)
+PLANTED  ALD   pairing      [semantic] expected FAIL PC4 - the principal_enrolled refusal of issue-code writes no audit row
+PLANTED  AFU   pairing      [semantic] expected FAIL PC7 - the admin computer lock is FOR UPDATE again (a node call's foreign-key check then waits on it while holding its credential)
+PLANTED  AFS   static       [source] expected FAIL PA3 - the same lock strength, read from the source
+PLANTED  RFW   pairing      [semantic] expected FAIL PC7 - a node call's fingerprint record writes the computers row again, under its credential lock
+PLANTED  RXL   pairing      [semantic] expected FAIL PC7 - node_register takes no computer lock before its credential (FOR KEY SHARE, which an admin lock does not exclude)
+PLANTED  AUA   enrollment   [semantic] expected FAIL EN23 - the complete-time refusals of server state (archived computer or changed envelope; an active credential) write no attempt row
+PLANTED  AUS   static       [source] expected FAIL PA1 - the same, read from the source
+PLANTED  PPA   enrollment   [semantic] expected FAIL PE1|PE2|PE3 - a request with no usable peer is refused without its attempt row
+PLANTED  PPS   static       [source] expected FAIL PA1 - the same, read from the source
+PLANTED  AEE   enrollment   [semantic] expected FAIL EN22 - the Edge answers its own refusals of the enrollment routes without calling the front door (no attempt row)
+PLANTED  ATR   enrollment   [semantic] expected FAIL EN24 - an attempt on a no-longer-live locator is no longer attributed to its code's tenant
+PLANTED  TRG   enrollment   [semantic] expected FAIL EN21 - the enrollment transition log is not attached (the walk is written only where a statement writes it)
+PLANTED  TAS   static       [source] expected FAIL PA2 - an enrollment state update that names no actor
+PLANTED  CEX   enrollment   [semantic] expected FAIL EN25 - an enrollment whose challenge window ended expires its code too (before the code's TTL)
+PLANTED  RSE   eligibility  [semantic] expected FAIL RS1 - the Node API accepts any resources object (the Edge layer alone reverted)
+PLANTED  RSQ   eligibility  [semantic] expected FAIL RS1 - the front doors accept any resources object (the SQL layer alone reverted)
+PLANTED  RKC   eligibility  [semantic] expected FAIL RS2 - the ranking casts a peer's reported cpu_pct unchecked
+PLANTED  RGC   eligibility  [semantic] expected FAIL RS3 - gate 12 casts a peer's reported resource unchecked
+PLANTED  SGV   enrollment   [semantic] expected FAIL SE1 - the session exchange does not verify the assertion's signature
+PLANTED  SAD   enrollment   [semantic] expected FAIL SE3 - the session exchange does not check the audience
+PLANTED  SXP   enrollment   [semantic] expected FAIL SE4 - the session exchange does not check the assertion's lifetime
+PLANTED  SJT   enrollment   [semantic] expected FAIL SE5 - the session exchange accepts a replayed jti
+PLANTED  SU1   schema       [semantic] expected FAIL C20 - the node session check does not refuse a superuser
+PLANTED  SU2   schema       [semantic] expected FAIL C20 - the session exchange does not refuse a superuser
+PLANTED  SU3   schema       [semantic] expected FAIL C20 - enroll/start does not refuse a superuser
+PLANTED  SU4   schema       [semantic] expected FAIL C20 - enroll/complete does not refuse a superuser
+PLANTED  SU5   schema       [semantic] expected FAIL C20 - the admin check does not refuse a superuser
+PLANTED  SU6   schema       [semantic] expected FAIL C20 - GET /v1/time does not refuse a superuser
+PLANTED  S7N   schema       [semantic] expected FAIL C18 - an extra node_* operation granted to the Node API role: the read-back C18 must see the role execute a function outside the S-7 list
+PLANTED  S7A   schema       [semantic] expected FAIL C19 - an extra admin_* function granted to the Admin API role: the read-back C19 must see the role execute a function outside ADMIN_OPS
+PLANTED  PRP   enrollment   [semantic] expected FAIL PE1|PE3 - peerOf hands on the runtime's value unchecked
+PLANTED  BTK   enrollment   [semantic] expected FAIL EN26 - the session token's raw bytes are stored instead of its SHA-256
+PLANTED  GS5   static       [source] expected FAIL G5 - the Node API entry point reads the peer itself again, around withPeer
+PLANTED  G6C   static       [source] expected FAIL G6 - a Brain OS answer that is not JSON becomes "no user" again (an error turned into a decision)
+PLANTED  G4S   static       [source] expected FAIL G4 - a SQL 503 refusal that the gate inventory does not classify
+PLANTED  EBU   edge         [semantic] expected FAIL EB1 - a Brain OS error status is "not authenticated" again
+PLANTED  EBJ   edge         [semantic] expected FAIL EB2 - a Brain OS body that is not JSON is "no user" again
+PLANTED  EBP   edge         [semantic] expected FAIL EB3 - a profiles error status is "no live role" again (not_authorized)
+PLANTED  EBC   edge         [semantic] expected FAIL EB6 - a WebCrypto failure is "the signature does not verify" again
+PLANTED  LSD   eligibility  [semantic] expected FAIL LS1 - the lease default is applied after the bounds again (least/greatest skip the null: 600 s instead of 120 s)
+PLANTED  EBS   edge         [semantic] expected FAIL EB7 - the request boundary reads any five-capital error code as the server's SQLSTATE again (a transport EPIPE becomes "nothing changed")
+PLANTED  SOT   pairing      [semantic] expected FAIL PC9 - the session exchange judges the assertion's lifetime at the transaction's start (now()), before its credential wait
+PLANTED  NSR   pairing      [semantic] expected FAIL PC9 - a node call does not judge its session's expiry again after the credential wait
+PLANTED  SST   pairing      [semantic] expected FAIL PC9 - enroll/start judges the code's TTL at the transaction's start (now()), before its lock wait
+PLANTED  SU7   pairing      [semantic] expected FAIL PC10 - node_register leaves the superuser refusal to _node_session (after its computer lock)
+PLANTED  RXE   pairing      [semantic] expected FAIL PC10 - node_register locks the computer of any session its token names, an ended one included
+PLANTED  PUC   enrollment   [semantic] expected FAIL PU1 - pepper_unavailable is judged after the caps (a 429 in place of the cause)
+PLANTED  UFL   units        [semantic] expected FAIL FP1 - the fingerprint hashes the MachineGuid lower-cased (not exactly as stored)
+PLANTED  UFE   units        [semantic] expected FAIL FP3 - the fingerprint hashes a value's Latin-1 bytes instead of its UTF-8 bytes
+PLANTED  UFU   units        [semantic] expected FAIL FP4 - the registry reader sends the value's UTF-16 bytes instead of its UTF-8 bytes
+PLANTED  UFC   units        [semantic] expected FAIL FP5 - a failed fingerprint read is kept for the life of the process (never read again)
+PLANTED  RVW   units        [semantic] expected FAIL RV2 - the worker overwrites state\revocations.json with each heartbeat's list again (no union)
+PLANTED  LCW   units        [semantic] expected FAIL LC1|LC2 - the lease guard sizes the lease from the server's expiry minus the node's wall clock again
+PLANTED  SIP   units        [semantic] expected FAIL SI1 - the supervisor again treats a lock record naming a live (or EPERM) pid as a running supervisor
+PLANTED  WKP   units        [semantic] expected FAIL SI3 - the worker goes on when another worker holds the home's worker pipe
+PLANTED  CGB   units        [semantic] expected FAIL CL1 - a lost claim answer is never read as lost (nothing given back; the orphan waits out its lease)
+PLANTED  RPA   units        [semantic] expected FAIL RR1 - the pending key is promoted on any probe answer other than unknown_key (a 404, a 400, a body without a refusal name)
+PLANTED  RFP   units        [semantic] expected FAIL RR2 - a repeated rotation refused credential_superseded discards the pending key without the final probe
+PLANTED  RKS   recovery     [semantic] expected FAIL RC1 - the rotation's new key is not stored before the request (only a reply that arrives stores it)
+PLANTED  ENL   recovery     [semantic] expected FAIL RC5 - setup ignores the enrollment in progress on a re-run
+PLANTED  ENR   recovery     [semantic] expected FAIL RC5 - an enroll/complete answer that proves nothing (a 429) clears the enrollment in progress
+PLANTED  SCI   recovery     [semantic] expected FAIL RC1 - a session no longer names its credential (a lost rotation cannot learn which credential the new key holds)
+PLANTED  VKD   recovery     [semantic] expected FAIL RL1|RL2 - the claim door no longer offers verification work (only the verification door does)
+PLANTED  CKI   recovery     [semantic] expected FAIL CK1 - a probe step's checkpoint carries no id (a repeat after a lost answer writes a second row)
+PLANTED  VTY   eligibility  [semantic] expected FAIL Y4 - authoring work orders are matched against the listed types INCLUDING the reserved one
+PLANTED  UPG   gate         [semantic] expected FAIL GA5 - the gate no longer refuses a release that is neither published in its channel nor adopted here
+PLANTED  DWE   takeover     [semantic] expected FAIL T7 - a completion records its evidence (verification.waiting) twice
+PLANTED  DSN   takeover     [semantic] expected FAIL T7 - a retried completion records one more successful side effect (an ok audit naming the run), outside the listed counts
+PLANTED  ISE   isolation    [semantic] expected FAIL IS1|IS3 - the isolated suite environment empties FACTORY_RUNNER_ENV_FILE again
+PLANTED  WRS   recovery     [semantic] expected FAIL RC7 - the worker no longer resolves a pending rotation at its start (it starts on the superseded key)
+PLANTED  WRT   recovery     [semantic] expected FAIL RC6 - a credential_superseded refusal is final even while a rotation of this node is pending (no settle, no exit 7)
+PLANTED  SRS   recovery     [semantic] expected FAIL RC3 - setup no longer continues an enrollment in progress: it starts a new one (a new key, a code asked for)
+PLANTED  RNS   recovery     [semantic] expected FAIL RN1 - the renew answer no longer states the clock of the plane (server_time)
+PLANTED  LCR   units        [semantic] expected FAIL LC3 - a renewed lease is counted from the answer to the renewal instead of from when it was sent
+PLANTED  CFE   units        [semantic] expected FAIL CF1 - a rotation starts from {} when config.json cannot be read
+PLANTED  SVR   units        [semantic] expected FAIL SV1 - a REFUSED record keeps the worker from starting even while a rotation of the home is pending
+PLANTED  SV7   units        [semantic] expected FAIL SV2 - an exit 7 of the worker is treated as a crash (restarted only after the backoff)
+PLANTED  SIK   units        [semantic] expected FAIL SI3 - a pipe holder that does not stop is ended by the pid it reports
+PLANTED  UFS   units        [semantic] expected FAIL FP7 - the fingerprint read of the worker blocks the event loop again (the synchronous read)
+PLANTED  HFT   units        [semantic] expected FAIL HF1|HF5 - every handler error fails its authoring run again (the Candidate #2 behaviour: a transient refusal is terminal)
+PLANTED  HFTr  recovery     [semantic] expected FAIL TR1|TR2 - every handler error fails its authoring run again, on a real plane (no lease is left to lapse, no node takes the work over)
+PLANTED  HFG   units        [semantic] expected FAIL HF1 - a run whose handler threw is given back at once instead of being left to its lease
+PLANTED  HFGr  recovery     [semantic] expected FAIL TR1|TR2 - a run whose handler threw is given back at once, on a real plane (the node names the run after the failure)
+PLANTED  HFD   units        [semantic] expected FAIL HF2 - a data exception the plane's server raised no longer fails the run (it is claimed and thrown again every lease)
+PLANTED  HFS   units        [semantic] expected FAIL HF1 - any SQLSTATE the server raised fails the run, not only a data exception (a lock wait is terminal again)
+PLANTED  HFR   units        [semantic] expected FAIL HF2 - a request the API refused as malformed no longer fails the run
+PLANTED  HFA   units        [semantic] expected FAIL HF1 - a request refusal's name is trusted on any status (a gateway's 502 carrying it fails the run)
+PLANTED  HFL   units        [semantic] expected FAIL HF3 - a lost lease is treated as a request refusal: the node completes a run it no longer holds as failed
+PLANTED  HFC   units        [semantic] expected FAIL HF4|HF8 - a terminal credential refusal met by a handler no longer stops the worker (it is read as a transient failure)
+PLANTED  HFV   units        [semantic] expected FAIL HF6 - a verification handler's error no longer gives its claim back
+PLANTED  HFK   units        [semantic] expected FAIL HF7 - the give-back after a lost claim answer names no run this process claimed (a run left to its lease is given back as an orphan)
+PLANTED  HFQ   recovery     [semantic] expected FAIL TR2 - the Node API no longer states the SQLSTATE of a server refusal (the node cannot tell a data exception from a lock wait)
+PLANTED  IDR   admin        [semantic] expected FAIL E1|E1b, must still PASS E1n E1t E1a E1e - CONTROL: both identity-refusal layers reverted and nothing else (no front door acts on a named node, tenant, agent or capability)
+PLANTED  IDN   admin        [semantic] expected FAIL E1n - the node id taken from the body: the Edge passes identity fields on, the front doors do not refuse them, and heartbeat acts on the named node
+PLANTED  IDT   admin        [semantic] expected FAIL E1t - the tenant taken from the body: the claim selects the work order of the tenant the body names, and gate 2 no longer refuses another tenant's work
+PLANTED  IDA   admin        [semantic] expected FAIL E1a - the agent taken from the body: the claim records the run under the principal and computer the body names
+PLANTED  ESf   admin        [semantic] expected FAIL E1e - envelope self-change: a heartbeat naming capabilities writes the next envelope version with them and moves the computer's envelope pointer
+PLANTED  G6s   admin        [semantic] expected FAIL E2 - gate 6 reads the capabilities the node reports (self-report) besides its envelope
+PLANTED  DSU   admin        [semantic] expected FAIL L6 - a SECURITY DEFINER front door (heartbeat) conditioned on its owner's superuser status: a draining computer's runtime is no longer held DRAINING when the owner is not a superuser
+PLANTED  TF1   admin        [semantic] expected FAIL P4 - founder-only actions no longer need tier founder (the live role founder alone suffices)
+PLANTED  TF2   admin        [semantic] expected FAIL P4 - founder-only actions no longer need the live role founder (a tier-founder row alone suffices)
+PLANTED  S7b   admin        [semantic] expected FAIL R1 - a route answered outside FRONT_DOORS (a pathname branch before the 404)
+PLANTED  S7bs  static       [source] expected FAIL S2 - the same, read from the source
+PLANTED  SQ    admin        [semantic] expected FAIL Q1 - the Node API runs a second SQL statement per request
+PLANTED  SQa   admin        [semantic] expected FAIL Q1 - the Admin API runs a second SQL statement per request
+PLANTED  SQs   static       [source] expected FAIL O4 - the Node API's second statement, read from the source
+PLANTED  SQas  static       [source] expected FAIL O2|O4 - the Admin API's second statement, read from the source
+PLANTED  RPn   admin        [semantic] expected FAIL L5 - re-pair issues its code for a NEW principal of the computer
+PLANTED  RRn   admin        [semantic] expected FAIL L3 - a rotation binds the new credential to a NEW principal it mints
+PLANTED  BA    admin        [semantic] expected FAIL G2 - archive drops the S-16(a) binding (and the computers guard lets it change)
+PLANTED  ATC   pairing      [semantic] expected FAIL PC4|PC6 - enroll/complete reads the code without locking it (a complete consumes a code a racing revoke or reissue ended)
+PLANTED  LDa   schema       [semantic] expected FAIL C7 - the 69df2f52 default-privilege grant to factory_runner restored after the self-check
+PLANTED  CG    schema       [semantic] expected FAIL C4 - a column-level grant to factory_runner on an authority table (after the self-check)
+PLANTED  SUd   schema       [semantic] expected FAIL C3 - a migration statement conditioned on the applying login's superuser status grants factory_runner a privilege on an authority table
+PLANTED  MBd   schema       [semantic] expected FAIL C3 - a migration statement conditioned on the applying login's membership in factory_runner grants factory_runner a privilege on an authority table
+PLANTED  SMa   schema       [semantic] expected FAIL W2 - the migration writes a row into a table it created (an audit row)
+PLANTED  SMv   schema       [semantic] expected FAIL W2|C12 - the migration seeds the policy-version rows again
+PLANTED  SMc   schema       [semantic] expected FAIL W2|W3 - the migration seeds a computer record (with its envelope)
+PLANTED  SMp   schema       [semantic] expected FAIL W3 - the migration seeds a computer and its agent principal
+PLANTED  SMk   schema       [semantic] expected FAIL W3 - the migration seeds a credential, with the computer, envelope, principal, pairing code and enrollment the credential guard binds it to
+PLANTED  SR    schema       [semantic] expected FAIL W1 - the migration changes a value of a pre-existing row outside the manifest's evidence fields (nodes.agent_version)
+PLANTED  SA2   schema       [semantic] expected FAIL W4 - the migration fills an added column that identifies a machine (nodes.machine_fingerprint) on the pre-existing legacy nodes
+PLANTED  SK    schema       [semantic] expected FAIL W5 - the migration defines a function holding an identifying UUID (before part 990, while factory_owner may still create)
+PLANTED  SKd   schema       [semantic] expected FAIL W5 - the migration sets an identifying UUID as the default of a PRE-EXISTING column (a 69df2f52 table)
+PLANTED  SBd   schema       [semantic] expected FAIL W6 - the migration gives the S-16(a) binding a column default
+PLANTED  EVF   schema       [step] expected FAIL P1 - the migration changes one manifest evidence field (the step's check must abort it)
+PLANTED  DCT   schema       [step] expected FAIL P1 - the migration leaves a deferrable constraint trigger (the step's check must abort it)
+PLANTED  LL    takeover     [semantic] expected FAIL T8|X4 - the enrolled lock lapses with its run: the front door writes the run's lease on the lock (and the constraint no longer requires infinity)
+PLANTED  DW    legacydirector [semantic] expected FAIL LD7 - new-model dispatch waits on the legacy lease (the claim locks director_lease)
+PLANTED  DWv   legacydirector [semantic] expected FAIL LD7 - new-model dispatch waits on the legacy lease only once a VERIFICATION work order is picked (a verification claim that claims nothing never reaches it)
+PLANTED  LDP   legacydirector [semantic] expected FAIL LD6 - a legacy update of a new-model row goes through (the legacy director changes new-model dispatcher state)
+PLANTED  LGD   legacydirector [semantic] expected FAIL LD5 - a legacy update of a new-model row raises (the legacy director's transaction fails)
+PLANTED  LDE   legacydirector [semantic] expected FAIL LD5 - every legacy write of director_lease raises
+PLANTED  LD2x  legacydirector [semantic] expected FAIL LD1|LD2 - legacy writes of director_lease are silently skipped (every director believes it holds the lease)
+PLANTED  RUa   release      [semantic] expected FAIL R-b0 - an unsigned release is accepted, and the published-state gate that would refuse it next is removed
+PLANTED  PC1   static       [source] expected FAIL P2 - a new function branches on current_catalog
+PLANTED  PC1i  static       [source] expected FAIL P2 - a new function branches on current_catalog AND the inventory proposes a branch-permitting class for it (an inventory entry never covers a branch on a plane value)
+PLANTED  PC2   static       [source] expected FAIL P2 - a DO block branches on the applying login's superuser status
+PLANTED  PC3   static       [source] expected FAIL P7|P2 - a function swallows insufficient_privilege
+PLANTED  PC4   static       [source] expected FAIL P3 - the Node API reads a new environment value
+PLANTED  PC5   static       [source] expected FAIL P6 - the migration sets a secret-named setting
+PLANTED  PC6   static       [source] expected FAIL P5 - the migration grants on a platform schema
+PLANTED  PC7   static       [source] expected FAIL P2 - a function compares the current time with a fixed date
+PLANTED  PC8   static       [source] expected FAIL P2 - the Edge compares its database URL with a loopback address
+PLANTED  PC10  static       [source] expected FAIL P3 - a new function branches on a setting whose value differs between planes
+PLANTED  PC9   static       [source] expected FAIL P2 - a SECURITY DEFINER body reads the superuser status of current_user (the owner)
+PLANTED  RLQ   static       [source] expected FAIL P3p - an inventory ruling quotes a class the Director's decision does not contain
+PLANTED  RLA   static       [source] expected FAIL P3p - an inventory class rests on a change request the Director RECORDED, not APPROVED (CR-010)
+PLANTED  RLP   static       [source] expected FAIL P3p - a ruled UNTRACED entry is marked pending again
+PLANTED  RLB   static       [source] expected FAIL P3 - an Edge configuration branch is proposed own-plane without the CR-021 ruling (own-plane admits no branch otherwise)
+PLANTED  RLD   static       [source] expected FAIL P3p - the static contract reads the rulings at r3, which records no CR decision, instead of the Director's CR-disposition record
+PLANTED  M0F   static       [source] expected FAIL M0 - a 69df2f52 control-plane file is changed
+PLANTED  TXC   static       [source] expected FAIL M1 - a transaction-control statement added to the migration
+PLANTED  SM2s  static       [source] expected FAIL M3 - a migration statement calls a function that writes the S-16(a) binding
+PLANTED  SM3d  static       [source] expected FAIL M3 - a migration statement drops the S-16(a) binding column
+PLANTED  SM3y  static       [source] expected FAIL M3 - a DO block writes the S-16(a) binding through dynamic SQL whose identifiers are format() arguments
+PLANTED  SM3t  static       [source] expected FAIL M3 - a trigger attached through format() on factory.%I fires a function that writes the S-16(a) binding when the migration writes a factory table
+PLANTED  ATCs  static       [source] expected FAIL PA3 - the atomic consume's code lock, read from the source
+
+v1_mutation_proof: plan only - 431 of 431 mutants plant; nothing was run

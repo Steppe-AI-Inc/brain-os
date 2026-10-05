@@ -1,0 +1,165 @@
+{
+  "build_info_format": 1,
+  "runtime_version": "0.1.0",
+  "source_commit": "c353e8953338f855a134a95787a075e8e93cfa01",
+  "dirty": false,
+  "built_at": "2026-10-05T15:14:19.000Z",
+  "built_at_source": "git HEAD commit time",
+  "built_at_epoch": 1791213259,
+  "dirty_paths": [],
+  "channel": "production",
+  "trust": {
+    "channel": "production",
+    "mode": "production",
+    "keys": [
+      {
+        "key_id": "ed25519:d3ed1390c6e6c367006a4fc5bdecd31d6cfe34823d5eeda7b9341656d962c81e",
+        "public_key_sha256": "d3ed1390c6e6c367006a4fc5bdecd31d6cfe34823d5eeda7b9341656d962c81e"
+      }
+    ]
+  },
+  "default_api": "https://npvhuoozkbexddnvkqsj.supabase.co/functions/v1/factory-node-api",
+  "release_base": "https://npvhuoozkbexddnvkqsj.supabase.co/storage/v1/object/public/factory-releases/production",
+  "digest": {
+    "algorithm": "SHA-256 PE Authenticode image hash",
+    "value": "02c6abfc135700f28dccd32fa19c958d2dfedc6c6d89e312d07e6e1ae981dd96"
+  },
+  "target": {
+    "exe_name": "BrainFactorySetup.exe",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "base_node": {
+    "version": "v24.19.0",
+    "official_name": "win-x64/node.exe",
+    "pin_source": "https://nodejs.org/dist/v24.19.0/SHASUMS256.txt",
+    "sha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+    "signature_removed": {
+      "offset": 92809728,
+      "size": 15688,
+      "entries": 1
+    },
+    "stripped_sha256": "5e26bc5c5a6ecc20ee68c5d0a74eb7f2bd3f2318a6a5747149783a3dbd0803b4"
+  },
+  "toolchain": {
+    "esbuild": "0.27.0",
+    "postject": "1.0.0-alpha.6",
+    "builder_node": "v24.19.0",
+    "lock": [
+      {
+        "name": "esbuild",
+        "version": "0.27.0",
+        "integrity": "sha512-jd0f4NHbD6cALCyGElNpGAOtWxSq46l9X/sWB0Nzd5er4Kz2YTm+Vl0qKFT9KUJvD8+fiO8AvoHhFvEatfVixA=="
+      },
+      {
+        "name": "@esbuild/win32-x64",
+        "version": "0.27.0",
+        "integrity": "sha512-aIitBcjQeyOhMTImhLZmtxfdOcuNRpwlPNmlFKPcHQYPhEssw75Cl1TSXJXpMkzaua9FUetx/4OQKq7eJul5Cg=="
+      },
+      {
+        "name": "postject",
+        "version": "1.0.0-alpha.6",
+        "integrity": "sha512-b9Eb8h2eVqNE8edvKdwqkrY6O7kAwmI8kcnBv1NScolYJbo59XUF0noFq+lxbC1yN20bmC0WBEbDC5H/7ASb0A=="
+      },
+      {
+        "name": "@esbuild/win32-x64/esbuild.exe",
+        "sha256": "e7493e1b95750a0dfdad38e55e071d58fd40229a35aef743453297676204eb86"
+      }
+    ]
+  },
+  "bundle": {
+    "entry": "scripts/factory-runner/sea/main.mjs",
+    "format": "cjs",
+    "platform": "node",
+    "target": "node24",
+    "sha256": "35bdc03cf4ac8f6b53471dfd344897b4c2dd6d00ae8ad889a8e33e79c1e7a91d",
+    "bytes": 166792,
+    "source_line_endings": "LF (each .js/.cjs/.mjs/.json input is read with CRLF and CR as LF; the metafile byte counts are of that text)",
+    "inputs": [
+      "scripts/factory-runner/enrolled/api.mjs",
+      "scripts/factory-runner/enrolled/credential.mjs",
+      "scripts/factory-runner/enrolled/handlers.mjs",
+      "scripts/factory-runner/enrolled/home.mjs",
+      "scripts/factory-runner/enrolled/identity.mjs",
+      "scripts/factory-runner/enrolled/instance.mjs",
+      "scripts/factory-runner/enrolled/keys.mjs",
+      "scripts/factory-runner/enrolled/pe-image.mjs",
+      "scripts/factory-runner/enrolled/release.mjs",
+      "scripts/factory-runner/enrolled/revocations.mjs",
+      "scripts/factory-runner/enrolled/setup.mjs",
+      "scripts/factory-runner/enrolled/supervisor.mjs",
+      "scripts/factory-runner/enrolled/tasks.mjs",
+      "scripts/factory-runner/enrolled/upgrade.mjs",
+      "scripts/factory-runner/enrolled/worker.mjs",
+      "scripts/factory-runner/lib/dpapi.mjs",
+      "scripts/factory-runner/lib/ed25519.mjs",
+      "scripts/factory-runner/lib/secure-store.mjs",
+      "scripts/factory-runner/sea/argv-guard.mjs",
+      "scripts/factory-runner/sea/main.mjs"
+    ],
+    "packages": [],
+    "runtime_requires": [
+      "node:child_process",
+      "node:crypto",
+      "node:fs",
+      "node:fs/promises",
+      "node:net",
+      "node:os",
+      "node:path",
+      "node:perf_hooks",
+      "node:readline",
+      "node:sea",
+      "node:url"
+    ],
+    "metafile": "bundle.metafile.json",
+    "metafile_sha256": "edf8fcaeb1c448852c847e535f3d7809865f44a30a7ae85b9371a751df126a99",
+    "policy": {
+      "forbidden_packages": [
+        "/^pg$/",
+        "/^pg-/",
+        "/^pgpass$/",
+        "/^postgres$/",
+        "/^postgres-/",
+        "/^embedded-postgres$/",
+        "/^@embedded-postgres\\//"
+      ],
+      "forbidden_files": [
+        "scripts/factory-runner/db.mjs"
+      ],
+      "forbidden_strings": [
+        "postgresql://",
+        "postgres://",
+        "FACTORY_RUNNER_PG_URL"
+      ],
+      "violations": []
+    }
+  },
+  "sea": {
+    "config": {
+      "main": "main.cjs",
+      "output": "sea-prep.blob",
+      "disableExperimentalSEAWarning": true,
+      "useSnapshot": false,
+      "useCodeCache": false,
+      "execArgvExtension": "none"
+    },
+    "blob_sha256": "2de51b7b4754e3242dbb1273f8ef1902233033404114606a0cd2b299f7abcad3",
+    "blob_bytes": 166825,
+    "resource": "NODE_SEA_BLOB",
+    "sentinel_fuse": "NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2"
+  },
+  "exe": {
+    "unsigned_sha256": "6d751860d2cade142c234184a61c6d6b6d06f03dbdd7bcc71185ff15b51ad0df",
+    "bytes": 93118976,
+    "pe_checksum": 93141643,
+    "certificate_directory": {
+      "offset": 0,
+      "size": 0
+    }
+  },
+  "authenticode": {
+    "signed": false,
+    "reason": "signing not requested (--sign not given)"
+  },
+  "sha256": "6d751860d2cade142c234184a61c6d6b6d06f03dbdd7bcc71185ff15b51ad0df"
+}

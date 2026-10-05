@@ -1,0 +1,12 @@
+sea_package_mutation_proof: 8 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ c353e8953338f855a134a95787a075e8e93cfa01 - the 37 copied files are identical to HEAD
+CONTROL  passed - 28 passed, 0 failed (192 s)
+CAUGHT   N2   expected FAIL B10; seen FAIL [B10]; 27 passed, 1 failed (206 s) - the sha256 pin check is skipped for the building node (process.execPath)
+CAUGHT   E1   expected FAIL S4|B1|B9; seen FAIL [S4 B1 X0]; 3 passed, 3 failed (3 s) - stripSignature truncates the table but leaves certificate directory 4 pointing at it (non-zero)
+CAUGHT   E2   expected FAIL S4; seen FAIL [S4]; 27 passed, 1 failed (193 s) - stripSignature skips the PE CheckSum recomputation (the signed file's CheckSum is kept)
+CAUGHT   E3   expected FAIL B9; seen FAIL [B9 B12 B13]; 25 passed, 3 failed (169 s) - the build skips the CheckSum recomputation after injection (postject does not maintain it; computed on a copy)
+CAUGHT   C1   expected FAIL S1|B1; seen FAIL [S1 B1 X0]; 3 passed, 3 failed (8 s) - sea-config.template.json turns useCodeCache on
+CAUGHT   C2   expected FAIL B5; seen FAIL [B5 B13]; 26 passed, 2 failed (187 s) - the build hands node useCodeCache:true while the template (and build-info) still say false
+CAUGHT   C3   expected FAIL B1; seen FAIL [B1 X0]; 4 passed, 2 failed (9 s) - the build hands node useSnapshot:true while the template (and build-info) still say false
+CAUGHT   R1   expected FAIL B14; seen FAIL [B14]; 27 passed, 1 failed (190 s) - review: dirty is judged by git status alone again (an assume-unchanged / skip-worktree edit is "clean")
+
+sea_package_mutation_proof: 8 of 8 mutants killed

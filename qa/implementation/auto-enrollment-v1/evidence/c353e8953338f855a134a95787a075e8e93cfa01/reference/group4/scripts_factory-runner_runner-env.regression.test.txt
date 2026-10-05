@@ -1,0 +1,41 @@
+suite scripts/factory-runner/runner-env.regression.test
+command node scripts/factory-runner/runner-env.regression.test.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c353e8953338f855a134a95787a075e8e93cfa01
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-G5WSNc\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-G5WSNc\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-G5WSNc\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-05T20:52:25.874Z
+seconds 0
+exit 0
+summary ℹ fail 0
+
+✔ the recorded CA path is kept when it exists here (1.8885ms)
+✔ a CA path from another machine is resolved to the copy beside the env file (0.293ms)
+✔ a CA path that exists nowhere is left as is, flagged caMissing, and the note says what to copy (0.2178ms)
+✔ a URL without sslrootcert (loopback plane) is untouched (0.1335ms)
+✔ loadRunnerUrl reads the file and resolves the CA beside it (3.3679ms)
+✔ an env file saved with a UTF-8 byte-order mark is read (Windows PowerShell 5.1 adds one on re-save) (1.7994ms)
+✔ loadRunnerUrl flags a CA that exists nowhere on this machine (the preflight and supervisor refuse on it) (1.7208ms)
+✔ a URL with a real CA beside it is usable (3.2056ms)
+✔ a value in one pair of quotes is the URL inside them (2.489ms)
+✔ a UTF-16LE file (Windows PowerShell 5.1 re-save) is decoded and usable (2.6171ms)
+✔ a UTF-16BE file is decoded and usable (2.7729ms)
+✔ NUL bytes without a byte-order mark are refused naming the encoding, not "no line" (1.8957ms)
+✔ a key=value connection string is not a URL: refused, url null (1.5244ms)
+✔ the superuser is refused by the same rule the accessor applies (1.5365ms)
+✔ the production project is refused by name (1.5108ms)
+✔ plaintext across a network is refused (1.5145ms)
+✔ a DER-encoded CA (the Windows export default) is refused naming the conversion - pg reads the file as PEM text (2.9252ms)
+✔ what pg itself would throw on is refused by the judge: a missing client cert/key, verify-* with uselibpqcompat and no CA (2.9047ms)
+✔ the judge never throws: a directory where the CA should be is a refusal, not EISDIR (1.9646ms)
+✔ a CA file that is not a certificate is refused, naming the file (2.6534ms)
+✔ importing the loader first does not freeze db.mjs without a URL (ensureRunnerEnv, then db.mjs, sees the URL) (54.1226ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 100.32

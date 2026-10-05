@@ -1,0 +1,24 @@
+suite health_check
+command node qa/factory/health_check.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c353e8953338f855a134a95787a075e8e93cfa01
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-Dn6Dmk\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-Dn6Dmk\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-Dn6Dmk\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-05T20:37:16.245Z
+seconds 9
+exit 0
+summary health_check: 10 passed, 0 failed
+
+OK   before the schema is applied, health names the missing schema and the file that fixes it
+OK   with the schema applied and privileges granted, the node reports HEALTHY, and that no supervisor runs it here
+OK   it reports each link separately: connection, superuser status, schema, queue, registration
+OK   it NEVER prints the password, and never prints the connection string
+OK   ...but it does print enough to identify the connection: host, database, sslmode
+OK   a superuser URL is refused, and the refusal explains why rather than just failing
+OK   with SELECT revoked, health fails and names permission rather than reporting a healthy node
+OK   an unreachable database reports a CONNECTION failure, not a schema one
+OK   on LOOPBACK, a missing sslmode is noted but does not fail the node
+OK   on a REMOTE host, a missing sslmode is a hard failure
+
+health_check: 10 passed, 0 failed

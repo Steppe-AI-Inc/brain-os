@@ -1,0 +1,55 @@
+suite scripts/factory-runner/supervisor.regression.test
+command node scripts/factory-runner/supervisor.regression.test.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c353e8953338f855a134a95787a075e8e93cfa01
+suite file identical to 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6: yes
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-G5WSNc\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-G5WSNc\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-G5WSNc\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-05T20:52:26.237Z
+seconds 0
+exit 0
+summary ℹ fail 0
+
+✔ EXIT_ZERO_PLUS_SESSION_LIMIT_IS_BLOCKED: the live text classifies, and nothing about exit 0 makes it a success (1.894ms)
+✔ PROVIDER_CAPACITY_BLOCKED_HAS_RETRY_AFTER: the provider-stated reset time wins (0.3089ms)
+✔ PROVIDER_CAPACITY_BLOCKED_HAS_RETRY_AFTER: a reset time already past today rolls to tomorrow (0.1885ms)
+✔ PROVIDER_CAPACITY_BLOCKED_HAS_RETRY_AFTER: no stated time -> BOUNDED backoff, never immediate, never unbounded (0.1586ms)
+✔ PROCESS_DEATH_DOES_NOT_END_WORK_ORDER: retry ownership lives outside the Claude session (0.2717ms)
+✔ SUPERVISOR_RESTARTS_ELIGIBLE_BLOCKED_RUN: only genuinely eligible runs restart (0.2081ms)
+✔ RESTART_LOADS_DURABLE_CHECKPOINT: the resume prompt carries campaign, checkpoint, sha, branch (0.4854ms)
+✔ COMPLETED_VERIFIER_SCENARIOS_ARE_NOT_DUPLICATED: same sha resumes at the first unfinished scenario (0.2999ms)
+✔ SOURCE_SHA_CHANGE_INVALIDATES_PARTIAL_CERTIFICATION: moved source discards prior evidence (0.1913ms)
+✔ SOURCE_SHA_CHANGE_INVALIDATES_PARTIAL_CERTIFICATION: an unrecorded sha is treated as a mismatch (fail closed) (0.2797ms)
+✔ TWO_SUPERVISORS_CANNOT_DOUBLE_RESTART_RUN: the claim is atomic in SQL (0.1923ms)
+✔ TWO_SUPERVISORS_CANNOT_DOUBLE_RESTART_RUN: status never goes BLOCKED -> COMPLETED on restart (0.1218ms)
+✔ AUTHORIZATION_STATE_SURVIVES_RESTART_WITH_EXACT_SCOPE: restarting is founder/admin authority and grants nothing new (0.3475ms)
+✔ NO_SILENT_PROVIDER_FALLBACK: requested and actual provider/model are separate durable columns (0.1942ms)
+✔ SUPERVISOR_METADATA_IS_NOT_EXECUTABLE: shell metacharacters never reach a shell (0.1554ms)
+✔ SUPERVISOR_METADATA_IS_NOT_EXECUTABLE: a hostile worktree cannot become cwd (0.2416ms)
+✔ SUPERVISOR_METADATA_IS_NOT_EXECUTABLE: an allowlist root is a PATH boundary, never a string prefix (0.1301ms)
+✔ SUPERVISOR_METADATA_IS_NOT_EXECUTABLE: a worktree gets the same character allowlist as every other metadata field (0.1035ms)
+✔ SUPERVISOR_METADATA_IS_NOT_EXECUTABLE: malformed metadata is dropped, not interpolated (0.1502ms)
+✔ SUPERVISOR_METADATA_IS_NOT_EXECUTABLE: the resumed session is told the metadata is untrusted (0.1012ms)
+✔ D1 the attempt cap is enforced in the CLAIM, not only in an unreachable JS helper (0.0848ms)
+✔ D2 the classification gates the claim in SQL — a crashed agent is never relaunched on a timer (0.0719ms)
+✔ D3 re-blocking RELEASES the claim, so a second capacity block is still recoverable (0.0971ms)
+✔ D4 the supervisor identity is explicit, and denial is distinguished from not-migrated (0.1067ms)
+✔ D5 retry/checkpoint columns are founder-guarded against manager-tier writes (0.2361ms)
+✔ D6 a provider/model substitution cannot be RECORDED without a stated reason (0.0912ms)
+✔ D7 + ROUND 3/D-2: EXECUTE is held by NO role — the claim RPC is direct-connection-only (0.0868ms)
+✔ R-D1 SECURITY DEFINER functions use session_user, never current_user, to detect the direct caller (0.1515ms)
+✔ R-D2 every column the claim RETURNS or SELECTS ON is guarded (0.2913ms)
+✔ R-D4 a stranded claim ages out, and an observed spawn failure releases it immediately (0.104ms)
+✔ R-D5 the JS eligibility helper is documented as NOT the gate, and the cap is passed explicitly (0.1058ms)
+✔ R-D6 the FULL provider output reaches computeRetryAfter, not just the matched phrase (0.8513ms)
+✔ R-D8 the documented rollback names the ACTUAL signature (0.1128ms)
+✔ VERIFIER_RESUME_USES_TOP_LEVEL_ISOLATED_PROCESS: the supervisor spawn goes through verifierDispatchArgv with the isolated mode and never --bg (0.2607ms)
+✔ EXECUTION_MODE_IS_RECORDED_AS_DATA: 202609030001 adds execution_mode with a CHECK, and the supervisor writes it via sqlEscape (never concatenated raw) (0.2474ms)
+ℹ tests 35
+ℹ suites 0
+ℹ pass 35
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 17.9459

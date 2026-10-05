@@ -1,0 +1,16 @@
+step static: deno check (Edge functions)
+command npx.cmd --yes deno@2.5.6 check supabase/control-plane/edge/supabase/functions/factory-node-api/index.ts supabase/control-plane/edge/supabase/functions/factory-admin-api/index.ts supabase/control-plane/edge/supabase/functions/factory-release-stage/index.ts
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c353e8953338f855a134a95787a075e8e93cfa01
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-CfnK6j\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-CfnK6j\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-CfnK6j\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-05T15:17:46.297Z
+seconds 4
+exit 0
+summary 
+
+
+--- stderr ---
+[0m[32mCheck[0m file:///C:/Users/DELL/dev/brain-os-factory-enroll/supabase/control-plane/edge/supabase/functions/factory-node-api/index.ts
+[0m[32mCheck[0m file:///C:/Users/DELL/dev/brain-os-factory-enroll/supabase/control-plane/edge/supabase/functions/factory-admin-api/index.ts
+[0m[32mCheck[0m file:///C:/Users/DELL/dev/brain-os-factory-enroll/supabase/control-plane/edge/supabase/functions/factory-release-stage/index.ts

@@ -1,0 +1,15 @@
+step build dev channel
+command C:\Program Files\nodejs\node.exe scripts/factory-build/build-sea.mjs --channel dev
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c353e8953338f855a134a95787a075e8e93cfa01
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-CfnK6j\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-CfnK6j\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-CfnK6j\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-05T15:16:08.652Z
+seconds 15
+exit 0
+summary [build-sea] BUILT C:\Users\DELL\dev\brain-os-factory-enroll\dist\brain-factory\0.1.0\dev\BrainFactorySetup.exe sha256 dd4bbb5f57834adc5a6856e4dc544c487395bd92cad9a5366819cd87fa8399f5 (unsigned: signing not requested (--sign not given))
+
+[build-sea] base node.exe v24.19.0 win32-x64 sha256 3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237 = pin (https://nodejs.org/dist/v24.19.0/SHASUMS256.txt), Authenticode-signed
+[build-sea] bundle 166605 bytes from 20 input(s): scripts/factory-runner/enrolled/api.mjs, scripts/factory-runner/enrolled/credential.mjs, scripts/factory-runner/enrolled/handlers.mjs, scripts/factory-runner/enrolled/home.mjs, scripts/factory-runner/enrolled/identity.mjs, scripts/factory-runner/enrolled/instance.mjs, scripts/factory-runner/enrolled/keys.mjs, scripts/factory-runner/enrolled/pe-image.mjs, scripts/factory-runner/enrolled/release.mjs, scripts/factory-runner/enrolled/revocations.mjs, scripts/factory-runner/enrolled/setup.mjs, scripts/factory-runner/enrolled/supervisor.mjs, scripts/factory-runner/enrolled/tasks.mjs, scripts/factory-runner/enrolled/upgrade.mjs, scripts/factory-runner/enrolled/worker.mjs, scripts/factory-runner/lib/dpapi.mjs, scripts/factory-runner/lib/ed25519.mjs, scripts/factory-runner/lib/secure-store.mjs, scripts/factory-runner/sea/argv-guard.mjs, scripts/factory-runner/sea/main.mjs  [clean at c353e8953338]
+[build-sea] exe 93118464 bytes, unsigned sha256 dd4bbb5f57834adc5a6856e4dc544c487395bd92cad9a5366819cd87fa8399f5, `version` = the embedded build info
+[build-sea] BUILT C:\Users\DELL\dev\brain-os-factory-enroll\dist\brain-factory\0.1.0\dev\BrainFactorySetup.exe sha256 dd4bbb5f57834adc5a6856e4dc544c487395bd92cad9a5366819cd87fa8399f5 (unsigned: signing not requested (--sign not given))

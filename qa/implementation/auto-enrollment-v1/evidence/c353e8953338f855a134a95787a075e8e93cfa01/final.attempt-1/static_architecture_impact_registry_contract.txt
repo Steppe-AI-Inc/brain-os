@@ -1,0 +1,30 @@
+step static: architecture_impact_registry_contract
+command C:\Program Files\nodejs\node.exe qa/scenarios-runner/architecture_impact_registry_contract.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c353e8953338f855a134a95787a075e8e93cfa01
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-CfnK6j\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-CfnK6j\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-CfnK6j\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-05T15:17:45.682Z
+seconds 0
+exit 0
+summary architecture_impact_registry_contract: 17 passed, 0 failed
+
+OK   registry lists concepts
+OK   registry has execution_result_envelope
+OK   registry has mutation_receipt
+OK   registry has collection_envelope
+OK   registry has grounding_precedence
+OK   registry has company_lifecycle
+OK   registry has archived_parent_policy
+OK   registry has manager_assignment
+OK   registry has org_scope
+OK   registry has pending_action
+OK   every registry home / surface path exists (86)
+OK   every regression family resolves to a suite (47)
+OK   mirror exports agree: web/lib/contracts/execution.ts <-> supabase/functions/_shared/execution.ts
+OK   mirror exports agree: web/lib/contracts/collection.ts <-> supabase/functions/_shared/collection.ts
+OK   mirror exports agree: web/lib/policy/archived-parent.ts <-> supabase/functions/_shared/parent-policy.ts
+OK   feature contract template exists
+OK   PR template carries the truth checklist
+
+architecture_impact_registry_contract: 17 passed, 0 failed

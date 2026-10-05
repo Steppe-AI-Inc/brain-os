@@ -1,0 +1,43 @@
+step sea_package_regression
+command C:\Program Files\nodejs\node.exe qa/factory/sea_package_regression.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c353e8953338f855a134a95787a075e8e93cfa01
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\Temp\bf-isolation-CfnK6j\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-CfnK6j\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\Temp\bf-isolation-CfnK6j\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-05T15:35:14.271Z
+seconds 188
+exit 0
+summary sea_package_regression: 28 passed, 0 failed
+
+checkout C:\Users\DELL\dev\brain-os-factory-enroll at c353e8953338, runtime_version 0.1.0, work C:\Users\DELL\AppData\Local\Temp\sea-regression-L4XI3T
+OK   S1 pin v24.19.0 win32-x64 = the official SHASUMS256 sha (3602f2bb1a10f2cb); SEA config template has exactly the required settings; /dist/ is ignored (true) and only at the root (true)
+OK   S2 main.mjs and the 19 modules it reaches: no top-level await (0 found); every import a node: builtin or a bundled scripts/factory-runner/{sea,enrolled,lib} module (0 others)
+OK   S3 plain node: import runs nothing ("IMPORTED function function false"), version prints null build info, selftest exit 0 (plain node), no command (setup) exit 3, unknown command exit 64, nothing enrolled true
+OK   S4 pe-strip-signature unit test on a copy of the real node.exe: 9 passed, 0 failed (exit 0)
+OK   B1 build-sea.mjs built (exit 0) into dist/brain-factory/0.1.0/dev/: BrainFactorySetup.exe, build-info.json, bundle.metafile.json, SHA256SUMS; SHA256SUMS matches all three (true)
+OK   B2 metafile inputs [scripts/factory-runner/enrolled/api.mjs, scripts/factory-runner/enrolled/credential.mjs, scripts/factory-runner/enrolled/handlers.mjs, scripts/factory-runner/enrolled/home.mjs, scripts/factory-runner/enrolled/identity.mjs, scripts/factory-runner/enrolled/instance.mjs, scripts/factory-runner/enrolled/keys.mjs, scripts/factory-runner/enrolled/pe-image.mjs, scripts/factory-runner/enrolled/release.mjs, scripts/factory-runner/enrolled/revocations.mjs, scripts/factory-runner/enrolled/setup.mjs, scripts/factory-runner/enrolled/supervisor.mjs, scripts/factory-runner/enrolled/tasks.mjs, scripts/factory-runner/enrolled/upgrade.mjs, scripts/factory-runner/enrolled/worker.mjs, scripts/factory-runner/lib/dpapi.mjs, scripts/factory-runner/lib/ed25519.mjs, scripts/factory-runner/lib/secure-store.mjs, scripts/factory-runner/sea/argv-guard.mjs, scripts/factory-runner/sea/main.mjs] hold no PostgreSQL client and not db.mjs; run-time requires [node:crypto, node:fs, node:os, node:path, node:crypto, node:child_process, node:crypto, node:fs, node:os, node:perf_hooks, node:crypto, node:child_process, node:path, node:fs/promises, node:os, node:path, node:child_process, node:crypto, node:crypto, node:fs, node:crypto, node:child_process, node:path, node:fs, node:path, node:fs, node:perf_hooks, node:path, node:readline, node:crypto, node:fs, node:net, node:os, node:path, node:child_process, node:crypto, node:fs, node:path, node:perf_hooks, node:crypto, node:perf_hooks, node:crypto, node:fs, node:url, node:sea, node:fs, node:fs, node:fs, node:fs] are all builtins; build-info lists exactly these inputs
+OK   B3 the policy gate refuses real metafiles: an entry importing db.mjs -> 41 violation(s) naming db.mjs and pg; one importing postgres -> 10; the real bundle -> 0
+OK   B19 the build refuses by itself: bundleEntry throws POLICY (exit 4) on an entry importing db.mjs; a non-builtin run-time require is a violation (1); forbiddenStringHits finds [[1,1],[1,1],[1,1]] for postgresql://, postgres://, FACTORY_RUNNER_PG_URL (ascii, utf16le)
+OK   B4 the exe (93118464 bytes) contains no "postgresql://", "postgres://" or "FACTORY_RUNNER_PG_URL" in ASCII or UTF-16LE (0 hits)
+OK   B5 two builds of one tree (a stray source_date_epoch in the verifier env): verify-build exit 0 ("IDENTICAL: dd4bbb5f57834adc5a6856e4dc544c487395bd92cad9a5366"), hashed here dd4bbb5f57834adc = dd4bbb5f57834adc, build-info.json byte-identical (true)
+OK   B6 verify-build refuses a self-consistent reference that the tree does not build (one DOS-stub byte changed): exit 1, DIFFERENT
+OK   B7 exe `version` prints the commit: {"runtime_version":"0.1.0","source_commit":"c353e8953338f855a134a95787a075e8e93cfa01","dirty":false,"built_at":"2026-10-05T15:14:19.000Z","channel":"dev"}
+OK   B8 PATH=C:\Windows\System32 only (where.exe: node exit 1, git exit 1, npm exit 1): a copy of the exe in a fresh dir passes selftest (exit 0, 4 lines, SEA true); no command exits 3
+OK   B9 output unsigned: certificate directory {0,0}, Windows says NotSigned, PE checksum valid (true), build-info authenticode {"signed":false,"reason":"signing not requested (--sign not given)"}
+OK   B10 an unpinned node.exe (official + 1 byte, sha fb4e4563b0c3) is refused: as --node-exe exit 3, as the building node exit 3; outputs left: 0
+OK   B11 SOURCE_DATE_EPOCH=1700000000: exit 0, exe says built_at 2023-11-14T22:13:20.000Z, bytes differ from B1 (true); "yesterday" refused exit 2; the sign command in the env without --sign ran: false
+OK   B12 --sign: unset command -> exit 0 unsigned (--sign given but BRAIN_FACTORY_SIGN_CMD is not set); failing command -> exit 5; signs nothing -> exit 5; a signature Windows does not call Valid -> exit 5; signature plus a changed code byte -> exit 5 (changed more than the signature: true); outputs left 0/0/0/0; the command got the exe path (true)
+OK   B13 verify-build on signed references: the image plus a signature -> IDENTICAL (exit 0); signature plus a changed byte -> CANNOT VERIFY (exit 2); the same, with build-info rewritten to match -> DIFFERENT (exit 1)
+OK   B14 dirtyPaths in a disposable repo: clean at the commit []; CRLF checkout clean, assume-unchanged / skip-worktree edits (which git status does not show: true), a deletion, an untracked and an ignored file -> ["ignored.mjs","src/c.mjs","src/d.mjs","src/e.mjs","src/new.mjs"]; by directory -> ["src/c.mjs","src/d.mjs","src/e.mjs","src/new.mjs"]
+OK   B15 LF and CRLF copies of the 20 bundle inputs: one bundle (true) and one metafile (true, 17761 bytes); unnormalized esbuild would record 17761 vs 18033; the normalization leaves the code as esbuild emits it
+OK   B16 verify-build refuses (exit 2, no rebuild) and keeps the reference: --rebuild-dir = --against refused; --rebuild-dir = --against through a junction refused; build-info that is not JSON refused; build-info without exe / bundle / authenticode refused; --node-exe with no value refused; --against with no value refused; an empty SHA256SUMS refused; a metafile (and SHA256SUMS) that build-info does not describe refused; the forged reference still intact true
+OK   B17 authenticodeStatus under T\O’Brien ‘quoted’ ‚dir‛: the official node.exe copy Valid, the built exe copy NotSigned
+OK   B18 a failed rebuild (unpinned --node-exe: build-sea exit 3) is CANNOT VERIFY exit 2 and leaves 0 temp entries behind
+OK   B20 NODE_OPTIONS=--require=<file> does NOT run inside the exe (exit 0; build-info execArgvExtension "none"); plain node, the control, runs it (true)
+OK   B21 build-sea.mjs without --channel: exit 2, outputs left 0
+OK   B22 the built exe turns away 19 command lines with a code in some position, spelling or embedding (and --yes): exit 64, a named REFUSED line, no fragment of the code, nothing created (0 entries)
+OK   B23 a pipeline copy whose production trust set holds the dev key: build-sea --channel production exits 4 (4 = REFUSED, naming the dev key) and creates no --out; the committed production set passes (1 keys)
+OK   B24 a pipeline copy whose dev trust set holds a key that is not a dev key: build-sea --channel dev exits 4 (4 = REFUSED, only dev keys) and creates no --out
+
+(checkout at c353e8953338, runtime_version 0.1.0)
+sea_package_regression: 28 passed, 0 failed

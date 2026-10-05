@@ -1,0 +1,16 @@
+PASS M0 - no 69df2f52 control-plane file changed at c353e8953338
+candidate migration at c353e8953338: 21 files
+PASS M1 - the Director instrument (3745a281) built the step: sha256 9a5414dda882e9d06b7aa253e3d53caae297685ae39b972fb362c7e9b5a9f48b
+PASS P0 - createrole_self_grant = "" (live "")
+PASS P1 - the applying login is postgres: rolsuper=false rolinherit=true rolcreaterole=true rolcreatedb=true rolcanlogin=true rolreplication=true rolbypassrls=true
+PASS P2 - provisioned as 69df2f52 AS postgres; postgres holds factory_runner [{"a":true,"i":false,"s":false}] (live true/false/false)
+PASS P3 - baseline evidence rows loaded unchanged: {"nodes":4,"work_orders":10,"work_order_dependencies":0,"agent_runs":12,"checkpoints":12}
+PASS P4 - the release signer created AS postgres (scripts/factory-control-plane/release_signer.sql, sha256 333536de52fdfcbf...): ed25519:181e6ea19b8a52f0b5906aa46eb69317322b6dafd38b3e5598047c400a051abd
+PASS S1 - the live-migration step committed AS postgres (NOSUPERUSER), step sha256 9a5414dda882e9d06b7aa253e3d53caae297685ae39b972fb362c7e9b5a9f48b; tables in schema factory now 28
+PASS W1 - no pre-existing table in any schema (11 tables outside the system catalogs) gained, lost or changed a row: its row hashes over every column it had are equal before and after the migration
+PASS W2 - the tables the migration created (19, any schema) hold only the one operator tenant row - holding no user id and referring to no computer, principal, credential or envelope - and contract §1's two policy rows; every other one, the policy-version table included, is empty - {"notEmpty":[],"tenant":["name,tenant_id,created_at,is_operator,max_heavy_per_plane"],"tenantRefs":0,"policies":["a1e0f000-0000-4000-8000-000000000101","a1e0f000-0000-4000-8000-000000000102"]}
+PASS W3 - no computer, agent principal, credential, envelope, pairing code, enrollment attempt, tenant_admins, release, release revocation or certification row, and no S-16(a) binding - {"computers":0,"agent_principals":0,"node_credentials":0,"authorization_envelopes":0,"pairing_codes":0,"enrollments":0,"tenant_admins":0,"releases":0,"release_revocations":0,"certifications":0,"bound":0}
+PASS W4 - in every column the migration added to a pre-existing table (52), no pre-existing row holds a value that refers to a computer, principal, credential or envelope (reference columns - by foreign key, or by name: computer, principal, credential, envelope, a machine fingerprint - are null; no value is such an id or an enrolled node id) - non-null added values: factory.agent_runs.tenant_id: operator tenant x12 ; factory.checkpoints.tenant_id: operator tenant x12 ; factory.nodes.tenant_id: operator tenant x4 ; factory.work_orders.tenant_id: operator tenant x10
+PASS W5 - no object the migration defines or changes (a function new or replaced, a column default new or set on a pre-existing column, a view, policy, trigger, constraint) holds a constant that identifies a user, a computer, a principal, a credential, a signing key or an envelope (the seeded operator tenant and policy ids aside)
+PASS W6 - no column default writes the S-16(a) binding (s16a_bound_at / s16a_bound_by have none)
+applying_role_plane [tree c353e8953338f855a134a95787a075e8e93cfa01, director 3745a281]: 14/14 OK

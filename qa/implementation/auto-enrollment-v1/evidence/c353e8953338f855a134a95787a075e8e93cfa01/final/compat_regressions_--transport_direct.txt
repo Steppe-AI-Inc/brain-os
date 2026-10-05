@@ -1,0 +1,55 @@
+step compat_regressions --transport direct
+command C:\Program Files\nodejs\node.exe qa/factory/v1/compat_regressions.mjs --transport direct
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c353e8953338f855a134a95787a075e8e93cfa01
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-ySNHMm\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-ySNHMm\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-ySNHMm\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-05T15:49:46.869Z
+seconds 39
+exit 0
+summary compat_regressions [direct]: 36/36 OK
+
+OK   acceptance.mjs:71 A  a queued work order is claimed
+OK   acceptance.mjs:76 B  the claim takes an exclusive lock on the surface it will write
+OK   acceptance.mjs:82 H  a second node cannot claim the same work order - nothing
+OK   acceptance.mjs:87 I  a different work order wanting the SAME surface is not claimable while it is held
+OK   acceptance.mjs:93 I2  a work order on a DIFFERENT surface is claimable concurrently
+OK   shared_control_plane_acceptance.mjs:76 CP-3  two runner processes race for one work order: exactly one claims it - 1 winner(s), 1 run(s)
+OK   acceptance.mjs:101 C  the worker progresses and each step is recorded
+OK   acceptance.mjs:102 D  the checkpoint persists, and the run points at the latest one
+OK   node_truth_acceptance.mjs:628 N26  a checkpoint retried after a lost reply writes ONE row (the caller's checkpoint id)
+OK   node_truth_acceptance.mjs:343 N5  a node busy on a run reads ALIVE: the run's lease renewal alone stamps the node record - age 0 s
+OK   acceptance.mjs:156 M2  completion REFUSES a done/failed status with no termination reason
+OK   acceptance.mjs:166 M3  completion REFUSES a model substitution with no fallback reason
+OK   acceptance.mjs:179 M4  a STATED substitution is recorded with its reason and its terminal condition
+OK   acceptance.mjs:196 M5  NEGATIVE CONTROL: a run served by the model it requested needs no fallback reason
+OK   acceptance.mjs:262 J  a completed work order is not claimed again
+OK   acceptance.mjs:266 J2  completing a run releases its surface
+OK   node.mjs:514 (landed check) / node_truth_acceptance.mjs:628 N26  a retried completion that already landed is told so and changes nothing
+OK   node_truth_acceptance.mjs:316 N4  a failed run fails its work order in the same statement, its locks are released, and its dependent stays blocked
+OK   acceptance.mjs:619 P  a completion is all or nothing: with the work-order update failing, the run stays in progress with its lock and the work order unchanged; the retry completes - {"status":"in_progress","locks":1,"ws":"claimed"}
+OK   acceptance.mjs:112 E/G  a dead node's expired lease is recovered by another node
+OK   acceptance.mjs:116 G2  the abandoned run is returned to queued and its attempt_count incremented
+OK   acceptance.mjs:120 G3  the abandoned run keeps the node that ran it
+OK   shared_control_plane_acceptance.mjs:97 CP-5  the process that takes over sees the dead run's checkpoint
+OK   acceptance.mjs:515 M  a run whose lease was taken over cannot complete the work order: its checkpoint and completion (and renewal) are refused; the work order stays with the new owner
+OK   node.mjs:539 (thrown worker) / acceptance.mjs:112 E/G  a worker that throws on a transient failure does not fail its run: the run stays in progress under its lease and no other node can take the work before the lease lapses; then another node takes it over from the last checkpoint, the first owner's checkpoint, renewal and completion (done or failed) are refused, and the work completes once - {"held":"in_progress/claimed","early":"nothing","runs":["queued:2","done:1"],"wo":"done","checkpoints":["step-1@first","step-2@second","step-3@second"]}
+OK   node_truth_acceptance.mjs:443 N10 / node.mjs:534  a data exception inside a run is terminal: the run fails by name (data_exception_<SQLSTATE>) and its work order with it, so it is not claimed and thrown again every lease - {"answer":[500,"server_refused","22P05"],"run":"failed:data_exception_22P05","wo":"failed"}
+OK   node_truth_acceptance.mjs:501 N13 / node.mjs:283  an aborted run gives its lease back at once: another node takes the work immediately, not after the lease
+OK   node_truth_acceptance.mjs:722 N29 / node.mjs:244  a claim whose reply was lost is given back at once (every run of this node the process does not hold)
+OK   acceptance.mjs:756 S  a malformed work order cannot starve the plane: a repeated surface is claimed with ONE lock; an empty / oversized surface never enters the new-model queue
+OK   acceptance.mjs:544 N  a claimer that died holding the claim lock cannot block the plane: another claim gives up within the lock timeout, named - 16381 ms
+OK   shared_control_plane_acceptance.mjs:179 CP-9  roles: a generic node does not get the verifier work order; a verifier node does
+OK   shared_control_plane_acceptance.mjs:183 CP-10  a node asserting a role in its claim does not get the work (the body naming a role is refused; authority is the envelope)
+OK   shared_control_plane_acceptance.mjs:210 CP-11  independence: a different node verifies the authored run; the authoring set cannot verify itself
+OK   node_truth_acceptance.mjs:1122 N12  only a finished, successful run can be verified: a FAILED run yields no verification work at all
+OK   node_truth_acceptance.mjs:201 N2 (INVERTED)  the node's beat can no longer assert its own role: the body is refused, the envelope unchanged; authority comes only from the envelope (S-4)
+OK   node_truth_acceptance.mjs:1299 N8 / claim.mjs:75 (stamp:false)  registration alone never reads ALIVE: liveness is stamped only by a heartbeat or a renewal - OFFLINE
+
+compat_regressions [direct]: 36/36 OK
+
+--- stderr ---
+(node:8464) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DELL/dev/brain-os-factory-enroll/supabase/control-plane/edge/supabase/functions/_shared/node_api.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DELL\dev\brain-os-factory-enroll\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

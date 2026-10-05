@@ -1,0 +1,22 @@
+step edge_boundary_acceptance
+command node qa/factory/v1/edge_boundary_acceptance.mjs
+cwd C:/Users/DELL/dev/brain-os-factory-enroll
+commit c353e8953338f855a134a95787a075e8e93cfa01
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-UbNhCA\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-UbNhCA\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-UbNhCA\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-05T19:55:42.764Z
+seconds 0
+exit 0
+judged PASS
+summary edge_boundary_acceptance: 8/8 OK
+
+OK   EB1 /auth/v1/user answers 500: the call fails as an error - 503 unavailable naming its class - never not_authenticated / not_authorized; no front door runs - {"http":503,"refused":"unavailable","message":"the control plane or Brain OS did not answer (BrainOsUnavailable); the outcome is unknown - reload before retrying","sql":0}
+OK   EB2 /auth/v1/user answers 200 with a body that is not JSON: the call fails as an error - 503 unavailable naming its class - never not_authenticated / not_authorized; no front door runs - {"http":503,"refused":"unavailable","message":"the control plane or Brain OS did not answer (SyntaxError); the outcome is unknown - reload before retrying","sql":0}
+OK   EB3 /rest/v1/profiles answers 500: the call fails as an error - 503 unavailable naming its class - never not_authenticated / not_authorized; no front door runs - {"http":503,"refused":"unavailable","message":"the control plane or Brain OS did not answer (BrainOsUnavailable); the outcome is unknown - reload before retrying","sql":0}
+OK   EB4 /rest/v1/profiles answers 200 with a body that is not a JSON list: the call fails as an error - 503 unavailable naming its class - never not_authenticated / not_authorized; no front door runs - {"http":503,"refused":"unavailable","message":"the control plane or Brain OS did not answer (BrainOsUnavailable); the outcome is unknown - reload before retrying","sql":0}
+OK   EB5 controls: Brain OS refusing the token (401) is not_authenticated with no front door; a user with no profile row reaches the front door with no live role (it decides); a token whose payload is not JSON is not_authenticated without asking Brain OS - {"refusedTok":[401,"not_authenticated"],"noProfile":[403,"not_authorized",{"sql":1,"fetch":2}],"badPayload":[401,"not_authenticated",{"sql":0,"fetch":0}]}
+OK   EB6 a WebCrypto that cannot verify Ed25519 (NotSupportedError) fails a session exchange and an enrollment proof AS AN ERROR (503 plane_unavailable naming the class), never as bad_signature / bad_proof; no front door runs - {"session":[503,"plane_unavailable","the call did not complete (NotSupportedError); the outcome is unknown - retry (every operation is safe to retry)"],"enroll":[503,"plane_unavailable"],"sql":0}
+OK   EB7 an error whose code is EPIPE (a transport error, five capitals like a SQLSTATE) is answered 503 with the outcome unknown - Node API plane_unavailable, Admin API unavailable - never 500 server_refused "nothing changed"; a PostgreSQL server error (PostgresError, SQLSTATE 55P03) is 500 server_refused naming 55P03 on both - {"node":[[503,"plane_unavailable","the call did not complete (Error); the outcome is unknown - retry (every operation is safe to retry)"],[500,"server_refused","the control plane refused the call (55P03); nothing changed"]],"admin":[[503,"unavailable","the control plane or Brain OS did not answer (Error); the outcome is unknown - reload before retrying"],[500,"server_refused","the control plane refused the call (55P03); nothing changed"]]}
+OK   EB8 the Admin API with BRAIN_OS_URL or BRAIN_OS_ANON_KEY unset reaches no front door: an empty URL refuses a Brain OS token as not_authenticated without a request, and a token issued by "/auth/v1" fails as an error (503 unavailable) at the relative check address; an empty key is refused by Brain OS (401 not_authenticated); the control with both set reaches the front door - {"noUrl":[401,"not_authenticated",0],"noUrlBareIssuer":[503,"unavailable","the control plane or Brain OS did not answer (TypeError); the outcome is unknown - reload before retrying"],"noKey":[401,"not_authenticated"],"control":[200,1]}
+
+edge_boundary_acceptance: 8/8 OK

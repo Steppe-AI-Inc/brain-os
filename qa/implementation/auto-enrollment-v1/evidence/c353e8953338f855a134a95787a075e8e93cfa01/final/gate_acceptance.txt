@@ -1,0 +1,22 @@
+step gate_acceptance
+command C:\Program Files\nodejs\node.exe qa/factory/v1/gate_acceptance.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c353e8953338f855a134a95787a075e8e93cfa01
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-ySNHMm\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-ySNHMm\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-ySNHMm\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-05T15:58:01.813Z
+seconds 14
+exit 0
+summary gate_acceptance: 9/9 OK
+
+OK   GA1 an older release named as adopted only in status.json is refused downgrade_refused; the same release named as adopted in the plane's fresh heartbeat answer passes the gate
+OK   GA2 the gate asks a failing plane again, session opening included: after two 502 answers the third session request succeeds and the gate passes (retries 3); a plane that keeps failing gets exactly retries + 1 session requests and then revocations_unavailable
+OK   GA3 when current.json is rewritten between the gate and the switch, upgrade answers current_changed: current.json keeps the other writer's record and no previous.json is written
+OK   GA4 when current.json is rewritten while setup installs on an enrolled home, setup exits 3 with a named current_changed refusal: current.json keeps the other writer's record and no previous.json is written
+OK   GA5 a newer release that is neither published in its channel nor adopted here (superseded) is refused release_not_current, and upgrade copies and switches nothing; another channel's published release does not count; published in its channel, or adopted even though superseded, it passes; an answer without the published releases refuses release_state_unavailable
+OK   GA6 while a credential rotation of this home is pending, the gate refuses rotation_pending and sends nothing
+OK   GA7 a published release of this channel that is not the one running is fetched from release storage (installer and signed manifest, once each) and installed through the one gate: current.json names it (via upgrade), previous.json the release it replaced, and the fetched copies are gone
+OK   GA8 nothing is fetched under an admin adopt, for another channel's release, for the release already running, or without release storage; installer bytes that are not the manifest's are refused by the gate (nothing switched), the refusal is recorded and nothing is fetched again inside the retry window; after it the release is fetched again, and storage that does not serve it is release_unavailable
+OK   GA9 one worker cycle with a published release of its channel that is not running takes it - fetched, installed through the gate - and exits SWITCH_RELEASE (4) with nothing claimed, saying SWITCHING; under an admin adopt the cycle fetches nothing and ends normally
+
+gate_acceptance: 9/9 OK

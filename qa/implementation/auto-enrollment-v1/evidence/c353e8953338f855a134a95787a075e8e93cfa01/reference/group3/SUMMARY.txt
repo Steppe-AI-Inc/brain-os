@@ -1,0 +1,12 @@
+reference suites (the suite files compared with 69df2f52f71fd2bc9415c34fb2be4dab4ee08dd6; each line names the commit it ran at)
+
+node_truth_acceptance                                exit 0     801s  @c353e895  
+shared_control_plane_acceptance                      exit 0      30s  @c353e895  
+
+NOT RUN (by rule, with the reason):
+  package_bootstrap_regression (fresh-clone rows) - S-15: its F6 restore path re-registers this PC's live "BrainOS Factory Node" task, and it needs the npm registry; the static rows run above
+  package_bootstrap_mutation_proof --fresh - S-15: the same installer path on this PC; the static mutants run above
+  reboot_recovery_acceptance (disposable-plane rows) - BLOCKED - EXTERNAL: VERIFICATION_SPEC §3.7 runs it only in a separate disposable Windows VM with no live task; this PC holds the live task and has no hypervisor or Windows Sandbox
+  factory_v1_acceptance --local-only - BLOCKED - EXTERNAL: the same VM-only rule as reboot_recovery_acceptance
+  shared_plane_live_acceptance, two_machine_real, two_machine_failover, two_machine_scheduling - excluded by S-15 (they read or drive live state); VERIFICATION_SPEC §3.7
+  acceptance_mutation_proof mutants N37x and N19 - BASELINE FINDING: at 69df2f52 ITSELF their anchors are absent from the files they mutate (two_machine_real.mjs:52, node.mjs:440 differ from the anchor text), so the unchanged proof refuses to run whole; the other mutants run by label (acceptance_mutation_proof.chunk-*.txt)

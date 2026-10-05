@@ -1,0 +1,24 @@
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-0zArbZ\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-0zArbZ\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-0zArbZ\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+v1_mutation_proof: 18 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ c353e8953338f855a134a95787a075e8e93cfa01
+CONTROL  releaseunit passed - release_trust_unit: 8/8 OK (0 s)
+CAUGHT   RSGu  releaseunit  [semantic] expected FAIL U1; seen FAIL [U1 U7]; release_trust_unit: 6/8 OK; FAILED: U1, U7 (0 s) - the same, judged at function level
+CAUGHT   MKu   releaseunit  [semantic] expected FAIL U7; seen FAIL [U7]; release_trust_unit: 7/8 OK; FAILED: U7 (0 s) - the same, judged at function level
+CAUGHT   DK    releaseunit  [semantic] expected FAIL U2; seen FAIL [U2]; release_trust_unit: 7/8 OK; FAILED: U2 (0 s) - the dev-key refusal applies only when the dev key is outside the trust set (the 412ac14 order): a production set holding the dev entry verifies a dev signature
+CAUGHT   DKb   releaseunit  [semantic] expected FAIL U5; seen FAIL [U5]; release_trust_unit: 7/8 OK; FAILED: U5 (0 s) - the build accepts a production trust set that holds a dev key
+CAUGHT   DKd   releaseunit  [semantic] expected FAIL U5; seen FAIL [U5]; release_trust_unit: 7/8 OK; FAILED: U5 (0 s) - the build accepts a dev trust set that holds a key that is not a dev key
+CAUGHT   TKu   releaseunit  [semantic] expected FAIL U3; seen FAIL [U3]; release_trust_unit: 7/8 OK; FAILED: U3 (0 s) - trust/production.json holds a key the Director's WO-6 does not record
+CAUGHT   TMb   releaseunit  [semantic] expected FAIL U5b; seen FAIL [U5b]; release_trust_unit: 7/8 OK; FAILED: U5b (0 s) - the build takes a production entry that is not bound to its public key
+CAUGHT   TMr   releaseunit  [semantic] expected FAIL U5b; seen FAIL [U5b]; release_trust_unit: 7/8 OK; FAILED: U5b (0 s) - the build takes a production trust set in which a key id repeats
+CAUGHT   TMm   releaseunit  [semantic] expected FAIL U5b; seen FAIL [U5b]; release_trust_unit: 7/8 OK; FAILED: U5b (0 s) - the build takes a trust file whose mode is not its channel
+CAUGHT   CMu   releaseunit  [semantic] expected FAIL U6; seen FAIL [U6]; release_trust_unit: 7/8 OK; FAILED: U6 (0 s) - the same, judged at function level
+CAUGHT   MFu   releaseunit  [semantic] expected FAIL U6; seen FAIL [U6]; release_trust_unit: 7/8 OK; FAILED: U6 (0 s) - the same, judged at function level
+CAUGHT   BD    releaseunit  [semantic] expected FAIL U6; seen FAIL [U6]; release_trust_unit: 7/8 OK; FAILED: U6 (0 s) - a pinned entry is used although its key id is not the id of the public key it carries
+CAUGHT   NTu   releaseunit  [semantic] expected FAIL U6; seen FAIL [U6]; release_trust_unit: 7/8 OK; FAILED: U6 (0 s) - a runtime that carries no trust set reads it as an empty one of the manifest's channel instead of refusing no_trust_set
+CAUGHT   KEu   releaseunit  [semantic] expected FAIL U4; seen FAIL [U4]; release_trust_unit: 7/8 OK; FAILED: U4 (0 s) - the same, judged from the source structure
+CAUGHT   KCu   releaseunit  [semantic] expected FAIL U4; seen FAIL [U4]; release_trust_unit: 7/8 OK; FAILED: U4 (0 s) - the same, judged from the source structure
+CAUGHT   KAu   releaseunit  [semantic] expected FAIL U4; seen FAIL [U4]; release_trust_unit: 7/8 OK; FAILED: U4 (0 s) - the same, judged from the source structure
+CAUGHT   KSu   releaseunit  [semantic] expected FAIL U4; seen FAIL [U4]; release_trust_unit: 7/8 OK; FAILED: U4 (0 s) - the same, judged from the source structure
+CAUGHT   CTu   releaseunit  [semantic] expected FAIL U4; seen FAIL [U4]; release_trust_unit: 7/8 OK; FAILED: U4 (0 s) - the same, judged from the source structure
+
+v1_mutation_proof: 18 of 18 mutants killed

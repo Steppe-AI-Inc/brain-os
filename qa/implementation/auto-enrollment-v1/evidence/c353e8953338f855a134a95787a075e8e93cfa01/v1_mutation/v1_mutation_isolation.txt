@@ -1,0 +1,7 @@
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-ARGuDD\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-ARGuDD\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-ARGuDD\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+v1_mutation_proof: 1 mutant on C:\Users\DELL\dev\brain-os-factory-enroll @ c353e8953338f855a134a95787a075e8e93cfa01
+CONTROL  isolation   passed - isolation_env_unit: 3/3 OK (0 s)
+CAUGHT   ISE   isolation    [semantic] expected FAIL IS1|IS3; seen FAIL [IS1 IS3]; isolation_env_unit: 1/3 OK; FAILED: IS1, IS3 (0 s) - the isolated suite environment empties FACTORY_RUNNER_ENV_FILE again
+
+v1_mutation_proof: 1 of 1 mutants killed

@@ -1,0 +1,11 @@
+sea_package_mutation_proof: 7 mutants on C:\Users\DELL\dev\brain-os-factory-enroll @ c353e8953338f855a134a95787a075e8e93cfa01 - the 37 copied files are identical to HEAD
+CONTROL  passed - 28 passed, 0 failed (190 s)
+CAUGHT   R2   expected FAIL B15; seen FAIL [B15]; 27 passed, 1 failed (190 s) - review: inputs reach esbuild with their checkout line endings again (a CRLF checkout gives another metafile)
+CAUGHT   R3   expected FAIL B17; seen FAIL [B17]; 27 passed, 1 failed (187 s) - review: authenticodeStatus puts the path in the -Command text again, quoted with '' (PowerShell also ends a '...' string at U+2018-U+201B)
+CAUGHT   R4   expected FAIL B5; seen FAIL [B5]; 27 passed, 1 failed (189 s) - review: verify-build removes SOURCE_DATE_EPOCH by its exact spelling again (a lower-case source_date_epoch reaches the rebuild)
+CAUGHT   R5   expected FAIL B16; seen FAIL [B16]; 27 passed, 1 failed (206 s) - review: --rebuild-dir = --against is judged by spelling, not sameFile (a junction to the reference is rebuilt into, destroying it)
+CAUGHT   R6   expected FAIL B16; seen FAIL [B16]; 27 passed, 1 failed (203 s) - review: SHA256SUMS is checked only for the lines it has again (an empty one passes and the metafile goes unchecked by it)
+CAUGHT   R7   expected FAIL B18; seen FAIL [B18]; 27 passed, 1 failed (190 s) - review: a failed rebuild exits from inside the try again, so the rebuild directory is never removed
+CAUGHT   R8   expected FAIL S4; seen FAIL [S4]; 27 passed, 1 failed (186 s) - review: quadAlign is the int32 (n + 7) & ~7 again (wraps negative at 2^31)
+
+sea_package_mutation_proof: 7 of 7 mutants killed

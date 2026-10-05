@@ -1,0 +1,32 @@
+step web_computers_acceptance
+command C:\Program Files\nodejs\node.exe qa/factory/v1/web_computers_acceptance.mjs
+cwd C:\Users\DELL\dev\brain-os-factory-enroll
+commit c353e8953338f855a134a95787a075e8e93cfa01
+environment disposable (local): FACTORY_RUNNER_PG_URL emptied; FACTORY_RUNNER_ENV_FILE=C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-ySNHMm\runner.env.absent (absent; the default C:\Users\DELL\.brain-factory\runner.env is never resolved)
+isolation proof: runner-env.mjs envFilePath() -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-ySNHMm\runner.env.absent; node-supervisor.mjs:48 -> C:\Users\DELL\AppData\Local\FactoryQA-tmp\bf-isolation-ySNHMm\runner.env.absent (pinned to 69df2f52: yes); both resolve to the absent path
+started 2026-10-05T16:04:40.478Z
+seconds 20
+exit 0
+summary web_computers_acceptance: 10/10 OK
+
+OK   W0 the web image-hash port equals the runtime's on the built exe, a signed copy and a one-byte-tampered copy; the signed copy keeps the digest and shows a certificate table; the tampered one does not keep it - {"exe":"dist\\brain-factory\\0.1.0\\dev\\BrainFactorySetup.exe","same":[true,true,true]}
+OK   W1 row for row: each of the 4 computers the Factory lists (active and archived) is on the page with its name and the Factory's state, no other computer is; the counts are the Factory's; the download addresses are the published release's - {"status":200,"mismatches":[],"extra":[],"counts":true,"dl":true,"states":["WEB-alpha=ALIVE","WEB-beta=ALIVE","WEB-gamma=PAIRING_CODE_ISSUED","WEB-delta=ARCHIVED"]}
+OK   W2 the detail page is the Factory's record: the principal's node id, the credential status and thumbprint, the envelope version and roles, every audit action, the state - {"status":200,"node":true,"cred":true,"env":true,"roles":true,"audit":true,"state":true}
+OK   W3 persona x path: founder and holding_admin in tenant_admins see the page; employee, hr_finance, a self-promoted employee (S1) and a founder / holding_admin not in tenant_admins get "Refused not_authorized" and no computer; a foreign tenant's founder sees only its own, and a link to ours is not_found; no session -> /login; an inactive profile -> /pending-activation - {"refusedFor":{"employee":true,"hr_finance":true,"self-promoted employee (S1)":true,"founder not in tenant_admins":true,"holding_admin not in tenant_admins":true},"holdingSees":true,"foreignView":true,"crossNotFound":true,"anon":"307 /login","inactive":"307 /pending-activation"}
+OK   W4 /software-factory/workers is retired: it redirects to /software-factory/computers - 307 /software-factory/computers
+OK   W5 on /software-factory/computers the sidebar marks "Factory Computers" active, and neither "Agent Control Center" (/software-factory) nor "Software Specs" (/software) - {"computers":true,"acc":false,"specs":false}
+OK   W6 a computer with a second principal: its row shows ALIVE, the liveness or runtime label beside it, and each principal's own state (Alive, Pairing code issued), as get-computer reports them; after that principal enrolled and was revoked a fresh load shows ALIVE with Alive and Credential revoked - {"first":["ALIVE","PAIRING_CODE_ISSUED"],"then":["ALIVE","CREDENTIAL_REVOKED"],"shown1":[["Alive",true],["Available",true],["Alive",true],["Pairing code issued",true]],"shown2":[["Alive",true],["Available",true],["Alive",true],["Credential revoked",true]]}
+OK   W7 the Update page, the founder, a prepared release in release storage: the page shows its version, certified source, installer digest and certifying receipt as storage serves them, this Factory's signing key as the Factory lists it, that no production release is published, and the password field with Confirm - {"status":200,"values":[true,true,true,true],"field":true,"confirm":true,"signer":true,"nonePublished":true}
+OK   W8 persona x path on the Update page: employee, hr_finance, a self-promoted employee (S1) and a founder / holding_admin not in tenant_admins get "Refused not_authorized", none of the prepared values and no password field; no session -> /login; an inactive profile -> /pending-activation; a listed admin who is not the founder sees the page (its confirmation is the Factory's to refuse, on the call: update_authorization_acceptance UA4) - {"upRefused":{"employee":true,"hr_finance":true,"self-promoted employee (S1)":true,"founder not in tenant_admins":true,"holding_admin not in tenant_admins":true},"listedAdminSees":true,"anon":"307 /login","inactive":"307 /pending-activation"}
+OK   W9 the Update page says what is so, on each load: no prepared file -> "No update is prepared"; storage answering 500 -> "could not be read"; a prepared file of another channel, or one that carries a signature -> "No update is prepared" - none of the four shows a prepared value or a password field; with the prepared release back, the next load shows it again with the field; storage was asked on every one of those loads - {"absent":{"status":200,"field":false,"values":false,"none":true,"unreadable":false},"down":{"status":200,"field":false,"values":false,"none":false,"unreadable":true},"otherChannel":{"status":200,"field":false,"values":false,"none":true,"unreadable":false},"signed":{"status":200,"field":false,"values":false,"none":true,"unreadable":false},"again":{"status":200,"field":true,"values":true,"none":false,"unreadable":false},"asked":7}
+
+web_computers_acceptance: 10/10 OK
+
+--- stderr ---
+(node:19160) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DELL/dev/brain-os-factory-enroll/web/lib/factory/computer-states.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DELL\dev\brain-os-factory-enroll\web\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:19160) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/DELL/dev/brain-os-factory-enroll/supabase/control-plane/edge/supabase/functions/_shared/node_api.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\DELL\dev\brain-os-factory-enroll\package.json.
