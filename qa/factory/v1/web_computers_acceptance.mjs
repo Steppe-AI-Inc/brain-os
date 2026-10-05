@@ -16,11 +16,19 @@
 //   W5  the sidebar marks only "Factory Computers" active on its page (longest-prefix; not "Agent Control Center" or "Software Specs")
 //   W6  contract §1 Derived: a computer with two principals shows the derived state, the liveness or runtime label beside ALIVE, and
 //       each principal's own state, as the Factory reports them
+//   W7  Brain OS -> Factory -> Update (WO-6): the founder's page shows the prepared release exactly as release storage serves it now
+//       (version, certified source, installer digest, certifying receipt), the Factory's signer, and the password field
+//   W8  persona x path on the Update page: who is not a Factory admin gets the Factory's refusal by name, no prepared value and no
+//       password field; no session -> /login. A listed admin who is not the founder sees the page: the authority is the Factory's,
+//       on the call (update_authorization_acceptance UA4), never the page's
+//   W9  the page says what is so on each load: nothing prepared, storage that cannot be read, a prepared file that is not an
+//       unsigned production manifest - each without a value or a password field; the next load shows storage's next answer
 // Developer verification, never independent; a stubbed Brain OS never counts for acceptance (VERIFICATION_SPEC §3 (2)). Server
 // actions are thin one-call wrappers; their authority is the Admin API's (admin_acceptance P1-P5), not exercised here by HTTP.
 // usage: node qa/factory/v1/web_computers_acceptance.mjs [--evidence <file>]
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { createServer as createHttpServer } from 'node:http';
 import { createServer } from 'node:net';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -58,7 +66,7 @@ const { stateInfo } = await import(pathToFileURL(join(WEB, 'lib', 'factory', 'co
 }
 
 const W = await world();
-let dev = null; const devLog = [];
+let dev = null; let store = null; const devLog = [];
 try {
   const { founder, admin, sup, brain } = W;
   // ---- fixtures: enrolled (available), draining, a pairing code only, archived; a second tenant with its own computer
@@ -77,7 +85,16 @@ try {
   // ---- the web app
   const port = await freePort();
   const base = 'http://127.0.0.1:' + port;
-  const releasesUrl = 'http://127.0.0.1:9/qa-releases';
+  // release storage: a stand-in on a loopback port. It serves production/prepared.json as `storage.prepared` says at that moment
+  // and answers 404 for every other address, like an object that is not there
+  const storage = { prepared: { status: 404, body: '' }, asked: [] };
+  store = createHttpServer((req, res) => {
+    const path = new URL(req.url, 'http://x').pathname; storage.asked.push(path);
+    const hit = path === '/qa-releases/production/prepared.json' ? storage.prepared : { status: 404, body: '' };
+    res.writeHead(hit.status, { 'content-type': 'application/json' }); res.end(hit.body);
+  });
+  await new Promise((ok) => store.listen(0, '127.0.0.1', ok));
+  const releasesUrl = 'http://127.0.0.1:' + store.address().port + '/qa-releases';
   const env = { ...process.env, NEXT_PUBLIC_SUPABASE_URL: brain.url, NEXT_PUBLIC_SUPABASE_ANON_KEY: brain.anonKey, FACTORY_ADMIN_API_URL: admin.baseUrl,
     FACTORY_RELEASES_URL: releasesUrl, NEXT_TELEMETRY_DISABLED: '1', SUPABASE_SERVICE_ROLE_KEY: '' };
   dev = spawn(process.execPath, [join(WEB, 'node_modules', 'next', 'dist', 'bin', 'next'), 'dev', '--port', String(port), '--hostname', '127.0.0.1'], { cwd: WEB, env, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
@@ -190,11 +207,57 @@ try {
   row('W6 a computer with a second principal: its row shows ALIVE, the liveness or runtime label beside it, and each principal\'s own state (Alive, Pairing code issued), as get-computer reports them; after that principal enrolled and was revoked a fresh load shows ALIVE with Alive and Credential revoked',
     w6cp.ok && w6a.state === 'ALIVE' && JSON.stringify(w6.first) === JSON.stringify(['ALIVE', 'PAIRING_CODE_ISSUED']) && w6.shown1.every(([, v]) => v)
       && w6b.state === 'ALIVE' && JSON.stringify(w6.then) === JSON.stringify(['ALIVE', 'CREDENTIAL_REVOKED']) && w6.shown2.every(([, v]) => v), JSON.stringify(w6));
+
+  // ---- W7-W9: Brain OS -> Factory -> Update (WO-6; AC-5(o)-(r)). The page shows server truth on every load: the prepared release as
+  // release storage serves it at that moment, and the Factory's published release and signer read with the viewer's own session
+  const prep = { v: 1, channel: 'production', version: '9.4.1-qa.update', source_sha: '5'.repeat(40), digest: 'c'.repeat(64), receipt_sha256: 'd'.repeat(64), key_id: null, signature: null };
+  const updatePage = async (p) => { const r = await page('/software-factory/update', p); return { ...r, t: text(r.html), field: /id="fu-password"/.test(r.html) }; };
+  const shows = (r) => [prep.version, prep.source_sha, prep.digest, prep.receipt_sha256].map((v) => r.t.includes(v));
+  const rel = await admin.call('list-releases', {}, founder.token);
+  storage.prepared = { status: 200, body: JSON.stringify(prep) };
+  const up1 = await updatePage(founder);
+  const w7 = { status: up1.status, values: shows(up1), field: up1.field, confirm: up1.t.includes('Authorize this exact release') && up1.t.includes('Confirm update'),
+    signer: !!rel.signer && /^ed25519:[0-9a-f]{64}$/.test(rel.signer.key_id) && up1.t.includes(rel.signer.key_id),
+    nonePublished: up1.t.includes('No production release is published on this Factory yet.') };
+  row('W7 the Update page, the founder, a prepared release in release storage: the page shows its version, certified source, installer digest and certifying receipt as storage serves them, this Factory\'s signing key as the Factory lists it, that no production release is published, and the password field with Confirm',
+    w7.status === 200 && w7.values.every(Boolean) && w7.field && w7.confirm && w7.signer && w7.nonePublished && rel.ok && !rel.releases.items.some((r) => r.channel === 'production'),
+    JSON.stringify(w7) + (up1.status !== 200 ? ' ' + devLog.join('').slice(-1500) : ''));
+
+  const upRefused = {};
+  for (const [label, p] of [['employee', employee], ['hr_finance', hr], ['self-promoted employee (S1)', selfPromoted], ['founder not in tenant_admins', founderNotListed], ['holding_admin not in tenant_admins', holdingNotListed]]) {
+    const r = await updatePage(p);
+    upRefused[label] = r.status === 200 && /Refused not_authorized/.test(r.t) && !shows(r).some(Boolean) && !r.field;
+  }
+  const upHolding = await updatePage(holding);
+  const upAnon = await updatePage(null);
+  const upInactive = await updatePage(inactive);
+  const w8 = { upRefused, listedAdminSees: upHolding.status === 200 && shows(upHolding).every(Boolean), anon: upAnon.status + ' ' + upAnon.location, inactive: upInactive.status + ' ' + upInactive.location };
+  row('W8 persona x path on the Update page: employee, hr_finance, a self-promoted employee (S1) and a founder / holding_admin not in tenant_admins get "Refused not_authorized", none of the prepared values and no password field; no session -> /login; an inactive profile -> /pending-activation; a listed admin who is not the founder sees the page (its confirmation is the Factory\'s to refuse, on the call: update_authorization_acceptance UA4)',
+    Object.values(upRefused).every(Boolean) && w8.listedAdminSees && [302, 303, 307, 308].includes(upAnon.status) && /\/login$/.test(upAnon.location || '')
+      && [302, 303, 307, 308].includes(upInactive.status) && /\/pending-activation$/.test(upInactive.location || ''), JSON.stringify(w8));
+
+  const stateOf = async (answer) => {
+    storage.prepared = answer; const r = await updatePage(founder);
+    return { status: r.status, field: r.field, values: shows(r).some(Boolean), none: r.t.includes('No update is prepared.'), unreadable: r.t.includes('The Factory\'s release storage could not be read.') };
+  };
+  const w9 = {
+    absent: await stateOf({ status: 404, body: '' }),
+    down: await stateOf({ status: 500, body: '' }),
+    otherChannel: await stateOf({ status: 200, body: JSON.stringify({ ...prep, channel: 'dev' }) }),
+    signed: await stateOf({ status: 200, body: JSON.stringify({ ...prep, key_id: 'ed25519:' + 'a'.repeat(64), signature: 'A'.repeat(86) }) }),
+    again: await stateOf({ status: 200, body: JSON.stringify(prep) }),
+  };
+  const says = (s, which) => s.status === 200 && !s.field && !s.values && s[which] && !s[which === 'none' ? 'unreadable' : 'none'];
+  const asked = storage.asked.filter((p) => p === '/qa-releases/production/prepared.json').length;
+  row('W9 the Update page says what is so, on each load: no prepared file -> "No update is prepared"; storage answering 500 -> "could not be read"; a prepared file of another channel, or one that carries a signature -> "No update is prepared" - none of the four shows a prepared value or a password field; with the prepared release back, the next load shows it again with the field; storage was asked on every one of those loads',
+    says(w9.absent, 'none') && says(w9.down, 'unreadable') && says(w9.otherChannel, 'none') && says(w9.signed, 'none')
+      && w9.again.status === 200 && w9.again.field && w9.again.values && !w9.again.none && !w9.again.unreadable && asked >= 7, JSON.stringify({ ...w9, asked }));
   void C; void foreign;
 } catch (e) {
   row('X0 web acceptance', false, (e && e.stack || String(e)) + '\n' + devLog.join('').slice(-1500));
 } finally {
   if (dev) { dev.kill(); await sleep(1500); if (process.platform === 'win32' && dev.pid) spawn('taskkill', ['/pid', String(dev.pid), '/T', '/F'], { windowsHide: true }); }
+  if (store) { store.closeAllConnections?.(); store.close(); }
   await W.stop();
 }
 const failed = results.filter((r) => !r.ok);
